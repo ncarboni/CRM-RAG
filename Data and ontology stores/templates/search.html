@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+
+{% block title %}Search Byzantine Art Knowledge{% endblock %}
+
+{% block breadcrumb_active %}Search{% endblock %}
+
+{% block custom_styles %}
+.search-results {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.result-card {
+    margin-bottom: 15px;
+    transition: transform 0.2s;
+}
+
+.result-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.1);
+}
+
+.result-type-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+}
+
+.entity-badge {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.ontology-badge {
+    background-color: #6610f2;
+    color: white;
+}
+
+.search-spinner {
+    display: none;
+    margin-top: 20px;
+    text-align: center;
+}
+
+.highlight {
+    background-color: #fff3cd;
+    padding: 0 2px;
+    border-radius: 2px;
+}
+
+.search-placeholder {
+    text-align: center;
+    padding: 50px 0;
+    color: #6c757d;
+}
+
+.search-placeholder i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    color: #adb5bd;
+}
+
+.no-results {
+    text-align: center;
+    padding: 30px 0;
+    color: #dc3545;
+}
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-search me-2"></i>Search Byzantine Art Knowledge</h5>
+            </div>
+            <div class="card-body">
+                <form id="search-form">
+                    <div class="input-group mb-3">
+                        <input type="text" id="search-input" class="form-control" 
+                               placeholder="Search for churches, iconography, attributes, ontology concepts...">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-search me-1"></i>Search
+                        </button>
+                    </div>
+                    
+                    <div class="form-text mb-3">
+                        Enter natural language queries like "churches with Last Judgment scenes" or "E22 Man-Made Object definition"
+                    </div>
+                </form>
+                
+                <!-- Search spinner -->
+                <div id="search-spinner" class="search-spinner">
+                    <div class="loading-spinner"></div>
+                    <p class="mt-2">Searching knowledge base...</p>
+                </div>
+                
+                <!-- Search placeholder -->
+                <div id="search-placeholder" class="search-placeholder">
+                    <i class="fas fa-search"></i>
+                    <h4>Search the Byzantine Art Knowledge Graph</h4>
+                    <p>Enter a query above to explore entities and concepts</p>
+                </div>
+                
+                <!-- No results message (initially hidden) -->
+                <div id="no-results" class="no-results" style="display: none;">
+                    <i class="fas fa-exclamation-triangle mb-3"></i>
+                    <h4>No Results Found</h4>
+                    <p>Try different search terms or broaden your query</p>
+                </div>
+                
+                <!-- Search results container (initially hidden) -->
+                <div id="search-results" class="search-results" style="display: none;">
+                    <!-- Results will be added here dynamically -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle me-2"></i>About Semantic Search</h5>
+            </div>
+            <div class="card-body">
+                <p>This search feature uses vector embeddings to find semantically relevant information in:</p>
+                <ul>
+                    <li><strong>Entity data</strong> - Information about churches, icons, frescoes, and other Byzantine artwork</li>
+                    <li><strong>Ontology concepts</strong> - CIDOC-CRM classes and properties that structure cultural heritage data</li>
+                </ul>
+                <p>Results are ranked by semantic relevance to your query, not just keyword matching, which allows for more intuitive searching.</p>
+                <p><strong>Example searches:</strong></p>
+                <ul>
+                    <li>"Churches in Cyprus with frescoes of Saint George"</li>
+                    <li>"Iconography showing the Last Judgment"</li>
+                    <li>"What does P55_has_current_location mean in CIDOC-CRM"</li>
+                    <li>"Buildings constructed in the 12th century"</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchForm = document.getElementById('search-form');
+    const searchInput = document.getElementById('search-input');
+    const searchSpinner = document.getElementById('search-spinner');
+    const searchPlaceholder = document.getElementById('search-placeholder');
+    const noResults = document.getElementById('no-results');
+    const searchResults = document.getElementById('search-results');
+    
+    // Function to perform search
+    async function performSearch(query) {
+        // Show loading spinner, hide placeholder and results
+        searchSpinner.style.display = 'block';
+        searchPlaceholder.style.display = 'none';
+        searchResults.style.display = 'none';
+        noResults.style.display = 'none';
+        
+        try {
+            const response = await fetch('/api/search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ query }),
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Server responded with status: ${response.status}`);
+            }
+            
+            const results = await response.json();
+            
+            // Hide spinner
+            searchSpinner.style.display = 'none';
+            
+            // If no results, show no results message
+            if (results.length === 0) {
+                noResults.style.display = 'block';
+                return;
+            }
+            
+            // Clear previous results
+            searchResults.innerHTML = '';
+            
+            // Add new results
+            results.forEach(result => {
+                const resultCard = document.createElement('div');
+                resultCard.className = 'card result-card';
+                
+                let cardContent = '';
+                
+                if (result.type === 'entity') {
+                    // Entity result
+                    cardContent = `
+                        <div class="card-body">
+                            <span class="badge result-type-badge entity-badge">Entity</span>
+                            <h5 class="card-title">${result.entity_label}</h5>
+                            <p class="card-text">${highlightSearchTerms(result.excerpt, query)}</p>
+                            <a href="/entity/${encodeURIComponent(result.entity_uri)}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-info-circle me-1"></i>View Details
+                            </a>
+                        </div>
+                    `;
+                } else if (result.type === 'ontology_concept') {
+                    // Ontology concept result
+                    cardContent = `
+                        <div class="card-body">
+                            <span class="badge result-type-badge ontology-badge">Ontology</span>
+                            <h5 class="card-title">${result.concept_id} - ${result.concept_name}</h5>
+                            <p class="card-text">${highlightSearchTerms(result.excerpt, query)}</p>
+                            <a href="/ontology#${result.concept_id}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-project-diagram me-1"></i>View Concept
+                            </a>
+                        </div>
+                    `;
+                }
+                
+                resultCard.innerHTML = cardContent;
+                searchResults.appendChild(resultCard);
+            });
+            
+            // Show results
+            searchResults.style.display = 'block';
+            
+        } catch (error) {
+            console.error('Error:', error);
+            searchSpinner.style.display = 'none';
+            
+            // Show error message
+            searchResults.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    An error occurred while searching. Please try again later.
+                </div>
+            `;
+            searchResults.style.display = 'block';
+        }
+    }
+    
+    // Function to highlight search terms in result excerpts
+    function highlightSearchTerms(text, query) {
+        if (!query || !text) return text;
+        
+        // Split query into words
+        const queryWords = query.toLowerCase().split(/\s+/).filter(word => word.length > 3);
+        
+        // For each word, highlight it in the text
+        let highlightedText = text;
+        queryWords.forEach(word => {
+            const regex = new RegExp('\\b(' + word + ')\\b', 'gi');
+            highlightedText = highlightedText.replace(regex, '<span class="highlight">$1</span>');
+        });
+        
+        return highlightedText;
+    }
+    
+    // Handle search form submission
+    searchForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const query = searchInput.value.trim();
+        
+        if (query) {
+            performSearch(query);
+        }
+    });
+    
+    // Focus search input on page load
+    searchInput.focus();
+});
+</script>
+{% endblock %}

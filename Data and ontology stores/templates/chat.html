@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+
+{% block title %}Byzantine Art Chat{% endblock %}
+
+{% block breadcrumb_active %}Chat{% endblock %}
+
+{% block custom_styles %}
+.chat-container {
+    max-height: 500px;
+    overflow-y: auto;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    background-color: white;
+}
+
+.message {
+    margin-bottom: 15px;
+    padding: 12px 15px;
+    border-radius: 8px;
+    position: relative;
+}
+
+.user-message {
+    background-color: #f1f0f0;
+    margin-left: 25%;
+    margin-right: 5px;
+}
+
+.assistant-message {
+    background-color: #e3f2fd;
+    margin-right: 25%;
+    margin-left: 5px;
+}
+
+.source-link {
+    font-size: 0.8em;
+    margin-top: 8px;
+    color: #6c757d;
+}
+
+.typing-indicator {
+    display: inline-block;
+}
+
+.typing-indicator span {
+    display: inline-block;
+    height: 10px;
+    width: 10px;
+    background-color: #007bff;
+    border-radius: 50%;
+    margin: 0 1px;
+    animation: bounce 1.5s infinite ease-in-out;
+}
+
+.ontology-info {
+    background-color: #f8f9fa;
+    border-left: 4px solid #6c757d;
+    padding: 10px 15px;
+    margin-top: 15px;
+    border-radius: 4px;
+}
+
+.ontology-info h5 {
+    color: #495057;
+    font-size: 1rem;
+    margin-bottom: 8px;
+}
+
+.ontology-prop {
+    font-weight: 600;
+    color: #495057;
+}
+
+.typing-indicator span:nth-child(1) { animation-delay: 0s; }
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounce {
+    0%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-5px); }
+}
+
+.sources-section {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #dee2e6;
+}
+
+.source-list {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.source-item {
+    margin-bottom: 5px;
+    font-size: 0.9em;
+}
+
+.rdf-source {
+    color: #0d6efd;
+}
+
+.ontology-source {
+    color: #6610f2;
+}
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-comments me-2"></i>Byzantine Art & Architecture Chat</h5>
+            </div>
+            <div class="card-body">
+                <div class="chat-container" id="chat-container">
+                    <div class="message assistant-message">
+                        <p>Hello! I'm your Byzantine Art & Architecture assistant. I can answer questions about Byzantine churches, iconography, attributes, and historical context based on our RDF database and CIDOC-CRM ontology. How can I help you today?</p>
+                    </div>
+                </div>
+                
+                <div class="input-group mb-3">
+                    <input type="text" id="question-input" class="form-control" placeholder="Ask about Byzantine art, architecture, iconography...">
+                    <button class="btn btn-primary" id="send-button">
+                        <i class="fas fa-paper-plane me-1"></i>Send
+                    </button>
+                </div>
+                
+                <div class="mt-3">
+                    <p><strong>Example questions:</strong></p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul>
+                                <li><a href="#" class="example-question">Where is Panagia Phorbiottisa located?</a></li>
+                                <li><a href="#" class="example-question">What churches in Cyprus have Last Judgment iconography?</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul>
+                                <li><a href="#" class="example-question">Tell me about Saint George depictions</a></li>
+                                <li><a href="#" class="example-question">Explain what E22_Man-Made_Object means in CIDOC-CRM</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle me-2"></i>About This Chat</h5>
+            </div>
+            <div class="card-body">
+                <p>This chat interface uses a locally-hosted Retrieval-Augmented Generation (RAG) system to answer questions about Byzantine art and architecture based on:</p>
+                <ul>
+                    <li>An RDF knowledge graph with data about Byzantine churches and artwork</li>
+                    <li>The CIDOC-CRM ontology that provides structure and relationships for cultural heritage objects</li>
+                </ul>
+                <p>The system combines vector search technology with a local language model to provide accurate, sourced answers about Byzantine art history and cultural context.</p>
+                <p><strong>All processing happens locally</strong> — no data is sent to external services.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const chatContainer = document.getElementById('chat-container');
+    const questionInput = document.getElementById('question-input');
+    const sendButton = document.getElementById('send-button');
+    const exampleQuestions = document.querySelectorAll('.example-question');
+    
+    // Function to add user message
+    function addUserMessage(text) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message user-message';
+        messageDiv.innerHTML = `<p>${text}</p>`;
+        chatContainer.appendChild(messageDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+    
+    // Function to add assistant message
+    function addAssistantMessage(text, sources = []) {
+        // Add typing indicator first
+        const indicatorDiv = document.createElement('div');
+        indicatorDiv.className = 'message assistant-message';
+        indicatorDiv.innerHTML = `
+            <div class="typing-indicator">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        `;
+        chatContainer.appendChild(indicatorDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        
+        // Process text to handle markdown-style citations and ontology section
+        let formattedText = text;
+        let ontologySection = '';
+        
+        // Handle citations
+        formattedText = formattedText.replace(/\[(\d+)\]/g, (match, p1) => {
+            return `<sup>[${p1}]</sup>`;
+        });
+        
+        // Extract and format ontology section if present
+        if (text.includes("Note on CIDOC-CRM concepts used:")) {
+            const parts = text.split(/\n\nNote on CIDOC-CRM concepts used:/);
+            formattedText = parts[0];
+            
+            if (parts.length > 1) {
+                const ontologyInfo = parts[1];
+                ontologySection = `
+                    <div class="ontology-info">
+                        <h5>CIDOC-CRM Concepts Used:</h5>
+                        <p>${ontologyInfo.replace(/\n- /g, '<br/>- ')}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Replace the indicator with the actual message after a short delay
+        setTimeout(() => {
+            // Create the actual message
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message assistant-message';
+            
+            // Convert markdown to HTML
+            const htmlContent = marked.parse(formattedText);
+            
+            // Add the message text
+            messageDiv.innerHTML = `<div>${htmlContent}</div>`;
+            
+            // Add ontology section if present
+            if (ontologySection) {
+                messageDiv.innerHTML += ontologySection;
+            }
+            
+            // Add sources if any
+            if (sources && sources.length > 0) {
+                const sourcesDiv = document.createElement('div');
+                sourcesDiv.className = 'sources-section';
+                sourcesDiv.innerHTML = '<p><strong>Sources:</strong></p><ul class="source-list">';
+                
+                sources.forEach(source => {
+                    if (source.type === "rdf_data") {
+                        sourcesDiv.innerHTML += `<li class="source-item rdf-source">
+                            <a href="/entity/${encodeURIComponent(source.entity_uri)}" target="_blank">
+                                ${source.entity_label || source.entity_uri}
+                            </a>
+                        </li>`;
+                    } else if (source.type === "ontology_documentation") {
+                        sourcesDiv.innerHTML += `<li class="source-item ontology-source">
+                            <a href="/ontology#${source.concept_id}" target="_blank">
+                                ${source.concept_id} (${source.concept_name})
+                            </a>
+                        </li>`;
+                    }
+                });
+                
+                sourcesDiv.innerHTML += '</ul>';
+                messageDiv.appendChild(sourcesDiv);
+            }
+            
+            // Replace typing indicator with actual message
+            chatContainer.replaceChild(messageDiv, indicatorDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }, 1500); // Simulated typing delay
+    }
+    
+    // Function to send question to server
+    async function sendQuestion(question) {
+        // Don't send empty questions
+        if (!question.trim()) return;
+        
+        // Add user message to chat
+        addUserMessage(question);
+        
+        // Clear input and disable send button
+        questionInput.value = '';
+        sendButton.disabled = true;
+        
+        try {
+            // Send request to server
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ question }),
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Server responded with status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // Add assistant response to chat
+            addAssistantMessage(data.answer, data.sources);
+        } catch (error) {
+            console.error('Error:', error);
+            addAssistantMessage('Sorry, I encountered an error while processing your question. Please try again later.');
+        } finally {
+            // Re-enable send button
+            sendButton.disabled = false;
+            // Focus input for next question
+            questionInput.focus();
+        }
+    }
+    
+    // Handle send button click
+    sendButton.addEventListener('click', () => {
+        sendQuestion(questionInput.value);
+    });
+    
+    // Handle Enter key press
+    questionInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            sendQuestion(questionInput.value);
+        }
+    });
+    
+    // Handle example questions
+    exampleQuestions.forEach(question => {
+        question.addEventListener('click', (e) => {
+            e.preventDefault();
+            questionInput.value = question.textContent;
+            sendQuestion(question.textContent);
+        });
+    });
+    
+    // Focus input field on load
+    questionInput.focus();
+});
+</script>
+{% endblock %}

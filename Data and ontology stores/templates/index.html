@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Byzantine Art Knowledge Graph Explorer{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Home</li>
+{% endblock %}
+
+{% block breadcrumb_active %}Home{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-body text-center py-5">
+                <h1 class="display-5 mb-4">Byzantine Art Knowledge Graph Explorer</h1>
+                <p class="lead">
+                    Explore Byzantine art and architecture through an intelligent knowledge graph based on the CIDOC-CRM ontology.
+                </p>
+                <div class="mt-4">
+                    <a href="/chat" class="btn btn-lg btn-primary me-2">
+                        <i class="fas fa-comments me-2"></i>Chat with the Knowledge Base
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5><i class="fas fa-map-marked-alt me-2"></i>Map Exploration</h5>
+            </div>
+            <div class="card-body">
+                <p>Visualize the geographical distribution of Byzantine churches and artifacts across Cyprus and the wider Mediterranean region.</p>
+                <p>Discover regional patterns and relationships between sites through an interactive map interface.</p>
+            </div>
+            <div class="card-footer text-center">
+                <a href="/map" class="btn btn-primary">Explore Map</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5><i class="fas fa-search me-2"></i>Semantic Search</h5>
+            </div>
+            <div class="card-body">
+                <p>Search the knowledge graph using natural language to find artworks, buildings, icons, and their relationships.</p>
+                <p>Results are organized by relevance and can include both entity information and ontological concepts.</p>
+            </div>
+            <div class="card-footer text-center">
+                <a href="/search" class="btn btn-primary">Search Knowledge Base</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5><i class="fas fa-project-diagram me-2"></i>Ontology Browser</h5>
+            </div>
+            <div class="card-body">
+                <p>Explore the CIDOC-CRM ontology that structures the knowledge graph, understanding how cultural heritage objects are conceptualized.</p>
+                <p>Learn about classes, properties, and relationships that describe Byzantine art and architecture.</p>
+            </div>
+            <div class="card-footer text-center">
+                <a href="/ontology" class="btn btn-primary">Browse Ontology</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle me-2"></i>About This Project</h5>
+            </div>
+            <div class="card-body">
+                <p>This application provides an intelligent interface to explore Byzantine art and architecture data through a knowledge graph based on the CIDOC-CRM ontology. It combines:</p>
+                
+                <ul>
+                    <li><strong>RDF Data Store</strong>: A semantic database containing detailed information about Byzantine churches, frescoes, icons, and their relationships</li>
+                    <li><strong>CIDOC-CRM Ontology</strong>: The formal structure that organizes cultural heritage information in a standardized way</li>
+                    <li><strong>Vector Embeddings</strong>: Advanced AI techniques for semantic similarity search and natural language understanding</li>
+                    <li><strong>Retrieval-Augmented Generation</strong>: A conversational AI system that answers questions using the knowledge graph</li>
+                </ul>
+                
+                <p>The system allows researchers, students, and enthusiasts to explore Byzantine art through natural language interactions, geographical context, and ontological relationships.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

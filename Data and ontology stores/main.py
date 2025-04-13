@@ -29,10 +29,11 @@ app = Flask(__name__)
 # Initialize RAG system
 ONTOLOGY_DOCS = [
     "docs/CIDOC_CRM_v7.1.3.ttl",  # Path to CIDOC-CRM documentation
+    "docs/vir.ttl" # path to VIR ontology
 ]
 
 # Configure Fuseki endpoint
-FUSEKI_ENDPOINT = os.environ.get('FUSEKI_ENDPOINT', 'http://localhost:3030/Asinou/sparql')
+FUSEKI_ENDPOINT = os.environ.get('FUSEKI_ENDPOINT', 'http://localhost:3030/asinou/sparql')
 OLLAMA_MODEL = os.environ.get('OLLAMA_MODEL', 'llama3')
 
 # Initialize the RAG system with configuration

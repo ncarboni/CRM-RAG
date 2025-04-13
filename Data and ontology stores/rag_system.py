@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 class FusekiRagSystem:
     """RAG system that integrates RDF data from Fuseki with ontology knowledge"""
     
-    def __init__(self, endpoint_url="http://localhost:3030/Asinou/sparql", 
+    def __init__(self, endpoint_url="http://localhost:3030/asinou/sparql", 
                  embedding_model_name="sentence-transformers/all-mpnet-base-v2",
                  ollama_model="llama3",
                  ontology_docs_path=None):

@@ -55,6 +55,13 @@ def initialize_system_startup():
         # Pre-build vector stores for faster responses
         try:
             rag_system.ensure_vectorstores()
+            
+            # Build additional context indices
+            logger.info("Building additional context indices...")
+            rag_system.add_geographic_context()
+            rag_system.add_temporal_context()
+            rag_system.add_iconographic_context()
+            logger.info("Context indices built successfully")
         except Exception as e:
             logger.error(f"Error initializing vector stores: {str(e)}")
             logger.info("You can still use the application, but search may not work properly")
@@ -122,6 +129,15 @@ def get_entity_wikidata(entity_uri):
         return jsonify({"error": f"Could not fetch Wikidata info for ID: {wikidata_id}"}), 404
     
     return jsonify(wikidata_info)
+
+@app.route('/api/ontology/taxonomy/<taxonomy_group>')
+def get_taxonomy_group(taxonomy_group):
+    """API endpoint to get entities by taxonomy group"""
+    if taxonomy_group not in ["physical_entities", "temporal_entities", "conceptual_entities", "visual_representation"]:
+        return jsonify({"error": "Invalid taxonomy group"}), 400
+    
+    entities = rag_system.get_entity_by_taxonomy_group(taxonomy_group)
+    return jsonify(entities)
 
 @app.route('/api/chat', methods=['POST'])
 def chat_api():

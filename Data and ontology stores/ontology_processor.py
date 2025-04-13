@@ -14,7 +14,6 @@ import rdflib
 from rdflib import Namespace
 from rdflib.namespace import RDF, RDFS
 from typing import Dict, List, Optional, Any
-
 import fitz  # PyMuPDF for PDF processing
 from langchain.docstore.document import Document
 from langchain_community.vectorstores import FAISS
@@ -113,6 +112,8 @@ class OntologyProcessor:
         return concepts
 
 
+
+
     def extract_cidoc_crm_concepts(self, text: str) -> Dict[str, Dict[str, Any]]:
         """
         Extract CIDOC-CRM concepts and their definitions from text.
@@ -189,7 +190,36 @@ class OntologyProcessor:
                         )
         
         return self.ontology_graph
+
+    def is_subclass_of(self, concept_id, parent_id):
+        """Determine if a concept is a subclass of another concept"""
     
+        # Direct match
+        if concept_id == parent_id:
+            return True
+            
+        # Check graph for path
+        if concept_id in self.ontology_graph and parent_id in self.ontology_graph:
+            try:
+                path = nx.has_path(self.ontology_graph, parent_id, concept_id)
+                return path
+            except:
+                pass
+        
+        # Check subclasses recursively
+        concept = self.concepts.get(concept_id, {})
+        subclass_of = concept.get("subclasses", [])
+        
+        if parent_id in subclass_of:
+            return True
+            
+        # Recursive check for each parent
+        for parent in subclass_of:
+            if self.is_subclass_of(parent, parent_id):
+                return True
+                
+        return False
+
     def process_ontology_docs(self):
         """
         Process ontology documentation.
@@ -201,28 +231,82 @@ class OntologyProcessor:
         turtle_docs = [doc for doc in self.ontology_docs_path if doc.lower().endswith('.ttl')]
         pdf_docs = [doc for doc in self.ontology_docs_path if doc.lower().endswith('.pdf')]
         
-        if turtle_docs:
-            # Extract concepts from the first Turtle file
-            self.concepts = self.load_turtle_document(turtle_docs[0])
-        elif pdf_docs:
-            # Fallback to PDF processing if no Turtle file
-            all_text = ""
-            for doc_path in pdf_docs:
-                if os.path.exists(doc_path):
-                    doc_text = self.load_pdf_document(doc_path)
-                    all_text += doc_text
+        try:
+            self.concepts = {}
             
-            # Extract concepts from PDF text
-            self.concepts = self.extract_cidoc_crm_concepts(all_text)
-        else:
-            logger.warning("No ontology documentation found")
+            # Process turtle documents first
+            for turtle_path in turtle_docs:
+                # Extract concepts from the Turtle file
+                new_concepts = self.load_ontology_document(turtle_path)
+                # Merge with existing concepts
+                self.concepts.update(new_concepts)
+                
+            # If no concepts found and PDF docs exist, use PDF processing
+            if not self.concepts and pdf_docs:
+                logger.info("No concepts from Turtle files, falling back to PDF processing")
+                all_text = ""
+                for doc_path in pdf_docs:
+                    if os.path.exists(doc_path):
+                        doc_text = self.load_pdf_document(doc_path)
+                        all_text += doc_text
+                
+                # Extract concepts from PDF text
+                self.concepts = self.extract_cidoc_crm_concepts(all_text)
+            
+            if not self.concepts:
+                logger.warning("No ontology concepts found")
+                return {}
+                
+            # Build ontology graph
+            try:
+                self.build_ontology_graph()
+                logger.info("Built ontology graph successfully")
+            except Exception as e:
+                logger.error(f"Error building ontology graph: {str(e)}")
+            
+            # Process core taxonomy
+            try:
+                self.process_core_taxonomy()
+                logger.info("Processed core taxonomy successfully")
+            except Exception as e:
+                logger.error(f"Error processing core taxonomy: {str(e)}")
+                
+            return self.concepts
+        except Exception as e:
+            logger.error(f"Unhandled error in process_ontology_docs: {str(e)}")
             return {}
-        
-        # Build ontology graph
-        self.build_ontology_graph()
-        
-        return self.concepts
     
+
+    def process_core_taxonomy(self):
+        """Add core CIDOC-CRM taxonomy relationships to improve context understanding"""
+        logger.info("Processing core taxonomy relationships...")
+        
+        # Define core taxonomy groups as specified
+        taxonomy = {
+            "physical_entities": {"parent": "E77_Persistent_Item"},
+            "temporal_entities": {"parent": "E2_Temporal_Entity"},
+            "conceptual_entities": {"parent": "E28_Conceptual_Object"}
+        }
+        
+        # Build subclass relationships
+        for concept_id, concept in self.concepts.items():
+            # Find taxonomy group for each concept
+            for group_name, group_info in taxonomy.items():
+                parent = group_info["parent"]
+                if self.is_subclass_of(concept_id, parent):
+                    if "taxonomy_group" not in concept:
+                        concept["taxonomy_group"] = []
+                    concept["taxonomy_group"].append(group_name)
+                    
+            # Special handling for VIR ontology concepts
+            if concept_id.startswith("IC") or "vir" in concept.get("ontology", ""):
+                if "taxonomy_group" not in concept:
+                    concept["taxonomy_group"] = []
+                concept["taxonomy_group"].append("visual_representation")
+        
+        logger.info(f"Added taxonomy groups to {sum(1 for c in self.concepts.values() if 'taxonomy_group' in c)} concepts")
+        return self.concepts
+
     def get_concept_context(self, concept_id: str, depth: int = 1) -> Optional[Dict[str, Any]]:
         """
         Get context for a specific concept, including related concepts.
@@ -307,6 +391,169 @@ class OntologyProcessor:
             documents.append(doc)
             
         return documents
+
+    def load_ontology_document(self, turtle_path: str):
+        """
+        Load an ontology RDF document and extract concepts.
+        Works for both CIDOC-CRM and VIR ontologies.
+        
+        Args:
+            turtle_path: Path to the Turtle (.ttl) file
+        
+        Returns:
+            Dictionary of extracted concepts
+        """
+        logger.info(f"Extracting concepts from ontology file: {turtle_path}")
+        
+        # Create a graph
+        g = rdflib.Graph()
+        g.parse(turtle_path, format='turtle')
+        
+        # Log namespaces for debugging
+        logger.info("Namespaces in ontology file:")
+        for prefix, namespace in g.namespaces():
+            logger.info(f"  {prefix}: {namespace}")
+        
+        # Supported namespaces
+        cidoc_crm = rdflib.Namespace("http://www.cidoc-crm.org/cidoc-crm/")
+        vir = rdflib.Namespace("http://w3id.org/vir#")
+        
+        # Get class types
+        class_types = [rdflib.RDFS.Class, rdflib.OWL.Class]
+        
+        concepts = {}
+        concepts_count = 0
+        
+        # Process all classes in both namespaces
+        for class_type in class_types:
+            for subj, pred, obj in g.triples((None, rdflib.RDF.type, class_type)):
+                # Check if subject is in one of our supported namespaces
+                is_crm = str(subj).startswith(str(cidoc_crm))
+                is_vir = str(subj).startswith(str(vir))
+                
+                if is_crm or is_vir:
+                    # Extract ID (last part of the URI)
+                    if "#" in str(subj):
+                        class_id = str(subj).split('#')[-1]
+                    else:
+                        class_id = str(subj).split('/')[-1]
+                    
+                    # Get definition
+                    comments = list(g.objects(subj, rdflib.RDFS.comment))
+                    definition = str(comments[0]) if comments else "No definition available"
+                    
+                    # Get label
+                    labels = list(g.objects(subj, rdflib.RDFS.label))
+                    class_name = str(labels[0]) if labels else class_id
+                    
+                    # Get subclass relationships
+                    subclasses = []
+                    for _, _, parent in g.triples((subj, rdflib.RDFS.subClassOf, None)):
+                        if "#" in str(parent):
+                            parent_id = str(parent).split('#')[-1]
+                        else:
+                            parent_id = str(parent).split('/')[-1]
+                            
+                        subclasses.append(parent_id)
+                    
+                    # Create concept entry
+                    concepts[class_id] = {
+                        'id': class_id,
+                        'name': class_name,
+                        'type': 'class',
+                        'uri': str(subj),
+                        'ontology': 'vir' if is_vir else 'cidoc_crm',
+                        'definition': definition.strip(),
+                        'subclasses': subclasses
+                    }
+                    concepts_count += 1
+                    
+                    logger.info(f"Found concept: {class_id} - {class_name} from {concepts[class_id]['ontology']}")
+        
+        # As a fallback for VIR, also look for classes that are used in subClassOf relationships
+        if "vir.ttl" in turtle_path.lower():
+            for subj, pred, obj in g.triples((None, rdflib.RDFS.subClassOf, None)):
+                # Check if subject is in VIR namespace but not already added
+                if str(subj).startswith(str(vir)) and not any(c.get('uri') == str(subj) for c in concepts.values()):
+                    # Extract ID
+                    class_id = str(subj).split('#')[-1]
+                    
+                    # Get definition
+                    comments = list(g.objects(subj, rdflib.RDFS.comment))
+                    definition = str(comments[0]) if comments else "No definition available"
+                    
+                    # Get label
+                    labels = list(g.objects(subj, rdflib.RDFS.label))
+                    class_name = str(labels[0]) if labels else class_id
+                    
+                    if "#" in str(obj):
+                        parent_id = str(obj).split('#')[-1]
+                    else:
+                        parent_id = str(obj).split('/')[-1]
+                    
+                    logger.info(f"Found VIR subclass: {class_id} - {class_name} (subclass of {parent_id})")
+                    
+                    # Create concept entry
+                    concepts[class_id] = {
+                        'id': class_id,
+                        'name': class_name,
+                        'type': 'class',
+                        'uri': str(subj),
+                        'ontology': 'vir',
+                        'definition': definition.strip(),
+                        'subclasses': [parent_id]
+                    }
+                    concepts_count += 1
+        
+        # If VIR and still no concepts found, use a hardcoded list
+        if "vir.ttl" in turtle_path.lower() and not any(c.get('ontology') == 'vir' for c in concepts.values()):
+            logger.info("Using hardcoded VIR class list")
+            
+            # Key VIR classes
+            vir_classes = [
+                "IC10_Attribute", "IC16_Character", "IC11_Personification", 
+                "IC12_Visual_Recognition", "IC19_Recto", "IC1_Iconographical_Atom",
+                "IC20_Verso", "IC9_Representation", "PCK4_is_visual_prototype_of",
+                "IC21_Similarity_Statement"
+            ]
+            
+            for class_id in vir_classes:
+                class_uri = vir[class_id]
+                
+                # Get definition
+                comments = list(g.objects(class_uri, rdflib.RDFS.comment))
+                definition = str(comments[0]) if comments else "No definition available"
+                
+                # Get label
+                labels = list(g.objects(class_uri, rdflib.RDFS.label))
+                class_name = str(labels[0]) if labels else class_id
+                
+                # Get subclass relationships
+                subclasses = []
+                for _, _, parent in g.triples((class_uri, rdflib.RDFS.subClassOf, None)):
+                    if "#" in str(parent):
+                        parent_id = str(parent).split('#')[-1]
+                    else:
+                        parent_id = str(parent).split('/')[-1]
+                        
+                    subclasses.append(parent_id)
+                
+                logger.info(f"Added hardcoded VIR class: {class_id} - {class_name}")
+                
+                concepts[class_id] = {
+                    'id': class_id,
+                    'name': class_name,
+                    'type': 'class',
+                    'uri': str(class_uri),
+                    'ontology': 'vir',
+                    'definition': definition.strip(),
+                    'subclasses': subclasses
+                }
+                concepts_count += 1
+        
+        logger.info(f"Extracted {concepts_count} concepts from ontology file")
+        return concepts
+    
     
     def build_vectorstore(self, embeddings: Embeddings, force_rebuild: bool = False) -> Optional[FAISS]:
         """

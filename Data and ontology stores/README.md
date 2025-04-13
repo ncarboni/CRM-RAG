@@ -7,3 +7,6 @@ RDF Vectorstore: Contains factual information about Byzantine art and architectu
 Ontology Vectorstore: Contains CIDOC-CRM concepts, definitions, and relationships extracted from PDF documentation
 
 This separation allows the system to retrieve both types of knowledge independently and blend them appropriately, giving factual data higher priority while using ontology knowledge to provide deeper context.
+
+
+To Test: other models for RAG

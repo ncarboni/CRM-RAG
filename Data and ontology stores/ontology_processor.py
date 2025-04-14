@@ -277,6 +277,152 @@ class OntologyProcessor:
             return {}
     
 
+    def build_ontology_context_dictionary(self):
+        """
+        Build a comprehensive dictionary of relationship types and their meanings
+        extracted from the ontology's properties.
+        """
+        logger.info("Building ontology context dictionary...")
+        ontology_context = {}
+        
+        # Query for property definitions, domains, ranges, and examples
+        query = """
+        PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX owl: <http://www.w3.org/2002/07/owl#>
+        
+        SELECT ?property ?propertyLabel ?comment ?domain ?domainLabel ?range ?rangeLabel ?inverse ?inverseLabel WHERE {
+            ?property a rdf:Property .
+            OPTIONAL { ?property rdfs:label ?propertyLabel . FILTER(LANG(?propertyLabel) = 'en' || LANG(?propertyLabel) = '') }
+            OPTIONAL { ?property rdfs:comment ?comment }
+            OPTIONAL { ?property rdfs:domain ?domain . OPTIONAL { ?domain rdfs:label ?domainLabel } }
+            OPTIONAL { ?property rdfs:range ?range . OPTIONAL { ?range rdfs:label ?rangeLabel } }
+            OPTIONAL { ?property owl:inverseOf ?inverse . OPTIONAL { ?inverse rdfs:label ?inverseLabel } }
+        }
+        """
+        
+        try:
+            self.sparql.setQuery(query)
+            results = self.sparql.query().convert()
+            
+            for result in results["results"]["bindings"]:
+                property_uri = result["property"]["value"]
+                # Extract property ID (e.g., P89_falls_within from full URI)
+                property_id = property_uri.split('/')[-1]
+                
+                # Skip if not a CIDOC-CRM or VIR property
+                if not (property_id.startswith('P') or property_id.startswith('K')):
+                    continue
+                    
+                property_info = {
+                    "uri": property_uri,
+                    "id": property_id,
+                    "label": result.get("propertyLabel", {"value": property_id})["value"],
+                    "comment": result.get("comment", {"value": "No definition available"})["value"],
+                }
+                
+                # Add domain and range information
+                if "domain" in result:
+                    domain_uri = result["domain"]["value"]
+                    domain_id = domain_uri.split('/')[-1]
+                    property_info["domain"] = {
+                        "uri": domain_uri,
+                        "id": domain_id,
+                        "label": result.get("domainLabel", {"value": domain_id})["value"]
+                    }
+                    
+                if "range" in result:
+                    range_uri = result["range"]["value"]
+                    range_id = range_uri.split('/')[-1]
+                    property_info["range"] = {
+                        "uri": range_uri,
+                        "id": range_id,
+                        "label": result.get("rangeLabel", {"value": range_id})["value"]
+                    }
+                    
+                # Add inverse relationship if available
+                if "inverse" in result:
+                    inverse_uri = result["inverse"]["value"]
+                    inverse_id = inverse_uri.split('/')[-1]
+                    property_info["inverse"] = {
+                        "uri": inverse_uri,
+                        "id": inverse_id,
+                        "label": result.get("inverseLabel", {"value": inverse_id})["value"]
+                    }
+                    
+                # Generate natural language interpretation
+                property_info["interpretation"] = self._generate_relationship_interpretation(property_info)
+                
+                # Add contextual examples
+                property_info["examples"] = self._generate_relationship_examples(property_info)
+                
+                # Add to the context dictionary
+                ontology_context[property_id] = property_info
+                
+            logger.info(f"Built ontology context dictionary with {len(ontology_context)} relationships")
+            return ontology_context
+        except Exception as e:
+            logger.error(f"Error building ontology context dictionary: {str(e)}")
+            return {}
+            
+    def _generate_relationship_interpretation(self, property_info):
+        """
+        Generate a natural language interpretation of what this relationship means.
+        """
+        property_id = property_info["id"]
+        comment = property_info["comment"]
+        
+        # Extract first sentence from comment for concise interpretation
+        first_sentence = comment.split('.')[0] + '.'
+        
+        # Create structured interpretation
+        interpretation = f"{property_id} means: {first_sentence}"
+        
+        # Add domain/range context if available
+        if "domain" in property_info and "range" in property_info:
+            domain_label = property_info["domain"]["label"]
+            range_label = property_info["range"]["label"]
+            interpretation += f" This property connects {domain_label} to {range_label}."
+        
+        # Add specific interpretations for common relationships
+        if property_id == "P89_falls_within":
+            interpretation += " IMPORTANT: This means the subject is CONTAINED BY the object, not the reverse."
+        elif property_id == "P7_took_place_at":
+            interpretation += " This indicates that an activity or event occurred at a specific place."
+        elif property_id == "P31_has_modified":
+            interpretation += " This means an activity caused changes to the physical thing."
+        
+        return interpretation
+        
+    def _generate_relationship_examples(self, property_info):
+        """
+        Generate examples of how this relationship should be interpreted.
+        """
+        property_id = property_info["id"]
+        examples = []
+        
+        # Common examples for critical relationships
+        if property_id == "P89_falls_within":
+            examples.append("'Cyprus P89_falls_within Europe' means Cyprus is part of Europe, not that Europe is part of Cyprus.")
+            examples.append("If a church P89_falls_within a village, the church is located in the village.")
+            
+        elif property_id == "P7_took_place_at":
+            examples.append("'Fresco painting P7_took_place_at Church' means the painting activity happened at the church.")
+            examples.append("When an event P7_took_place_at a location, the event occurred at that physical location.")
+            
+        elif property_id == "P31_has_modified":
+            examples.append("'Restoration P31_has_modified Church wall' means the restoration work changed the church wall.")
+            examples.append("If a production P31_has_modified a physical object, the production activity altered that object.")
+        
+        # Generate generic examples based on domain/range if no specific examples
+        if not examples and "domain" in property_info and "range" in property_info:
+            domain = property_info["domain"]["label"]
+            range_label = property_info["range"]["label"]
+            examples.append(f"'{domain} {property_id} {range_label}' means the {domain.lower()} has a relationship of '{property_info['label']}' with the {range_label.lower()}.")
+        
+        return examples
+
     def process_core_taxonomy(self):
         """Add core CIDOC-CRM taxonomy relationships to improve context understanding"""
         logger.info("Processing core taxonomy relationships...")

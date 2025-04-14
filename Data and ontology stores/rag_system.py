@@ -408,6 +408,66 @@ class FusekiRagSystem:
             "reasoning_paths": [{"path": path} for path in reasoning_paths]
         }
 
+
+    def answer_question_with_ontology_context(self, question):
+        """
+        Answer a question using ontology-aware retrieval and interpretation.
+        """
+        logger.info(f"Answering question with ontology context: '{question}'")
+        
+        # Initialize chat chain if needed
+        if not hasattr(self, 'chat_chain') or self.chat_chain is None:
+            logger.info("Chat chain not initialized, setting up...")
+            if not self.setup_chat_chain():
+                logger.error("Failed to set up chat chain")
+                return {
+                    "answer": "I'm sorry, I couldn't set up the answering system. Please check the logs for details.",
+                    "sources": []
+                }
+        
+        # Use ontology-aware retrieval
+        context_docs = self.context_aware_retrieval(question)
+        
+        # Format context for the LLM
+        context = "\n\n".join([doc.page_content for doc in context_docs])
+        
+        # Get answer using the enhanced prompt
+        result = self.chat_chain.invoke({"question": question, "context": context})
+        
+        # Process answer and sources
+        answer = result["answer"]
+        source_docs = result.get("source_documents", context_docs)
+        
+        # Format sources
+        sources = []
+        for i, doc in enumerate(source_docs):
+            if doc.metadata.get("source", "").startswith("rdf_data"):
+                entity_uri = doc.metadata.get("entity", "")
+                entity_label = doc.metadata.get("label", "")
+                
+                sources.append({
+                    "id": i,
+                    "entity_uri": entity_uri,
+                    "entity_label": entity_label,
+                    "type": doc.metadata.get("source", "unknown")
+                })
+            elif doc.metadata.get("source") == "ontology_documentation":
+                concept_id = doc.metadata.get("concept_id", "")
+                concept_name = doc.metadata.get("concept_name", "")
+                
+                sources.append({
+                    "id": i,
+                    "concept_id": concept_id,
+                    "concept_name": concept_name,
+                    "type": "ontology_documentation"
+                })
+        
+        return {
+            "answer": answer,
+            "sources": sources
+        }
+
+
     def get_entity_label(self, entity_uri):
         """Get label for an entity URI"""
         query = f"""
@@ -1079,6 +1139,182 @@ class FusekiRagSystem:
             logger.error(f"Error building temporal context: {str(e)}")
             return None
 
+    def context_aware_retrieval(self, query):
+        """
+        Retrieval process that uses ontology context dictionary to enhance understanding.
+        """
+        # Ensure ontology context dictionary is available
+        if not hasattr(self, 'ontology_context') or not self.ontology_context:
+            self.ontology_context = self.build_ontology_context_dictionary()
+        
+        # 1. Analyze the query for entity mentions and potential relationship questions
+        entity_mentions, relationship_types = self.analyze_query_for_relationships(query)
+        
+        # 2. If query involves specific relationships, enhance with relevant context
+        enhanced_context = ""
+        if relationship_types:
+            for rel_type in relationship_types:
+                if rel_type in self.ontology_context:
+                    rel_info = self.ontology_context[rel_type]
+                    enhanced_context += f"\nRelationship information: {rel_info['interpretation']}\n"
+                    enhanced_context += f"Examples: {'; '.join(rel_info['examples'])}\n"
+        
+        # 3. Conduct base retrieval
+        docs = self.search(query, k=5)
+        
+        # 4. Extract relationships from retrieved documents
+        extracted_relationships = self.extract_relationships_from_docs(docs)
+        
+        # 5. Apply relationship-specific reasoning
+        for rel_id, rel_instances in extracted_relationships.items():
+            if rel_id in self.ontology_context:
+                # Apply correct interpretation based on ontology context
+                rel_info = self.ontology_context[rel_id]
+                for instance in rel_instances:
+                    # Correct interpretation of relationship instances
+                    self.apply_relationship_reasoning(instance, rel_info)
+        
+        # 6. Return enhanced documents with relationship context
+        return self.format_docs_with_ontology_context(docs, extracted_relationships, enhanced_context)
+
+
+    def analyze_query_for_relationships(self, query):
+        """
+        Analyze the query to identify entity mentions and potential relationship questions.
+        """
+        entity_mentions = []
+        relationship_types = []
+        
+        # Simple pattern matching for entity mentions
+        # This could be enhanced with NER or more sophisticated techniques
+        for entity in self.get_all_entities():
+            if entity["label"].lower() in query.lower():
+                entity_mentions.append(entity)
+        
+        # Check for relationship keywords
+        relationship_keywords = {
+            "located": ["P89_falls_within", "P55_has_current_location"],
+            "place": ["P89_falls_within", "P7_took_place_at"],
+            "contained": ["P89_falls_within"],
+            "modified": ["P31_has_modified"],
+            "created": ["P108i_was_produced_by"],
+            "when": ["P4_has_time-span", "P82_at_some_time_within"],
+            "depicts": ["K24_portray", "K17_has_attribute"]
+        }
+        
+        for keyword, rel_types in relationship_keywords.items():
+            if keyword.lower() in query.lower():
+                relationship_types.extend(rel_types)
+        
+        # Remove duplicates
+        relationship_types = list(set(relationship_types))
+        
+        return entity_mentions, relationship_types
+
+    def extract_relationships_from_docs(self, docs):
+        """
+        Extract explicit CIDOC-CRM relationships from retrieved documents.
+        """
+        relationships = {}
+        
+        # Regex patterns for relationship extraction
+        property_pattern = r'(P\d+[_i]?[A-Za-z_-]+|K\d+[_i]?[A-Za-z_-]+)'
+        entity_pattern = r'<(http://[\w\./:-]+)>'
+        
+        for doc in docs:
+            content = doc.page_content
+            
+            # Find all relationship mentions
+            for match in re.finditer(f"{entity_pattern}\\s+{property_pattern}\\s+{entity_pattern}", content):
+                subj_uri = match.group(1)
+                predicate = match.group(2)
+                obj_uri = match.group(3)
+                
+                if predicate not in relationships:
+                    relationships[predicate] = []
+                    
+                relationships[predicate].append({
+                    "subject": subj_uri,
+                    "predicate": predicate,
+                    "object": obj_uri,
+                    "doc_id": doc.metadata.get("entity", "")
+                })
+        
+        return relationships
+
+    def apply_relationship_reasoning(self, relationship_instance, relationship_info):
+        """
+        Apply ontology-aware reasoning to a relationship instance.
+        """
+        predicate = relationship_instance["predicate"]
+        
+        # Special handling for key predicates
+        if predicate == "P89_falls_within":
+            # Make sure we understand it's "subject falls within object"
+            relationship_instance["correct_interpretation"] = f"'{self.get_entity_label(relationship_instance['subject'])}' is contained within '{self.get_entity_label(relationship_instance['object'])}'"
+            
+        elif predicate == "P7_took_place_at":
+            # Make sure we understand it's "subject event happened at object place"
+            relationship_instance["correct_interpretation"] = f"'{self.get_entity_label(relationship_instance['subject'])}' occurred at '{self.get_entity_label(relationship_instance['object'])}'"
+        
+        elif predicate == "P31_has_modified":
+            # Make sure we understand it's "subject activity modified object thing"
+            relationship_instance["correct_interpretation"] = f"'{self.get_entity_label(relationship_instance['subject'])}' changed '{self.get_entity_label(relationship_instance['object'])}'"
+        
+        else:
+            # Generic interpretation based on relationship info
+            relationship_instance["correct_interpretation"] = f"'{self.get_entity_label(relationship_instance['subject'])}' {relationship_info['label']} '{self.get_entity_label(relationship_instance['object'])}'"
+        
+        return relationship_instance
+
+    def format_docs_with_ontology_context(self, docs, relationships, enhanced_context):
+        """
+        Format the documents with added ontology context for better interpretation.
+        """
+        enhanced_docs = []
+        
+        for doc in docs:
+            # Create a copy of the document
+            enhanced_content = doc.page_content
+            
+            # Add relationship interpretations if relevant to this document
+            doc_uri = doc.metadata.get("entity", "")
+            if doc_uri:
+                interpretations = []
+                
+                # Find all relationships involving this entity
+                for rel_instances in relationships.values():
+                    for instance in rel_instances:
+                        if instance["subject"] == doc_uri or instance["object"] == doc_uri:
+                            if "correct_interpretation" in instance:
+                                interpretations.append(instance["correct_interpretation"])
+                
+                # Add interpretations to content
+                if interpretations:
+                    enhanced_content += "\n\nOntology interpretations:\n"
+                    for interp in interpretations:
+                        enhanced_content += f"- {interp}\n"
+            
+            # Create enhanced document
+            enhanced_doc = Document(
+                page_content=enhanced_content,
+                metadata=doc.metadata
+            )
+            enhanced_docs.append(enhanced_doc)
+        
+        # If we have enhanced context, add it as a separate document
+        if enhanced_context:
+            context_doc = Document(
+                page_content=f"Ontology Context Information:\n{enhanced_context}",
+                metadata={"source": "ontology_context"}
+            )
+            enhanced_docs.append(context_doc)
+        
+        return enhanced_docs
+
+
+
+
     def add_iconographic_context(self):
         """Process iconographic themes and build connections between related imagery"""
         logger.info("Building iconographic context index...")
@@ -1251,26 +1487,26 @@ class FusekiRagSystem:
             )
             
             qa_prompt = PromptTemplate.from_template(
-            """You are an expert in Byzantine art and architecture with deep knowledge about churches, iconography, 
-            attributes, and historical context. Use the following retrieved information to answer the user's question.
+            """You are an expert in Byzantine art and architecture with deep knowledge about CIDOC-CRM and VIR ontologies.
             
-            You should understand that the information is organized using the CIDOC-CRM ontology which classifies:
-            1. Physical entities (churches, artworks, physical objects)
-            2. Temporal entities (events like creations and historical periods)
-            3. Conceptual entities (visual elements, symbols, and meanings)
+            When interpreting the information from the knowledge base, pay careful attention to the meaning of ontological relationships:
             
-            But DO NOT mention these ontology terms in your answer. Instead, use natural language to explain 
-            relationships between entities. For example, instead of saying "This E22_Man-Made_Object has a 
-            P55_has_current_location relationship", simply say "This church is located in".
+            1. For each relationship (like P89_falls_within, P7_took_place_at, etc.), make sure you understand the direction correctly:
+               - Subject is the entity that HAS the relationship
+               - Object is the entity that the relationship POINTS TO
+            
+            2. "Ontology interpretations" sections provide the correct semantic meaning of relationships.
+               Always prioritize these interpretations when determining how entities relate to each other.
             
             Retrieved information:
             {context}
             
             User question: {question}
             
-            Provide a comprehensive answer using the retrieved information. When mentioning locations, churches, 
-            or artworks, specify their geographic and historical context where possible. Use natural, conversational 
-            language that a non-expert would understand.
+            Provide a comprehensive answer that:
+            1. Correctly interprets the direction of relationships (especially containment, location, and temporal relationships)
+            2. Uses natural language to explain relationships instead of ontology terminology
+            3. Is accurate to the information in the knowledge base without introducing speculation
             """
         )
 

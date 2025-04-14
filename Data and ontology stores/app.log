@@ -8228,3 +8228,845 @@ b'HTTP ERROR 404 Not Found\nURI: http://localhost:3030/Asinou/sparql?query=%0A++
 2025-04-14 09:25:37,117 - rag_system - INFO - Retrieved 4 details for entity
 2025-04-14 09:25:42,398 - httpx - INFO - HTTP Request: POST http://127.0.0.1:11434/api/chat "HTTP/1.1 200 OK"
 2025-04-14 09:25:50,102 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 09:25:50] "POST /api/chat HTTP/1.1" 200 -
+2025-04-14 09:39:02,208 - rag_system - INFO - RDF vector store not initialized, attempting to load...
+2025-04-14 09:39:02,208 - rag_system - INFO - RDF vector store already exists, loading from disk...
+2025-04-14 09:39:02,208 - rag_system - INFO - Initializing embeddings model...
+2025-04-14 09:39:04,046 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: mps
+2025-04-14 09:39:04,046 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: sentence-transformers/all-mpnet-base-v2
+2025-04-14 09:39:05,499 - rag_system - INFO - Embeddings model initialized successfully
+2025-04-14 09:39:05,501 - faiss.loader - INFO - Loading faiss.
+2025-04-14 09:39:05,513 - faiss.loader - INFO - Successfully loaded faiss.
+2025-04-14 09:39:05,517 - faiss - INFO - Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes.
+2025-04-14 09:39:05,520 - rag_system - INFO - Successfully loaded existing RDF vector store
+2025-04-14 09:39:05,520 - rag_system - INFO - Ontology vector store not initialized, attempting to load...
+2025-04-14 09:39:05,520 - ontology_processor - INFO - Processing ontology documentation first
+2025-04-14 09:39:05,520 - ontology_processor - INFO - Extracting concepts from ontology file: docs/CIDOC_CRM_v7.1.3.ttl
+2025-04-14 09:39:05,654 - ontology_processor - INFO - Namespaces in ontology file:
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   brick: https://brickschema.org/schema/Brick#
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   csvw: http://www.w3.org/ns/csvw#
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   dc: http://purl.org/dc/elements/1.1/
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   dcat: http://www.w3.org/ns/dcat#
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   dcmitype: http://purl.org/dc/dcmitype/
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   dcterms: http://purl.org/dc/terms/
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   dcam: http://purl.org/dc/dcam/
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   doap: http://usefulinc.com/ns/doap#
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   foaf: http://xmlns.com/foaf/0.1/
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   geo: http://www.opengis.net/ont/geosparql#
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   odrl: http://www.w3.org/ns/odrl/2/
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   org: http://www.w3.org/ns/org#
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   prof: http://www.w3.org/ns/dx/prof/
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   prov: http://www.w3.org/ns/prov#
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   qb: http://purl.org/linked-data/cube#
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   schema: https://schema.org/
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   sh: http://www.w3.org/ns/shacl#
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   skos: http://www.w3.org/2004/02/skos/core#
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   sosa: http://www.w3.org/ns/sosa/
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   ssn: http://www.w3.org/ns/ssn/
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   time: http://www.w3.org/2006/time#
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   vann: http://purl.org/vocab/vann/
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   void: http://rdfs.org/ns/void#
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   wgs: https://www.w3.org/2003/01/geo/wgs84_pos#
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   owl: http://www.w3.org/2002/07/owl#
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns#
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   rdfs: http://www.w3.org/2000/01/rdf-schema#
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   xsd: http://www.w3.org/2001/XMLSchema#
+2025-04-14 09:39:05,654 - ontology_processor - INFO -   xml: http://www.w3.org/XML/1998/namespace
+2025-04-14 09:39:05,654 - ontology_processor - INFO - Found concept: E10_Transfer_of_Custody - Transfer of Custody from cidoc_crm
+2025-04-14 09:39:05,654 - ontology_processor - INFO - Found concept: E11_Modification - Modification from cidoc_crm
+2025-04-14 09:39:05,654 - ontology_processor - INFO - Found concept: E12_Production - Production from cidoc_crm
+2025-04-14 09:39:05,654 - ontology_processor - INFO - Found concept: E13_Attribute_Assignment - Attribute Assignment from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E14_Condition_Assessment - Condition Assessment from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E15_Identifier_Assignment - Identifier Assignment from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E16_Measurement - Measurement from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E17_Type_Assignment - Type Assignment from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E18_Physical_Thing - Physical Thing from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E19_Physical_Object - Physical Object from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E1_CRM_Entity - CRM Entity from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E20_Biological_Object - Biological Object from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E21_Person - Person from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E22_Human-Made_Object - Human-Made Object from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E24_Physical_Human-Made_Thing - Physical Human-Made Thing from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E25_Human-Made_Feature - Human-Made Feature from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E26_Physical_Feature - Physical Feature from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E27_Site - Site from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E28_Conceptual_Object - Conceptual Object from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E29_Design_or_Procedure - Design or Procedure from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E2_Temporal_Entity - Temporal Entity from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E30_Right - Right from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E31_Document - Document from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E32_Authority_Document - Authority Document from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E33_E41_Linguistic_Appellation - Linguistic Appellation from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E33_Linguistic_Object - Linguistic Object from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E34_Inscription - Inscription from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E35_Title - Title from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E36_Visual_Item - Visual Item from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E37_Mark - Mark from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E39_Actor - Actor from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E3_Condition_State - Condition State from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E41_Appellation - Appellation from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E42_Identifier - Identifier from cidoc_crm
+2025-04-14 09:39:05,655 - ontology_processor - INFO - Found concept: E4_Period - Period from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E52_Time-Span - Time-Span from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E53_Place - Place from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E54_Dimension - Dimension from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E55_Type - Type from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E56_Language - Language from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E57_Material - Material from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E58_Measurement_Unit - Measurement Unit from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E5_Event - Event from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E63_Beginning_of_Existence - Beginning of Existence from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E64_End_of_Existence - End of Existence from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E65_Creation - Creation from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E66_Formation - Formation from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E67_Birth - Birth from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E68_Dissolution - Dissolution from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E69_Death - Death from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E6_Destruction - Destruction from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E70_Thing - Thing from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E71_Human-Made_Thing - Human-Made Thing from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E72_Legal_Object - Legal Object from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E73_Information_Object - Information Object from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E74_Group - Group from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E77_Persistent_Item - Persistent Item from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E78_Curated_Holding - Curated Holding from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E79_Part_Addition - Part Addition from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E7_Activity - Activity from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E80_Part_Removal - Part Removal from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E81_Transformation - Transformation from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E83_Type_Creation - Type Creation from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E85_Joining - Joining from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E86_Leaving - Leaving from cidoc_crm
+2025-04-14 09:39:05,656 - ontology_processor - INFO - Found concept: E87_Curation_Activity - Curation Activity from cidoc_crm
+2025-04-14 09:39:05,657 - ontology_processor - INFO - Found concept: E89_Propositional_Object - Propositional Object from cidoc_crm
+2025-04-14 09:39:05,657 - ontology_processor - INFO - Found concept: E8_Acquisition - Acquisition from cidoc_crm
+2025-04-14 09:39:05,657 - ontology_processor - INFO - Found concept: E90_Symbolic_Object - Symbolic Object from cidoc_crm
+2025-04-14 09:39:05,657 - ontology_processor - INFO - Found concept: E92_Spacetime_Volume - Spacetime Volume from cidoc_crm
+2025-04-14 09:39:05,657 - ontology_processor - INFO - Found concept: E93_Presence - Presence from cidoc_crm
+2025-04-14 09:39:05,657 - ontology_processor - INFO - Found concept: E96_Purchase - Purchase from cidoc_crm
+2025-04-14 09:39:05,657 - ontology_processor - INFO - Found concept: E97_Monetary_Amount - Monetary Amount from cidoc_crm
+2025-04-14 09:39:05,657 - ontology_processor - INFO - Found concept: E98_Currency - Currency from cidoc_crm
+2025-04-14 09:39:05,657 - ontology_processor - INFO - Found concept: E99_Product_Type - Product Type from cidoc_crm
+2025-04-14 09:39:05,657 - ontology_processor - INFO - Found concept: E9_Move - Move from cidoc_crm
+2025-04-14 09:39:05,657 - ontology_processor - INFO - Extracted 76 concepts from ontology file
+2025-04-14 09:39:05,657 - ontology_processor - INFO - Extracting concepts from ontology file: docs/vir.ttl
+2025-04-14 09:39:05,661 - ontology_processor - INFO - Namespaces in ontology file:
+2025-04-14 09:39:05,661 - ontology_processor - INFO -   brick: https://brickschema.org/schema/Brick#
+2025-04-14 09:39:05,661 - ontology_processor - INFO -   csvw: http://www.w3.org/ns/csvw#
+2025-04-14 09:39:05,661 - ontology_processor - INFO -   dc: http://purl.org/dc/elements/1.1/
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   dcat: http://www.w3.org/ns/dcat#
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   dcmitype: http://purl.org/dc/dcmitype/
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   dcterms: http://purl.org/dc/terms/
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   dcam: http://purl.org/dc/dcam/
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   doap: http://usefulinc.com/ns/doap#
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   foaf: http://xmlns.com/foaf/0.1/
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   geo: http://www.opengis.net/ont/geosparql#
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   odrl: http://www.w3.org/ns/odrl/2/
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   org: http://www.w3.org/ns/org#
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   prof: http://www.w3.org/ns/dx/prof/
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   prov: http://www.w3.org/ns/prov#
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   qb: http://purl.org/linked-data/cube#
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   schema: https://schema.org/
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   sh: http://www.w3.org/ns/shacl#
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   skos: http://www.w3.org/2004/02/skos/core#
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   sosa: http://www.w3.org/ns/sosa/
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   ssn: http://www.w3.org/ns/ssn/
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   time: http://www.w3.org/2006/time#
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   vann: http://purl.org/vocab/vann/
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   void: http://rdfs.org/ns/void#
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   wgs: https://www.w3.org/2003/01/geo/wgs84_pos#
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   owl: http://www.w3.org/2002/07/owl#
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns#
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   rdfs: http://www.w3.org/2000/01/rdf-schema#
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   xsd: http://www.w3.org/2001/XMLSchema#
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   xml: http://www.w3.org/XML/1998/namespace
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   vir: http://w3id.org/vir#
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   crm: http://www.cidoc-crm.org/cidoc-crm/
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   crmsci: http://www.ics.forth.gr/isl/CRMsci/
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   frbroo: http://iflastandards.info/ns/fr/frbr/frbroo/
+2025-04-14 09:39:05,662 - ontology_processor - INFO -   lio: https://w3id.org/lio/v1
+2025-04-14 09:39:05,662 - ontology_processor - INFO - Found VIR subclass: IC10_Attribute - Iconographical Attribute (subclass of E36_Visual_Item)
+2025-04-14 09:39:05,662 - ontology_processor - INFO - Found VIR subclass: IC9_Representation - Representation (subclass of E36_Visual_Item)
+2025-04-14 09:39:05,662 - ontology_processor - INFO - Found VIR subclass: IC16_Character - Character (subclass of F38_Character)
+2025-04-14 09:39:05,662 - ontology_processor - INFO - Found VIR subclass: IC11_Personification - Personification (subclass of IC16_Character)
+2025-04-14 09:39:05,662 - ontology_processor - INFO - Found VIR subclass: IC12_Visual_Recognition - Visual Recognition (subclass of S4_Observation)
+2025-04-14 09:39:05,662 - ontology_processor - INFO - Found VIR subclass: IC21_Similarity_Statement - Similarity Statement (subclass of S4_Observation)
+2025-04-14 09:39:05,662 - ontology_processor - INFO - Found VIR subclass: IC19_Recto - Recto (subclass of E26_Physical_Feature)
+2025-04-14 09:39:05,662 - ontology_processor - INFO - Found VIR subclass: IC20_Verso - Verso (subclass of E26_Physical_Feature)
+2025-04-14 09:39:05,662 - ontology_processor - INFO - Found VIR subclass: IC1_Iconographical_Atom - Iconographical Atom (subclass of E25_Man-Made_Feature)
+2025-04-14 09:39:05,662 - ontology_processor - INFO - Found VIR subclass: PCK4_is_visual_prototype_of - PCK4_is_visual_prototype_of (subclass of PC0_Typed_CRM_Property)
+2025-04-14 09:39:05,662 - ontology_processor - INFO - Extracted 10 concepts from ontology file
+2025-04-14 09:39:05,662 - ontology_processor - INFO - Built ontology graph successfully
+2025-04-14 09:39:05,662 - ontology_processor - INFO - Processing core taxonomy relationships...
+2025-04-14 09:39:05,663 - ontology_processor - INFO - Added taxonomy groups to 16 concepts
+2025-04-14 09:39:05,663 - ontology_processor - INFO - Processed core taxonomy successfully
+2025-04-14 09:39:05,663 - ontology_processor - INFO - Loading existing ontology vector store
+2025-04-14 09:39:05,664 - ontology_processor - INFO - Ontology vector store loaded successfully
+2025-04-14 09:39:05,678 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+2025-04-14 09:39:05,678 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-04-14 09:39:05,679 - werkzeug - INFO -  * Restarting with stat
+2025-04-14 09:39:06,119 - rag_system - INFO - RDF vector store not initialized, attempting to load...
+2025-04-14 09:39:06,119 - rag_system - INFO - RDF vector store already exists, loading from disk...
+2025-04-14 09:39:06,119 - rag_system - INFO - Initializing embeddings model...
+2025-04-14 09:39:07,484 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: mps
+2025-04-14 09:39:07,484 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: sentence-transformers/all-mpnet-base-v2
+2025-04-14 09:39:08,399 - rag_system - INFO - Embeddings model initialized successfully
+2025-04-14 09:39:08,400 - faiss.loader - INFO - Loading faiss.
+2025-04-14 09:39:08,411 - faiss.loader - INFO - Successfully loaded faiss.
+2025-04-14 09:39:08,413 - faiss - INFO - Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes.
+2025-04-14 09:39:08,414 - rag_system - INFO - Successfully loaded existing RDF vector store
+2025-04-14 09:39:08,415 - rag_system - INFO - Ontology vector store not initialized, attempting to load...
+2025-04-14 09:39:08,415 - ontology_processor - INFO - Processing ontology documentation first
+2025-04-14 09:39:08,415 - ontology_processor - INFO - Extracting concepts from ontology file: docs/CIDOC_CRM_v7.1.3.ttl
+2025-04-14 09:39:08,571 - ontology_processor - INFO - Namespaces in ontology file:
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   brick: https://brickschema.org/schema/Brick#
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   csvw: http://www.w3.org/ns/csvw#
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   dc: http://purl.org/dc/elements/1.1/
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   dcat: http://www.w3.org/ns/dcat#
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   dcmitype: http://purl.org/dc/dcmitype/
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   dcterms: http://purl.org/dc/terms/
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   dcam: http://purl.org/dc/dcam/
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   doap: http://usefulinc.com/ns/doap#
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   foaf: http://xmlns.com/foaf/0.1/
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   geo: http://www.opengis.net/ont/geosparql#
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   odrl: http://www.w3.org/ns/odrl/2/
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   org: http://www.w3.org/ns/org#
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   prof: http://www.w3.org/ns/dx/prof/
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   prov: http://www.w3.org/ns/prov#
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   qb: http://purl.org/linked-data/cube#
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   schema: https://schema.org/
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   sh: http://www.w3.org/ns/shacl#
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   skos: http://www.w3.org/2004/02/skos/core#
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   sosa: http://www.w3.org/ns/sosa/
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   ssn: http://www.w3.org/ns/ssn/
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   time: http://www.w3.org/2006/time#
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   vann: http://purl.org/vocab/vann/
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   void: http://rdfs.org/ns/void#
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   wgs: https://www.w3.org/2003/01/geo/wgs84_pos#
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   owl: http://www.w3.org/2002/07/owl#
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns#
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   rdfs: http://www.w3.org/2000/01/rdf-schema#
+2025-04-14 09:39:08,571 - ontology_processor - INFO -   xsd: http://www.w3.org/2001/XMLSchema#
+2025-04-14 09:39:08,572 - ontology_processor - INFO -   xml: http://www.w3.org/XML/1998/namespace
+2025-04-14 09:39:08,572 - ontology_processor - INFO - Found concept: E10_Transfer_of_Custody - Transfer of Custody from cidoc_crm
+2025-04-14 09:39:08,572 - ontology_processor - INFO - Found concept: E11_Modification - Modification from cidoc_crm
+2025-04-14 09:39:08,572 - ontology_processor - INFO - Found concept: E12_Production - Production from cidoc_crm
+2025-04-14 09:39:08,572 - ontology_processor - INFO - Found concept: E13_Attribute_Assignment - Attribute Assignment from cidoc_crm
+2025-04-14 09:39:08,572 - ontology_processor - INFO - Found concept: E14_Condition_Assessment - Condition Assessment from cidoc_crm
+2025-04-14 09:39:08,572 - ontology_processor - INFO - Found concept: E15_Identifier_Assignment - Identifier Assignment from cidoc_crm
+2025-04-14 09:39:08,572 - ontology_processor - INFO - Found concept: E16_Measurement - Measurement from cidoc_crm
+2025-04-14 09:39:08,572 - ontology_processor - INFO - Found concept: E17_Type_Assignment - Type Assignment from cidoc_crm
+2025-04-14 09:39:08,572 - ontology_processor - INFO - Found concept: E18_Physical_Thing - Physical Thing from cidoc_crm
+2025-04-14 09:39:08,572 - ontology_processor - INFO - Found concept: E19_Physical_Object - Physical Object from cidoc_crm
+2025-04-14 09:39:08,572 - ontology_processor - INFO - Found concept: E1_CRM_Entity - CRM Entity from cidoc_crm
+2025-04-14 09:39:08,572 - ontology_processor - INFO - Found concept: E20_Biological_Object - Biological Object from cidoc_crm
+2025-04-14 09:39:08,572 - ontology_processor - INFO - Found concept: E21_Person - Person from cidoc_crm
+2025-04-14 09:39:08,572 - ontology_processor - INFO - Found concept: E22_Human-Made_Object - Human-Made Object from cidoc_crm
+2025-04-14 09:39:08,572 - ontology_processor - INFO - Found concept: E24_Physical_Human-Made_Thing - Physical Human-Made Thing from cidoc_crm
+2025-04-14 09:39:08,572 - ontology_processor - INFO - Found concept: E25_Human-Made_Feature - Human-Made Feature from cidoc_crm
+2025-04-14 09:39:08,572 - ontology_processor - INFO - Found concept: E26_Physical_Feature - Physical Feature from cidoc_crm
+2025-04-14 09:39:08,572 - ontology_processor - INFO - Found concept: E27_Site - Site from cidoc_crm
+2025-04-14 09:39:08,572 - ontology_processor - INFO - Found concept: E28_Conceptual_Object - Conceptual Object from cidoc_crm
+2025-04-14 09:39:08,572 - ontology_processor - INFO - Found concept: E29_Design_or_Procedure - Design or Procedure from cidoc_crm
+2025-04-14 09:39:08,572 - ontology_processor - INFO - Found concept: E2_Temporal_Entity - Temporal Entity from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E30_Right - Right from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E31_Document - Document from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E32_Authority_Document - Authority Document from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E33_E41_Linguistic_Appellation - Linguistic Appellation from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E33_Linguistic_Object - Linguistic Object from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E34_Inscription - Inscription from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E35_Title - Title from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E36_Visual_Item - Visual Item from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E37_Mark - Mark from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E39_Actor - Actor from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E3_Condition_State - Condition State from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E41_Appellation - Appellation from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E42_Identifier - Identifier from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E4_Period - Period from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E52_Time-Span - Time-Span from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E53_Place - Place from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E54_Dimension - Dimension from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E55_Type - Type from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E56_Language - Language from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E57_Material - Material from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E58_Measurement_Unit - Measurement Unit from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E5_Event - Event from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E63_Beginning_of_Existence - Beginning of Existence from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E64_End_of_Existence - End of Existence from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E65_Creation - Creation from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E66_Formation - Formation from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E67_Birth - Birth from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E68_Dissolution - Dissolution from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E69_Death - Death from cidoc_crm
+2025-04-14 09:39:08,573 - ontology_processor - INFO - Found concept: E6_Destruction - Destruction from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E70_Thing - Thing from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E71_Human-Made_Thing - Human-Made Thing from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E72_Legal_Object - Legal Object from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E73_Information_Object - Information Object from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E74_Group - Group from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E77_Persistent_Item - Persistent Item from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E78_Curated_Holding - Curated Holding from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E79_Part_Addition - Part Addition from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E7_Activity - Activity from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E80_Part_Removal - Part Removal from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E81_Transformation - Transformation from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E83_Type_Creation - Type Creation from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E85_Joining - Joining from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E86_Leaving - Leaving from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E87_Curation_Activity - Curation Activity from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E89_Propositional_Object - Propositional Object from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E8_Acquisition - Acquisition from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E90_Symbolic_Object - Symbolic Object from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E92_Spacetime_Volume - Spacetime Volume from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E93_Presence - Presence from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E96_Purchase - Purchase from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E97_Monetary_Amount - Monetary Amount from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E98_Currency - Currency from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E99_Product_Type - Product Type from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Found concept: E9_Move - Move from cidoc_crm
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Extracted 76 concepts from ontology file
+2025-04-14 09:39:08,574 - ontology_processor - INFO - Extracting concepts from ontology file: docs/vir.ttl
+2025-04-14 09:39:08,578 - ontology_processor - INFO - Namespaces in ontology file:
+2025-04-14 09:39:08,578 - ontology_processor - INFO -   brick: https://brickschema.org/schema/Brick#
+2025-04-14 09:39:08,578 - ontology_processor - INFO -   csvw: http://www.w3.org/ns/csvw#
+2025-04-14 09:39:08,578 - ontology_processor - INFO -   dc: http://purl.org/dc/elements/1.1/
+2025-04-14 09:39:08,578 - ontology_processor - INFO -   dcat: http://www.w3.org/ns/dcat#
+2025-04-14 09:39:08,578 - ontology_processor - INFO -   dcmitype: http://purl.org/dc/dcmitype/
+2025-04-14 09:39:08,578 - ontology_processor - INFO -   dcterms: http://purl.org/dc/terms/
+2025-04-14 09:39:08,578 - ontology_processor - INFO -   dcam: http://purl.org/dc/dcam/
+2025-04-14 09:39:08,578 - ontology_processor - INFO -   doap: http://usefulinc.com/ns/doap#
+2025-04-14 09:39:08,578 - ontology_processor - INFO -   foaf: http://xmlns.com/foaf/0.1/
+2025-04-14 09:39:08,578 - ontology_processor - INFO -   geo: http://www.opengis.net/ont/geosparql#
+2025-04-14 09:39:08,578 - ontology_processor - INFO -   odrl: http://www.w3.org/ns/odrl/2/
+2025-04-14 09:39:08,579 - ontology_processor - INFO -   org: http://www.w3.org/ns/org#
+2025-04-14 09:39:08,579 - ontology_processor - INFO -   prof: http://www.w3.org/ns/dx/prof/
+2025-04-14 09:39:08,579 - ontology_processor - INFO -   prov: http://www.w3.org/ns/prov#
+2025-04-14 09:39:08,579 - ontology_processor - INFO -   qb: http://purl.org/linked-data/cube#
+2025-04-14 09:39:08,579 - ontology_processor - INFO -   schema: https://schema.org/
+2025-04-14 09:39:08,579 - ontology_processor - INFO -   sh: http://www.w3.org/ns/shacl#
+2025-04-14 09:39:08,579 - ontology_processor - INFO -   skos: http://www.w3.org/2004/02/skos/core#
+2025-04-14 09:39:08,579 - ontology_processor - INFO -   sosa: http://www.w3.org/ns/sosa/
+2025-04-14 09:39:08,579 - ontology_processor - INFO -   ssn: http://www.w3.org/ns/ssn/
+2025-04-14 09:39:08,579 - ontology_processor - INFO -   time: http://www.w3.org/2006/time#
+2025-04-14 09:39:08,579 - ontology_processor - INFO -   vann: http://purl.org/vocab/vann/
+2025-04-14 09:39:08,579 - ontology_processor - INFO -   void: http://rdfs.org/ns/void#
+2025-04-14 09:39:08,579 - ontology_processor - INFO -   wgs: https://www.w3.org/2003/01/geo/wgs84_pos#
+2025-04-14 09:39:08,579 - ontology_processor - INFO -   owl: http://www.w3.org/2002/07/owl#
+2025-04-14 09:39:08,579 - ontology_processor - INFO -   rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns#
+2025-04-14 09:39:08,579 - ontology_processor - INFO -   rdfs: http://www.w3.org/2000/01/rdf-schema#
+2025-04-14 09:39:08,579 - ontology_processor - INFO -   xsd: http://www.w3.org/2001/XMLSchema#
+2025-04-14 09:39:08,579 - ontology_processor - INFO -   xml: http://www.w3.org/XML/1998/namespace
+2025-04-14 09:39:08,579 - ontology_processor - INFO -   vir: http://w3id.org/vir#
+2025-04-14 09:39:08,579 - ontology_processor - INFO -   crm: http://www.cidoc-crm.org/cidoc-crm/
+2025-04-14 09:39:08,579 - ontology_processor - INFO -   crmsci: http://www.ics.forth.gr/isl/CRMsci/
+2025-04-14 09:39:08,579 - ontology_processor - INFO -   frbroo: http://iflastandards.info/ns/fr/frbr/frbroo/
+2025-04-14 09:39:08,579 - ontology_processor - INFO -   lio: https://w3id.org/lio/v1
+2025-04-14 09:39:08,579 - ontology_processor - INFO - Found VIR subclass: IC10_Attribute - Iconographical Attribute (subclass of E36_Visual_Item)
+2025-04-14 09:39:08,579 - ontology_processor - INFO - Found VIR subclass: IC9_Representation - Representation (subclass of E36_Visual_Item)
+2025-04-14 09:39:08,579 - ontology_processor - INFO - Found VIR subclass: IC16_Character - Character (subclass of F38_Character)
+2025-04-14 09:39:08,579 - ontology_processor - INFO - Found VIR subclass: IC11_Personification - Personification (subclass of IC16_Character)
+2025-04-14 09:39:08,579 - ontology_processor - INFO - Found VIR subclass: IC12_Visual_Recognition - Visual Recognition (subclass of S4_Observation)
+2025-04-14 09:39:08,579 - ontology_processor - INFO - Found VIR subclass: IC21_Similarity_Statement - Similarity Statement (subclass of S4_Observation)
+2025-04-14 09:39:08,579 - ontology_processor - INFO - Found VIR subclass: IC19_Recto - Recto (subclass of E26_Physical_Feature)
+2025-04-14 09:39:08,579 - ontology_processor - INFO - Found VIR subclass: IC20_Verso - Verso (subclass of E26_Physical_Feature)
+2025-04-14 09:39:08,579 - ontology_processor - INFO - Found VIR subclass: IC1_Iconographical_Atom - Iconographical Atom (subclass of E25_Man-Made_Feature)
+2025-04-14 09:39:08,579 - ontology_processor - INFO - Found VIR subclass: PCK4_is_visual_prototype_of - PCK4_is_visual_prototype_of (subclass of PC0_Typed_CRM_Property)
+2025-04-14 09:39:08,579 - ontology_processor - INFO - Extracted 10 concepts from ontology file
+2025-04-14 09:39:08,579 - ontology_processor - INFO - Built ontology graph successfully
+2025-04-14 09:39:08,579 - ontology_processor - INFO - Processing core taxonomy relationships...
+2025-04-14 09:39:08,580 - ontology_processor - INFO - Added taxonomy groups to 16 concepts
+2025-04-14 09:39:08,580 - ontology_processor - INFO - Processed core taxonomy successfully
+2025-04-14 09:39:08,580 - ontology_processor - INFO - Loading existing ontology vector store
+2025-04-14 09:39:08,581 - ontology_processor - INFO - Ontology vector store loaded successfully
+2025-04-14 09:39:08,591 - werkzeug - WARNING -  * Debugger is active!
+2025-04-14 09:39:08,607 - werkzeug - INFO -  * Debugger PIN: 535-925-483
+2025-04-14 09:39:23,104 - __main__ - INFO - Chat request: 'Tell me about Saint George depictions'
+2025-04-14 09:39:23,105 - rag_system - INFO - Chat chain not initialized, setting up...
+2025-04-14 09:39:23,105 - rag_system - INFO - Setting up conversational chain with Ollama...
+2025-04-14 09:39:23,142 - rag_system - INFO - Conversational chain set up successfully
+2025-04-14 09:39:23,339 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/appellation/772a5b43-edcc-4003-a2d8-58f8624ff227/
+2025-04-14 09:39:23,342 - rag_system - INFO - Retrieved 2 details for entity
+2025-04-14 09:39:23,342 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/physical/de49f3db-2863-4c66-8fe3-5cb7c6a7f985
+2025-04-14 09:39:23,343 - rag_system - INFO - Retrieved 8 details for entity
+2025-04-14 09:39:23,344 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/type/fdb0a716-904e-40b8-9460-696db46c4185
+2025-04-14 09:39:23,346 - rag_system - INFO - Retrieved 4 details for entity
+2025-04-14 09:39:23,346 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/production/dbff2b38-8115-438f-a725-a41134b3cac5
+2025-04-14 09:39:23,348 - rag_system - INFO - Retrieved 8 details for entity
+2025-04-14 09:39:23,348 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/production/47a402ee-2af7-4055-9cd0-15a81d5d69be
+2025-04-14 09:39:23,350 - rag_system - INFO - Retrieved 8 details for entity
+2025-04-14 09:39:23,350 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/production/a34503d7-0041-42f0-9695-6931e4829714
+2025-04-14 09:39:23,351 - rag_system - INFO - Retrieved 8 details for entity
+2025-04-14 09:39:23,351 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/production/5be3fb80-e2ce-4b21-8746-28fe6ed505c1
+2025-04-14 09:39:23,353 - rag_system - INFO - Retrieved 8 details for entity
+2025-04-14 09:39:23,353 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/type/772a5b43-edcc-4003-a2d8-58f8624ff227
+2025-04-14 09:39:23,355 - rag_system - INFO - Retrieved 5 details for entity
+2025-04-14 09:39:23,355 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/visual/atom/11b9e1a0-ed77-4080-8daa-4aa6d230ebb9
+2025-04-14 09:39:23,357 - rag_system - INFO - Retrieved 9 details for entity
+2025-04-14 09:39:23,357 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/production/9088331b-7c6c-4f29-acd8-12e3e7e8d741
+2025-04-14 09:39:23,359 - rag_system - INFO - Retrieved 7 details for entity
+2025-04-14 09:39:23,359 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/appellation/772a5b43-edcc-4003-a2d8-58f8624ff227/
+2025-04-14 09:39:23,360 - rag_system - INFO - Retrieved 2 details for entity
+2025-04-14 09:39:23,407 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/physical/de49f3db-2863-4c66-8fe3-5cb7c6a7f985
+2025-04-14 09:39:23,410 - rag_system - INFO - Retrieved 8 details for entity
+2025-04-14 09:39:23,453 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/type/fdb0a716-904e-40b8-9460-696db46c4185
+2025-04-14 09:39:23,456 - rag_system - INFO - Retrieved 4 details for entity
+2025-04-14 09:39:23,790 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/production/dbff2b38-8115-438f-a725-a41134b3cac5
+2025-04-14 09:39:23,794 - rag_system - INFO - Retrieved 8 details for entity
+2025-04-14 09:39:23,836 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/production/47a402ee-2af7-4055-9cd0-15a81d5d69be
+2025-04-14 09:39:23,839 - rag_system - INFO - Retrieved 8 details for entity
+2025-04-14 09:39:23,880 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/production/a34503d7-0041-42f0-9695-6931e4829714
+2025-04-14 09:39:23,883 - rag_system - INFO - Retrieved 8 details for entity
+2025-04-14 09:39:24,014 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/production/5be3fb80-e2ce-4b21-8746-28fe6ed505c1
+2025-04-14 09:39:24,016 - rag_system - INFO - Retrieved 8 details for entity
+2025-04-14 09:39:24,026 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/type/772a5b43-edcc-4003-a2d8-58f8624ff227
+2025-04-14 09:39:24,029 - rag_system - INFO - Retrieved 5 details for entity
+2025-04-14 09:39:24,039 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/visual/atom/11b9e1a0-ed77-4080-8daa-4aa6d230ebb9
+2025-04-14 09:39:24,042 - rag_system - INFO - Retrieved 9 details for entity
+2025-04-14 09:39:24,127 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/production/9088331b-7c6c-4f29-acd8-12e3e7e8d741
+2025-04-14 09:39:24,130 - rag_system - INFO - Retrieved 7 details for entity
+2025-04-14 09:39:26,860 - __main__ - INFO - Chat request: 'What churches in Cyprus have Last Judgment iconography?'
+2025-04-14 09:39:27,412 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/appellation/0062f461-2dc8-4830-b53a-c3ad0f8d65a4/
+2025-04-14 09:39:27,415 - rag_system - INFO - Retrieved 2 details for entity
+2025-04-14 09:39:27,415 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/physical/11b8568b-14cb-47f1-8a1d-10da7edb0473
+2025-04-14 09:39:27,418 - rag_system - INFO - Retrieved 7 details for entity
+2025-04-14 09:39:27,418 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/physical/44bcfbfb-edf2-454a-85dc-dd52fcc529a5
+2025-04-14 09:39:27,420 - rag_system - INFO - Retrieved 7 details for entity
+2025-04-14 09:39:27,420 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/physical/0062f461-2dc8-4830-b53a-c3ad0f8d65a4
+2025-04-14 09:39:27,422 - rag_system - INFO - Retrieved 8 details for entity
+2025-04-14 09:39:27,422 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/physical/745c6013-6285-4ffa-a6b6-3ad5182a9a4f
+2025-04-14 09:39:27,424 - rag_system - INFO - Retrieved 6 details for entity
+2025-04-14 09:39:27,424 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/type/e932fb91-8333-47f3-9862-db213163f0d4
+2025-04-14 09:39:27,425 - rag_system - INFO - Retrieved 5 details for entity
+2025-04-14 09:39:27,425 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/production/1181919e-fb2f-4cc5-8098-6e6d5021810c
+2025-04-14 09:39:27,427 - rag_system - INFO - Retrieved 9 details for entity
+2025-04-14 09:39:27,427 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/appellation/gr/0062f461-2dc8-4830-b53a-c3ad0f8d65a4/
+2025-04-14 09:39:27,430 - rag_system - INFO - Retrieved 2 details for entity
+2025-04-14 09:39:27,430 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/type/772a5b43-edcc-4003-a2d8-58f8624ff227
+2025-04-14 09:39:27,432 - rag_system - INFO - Retrieved 5 details for entity
+2025-04-14 09:39:27,432 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/spatial/0062f461-2dc8-4830-b53a-c3ad0f8d65a4/
+2025-04-14 09:39:27,434 - rag_system - INFO - Retrieved 4 details for entity
+2025-04-14 09:39:27,434 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/appellation/0062f461-2dc8-4830-b53a-c3ad0f8d65a4/
+2025-04-14 09:39:27,436 - rag_system - INFO - Retrieved 2 details for entity
+2025-04-14 09:39:27,592 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/physical/11b8568b-14cb-47f1-8a1d-10da7edb0473
+2025-04-14 09:39:27,595 - rag_system - INFO - Retrieved 7 details for entity
+2025-04-14 09:39:27,668 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/physical/44bcfbfb-edf2-454a-85dc-dd52fcc529a5
+2025-04-14 09:39:27,671 - rag_system - INFO - Retrieved 7 details for entity
+2025-04-14 09:39:27,732 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/physical/0062f461-2dc8-4830-b53a-c3ad0f8d65a4
+2025-04-14 09:39:27,778 - rag_system - INFO - Retrieved 8 details for entity
+2025-04-14 09:39:27,910 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/physical/745c6013-6285-4ffa-a6b6-3ad5182a9a4f
+2025-04-14 09:39:27,915 - rag_system - INFO - Retrieved 6 details for entity
+2025-04-14 09:39:27,973 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/type/e932fb91-8333-47f3-9862-db213163f0d4
+2025-04-14 09:39:27,976 - rag_system - INFO - Retrieved 5 details for entity
+2025-04-14 09:39:28,026 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/production/1181919e-fb2f-4cc5-8098-6e6d5021810c
+2025-04-14 09:39:28,030 - rag_system - INFO - Retrieved 9 details for entity
+2025-04-14 09:39:28,087 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/appellation/gr/0062f461-2dc8-4830-b53a-c3ad0f8d65a4/
+2025-04-14 09:39:28,089 - rag_system - INFO - Retrieved 2 details for entity
+2025-04-14 09:39:28,141 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/type/772a5b43-edcc-4003-a2d8-58f8624ff227
+2025-04-14 09:39:28,144 - rag_system - INFO - Retrieved 5 details for entity
+2025-04-14 09:39:28,194 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/spatial/0062f461-2dc8-4830-b53a-c3ad0f8d65a4/
+2025-04-14 09:39:28,197 - rag_system - INFO - Retrieved 4 details for entity
+2025-04-14 09:39:36,433 - httpx - INFO - HTTP Request: POST http://127.0.0.1:11434/api/chat "HTTP/1.1 200 OK"
+2025-04-14 09:39:37,984 - httpx - INFO - HTTP Request: POST http://127.0.0.1:11434/api/chat "HTTP/1.1 200 OK"
+2025-04-14 09:39:58,749 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 09:39:58] "POST /api/chat HTTP/1.1" 200 -
+2025-04-14 09:40:00,292 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 09:40:00] "POST /api/chat HTTP/1.1" 200 -
+2025-04-14 09:58:04,715 - werkzeug - INFO -  * Detected change in '/Users/carboni/Documents/pynotebook/personal/RAG rdf/CRM_RAG/Data and ontology stores/rag_system.py', reloading
+2025-04-14 09:58:05,241 - werkzeug - INFO -  * Restarting with stat
+2025-04-14 09:58:06,025 - rag_system - INFO - RDF vector store not initialized, attempting to load...
+2025-04-14 09:58:06,025 - rag_system - INFO - RDF vector store already exists, loading from disk...
+2025-04-14 09:58:06,025 - rag_system - INFO - Initializing embeddings model...
+2025-04-14 09:58:08,071 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: mps
+2025-04-14 09:58:08,071 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: sentence-transformers/all-mpnet-base-v2
+2025-04-14 09:58:10,050 - rag_system - INFO - Embeddings model initialized successfully
+2025-04-14 09:58:10,053 - faiss.loader - INFO - Loading faiss.
+2025-04-14 09:58:10,065 - faiss.loader - INFO - Successfully loaded faiss.
+2025-04-14 09:58:10,068 - faiss - INFO - Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes.
+2025-04-14 09:58:10,071 - rag_system - INFO - Successfully loaded existing RDF vector store
+2025-04-14 09:58:10,071 - rag_system - INFO - Ontology vector store not initialized, attempting to load...
+2025-04-14 09:58:10,071 - ontology_processor - INFO - Processing ontology documentation first
+2025-04-14 09:58:10,071 - ontology_processor - INFO - Extracting concepts from ontology file: docs/CIDOC_CRM_v7.1.3.ttl
+2025-04-14 09:58:10,208 - ontology_processor - INFO - Namespaces in ontology file:
+2025-04-14 09:58:10,208 - ontology_processor - INFO -   brick: https://brickschema.org/schema/Brick#
+2025-04-14 09:58:10,208 - ontology_processor - INFO -   csvw: http://www.w3.org/ns/csvw#
+2025-04-14 09:58:10,208 - ontology_processor - INFO -   dc: http://purl.org/dc/elements/1.1/
+2025-04-14 09:58:10,208 - ontology_processor - INFO -   dcat: http://www.w3.org/ns/dcat#
+2025-04-14 09:58:10,208 - ontology_processor - INFO -   dcmitype: http://purl.org/dc/dcmitype/
+2025-04-14 09:58:10,208 - ontology_processor - INFO -   dcterms: http://purl.org/dc/terms/
+2025-04-14 09:58:10,208 - ontology_processor - INFO -   dcam: http://purl.org/dc/dcam/
+2025-04-14 09:58:10,208 - ontology_processor - INFO -   doap: http://usefulinc.com/ns/doap#
+2025-04-14 09:58:10,208 - ontology_processor - INFO -   foaf: http://xmlns.com/foaf/0.1/
+2025-04-14 09:58:10,209 - ontology_processor - INFO -   geo: http://www.opengis.net/ont/geosparql#
+2025-04-14 09:58:10,209 - ontology_processor - INFO -   odrl: http://www.w3.org/ns/odrl/2/
+2025-04-14 09:58:10,209 - ontology_processor - INFO -   org: http://www.w3.org/ns/org#
+2025-04-14 09:58:10,209 - ontology_processor - INFO -   prof: http://www.w3.org/ns/dx/prof/
+2025-04-14 09:58:10,209 - ontology_processor - INFO -   prov: http://www.w3.org/ns/prov#
+2025-04-14 09:58:10,209 - ontology_processor - INFO -   qb: http://purl.org/linked-data/cube#
+2025-04-14 09:58:10,209 - ontology_processor - INFO -   schema: https://schema.org/
+2025-04-14 09:58:10,209 - ontology_processor - INFO -   sh: http://www.w3.org/ns/shacl#
+2025-04-14 09:58:10,209 - ontology_processor - INFO -   skos: http://www.w3.org/2004/02/skos/core#
+2025-04-14 09:58:10,209 - ontology_processor - INFO -   sosa: http://www.w3.org/ns/sosa/
+2025-04-14 09:58:10,209 - ontology_processor - INFO -   ssn: http://www.w3.org/ns/ssn/
+2025-04-14 09:58:10,209 - ontology_processor - INFO -   time: http://www.w3.org/2006/time#
+2025-04-14 09:58:10,209 - ontology_processor - INFO -   vann: http://purl.org/vocab/vann/
+2025-04-14 09:58:10,209 - ontology_processor - INFO -   void: http://rdfs.org/ns/void#
+2025-04-14 09:58:10,209 - ontology_processor - INFO -   wgs: https://www.w3.org/2003/01/geo/wgs84_pos#
+2025-04-14 09:58:10,209 - ontology_processor - INFO -   owl: http://www.w3.org/2002/07/owl#
+2025-04-14 09:58:10,209 - ontology_processor - INFO -   rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns#
+2025-04-14 09:58:10,209 - ontology_processor - INFO -   rdfs: http://www.w3.org/2000/01/rdf-schema#
+2025-04-14 09:58:10,209 - ontology_processor - INFO -   xsd: http://www.w3.org/2001/XMLSchema#
+2025-04-14 09:58:10,209 - ontology_processor - INFO -   xml: http://www.w3.org/XML/1998/namespace
+2025-04-14 09:58:10,209 - ontology_processor - INFO - Found concept: E10_Transfer_of_Custody - Transfer of Custody from cidoc_crm
+2025-04-14 09:58:10,209 - ontology_processor - INFO - Found concept: E11_Modification - Modification from cidoc_crm
+2025-04-14 09:58:10,209 - ontology_processor - INFO - Found concept: E12_Production - Production from cidoc_crm
+2025-04-14 09:58:10,209 - ontology_processor - INFO - Found concept: E13_Attribute_Assignment - Attribute Assignment from cidoc_crm
+2025-04-14 09:58:10,209 - ontology_processor - INFO - Found concept: E14_Condition_Assessment - Condition Assessment from cidoc_crm
+2025-04-14 09:58:10,209 - ontology_processor - INFO - Found concept: E15_Identifier_Assignment - Identifier Assignment from cidoc_crm
+2025-04-14 09:58:10,209 - ontology_processor - INFO - Found concept: E16_Measurement - Measurement from cidoc_crm
+2025-04-14 09:58:10,209 - ontology_processor - INFO - Found concept: E17_Type_Assignment - Type Assignment from cidoc_crm
+2025-04-14 09:58:10,209 - ontology_processor - INFO - Found concept: E18_Physical_Thing - Physical Thing from cidoc_crm
+2025-04-14 09:58:10,209 - ontology_processor - INFO - Found concept: E19_Physical_Object - Physical Object from cidoc_crm
+2025-04-14 09:58:10,209 - ontology_processor - INFO - Found concept: E1_CRM_Entity - CRM Entity from cidoc_crm
+2025-04-14 09:58:10,209 - ontology_processor - INFO - Found concept: E20_Biological_Object - Biological Object from cidoc_crm
+2025-04-14 09:58:10,209 - ontology_processor - INFO - Found concept: E21_Person - Person from cidoc_crm
+2025-04-14 09:58:10,209 - ontology_processor - INFO - Found concept: E22_Human-Made_Object - Human-Made Object from cidoc_crm
+2025-04-14 09:58:10,209 - ontology_processor - INFO - Found concept: E24_Physical_Human-Made_Thing - Physical Human-Made Thing from cidoc_crm
+2025-04-14 09:58:10,209 - ontology_processor - INFO - Found concept: E25_Human-Made_Feature - Human-Made Feature from cidoc_crm
+2025-04-14 09:58:10,209 - ontology_processor - INFO - Found concept: E26_Physical_Feature - Physical Feature from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E27_Site - Site from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E28_Conceptual_Object - Conceptual Object from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E29_Design_or_Procedure - Design or Procedure from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E2_Temporal_Entity - Temporal Entity from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E30_Right - Right from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E31_Document - Document from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E32_Authority_Document - Authority Document from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E33_E41_Linguistic_Appellation - Linguistic Appellation from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E33_Linguistic_Object - Linguistic Object from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E34_Inscription - Inscription from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E35_Title - Title from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E36_Visual_Item - Visual Item from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E37_Mark - Mark from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E39_Actor - Actor from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E3_Condition_State - Condition State from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E41_Appellation - Appellation from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E42_Identifier - Identifier from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E4_Period - Period from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E52_Time-Span - Time-Span from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E53_Place - Place from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E54_Dimension - Dimension from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E55_Type - Type from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E56_Language - Language from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E57_Material - Material from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E58_Measurement_Unit - Measurement Unit from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E5_Event - Event from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E63_Beginning_of_Existence - Beginning of Existence from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E64_End_of_Existence - End of Existence from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E65_Creation - Creation from cidoc_crm
+2025-04-14 09:58:10,210 - ontology_processor - INFO - Found concept: E66_Formation - Formation from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E67_Birth - Birth from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E68_Dissolution - Dissolution from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E69_Death - Death from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E6_Destruction - Destruction from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E70_Thing - Thing from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E71_Human-Made_Thing - Human-Made Thing from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E72_Legal_Object - Legal Object from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E73_Information_Object - Information Object from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E74_Group - Group from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E77_Persistent_Item - Persistent Item from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E78_Curated_Holding - Curated Holding from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E79_Part_Addition - Part Addition from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E7_Activity - Activity from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E80_Part_Removal - Part Removal from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E81_Transformation - Transformation from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E83_Type_Creation - Type Creation from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E85_Joining - Joining from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E86_Leaving - Leaving from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E87_Curation_Activity - Curation Activity from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E89_Propositional_Object - Propositional Object from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E8_Acquisition - Acquisition from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E90_Symbolic_Object - Symbolic Object from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E92_Spacetime_Volume - Spacetime Volume from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E93_Presence - Presence from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E96_Purchase - Purchase from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E97_Monetary_Amount - Monetary Amount from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E98_Currency - Currency from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E99_Product_Type - Product Type from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Found concept: E9_Move - Move from cidoc_crm
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Extracted 76 concepts from ontology file
+2025-04-14 09:58:10,211 - ontology_processor - INFO - Extracting concepts from ontology file: docs/vir.ttl
+2025-04-14 09:58:10,217 - ontology_processor - INFO - Namespaces in ontology file:
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   brick: https://brickschema.org/schema/Brick#
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   csvw: http://www.w3.org/ns/csvw#
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   dc: http://purl.org/dc/elements/1.1/
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   dcat: http://www.w3.org/ns/dcat#
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   dcmitype: http://purl.org/dc/dcmitype/
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   dcterms: http://purl.org/dc/terms/
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   dcam: http://purl.org/dc/dcam/
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   doap: http://usefulinc.com/ns/doap#
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   foaf: http://xmlns.com/foaf/0.1/
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   geo: http://www.opengis.net/ont/geosparql#
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   odrl: http://www.w3.org/ns/odrl/2/
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   org: http://www.w3.org/ns/org#
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   prof: http://www.w3.org/ns/dx/prof/
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   prov: http://www.w3.org/ns/prov#
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   qb: http://purl.org/linked-data/cube#
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   schema: https://schema.org/
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   sh: http://www.w3.org/ns/shacl#
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   skos: http://www.w3.org/2004/02/skos/core#
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   sosa: http://www.w3.org/ns/sosa/
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   ssn: http://www.w3.org/ns/ssn/
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   time: http://www.w3.org/2006/time#
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   vann: http://purl.org/vocab/vann/
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   void: http://rdfs.org/ns/void#
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   wgs: https://www.w3.org/2003/01/geo/wgs84_pos#
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   owl: http://www.w3.org/2002/07/owl#
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns#
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   rdfs: http://www.w3.org/2000/01/rdf-schema#
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   xsd: http://www.w3.org/2001/XMLSchema#
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   xml: http://www.w3.org/XML/1998/namespace
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   vir: http://w3id.org/vir#
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   crm: http://www.cidoc-crm.org/cidoc-crm/
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   crmsci: http://www.ics.forth.gr/isl/CRMsci/
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   frbroo: http://iflastandards.info/ns/fr/frbr/frbroo/
+2025-04-14 09:58:10,217 - ontology_processor - INFO -   lio: https://w3id.org/lio/v1
+2025-04-14 09:58:10,217 - ontology_processor - INFO - Found VIR subclass: IC10_Attribute - Iconographical Attribute (subclass of E36_Visual_Item)
+2025-04-14 09:58:10,217 - ontology_processor - INFO - Found VIR subclass: IC9_Representation - Representation (subclass of E36_Visual_Item)
+2025-04-14 09:58:10,217 - ontology_processor - INFO - Found VIR subclass: IC16_Character - Character (subclass of F38_Character)
+2025-04-14 09:58:10,217 - ontology_processor - INFO - Found VIR subclass: IC11_Personification - Personification (subclass of IC16_Character)
+2025-04-14 09:58:10,217 - ontology_processor - INFO - Found VIR subclass: IC12_Visual_Recognition - Visual Recognition (subclass of S4_Observation)
+2025-04-14 09:58:10,217 - ontology_processor - INFO - Found VIR subclass: IC21_Similarity_Statement - Similarity Statement (subclass of S4_Observation)
+2025-04-14 09:58:10,217 - ontology_processor - INFO - Found VIR subclass: IC19_Recto - Recto (subclass of E26_Physical_Feature)
+2025-04-14 09:58:10,217 - ontology_processor - INFO - Found VIR subclass: IC20_Verso - Verso (subclass of E26_Physical_Feature)
+2025-04-14 09:58:10,217 - ontology_processor - INFO - Found VIR subclass: IC1_Iconographical_Atom - Iconographical Atom (subclass of E25_Man-Made_Feature)
+2025-04-14 09:58:10,217 - ontology_processor - INFO - Found VIR subclass: PCK4_is_visual_prototype_of - PCK4_is_visual_prototype_of (subclass of PC0_Typed_CRM_Property)
+2025-04-14 09:58:10,217 - ontology_processor - INFO - Extracted 10 concepts from ontology file
+2025-04-14 09:58:10,218 - ontology_processor - INFO - Built ontology graph successfully
+2025-04-14 09:58:10,218 - ontology_processor - INFO - Processing core taxonomy relationships...
+2025-04-14 09:58:10,219 - ontology_processor - INFO - Added taxonomy groups to 16 concepts
+2025-04-14 09:58:10,219 - ontology_processor - INFO - Processed core taxonomy successfully
+2025-04-14 09:58:10,219 - ontology_processor - INFO - Loading existing ontology vector store
+2025-04-14 09:58:10,220 - ontology_processor - INFO - Ontology vector store loaded successfully
+2025-04-14 09:58:10,235 - werkzeug - WARNING -  * Debugger is active!
+2025-04-14 09:58:10,252 - werkzeug - INFO -  * Debugger PIN: 535-925-483
+2025-04-14 09:58:24,392 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 09:58:24] "GET /chat HTTP/1.1" 200 -
+2025-04-14 09:58:31,593 - __main__ - INFO - Chat request: 'Where is Panagia Phorbiottisa located?'
+2025-04-14 09:58:31,593 - rag_system - INFO - Chat chain not initialized, setting up...
+2025-04-14 09:58:31,594 - rag_system - INFO - Setting up conversational chain with Ollama...
+2025-04-14 09:58:31,630 - rag_system - INFO - Conversational chain set up successfully
+2025-04-14 09:58:31,841 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/spatial/222b6052-7543-4399-8900-f82cd4327cf5/
+2025-04-14 09:58:31,843 - rag_system - INFO - Retrieved 4 details for entity
+2025-04-14 09:58:31,843 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/type/875de4b3-1a0c-4de0-9781-7d6359ab0940
+2025-04-14 09:58:31,845 - rag_system - INFO - Retrieved 6 details for entity
+2025-04-14 09:58:31,845 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/physical/0062f461-2dc8-4830-b53a-c3ad0f8d65a4
+2025-04-14 09:58:31,847 - rag_system - INFO - Retrieved 8 details for entity
+2025-04-14 09:58:31,847 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/physical/222b6052-7543-4399-8900-f82cd4327cf5
+2025-04-14 09:58:31,849 - rag_system - INFO - Retrieved 6 details for entity
+2025-04-14 09:58:31,849 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/spatial/0062f461-2dc8-4830-b53a-c3ad0f8d65a4/
+2025-04-14 09:58:31,851 - rag_system - INFO - Retrieved 4 details for entity
+2025-04-14 09:58:31,851 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/spatial/11b8568b-14cb-47f1-8a1d-10da7edb0473/
+2025-04-14 09:58:31,852 - rag_system - INFO - Retrieved 4 details for entity
+2025-04-14 09:58:31,852 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/physical/11b8568b-14cb-47f1-8a1d-10da7edb0473
+2025-04-14 09:58:31,854 - rag_system - INFO - Retrieved 7 details for entity
+2025-04-14 09:58:31,854 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/physical/de49f3db-2863-4c66-8fe3-5cb7c6a7f985
+2025-04-14 09:58:31,856 - rag_system - INFO - Retrieved 8 details for entity
+2025-04-14 09:58:31,856 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/spatial/de49f3db-2863-4c66-8fe3-5cb7c6a7f985/
+2025-04-14 09:58:31,858 - rag_system - INFO - Retrieved 4 details for entity
+2025-04-14 09:58:31,858 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/appellation/222b6052-7543-4399-8900-f82cd4327cf5/
+2025-04-14 09:58:31,860 - rag_system - INFO - Retrieved 2 details for entity
+2025-04-14 09:58:31,860 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/spatial/222b6052-7543-4399-8900-f82cd4327cf5/
+2025-04-14 09:58:31,861 - rag_system - INFO - Retrieved 4 details for entity
+2025-04-14 09:58:31,909 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/type/875de4b3-1a0c-4de0-9781-7d6359ab0940
+2025-04-14 09:58:31,911 - rag_system - INFO - Retrieved 6 details for entity
+2025-04-14 09:58:31,922 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/physical/0062f461-2dc8-4830-b53a-c3ad0f8d65a4
+2025-04-14 09:58:31,924 - rag_system - INFO - Retrieved 8 details for entity
+2025-04-14 09:58:31,968 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/physical/222b6052-7543-4399-8900-f82cd4327cf5
+2025-04-14 09:58:31,971 - rag_system - INFO - Retrieved 6 details for entity
+2025-04-14 09:58:32,016 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/spatial/0062f461-2dc8-4830-b53a-c3ad0f8d65a4/
+2025-04-14 09:58:32,020 - rag_system - INFO - Retrieved 4 details for entity
+2025-04-14 09:58:32,037 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/spatial/11b8568b-14cb-47f1-8a1d-10da7edb0473/
+2025-04-14 09:58:32,040 - rag_system - INFO - Retrieved 4 details for entity
+2025-04-14 09:58:32,085 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/physical/11b8568b-14cb-47f1-8a1d-10da7edb0473
+2025-04-14 09:58:32,087 - rag_system - INFO - Retrieved 7 details for entity
+2025-04-14 09:58:32,128 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/physical/de49f3db-2863-4c66-8fe3-5cb7c6a7f985
+2025-04-14 09:58:32,131 - rag_system - INFO - Retrieved 8 details for entity
+2025-04-14 09:58:32,175 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/spatial/de49f3db-2863-4c66-8fe3-5cb7c6a7f985/
+2025-04-14 09:58:32,178 - rag_system - INFO - Retrieved 4 details for entity
+2025-04-14 09:58:32,223 - rag_system - INFO - Fetching details for entity: http://map.cnrs.fr/semantics/appellation/222b6052-7543-4399-8900-f82cd4327cf5/
+2025-04-14 09:58:32,226 - rag_system - INFO - Retrieved 2 details for entity
+2025-04-14 09:58:37,619 - httpx - INFO - HTTP Request: POST http://127.0.0.1:11434/api/chat "HTTP/1.1 200 OK"
+2025-04-14 09:58:42,045 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 09:58:42] "POST /api/chat HTTP/1.1" 200 -
+2025-04-14 10:00:03,252 - werkzeug - INFO -  * Detected change in '/Users/carboni/Documents/pynotebook/personal/RAG rdf/CRM_RAG/Data and ontology stores/ontology_processor.py', reloading
+2025-04-14 10:00:03,719 - werkzeug - INFO -  * Restarting with stat
+2025-04-14 10:00:04,452 - rag_system - INFO - RDF vector store not initialized, attempting to load...
+2025-04-14 10:00:04,452 - rag_system - INFO - RDF vector store already exists, loading from disk...
+2025-04-14 10:00:04,452 - rag_system - INFO - Initializing embeddings model...
+2025-04-14 10:00:06,485 - sentence_transformers.SentenceTransformer - INFO - Use pytorch device_name: mps
+2025-04-14 10:00:06,485 - sentence_transformers.SentenceTransformer - INFO - Load pretrained SentenceTransformer: sentence-transformers/all-mpnet-base-v2
+2025-04-14 10:00:08,128 - rag_system - INFO - Embeddings model initialized successfully
+2025-04-14 10:00:08,130 - faiss.loader - INFO - Loading faiss.
+2025-04-14 10:00:08,144 - faiss.loader - INFO - Successfully loaded faiss.
+2025-04-14 10:00:08,147 - faiss - INFO - Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes.
+2025-04-14 10:00:08,150 - rag_system - INFO - Successfully loaded existing RDF vector store
+2025-04-14 10:00:08,150 - rag_system - INFO - Ontology vector store not initialized, attempting to load...
+2025-04-14 10:00:08,150 - ontology_processor - INFO - Processing ontology documentation first
+2025-04-14 10:00:08,150 - ontology_processor - INFO - Extracting concepts from ontology file: docs/CIDOC_CRM_v7.1.3.ttl
+2025-04-14 10:00:08,291 - ontology_processor - INFO - Namespaces in ontology file:
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   brick: https://brickschema.org/schema/Brick#
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   csvw: http://www.w3.org/ns/csvw#
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   dc: http://purl.org/dc/elements/1.1/
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   dcat: http://www.w3.org/ns/dcat#
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   dcmitype: http://purl.org/dc/dcmitype/
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   dcterms: http://purl.org/dc/terms/
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   dcam: http://purl.org/dc/dcam/
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   doap: http://usefulinc.com/ns/doap#
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   foaf: http://xmlns.com/foaf/0.1/
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   geo: http://www.opengis.net/ont/geosparql#
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   odrl: http://www.w3.org/ns/odrl/2/
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   org: http://www.w3.org/ns/org#
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   prof: http://www.w3.org/ns/dx/prof/
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   prov: http://www.w3.org/ns/prov#
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   qb: http://purl.org/linked-data/cube#
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   schema: https://schema.org/
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   sh: http://www.w3.org/ns/shacl#
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   skos: http://www.w3.org/2004/02/skos/core#
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   sosa: http://www.w3.org/ns/sosa/
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   ssn: http://www.w3.org/ns/ssn/
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   time: http://www.w3.org/2006/time#
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   vann: http://purl.org/vocab/vann/
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   void: http://rdfs.org/ns/void#
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   wgs: https://www.w3.org/2003/01/geo/wgs84_pos#
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   owl: http://www.w3.org/2002/07/owl#
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns#
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   rdfs: http://www.w3.org/2000/01/rdf-schema#
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   xsd: http://www.w3.org/2001/XMLSchema#
+2025-04-14 10:00:08,291 - ontology_processor - INFO -   xml: http://www.w3.org/XML/1998/namespace
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E10_Transfer_of_Custody - Transfer of Custody from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E11_Modification - Modification from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E12_Production - Production from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E13_Attribute_Assignment - Attribute Assignment from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E14_Condition_Assessment - Condition Assessment from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E15_Identifier_Assignment - Identifier Assignment from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E16_Measurement - Measurement from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E17_Type_Assignment - Type Assignment from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E18_Physical_Thing - Physical Thing from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E19_Physical_Object - Physical Object from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E1_CRM_Entity - CRM Entity from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E20_Biological_Object - Biological Object from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E21_Person - Person from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E22_Human-Made_Object - Human-Made Object from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E24_Physical_Human-Made_Thing - Physical Human-Made Thing from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E25_Human-Made_Feature - Human-Made Feature from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E26_Physical_Feature - Physical Feature from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E27_Site - Site from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E28_Conceptual_Object - Conceptual Object from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E29_Design_or_Procedure - Design or Procedure from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E2_Temporal_Entity - Temporal Entity from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E30_Right - Right from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E31_Document - Document from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E32_Authority_Document - Authority Document from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E33_E41_Linguistic_Appellation - Linguistic Appellation from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E33_Linguistic_Object - Linguistic Object from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E34_Inscription - Inscription from cidoc_crm
+2025-04-14 10:00:08,292 - ontology_processor - INFO - Found concept: E35_Title - Title from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E36_Visual_Item - Visual Item from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E37_Mark - Mark from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E39_Actor - Actor from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E3_Condition_State - Condition State from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E41_Appellation - Appellation from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E42_Identifier - Identifier from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E4_Period - Period from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E52_Time-Span - Time-Span from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E53_Place - Place from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E54_Dimension - Dimension from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E55_Type - Type from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E56_Language - Language from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E57_Material - Material from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E58_Measurement_Unit - Measurement Unit from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E5_Event - Event from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E63_Beginning_of_Existence - Beginning of Existence from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E64_End_of_Existence - End of Existence from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E65_Creation - Creation from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E66_Formation - Formation from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E67_Birth - Birth from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E68_Dissolution - Dissolution from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E69_Death - Death from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E6_Destruction - Destruction from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E70_Thing - Thing from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E71_Human-Made_Thing - Human-Made Thing from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E72_Legal_Object - Legal Object from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E73_Information_Object - Information Object from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E74_Group - Group from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E77_Persistent_Item - Persistent Item from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E78_Curated_Holding - Curated Holding from cidoc_crm
+2025-04-14 10:00:08,293 - ontology_processor - INFO - Found concept: E79_Part_Addition - Part Addition from cidoc_crm
+2025-04-14 10:00:08,294 - ontology_processor - INFO - Found concept: E7_Activity - Activity from cidoc_crm
+2025-04-14 10:00:08,294 - ontology_processor - INFO - Found concept: E80_Part_Removal - Part Removal from cidoc_crm
+2025-04-14 10:00:08,294 - ontology_processor - INFO - Found concept: E81_Transformation - Transformation from cidoc_crm
+2025-04-14 10:00:08,294 - ontology_processor - INFO - Found concept: E83_Type_Creation - Type Creation from cidoc_crm
+2025-04-14 10:00:08,294 - ontology_processor - INFO - Found concept: E85_Joining - Joining from cidoc_crm
+2025-04-14 10:00:08,294 - ontology_processor - INFO - Found concept: E86_Leaving - Leaving from cidoc_crm
+2025-04-14 10:00:08,294 - ontology_processor - INFO - Found concept: E87_Curation_Activity - Curation Activity from cidoc_crm
+2025-04-14 10:00:08,294 - ontology_processor - INFO - Found concept: E89_Propositional_Object - Propositional Object from cidoc_crm
+2025-04-14 10:00:08,294 - ontology_processor - INFO - Found concept: E8_Acquisition - Acquisition from cidoc_crm
+2025-04-14 10:00:08,294 - ontology_processor - INFO - Found concept: E90_Symbolic_Object - Symbolic Object from cidoc_crm
+2025-04-14 10:00:08,294 - ontology_processor - INFO - Found concept: E92_Spacetime_Volume - Spacetime Volume from cidoc_crm
+2025-04-14 10:00:08,294 - ontology_processor - INFO - Found concept: E93_Presence - Presence from cidoc_crm
+2025-04-14 10:00:08,294 - ontology_processor - INFO - Found concept: E96_Purchase - Purchase from cidoc_crm
+2025-04-14 10:00:08,294 - ontology_processor - INFO - Found concept: E97_Monetary_Amount - Monetary Amount from cidoc_crm
+2025-04-14 10:00:08,294 - ontology_processor - INFO - Found concept: E98_Currency - Currency from cidoc_crm
+2025-04-14 10:00:08,294 - ontology_processor - INFO - Found concept: E99_Product_Type - Product Type from cidoc_crm
+2025-04-14 10:00:08,294 - ontology_processor - INFO - Found concept: E9_Move - Move from cidoc_crm
+2025-04-14 10:00:08,294 - ontology_processor - INFO - Extracted 76 concepts from ontology file
+2025-04-14 10:00:08,294 - ontology_processor - INFO - Extracting concepts from ontology file: docs/vir.ttl
+2025-04-14 10:00:08,299 - ontology_processor - INFO - Namespaces in ontology file:
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   brick: https://brickschema.org/schema/Brick#
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   csvw: http://www.w3.org/ns/csvw#
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   dc: http://purl.org/dc/elements/1.1/
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   dcat: http://www.w3.org/ns/dcat#
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   dcmitype: http://purl.org/dc/dcmitype/
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   dcterms: http://purl.org/dc/terms/
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   dcam: http://purl.org/dc/dcam/
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   doap: http://usefulinc.com/ns/doap#
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   foaf: http://xmlns.com/foaf/0.1/
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   geo: http://www.opengis.net/ont/geosparql#
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   odrl: http://www.w3.org/ns/odrl/2/
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   org: http://www.w3.org/ns/org#
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   prof: http://www.w3.org/ns/dx/prof/
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   prov: http://www.w3.org/ns/prov#
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   qb: http://purl.org/linked-data/cube#
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   schema: https://schema.org/
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   sh: http://www.w3.org/ns/shacl#
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   skos: http://www.w3.org/2004/02/skos/core#
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   sosa: http://www.w3.org/ns/sosa/
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   ssn: http://www.w3.org/ns/ssn/
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   time: http://www.w3.org/2006/time#
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   vann: http://purl.org/vocab/vann/
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   void: http://rdfs.org/ns/void#
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   wgs: https://www.w3.org/2003/01/geo/wgs84_pos#
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   owl: http://www.w3.org/2002/07/owl#
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   rdf: http://www.w3.org/1999/02/22-rdf-syntax-ns#
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   rdfs: http://www.w3.org/2000/01/rdf-schema#
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   xsd: http://www.w3.org/2001/XMLSchema#
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   xml: http://www.w3.org/XML/1998/namespace
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   vir: http://w3id.org/vir#
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   crm: http://www.cidoc-crm.org/cidoc-crm/
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   crmsci: http://www.ics.forth.gr/isl/CRMsci/
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   frbroo: http://iflastandards.info/ns/fr/frbr/frbroo/
+2025-04-14 10:00:08,299 - ontology_processor - INFO -   lio: https://w3id.org/lio/v1
+2025-04-14 10:00:08,299 - ontology_processor - INFO - Found VIR subclass: IC10_Attribute - Iconographical Attribute (subclass of E36_Visual_Item)
+2025-04-14 10:00:08,300 - ontology_processor - INFO - Found VIR subclass: IC9_Representation - Representation (subclass of E36_Visual_Item)
+2025-04-14 10:00:08,300 - ontology_processor - INFO - Found VIR subclass: IC16_Character - Character (subclass of F38_Character)
+2025-04-14 10:00:08,300 - ontology_processor - INFO - Found VIR subclass: IC11_Personification - Personification (subclass of IC16_Character)
+2025-04-14 10:00:08,300 - ontology_processor - INFO - Found VIR subclass: IC12_Visual_Recognition - Visual Recognition (subclass of S4_Observation)
+2025-04-14 10:00:08,300 - ontology_processor - INFO - Found VIR subclass: IC21_Similarity_Statement - Similarity Statement (subclass of S4_Observation)
+2025-04-14 10:00:08,300 - ontology_processor - INFO - Found VIR subclass: IC19_Recto - Recto (subclass of E26_Physical_Feature)
+2025-04-14 10:00:08,300 - ontology_processor - INFO - Found VIR subclass: IC20_Verso - Verso (subclass of E26_Physical_Feature)
+2025-04-14 10:00:08,300 - ontology_processor - INFO - Found VIR subclass: IC1_Iconographical_Atom - Iconographical Atom (subclass of E25_Man-Made_Feature)
+2025-04-14 10:00:08,300 - ontology_processor - INFO - Found VIR subclass: PCK4_is_visual_prototype_of - PCK4_is_visual_prototype_of (subclass of PC0_Typed_CRM_Property)
+2025-04-14 10:00:08,300 - ontology_processor - INFO - Extracted 10 concepts from ontology file
+2025-04-14 10:00:08,300 - ontology_processor - INFO - Built ontology graph successfully
+2025-04-14 10:00:08,300 - ontology_processor - INFO - Processing core taxonomy relationships...
+2025-04-14 10:00:08,301 - ontology_processor - INFO - Added taxonomy groups to 16 concepts
+2025-04-14 10:00:08,301 - ontology_processor - INFO - Processed core taxonomy successfully
+2025-04-14 10:00:08,301 - ontology_processor - INFO - Loading existing ontology vector store
+2025-04-14 10:00:08,302 - ontology_processor - INFO - Ontology vector store loaded successfully
+2025-04-14 10:00:08,318 - werkzeug - WARNING -  * Debugger is active!
+2025-04-14 10:00:08,335 - werkzeug - INFO -  * Debugger PIN: 535-925-483

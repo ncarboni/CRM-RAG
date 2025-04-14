@@ -6670,3 +6670,5 @@ b'HTTP ERROR 404 Not Found\nURI: http://localhost:3030/Asinou/sparql?query=%0A++
 2025-04-13 17:42:23,389 - ontology_processor - INFO - Ontology vector store loaded successfully
 2025-04-13 17:42:23,400 - werkzeug - WARNING -  * Debugger is active!
 2025-04-13 17:42:23,415 - werkzeug - INFO -  * Debugger PIN: 535-925-483
+2025-04-13 17:54:05,767 - werkzeug - INFO -  * Detected change in '/Users/carboni/Documents/pynotebook/personal/RAG rdf/CRM_RAG/Data and ontology stores/ontology_processor.py', reloading
+2025-04-13 17:54:06,324 - werkzeug - INFO -  * Restarting with stat

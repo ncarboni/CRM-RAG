@@ -9,7 +9,7 @@ import logging
 import os
 from flask import Flask, render_template, request, jsonify, url_for, redirect
 from logging.handlers import RotatingFileHandler
-from rag_system import FusekiRagSystem
+from universal_rag_system import UniversalRagSystem
 from dotenv import load_dotenv
 load_dotenv()  
 
@@ -45,12 +45,11 @@ if not OPENAI_API_KEY:
     logger.warning("OPENAI_API_KEY environment variable is not set! The application may not function correctly.")
 
 # Initialize the RAG system with configuration
-rag_system = FusekiRagSystem(
+rag_system = UniversalRagSystem(
     endpoint_url=FUSEKI_ENDPOINT,
     openai_api_key=OPENAI_API_KEY,
     openai_model=OPENAI_MODEL,
-    temperature=TEMPERATURE,
-    ontology_docs_path=ONTOLOGY_DOCS
+    temperature=TEMPERATURE
 )
 
 # Replace the @app.before_first_request decorator with a setup function
@@ -62,21 +61,16 @@ def initialize_system_startup():
             logger.warning(f"Failed to connect to Fuseki at {FUSEKI_ENDPOINT}")
             logger.warning("The application will start, but search functionality may be limited")
         
-        # Pre-build vector stores for faster responses
-        try:
-            rag_system.ensure_vectorstores()
+        # Initialize the system
+        logger.info("Initializing universal RAG system...")
+        if rag_system.initialize():
+            logger.info("Universal RAG system initialization complete")
+        else:
+            logger.error("Failed to initialize universal RAG system")
             
-            # Build additional context indices
-            logger.info("Building additional context indices...")
-            rag_system.add_geographic_context()
-            rag_system.add_temporal_context()
-            rag_system.add_iconographic_context()
-            logger.info("Context indices built successfully")
-        except Exception as e:
-            logger.error(f"Error initializing vector stores: {str(e)}")
-            logger.info("You can still use the application, but search may not work properly")
     except Exception as e:
         logger.error(f"Error during application initialization: {str(e)}")
+
 
 @app.route('/')
 def index():
@@ -151,18 +145,12 @@ def get_taxonomy_group(taxonomy_group):
 
 @app.route('/api/chat', methods=['POST'])
 def chat_api():
-    """API endpoint for chat functionality with smart query routing"""
+    """API endpoint for chat functionality"""
     question = request.json.get('question', '')
     logger.info(f"Chat request: '{question}'")
     
-    if not rag_system.ensure_vectorstores():
-        return jsonify({
-            "answer": "I'm sorry, I couldn't access the knowledge base. Please try again later.",
-            "sources": []
-        })
-    
-    # Use smart routing system to handle different question types
-    result = rag_system.route_and_answer_question(question)
+    # Use the universal system to answer the question
+    result = rag_system.answer_question(question)
     return jsonify(result)
 
 @app.route('/api/search', methods=['POST'])
@@ -236,13 +224,13 @@ def get_ontology_concept(concept_id):
 if __name__ == '__main__':
     # Get port from environment or use default 5001
     port = int(os.environ.get('PORT', 5001))
-    
-    # Check if vector stores exist and try to initialize them
+
+    # Initialize the system
     try:
-        rag_system.ensure_vectorstores()
+        rag_system.initialize()
     except Exception as e:
-        logger.error(f"Error initializing vector stores: {str(e)}")
-        logger.info("Application will still start, but search may not work initially")
+        logger.error(f"Error initializing the system: {str(e)}")
+        logger.info("Application will still start, but functionality may be limited")
     
     # Print explicit startup information
     print(f"Starting Flask application...")
@@ -250,4 +238,4 @@ if __name__ == '__main__':
     print(f"Press CTRL+C to stop the server")
     
     # Run the Flask application
-    app.run(debug=True, host='127.0.0.1', port=port)  # Changed host to 127.0.0.1
+    app.run(debug=False, host='127.0.0.1', port=port)  # Changed host to 127.0.0.1

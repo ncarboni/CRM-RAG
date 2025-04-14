@@ -38,27 +38,6 @@ class OntologyProcessor:
         self.ontology_graph = nx.DiGraph()
         self.concepts = {}
         self.vectorstore = None
-        
-    def load_pdf_document(self, pdf_path: str) -> str:
-        """
-        Load a PDF document and extract text.
-        
-        Args:
-            pdf_path: Path to the PDF file
-            
-        Returns:
-            Extracted text from the PDF
-        """
-        logger.info(f"Loading PDF document: {pdf_path}")
-        try:
-            doc = fitz.open(pdf_path)
-            text = ""
-            for page in doc:
-                text += page.get_text()
-            return text
-        except Exception as e:
-            logger.error(f"Error loading PDF document: {str(e)}")
-            return ""
     
     def load_turtle_document(self, turtle_path: str):
         """
@@ -113,59 +92,6 @@ class OntologyProcessor:
         return concepts
 
 
-
-
-    def extract_cidoc_crm_concepts(self, text: str) -> Dict[str, Dict[str, Any]]:
-        """
-        Extract CIDOC-CRM concepts and their definitions from text.
-        
-        Args:
-            text: Text containing CIDOC-CRM concept definitions
-            
-        Returns:
-            Dictionary of concept IDs to concept information
-        """
-        # Pattern for CIDOC-CRM class definitions (E1, E2, etc.)
-        class_pattern = r'(E\d+)\s+([A-Za-z\s]+)(?:\n|.)+?(?:Scope note:)(.+?)(?:Examples:|Properties:|$)'
-        class_matches = re.finditer(class_pattern, text, re.DOTALL)
-        
-        # Pattern for CIDOC-CRM property definitions (P1, P2, etc.)
-        property_pattern = r'(P\d+)\s+([A-Za-z\s]+)\s+\(([^)]+)\s*,\s*([^)]+)\)(?:\n|.)+?(?:Scope note:)(.+?)(?:Examples:|$)'
-        property_matches = re.finditer(property_pattern, text, re.DOTALL)
-        
-        concepts = {}
-        
-        # Process class matches
-        for match in class_matches:
-            class_id = match.group(1).strip()
-            class_name = match.group(2).strip()
-            scope_note = match.group(3).strip().replace('\n', ' ')
-            
-            concepts[class_id] = {
-                'id': class_id,
-                'name': class_name,
-                'type': 'class',
-                'definition': scope_note
-            }
-            
-        # Process property matches
-        for match in property_matches:
-            prop_id = match.group(1).strip()
-            prop_name = match.group(2).strip()
-            domain = match.group(3).strip()
-            range_ = match.group(4).strip()
-            scope_note = match.group(5).strip().replace('\n', ' ')
-            
-            concepts[prop_id] = {
-                'id': prop_id,
-                'name': prop_name,
-                'type': 'property',
-                'domain': domain,
-                'range': range_,
-                'definition': scope_note
-            }
-            
-        return concepts
     
     def build_ontology_graph(self) -> nx.DiGraph:
         """
@@ -223,41 +149,28 @@ class OntologyProcessor:
 
     def process_ontology_docs(self):
         """
-        Process ontology documentation.
+        Process ontology documentation from RDF/Turtle files only.
         
         Returns:
             Dictionary of concepts extracted from documentation
         """
-        # Prioritize Turtle file for concept extraction
+        # Process only Turtle files
         turtle_docs = [doc for doc in self.ontology_docs_path if doc.lower().endswith('.ttl')]
-        pdf_docs = [doc for doc in self.ontology_docs_path if doc.lower().endswith('.pdf')]
         
         try:
             self.concepts = {}
             
-            # Process turtle documents first
+            # Process turtle documents
             for turtle_path in turtle_docs:
                 # Extract concepts from the Turtle file
                 new_concepts = self.load_ontology_document(turtle_path)
                 # Merge with existing concepts
                 self.concepts.update(new_concepts)
                 
-            # If no concepts found and PDF docs exist, use PDF processing
-            if not self.concepts and pdf_docs:
-                logger.info("No concepts from Turtle files, falling back to PDF processing")
-                all_text = ""
-                for doc_path in pdf_docs:
-                    if os.path.exists(doc_path):
-                        doc_text = self.load_pdf_document(doc_path)
-                        all_text += doc_text
-                
-                # Extract concepts from PDF text
-                self.concepts = self.extract_cidoc_crm_concepts(all_text)
-            
             if not self.concepts:
                 logger.warning("No ontology concepts found")
                 return {}
-                
+                    
             # Build ontology graph
             try:
                 self.build_ontology_graph()
@@ -271,7 +184,7 @@ class OntologyProcessor:
                 logger.info("Processed core taxonomy successfully")
             except Exception as e:
                 logger.error(f"Error processing core taxonomy: {str(e)}")
-                
+                    
             return self.concepts
         except Exception as e:
             logger.error(f"Unhandled error in process_ontology_docs: {str(e)}")
@@ -756,3 +669,69 @@ class OntologyProcessor:
             except Exception as e:
                 logger.error(f"Error creating ontology vector store: {str(e)}")
                 return None
+
+class GraphDocument:
+    """Document node in a graph-based retrieval system"""
+    
+    def __init__(self, doc_id, text, metadata=None, embedding=None):
+        self.id = doc_id
+        self.text = text
+        self.metadata = metadata or {}
+        self.embedding = embedding
+        self.neighbors = []  # Graph connections to other documents
+        
+    def add_neighbor(self, neighbor_doc, edge_type, weight=1.0):
+        """Add a connection to another document"""
+        self.neighbors.append({
+            "doc": neighbor_doc,
+            "edge_type": edge_type,
+            "weight": weight
+        })
+
+class GraphDocumentStore:
+    """Store for graph-connected documents with vectorized retrieval"""
+    
+    def __init__(self, embeddings_model):
+        self.docs = {}  # Document ID to GraphDocument
+        self.embeddings_model = embeddings_model
+        self.vector_store = None
+        
+    def add_document(self, doc_id, text, metadata=None):
+        """Add a document to the store"""
+        embedding = self.embeddings_model.embed_query(text)
+        doc = GraphDocument(doc_id, text, metadata, embedding)
+        self.docs[doc_id] = doc
+        return doc
+        
+    def add_edge(self, doc_id1, doc_id2, edge_type, weight=1.0):
+        """Add an edge between two documents"""
+        if doc_id1 in self.docs and doc_id2 in self.docs:
+            self.docs[doc_id1].add_neighbor(self.docs[doc_id2], edge_type, weight)
+            self.docs[doc_id2].add_neighbor(self.docs[doc_id1], edge_type, weight)
+    
+    def rebuild_vector_store(self):
+        """Build/rebuild the vector store for initial retrieval"""
+        docs_for_faiss = []
+        for doc_id, graph_doc in self.docs.items():
+            doc = Document(
+                page_content=graph_doc.text,
+                metadata={**graph_doc.metadata, "doc_id": doc_id}
+            )
+            docs_for_faiss.append(doc)
+            
+        self.vector_store = FAISS.from_documents(docs_for_faiss, self.embeddings_model)
+        
+    def retrieve(self, query, k=10):
+        """First-stage retrieval using vector similarity"""
+        if not self.vector_store:
+            self.rebuild_vector_store()
+            
+        results = self.vector_store.similarity_search(query, k=k)
+        retrieved_docs = []
+        
+        for doc in results:
+            doc_id = doc.metadata.get("doc_id")
+            if doc_id in self.docs:
+                retrieved_docs.append(self.docs[doc_id])
+                
+        return retrieved_docs

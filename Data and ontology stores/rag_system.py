@@ -1,9 +1,3 @@
-"""
-RAG system module that integrates RDF data and ontology knowledge.
-This module handles retrieving data from Fuseki, building vector stores,
-and answering questions using a dual-store RAG architecture.
-"""
-
 import logging
 import os
 import re
@@ -16,24 +10,25 @@ from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.chains import ConversationalRetrievalChain
 from langchain.prompts import PromptTemplate
-from langchain_ollama import ChatOllama
 from langchain.memory import ConversationBufferMemory
 from langchain.retrievers.multi_query import MultiQueryRetriever
 from langchain.retrievers import MergerRetriever
 from ontology_processor import OntologyProcessor
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_openai import ChatOpenAI
+from langchain_openai import OpenAIEmbeddings
 
-
-
-# Set up logging
 logger = logging.getLogger(__name__)
+
 
 class FusekiRagSystem:
     """RAG system that integrates RDF data from Fuseki with ontology knowledge"""
     
     def __init__(self, endpoint_url="http://localhost:3030/asinou/sparql", 
-                 embedding_model_name="sentence-transformers/all-mpnet-base-v2",
-                 ollama_model="llama3",
+                 embedding_model_name="text-embedding-3-small",  # Updated embedding model
+                 openai_api_key=None,  # New parameter for API key
+                 openai_model="o-mini",  # New parameter for model name
+                 temperature=0.7,  # Added temperature parameter
                  ontology_docs_path=None):
         """
         Initialize the RAG system.
@@ -41,7 +36,9 @@ class FusekiRagSystem:
         Args:
             endpoint_url: URL of the Fuseki SPARQL endpoint
             embedding_model_name: Name of the embedding model to use
-            ollama_model: Name of the Ollama model to use
+            openai_api_key: OpenAI API key
+            openai_model: OpenAI model name to use
+            temperature: Temperature setting for the language model
             ontology_docs_path: List of paths to ontology documentation files
         """
         self.endpoint_url = endpoint_url
@@ -51,7 +48,9 @@ class FusekiRagSystem:
         self.rdf_vectorstore = None
         self.ontology_vectorstore = None
         self.embedding_model_name = embedding_model_name
-        self.ollama_model = ollama_model
+        self.openai_api_key = openai_api_key or os.environ.get("OPENAI_API_KEY")
+        self.openai_model = openai_model
+        self.temperature = temperature
         self.chat_chain = None
         
         # Initialize ontology processor
@@ -63,702 +62,126 @@ class FusekiRagSystem:
         if self._embeddings is None:
             logger.info("Initializing embeddings model...")
             try:
-                self._embeddings = HuggingFaceEmbeddings(model_name=self.embedding_model_name)
-                logger.info("Embeddings model initialized successfully")
+                # Use OpenAI embeddings instead of HuggingFace
+                self._embeddings = OpenAIEmbeddings(
+                    model=self.embedding_model_name,
+                    openai_api_key=self.openai_api_key
+                )
+                logger.info("OpenAI embeddings model initialized successfully")
             except Exception as e:
                 logger.error(f"Failed to initialize embeddings model: {str(e)}")
                 raise
         return self._embeddings
 
-    def test_connection(self):
+
+    def ensure_vectorstores(self):
         """
-        Test connection to Fuseki endpoint.
+        Ensure both RDF and ontology vector stores are available.
         
         Returns:
-            bool: True if connection successful, False otherwise
+            bool: True if at least RDF vector store is available, False otherwise
         """
-        try:
-            query = """
-            SELECT ?s ?p ?o WHERE {
-                ?s ?p ?o
-            } LIMIT 1
-            """
-            self.sparql.setQuery(query)
-            results = self.sparql.query().convert()
-            logger.info("Successfully connected to Fuseki endpoint")
-            return True
-        except Exception as e:
-            logger.error(f"Connection error: {str(e)}")
+        # Initialize RDF vector store
+        if self.rdf_vectorstore is None:
+            logger.info("RDF vector store not initialized, attempting to load...")
+            self.build_rdf_vectorstore()
+            
+        # Initialize ontology vector store
+        if self.ontology_vectorstore is None:
+            logger.info("Ontology vector store not initialized, attempting to load...")
+            self.ontology_vectorstore = self.build_ontology_vectorstore()
+        
+        # Check if both vector stores are available
+        if self.rdf_vectorstore is None:
+            logger.error("Failed to initialize RDF vector store")
             return False
-
-    def get_entity_details(self, entity_uri):
+            
+        if self.ontology_vectorstore is None:
+            logger.warning("Failed to initialize ontology vector store, will continue with RDF only")
+            
+        return True
+        
+    def build_rdf_vectorstore(self, force_rebuild=False):
         """
-        Get all details about a specific entity.
+        Build the RDF vector store from SPARQL endpoint data.
         
         Args:
-            entity_uri: URI of the entity to get details for
+            force_rebuild: Whether to force rebuilding the vector store
             
         Returns:
-            List of dictionaries with entity details
+            FAISS vector store or None if failed
         """
-        logger.info(f"Fetching details for entity: {entity_uri}")
-        query = f"""
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        
-        SELECT ?predicate ?predicateLabel ?object ?objectLabel WHERE {{
-            <{entity_uri}> ?predicate ?object .
-            OPTIONAL {{ ?predicate rdfs:label ?predicateLabel }}
-            OPTIONAL {{ ?object rdfs:label ?objectLabel }}
-        }}
-        """
-        
-        try:
-            self.sparql.setQuery(query)
-            results = self.sparql.query().convert()
-            
-            details = []
-            for result in results["results"]["bindings"]:
-                detail = {
-                    "predicate": result["predicate"]["value"],
-                    "object": result["object"]["value"]
-                }
-                if "predicateLabel" in result:
-                    detail["predicateLabel"] = result["predicateLabel"]["value"]
-                if "objectLabel" in result:
-                    detail["objectLabel"] = result["objectLabel"]["value"]
-                details.append(detail)
-                
-            logger.info(f"Retrieved {len(details)} details for entity")
-            return details
-        except Exception as e:
-            logger.error(f"Error fetching entity details: {str(e)}")
-            return []
-
-
-
-    def graph_retrieval(self, query, initial_k=5, expansion_depth=2, max_nodes=15):
-        """
-        Graph-aware retrieval that combines vector search with graph traversal
-        
-        Args:
-            query: User query
-            initial_k: Number of initial nodes to retrieve
-            expansion_depth: How many hops to traverse from seed nodes
-            max_nodes: Maximum total nodes to return
-            
-        Returns:
-            List of Document objects from graph traversal
-        """
-        # Step 1: Get seed nodes from vector search
-        seed_documents = self.search(query, k=initial_k)
-        
-        # Extract entity URIs from seed documents
-        seed_entities = set()
-        for doc in seed_documents:
-            if doc.metadata.get("source") == "rdf_data":
-                entity_uri = doc.metadata.get("entity", "")
-                if entity_uri:
-                    seed_entities.add(entity_uri)
-        
-        # Step 2: Traverse the graph to find related entities
-        all_entities = set(seed_entities)
-        expanded_entities = set()
-        
-        # For each depth level
-        for depth in range(expansion_depth):
-            # Current frontier to expand from
-            frontier = seed_entities if depth == 0 else expanded_entities
-            expanded_entities = set()
-            
-            # For each entity in the frontier
-            for entity_uri in frontier:
-                # Get directly related entities
-                query = f"""
-                PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-                
-                SELECT ?related WHERE {{
-                    # Outgoing relationships
-                    {{ <{entity_uri}> ?p ?related . }}
-                    UNION
-                    # Incoming relationships
-                    {{ ?related ?p <{entity_uri}> . }}
-                    
-                    # Filter for entities with labels only
-                    ?related rdfs:label ?label .
-                }}
-                LIMIT 10
-                """
-                
-                try:
-                    self.sparql.setQuery(query)
-                    results = self.sparql.query().convert()
-                    
-                    for result in results["results"]["bindings"]:
-                        related_uri = result["related"]["value"]
-                        if related_uri not in all_entities:
-                            expanded_entities.add(related_uri)
-                            all_entities.add(related_uri)
-                            
-                            # Stop if we've reached the maximum number of nodes
-                            if len(all_entities) >= max_nodes:
-                                break
-                    
-                    if len(all_entities) >= max_nodes:
-                        break
-                        
-                except Exception as e:
-                    logger.error(f"Error during graph traversal: {str(e)}")
-            
-            # If we've reached the maximum, stop traversal
-            if len(all_entities) >= max_nodes:
-                break
-        
-        # Step 3: Convert entities to documents
-        graph_documents = []
-        
-        for entity_uri in all_entities:
-            # Get entity details and format as document
-            details = self.get_entity_details(entity_uri)
-            
-            # Get entity label
-            entity_label = ""
-            for detail in details:
-                if "label" in detail["predicate"].lower():
-                    entity_label = detail["object"]
-                    break
-            
-            # Create text representation of entity
-            text = f"Entity: {entity_label} ({entity_uri})\n"
-            text += "Properties:\n"
-            for detail in details[:10]:  # Limit to avoid huge documents
-                pred = detail.get("predicateLabel", detail["predicate"])
-                obj = detail.get("objectLabel", detail["object"])
-                text += f"  - {pred}: {obj}\n"
-            
-            # Create document
-            doc = Document(
-                page_content=text, 
-                metadata={
-                    "entity": entity_uri, 
-                    "label": entity_label,
-                    "source": "rdf_data_graph"
-                }
-            )
-            graph_documents.append(doc)
-        
-        return graph_documents
-
-    def compute_graph_relevance(self, entity_uri, query_embedding, graph_path_length):
-        """Compute relevance score combining vector similarity and graph path length"""
-        # Get entity details
-        details = self.get_entity_details(entity_uri)
-        
-        # Create text representation of entity
-        entity_text = ""
-        for detail in details:
-            if "label" in detail["predicate"].lower():
-                entity_text += detail["object"] + " "
-            if "type" in detail["predicate"].lower():
-                entity_text += detail["object"].split("/")[-1] + " "
-        
-        # Compute vector similarity using cosine similarity
-        from sklearn.metrics.pairwise import cosine_similarity
-        import numpy as np
-        
-        # Embed the entity text
-        entity_embedding = self.embeddings.embed_query(entity_text)
-        
-        # Reshape for sklearn
-        query_embedding_reshaped = np.array(query_embedding).reshape(1, -1)
-        entity_embedding_reshaped = np.array(entity_embedding).reshape(1, -1)
-        
-        # Compute cosine similarity
-        similarity = cosine_similarity(query_embedding_reshaped, entity_embedding_reshaped)[0][0]
-        
-        # Discount by path length (closer nodes get higher scores)
-        path_discount = 1.0 / (1.0 + graph_path_length)
-        
-        # Final score combines vector similarity and graph proximity
-        final_score = similarity * path_discount
-        
-        return final_score
-
-    def retrieve_with_graph(self, query, k=10):
-        """Enhanced retrieval that combines vector search with graph traversal"""
-        # Get query embedding for later scoring
-        query_embedding = self.embeddings.embed_query(query)
-        
-        # Get regular vector search results
-        vector_docs = self.search(query, k=k//2)
-        
-        # Get graph-traversal results
-        graph_docs = self.graph_retrieval(query, initial_k=3, expansion_depth=2, max_nodes=k)
-        
-        # Score and rank all documents
-        all_docs = []
-        for doc in vector_docs:
-            # Vector docs already have relevance built in from the retrieval
-            all_docs.append((doc, 0.9))  # High base score for direct vector matches
-        
-        for doc in graph_docs:
-            entity_uri = doc.metadata.get("entity", "")
-            if entity_uri:
-                # For graph docs, compute relevance based on combination
-                # of vector similarity and graph structure
-                path_length = doc.metadata.get("path_length", 1)
-                score = self.compute_graph_relevance(entity_uri, query_embedding, path_length)
-                all_docs.append((doc, score))
-        
-        # Sort by score
-        all_docs.sort(key=lambda x: x[1], reverse=True)
-        
-        # Take top k unique documents
-        unique_docs = []
-        seen_ids = set()
-        for doc, score in all_docs:
-            doc_id = doc.metadata.get("entity", doc.metadata.get("concept_id", None))
-            if doc_id and doc_id not in seen_ids:
-                unique_docs.append(doc)
-                seen_ids.add(doc_id)
-                if len(unique_docs) >= k:
-                    break
-        
-        return unique_docs
-
-    def answer_question_with_graph(self, question):
-        """Answer a question using both vector search and graph reasoning"""
-        # Initialize chat chain if needed
-        if not hasattr(self, 'chat_chain') or self.chat_chain is None:
-            logger.info("Chat chain not initialized, setting up...")
-            if not self.setup_chat_chain():
-                logger.error("Failed to set up chat chain")
-                return {
-                    "answer": "I'm sorry, I couldn't set up the answering system. Please check the logs for details.",
-                    "sources": []
-                }
-        
-        # Use graph-aware retrieval
-        retrieved_docs = self.retrieve_with_graph(question, k=10)
-        
-        # Extract key entities from retrieved documents
-        key_entities = []
-        for doc in retrieved_docs:
-            if doc.metadata.get("source", "").startswith("rdf_data"):
-                entity_uri = doc.metadata.get("entity", "")
-                if entity_uri and len(key_entities) < 5:  # Limit to 5 key entities
-                    key_entities.append(entity_uri)
-        
-        # If we have multiple entities, extract reasoning paths between them
-        reasoning_paths = []
-        if len(key_entities) >= 2:
-            # Find paths between key entities
-            for i in range(len(key_entities) - 1):
-                path = self.extract_reasoning_path(key_entities[i], key_entities[i+1])
-                if path:
-                    reasoning_paths.append(path)
-        
-        # Create context from documents and reasoning paths
-        context = ""
-        
-        # Add documents to context
-        for doc in retrieved_docs:
-            context += doc.page_content + "\n\n"
-        
-        # Add reasoning paths to context
-        if reasoning_paths:
-            context += "Reasoning paths between entities:\n"
-            for path in reasoning_paths:
-                path_str = " -> ".join([f"{self.get_entity_label(step[0])} {step[1]} {self.get_entity_label(step[2])}" for step in path])
-                context += path_str + "\n"
-        
-        # Now use the chat chain with the enhanced context
-        result = self.chat_chain.invoke({"question": question, "context": context})
-        
-        # Process answer and sources
-        answer = result["answer"]
-        source_docs = result.get("source_documents", retrieved_docs)
-        
-        # Format sources
-        sources = []
-        for i, doc in enumerate(source_docs):
-            if doc.metadata.get("source", "").startswith("rdf_data"):
-                entity_uri = doc.metadata.get("entity", "")
-                entity_label = doc.metadata.get("label", "")
-                
-                sources.append({
-                    "id": i,
-                    "entity_uri": entity_uri,
-                    "entity_label": entity_label,
-                    "type": doc.metadata.get("source", "unknown")
-                })
-            elif doc.metadata.get("source") == "ontology_documentation":
-                concept_id = doc.metadata.get("concept_id", "")
-                concept_name = doc.metadata.get("concept_name", "")
-                
-                sources.append({
-                    "id": i,
-                    "concept_id": concept_id,
-                    "concept_name": concept_name,
-                    "type": "ontology_documentation"
-                })
-        
-        return {
-            "answer": answer,
-            "sources": sources,
-            "reasoning_paths": [{"path": path} for path in reasoning_paths]
-        }
-
-
-    def answer_question_with_ontology_context(self, question):
-        """
-        Answer a question using ontology-aware retrieval and interpretation.
-        """
-        logger.info(f"Answering question with ontology context: '{question}'")
-        
-        # Initialize chat chain if needed
-        if not hasattr(self, 'chat_chain') or self.chat_chain is None:
-            logger.info("Chat chain not initialized, setting up...")
-            if not self.setup_chat_chain():
-                logger.error("Failed to set up chat chain")
-                return {
-                    "answer": "I'm sorry, I couldn't set up the answering system. Please check the logs for details.",
-                    "sources": []
-                }
-        
-        # Use ontology-aware retrieval
-        context_docs = self.context_aware_retrieval(question)
-        
-        # Format context for the LLM
-        context = "\n\n".join([doc.page_content for doc in context_docs])
-        
-        # Get answer using the enhanced prompt
-        result = self.chat_chain.invoke({"question": question, "context": context})
-        
-        # Process answer and sources
-        answer = result["answer"]
-        source_docs = result.get("source_documents", context_docs)
-        
-        # Format sources
-        sources = []
-        for i, doc in enumerate(source_docs):
-            if doc.metadata.get("source", "").startswith("rdf_data"):
-                entity_uri = doc.metadata.get("entity", "")
-                entity_label = doc.metadata.get("label", "")
-                
-                sources.append({
-                    "id": i,
-                    "entity_uri": entity_uri,
-                    "entity_label": entity_label,
-                    "type": doc.metadata.get("source", "unknown")
-                })
-            elif doc.metadata.get("source") == "ontology_documentation":
-                concept_id = doc.metadata.get("concept_id", "")
-                concept_name = doc.metadata.get("concept_name", "")
-                
-                sources.append({
-                    "id": i,
-                    "concept_id": concept_id,
-                    "concept_name": concept_name,
-                    "type": "ontology_documentation"
-                })
-        
-        return {
-            "answer": answer,
-            "sources": sources
-        }
-
-
-    def get_entity_label(self, entity_uri):
-        """Get label for an entity URI"""
-        query = f"""
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        
-        SELECT ?label WHERE {{
-            <{entity_uri}> rdfs:label ?label .
-        }}
-        LIMIT 1
-        """
-        
-        try:
-            self.sparql.setQuery(query)
-            results = self.sparql.query().convert()
-            
-            if results["results"]["bindings"]:
-                return results["results"]["bindings"][0]["label"]["value"]
-            return entity_uri.split("/")[-1]  # Fallback to last segment of URI
-        except Exception:
-            return entity_uri.split("/")[-1]  # Fallback to last segment of URI   
-
-    def extract_reasoning_path(self, entity_uri1, entity_uri2, max_depth=3):
-        """Find reasoning paths between two entities in the graph"""
-        # Use BFS to find paths
-        visited = set()
-        queue = [(entity_uri1, [])]
-        
-        while queue:
-            current_uri, path = queue.pop(0)
-            
-            # If we reached the target
-            if current_uri == entity_uri2:
-                return path
-                
-            # If we've seen this node before or exceeded max depth
-            if current_uri in visited or len(path) >= max_depth:
-                continue
-                
-            visited.add(current_uri)
-            
-            # Query for neighbors
-            query = f"""
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-            
-            SELECT ?related ?predicate ?predicateLabel WHERE {{
-                {{ <{current_uri}> ?predicate ?related . }}
-                
-                OPTIONAL {{ ?predicate rdfs:label ?predicateLabel }}
-                ?related rdfs:label ?relatedLabel .
-            }}
-            LIMIT 20
-            """
-            
+        # Check if we already have a vectorstore saved that we can reuse
+        if not force_rebuild and os.path.exists('rdf_index/index.faiss'):
+            logger.info("RDF vector store already exists, loading from disk...")
             try:
-                self.sparql.setQuery(query)
-                results = self.sparql.query().convert()
-                
-                for result in results["results"]["bindings"]:
-                    neighbor = result["related"]["value"]
-                    predicate = result["predicate"]["value"]
-                    predicate_label = result.get("predicateLabel", {"value": predicate})["value"]
-                    
-                    # Add to queue with extended path
-                    new_path = path + [(current_uri, predicate_label, neighbor)]
-                    queue.append((neighbor, new_path))
-                    
+                self.rdf_vectorstore = FAISS.load_local('rdf_index', self.embeddings,
+                                                    allow_dangerous_deserialization=True)
+                logger.info("Successfully loaded existing RDF vector store")
+                return self.rdf_vectorstore
             except Exception as e:
-                logger.error(f"Error finding path: {str(e)}")
+                logger.error(f"Failed to load existing RDF vector store: {str(e)}")
+                # If loading fails, we'll rebuild
         
-        # No path found
-        return None
+        # Create documents from the RDF data
+        logger.info("Building new RDF vector store...")
+        documents = self.create_documents_from_endpoint()
+        
+        if not documents:
+            logger.error("No RDF documents to index")
+            return None
+        
+        # Log a sample document for debugging
+        if documents:
+            logger.debug(f"Sample RDF document content: {documents[0].page_content[:500]}...")
+        
+        # Split documents into chunks
+        logger.info("Splitting documents into chunks...")
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=800,  # Smaller chunks can help with precision
+            chunk_overlap=200,  # More overlap maintains context
+            separators=["\n\n", "\n", ". ", " ", ""],  # Explicit separators
+            length_function=len
+        )
+        texts = text_splitter.split_documents(documents)
+        
+        logger.info(f"Created {len(texts)} RDF document chunks")
+        
+        # Create vector store
+        logger.info("Creating FAISS vector store for RDF data...")
+        try:
+            self.rdf_vectorstore = FAISS.from_documents(texts, self.embeddings)
+            logger.info("RDF vector store created successfully")
+            
+            # Save vector store for future use
+            if not os.path.exists('rdf_index'):
+                os.makedirs('rdf_index')
+            self.rdf_vectorstore.save_local('rdf_index')
+            logger.info("RDF vector store saved to disk")
+            
+            return self.rdf_vectorstore
+        except Exception as e:
+            logger.error(f"Error creating RDF vector store: {str(e)}")
+            return None
 
-
-    def get_related_entities(self, entity_uri):
+    def build_ontology_vectorstore(self, force_rebuild=False):
         """
-        Get all entities that reference this entity.
+        Build ontology vector store from ontology documentation.
         
         Args:
-            entity_uri: URI of the entity to get related entities for
+            force_rebuild: Whether to force rebuilding the vector store
             
         Returns:
-            List of dictionaries with related entity information
+            FAISS vector store or None if failed
         """
-        logger.info(f"Fetching related entities for: {entity_uri}")
-        query = f"""
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        
-        SELECT ?subject ?predicate ?predicateLabel ?subjectLabel WHERE {{
-            ?subject ?predicate <{entity_uri}> .
-            OPTIONAL {{ ?subject rdfs:label ?subjectLabel }}
-            OPTIONAL {{ ?predicate rdfs:label ?predicateLabel }}
-        }}
-        """
-        
-        try:
-            self.sparql.setQuery(query)
-            results = self.sparql.query().convert()
+        if not self.ontology_processor:
+            logger.error("Ontology processor not initialized")
+            return None
             
-            related = []
-            for result in results["results"]["bindings"]:
-                relation = {
-                    "subject": result["subject"]["value"],
-                    "predicate": result["predicate"]["value"]
-                }
-                if "subjectLabel" in result:
-                    relation["subjectLabel"] = result["subjectLabel"]["value"]
-                if "predicateLabel" in result:
-                    relation["predicateLabel"] = result["predicateLabel"]["value"]
-                related.append(relation)
-                
-            logger.info(f"Retrieved {len(related)} related entities")
-            return related
-        except Exception as e:
-            logger.error(f"Error fetching related entities: {str(e)}")
-            return []
+        # Build the ontology vector store
+        self.ontology_vectorstore = self.ontology_processor.build_vectorstore(self.embeddings, force_rebuild)
+        return self.ontology_vectorstore
 
-    def get_all_churches(self):
-        """
-        Get all church buildings and their locations.
-        
-        Returns:
-            List of dictionaries with church information
-        """
-        logger.info("Fetching all churches with locations")
-        query = """
-        PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-        
-        SELECT ?church ?churchLabel ?location ?coordinates WHERE {
-            ?church rdf:type crm:E22_Man-Made_Object ;
-                   rdfs:label ?churchLabel ;
-                   crm:P55_has_current_location ?location .
-            
-            OPTIONAL {
-                ?location crm:P168_is_approximated_by ?coordinates .
-            }
-            
-            ?church crm:P2_has_type ?type .
-            ?type rdfs:label "Church" .
-        }
-        """
-        
-        try:
-            self.sparql.setQuery(query)
-            results = self.sparql.query().convert()
-            
-            churches = []
-            for result in results["results"]["bindings"]:
-                church = {
-                    "uri": result["church"]["value"],
-                    "label": result["churchLabel"]["value"],
-                    "location": result["location"]["value"]
-                }
-                
-                if "coordinates" in result:
-                    # Extract coordinates from WKT format
-                    wkt = result["coordinates"]["value"]
-                    if "POINT" in wkt:
-                        # Parse POINT(lon lat) format
-                        coords = wkt.replace("POINT(", "").replace(")", "").split()
-                        if len(coords) >= 2:
-                            church["longitude"] = float(coords[0])
-                            church["latitude"] = float(coords[1])
-                
-                churches.append(church)
-            
-            logger.info(f"Retrieved {len(churches)} churches with location data")
-            return churches
-        except Exception as e:
-            logger.error(f"Error fetching churches: {str(e)}")
-            return []
-
-    def get_all_entities(self):
-        """
-        Get all labeled entities from the SPARQL endpoint.
-        
-        Returns:
-            List of dictionaries with entity information
-        """
-        query = """
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        
-        SELECT ?entity ?label WHERE {
-            ?entity rdfs:label ?label .
-        }
-        LIMIT 1000
-        """
-        
-        try:
-            self.sparql.setQuery(query)
-            results = self.sparql.query().convert()
-            
-            entities = []
-            for result in results["results"]["bindings"]:
-                entities.append({
-                    "entity": result["entity"]["value"],
-                    "label": result["label"]["value"]
-                })
-                
-            logger.info(f"Retrieved {len(entities)} entities with labels")
-            return entities
-        except Exception as e:
-            logger.error(f"Error fetching entities: {str(e)}")
-            return []
-
-    def get_entity_by_taxonomy_group(self, taxonomy_group, limit=10):
-        """Get entities that belong to a specific taxonomy group"""
-        logger.info(f"Finding entities in taxonomy group: {taxonomy_group}")
-        
-        # Map taxonomy groups to CIDOC-CRM classes
-        taxonomy_mapping = {
-            "physical_entities": "E77_Persistent_Item",
-            "temporal_entities": "E2_Temporal_Entity",
-            "conceptual_entities": "E28_Conceptual_Object"
-        }
-        
-        cidoc_class = taxonomy_mapping.get(taxonomy_group)
-        if not cidoc_class:
-            return []
-        
-        query = f"""
-        PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-        
-        SELECT ?entity ?entityLabel WHERE {{
-            ?entity rdf:type/rdfs:subClassOf* crm:{cidoc_class} ;
-                    rdfs:label ?entityLabel .
-        }}
-        LIMIT {limit}
-        """
-        
-        try:
-            self.sparql.setQuery(query)
-            results = self.sparql.query().convert()
-            
-            entities = []
-            for result in results["results"]["bindings"]:
-                entities.append({
-                    "entity_uri": result["entity"]["value"],
-                    "entity_label": result["entityLabel"]["value"],
-                    "taxonomy_group": taxonomy_group
-                })
-            
-            return entities
-        except Exception as e:
-            logger.error(f"Error querying taxonomy group: {str(e)}")
-            return []
-
-
-
-    def identify_cidoc_predicates(self, rdf_documents):
-        """
-        Identify CIDOC-CRM predicates in documents to enhance with ontology info.
-        
-        Args:
-            rdf_documents: List of Document objects containing RDF data
-            
-        Returns:
-            List of CIDOC-CRM predicate IDs found in the documents
-        """
-        # List of RDF predicates that match CIDOC-CRM patterns
-        cidoc_predicates = []
-        
-        # Regex patterns for CIDOC-CRM classes and properties
-        class_pattern = r'(E\d+)_([A-Za-z_-]+)'
-        property_pattern = r'(P\d+)_([A-Za-z_-]+)'
-        
-        for doc in rdf_documents:
-            content = doc.page_content
-            
-            # Find all CIDOC-CRM classes
-            class_matches = re.finditer(class_pattern, content)
-            for match in class_matches:
-                class_id = match.group(1)
-                if class_id not in cidoc_predicates:
-                    cidoc_predicates.append(class_id)
-            
-            # Find all CIDOC-CRM properties
-            property_matches = re.finditer(property_pattern, content)
-            for match in property_matches:
-                prop_id = match.group(1)
-                if prop_id not in cidoc_predicates:
-                    cidoc_predicates.append(prop_id)
-        
-        return cidoc_predicates
-
-
-    
-    
     def create_documents_from_endpoint(self):
         """
         Create documents from SPARQL endpoint data for indexing.
@@ -831,116 +254,122 @@ class FusekiRagSystem:
         
         logger.info(f"Created {len(documents)} documents in total")
         return documents
-        
-    def build_rdf_vectorstore(self, force_rebuild=False):
+
+    def get_entity_details(self, entity_uri):
         """
-        Build the RDF vector store from SPARQL endpoint data.
+        Get all details about a specific entity.
         
         Args:
-            force_rebuild: Whether to force rebuilding the vector store
+            entity_uri: URI of the entity to get details for
             
         Returns:
-            FAISS vector store or None if failed
+            List of dictionaries with entity details
         """
-        # Check if we already have a vectorstore saved that we can reuse
-        if not force_rebuild and os.path.exists('rdf_index/index.faiss'):
-            logger.info("RDF vector store already exists, loading from disk...")
-            try:
-                self.rdf_vectorstore = FAISS.load_local('rdf_index', self.embeddings,
-                                                   allow_dangerous_deserialization=True)
-                logger.info("Successfully loaded existing RDF vector store")
-                return self.rdf_vectorstore
-            except Exception as e:
-                logger.error(f"Failed to load existing RDF vector store: {str(e)}")
-                # If loading fails, we'll rebuild
+        logger.info(f"Fetching details for entity: {entity_uri}")
+        query = f"""
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
         
-        # Create documents from the RDF data
-        logger.info("Building new RDF vector store...")
-        documents = self.create_documents_from_endpoint()
+        SELECT ?predicate ?predicateLabel ?object ?objectLabel WHERE {{
+            <{entity_uri}> ?predicate ?object .
+            OPTIONAL {{ ?predicate rdfs:label ?predicateLabel }}
+            OPTIONAL {{ ?object rdfs:label ?objectLabel }}
+        }}
+        """
         
-        if not documents:
-            logger.error("No RDF documents to index")
-            return None
-        
-        # Log a sample document for debugging
-        if documents:
-            logger.debug(f"Sample RDF document content: {documents[0].page_content[:500]}...")
-        
-        # Split documents into chunks
-        logger.info("Splitting documents into chunks...")
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=800,  # Smaller chunks can help with precision
-            chunk_overlap=200,  # More overlap maintains context
-            separators=["\n\n", "\n", ". ", " ", ""],  # Explicit separators
-            length_function=len
-        )
-        texts = text_splitter.split_documents(documents)
-        
-        logger.info(f"Created {len(texts)} RDF document chunks")
-        
-        # Create vector store
-        logger.info("Creating FAISS vector store for RDF data...")
         try:
-            self.rdf_vectorstore = FAISS.from_documents(texts, self.embeddings)
-            logger.info("RDF vector store created successfully")
+            self.sparql.setQuery(query)
+            results = self.sparql.query().convert()
             
-            # Save vector store for future use
-            if not os.path.exists('rdf_index'):
-                os.makedirs('rdf_index')
-            self.rdf_vectorstore.save_local('rdf_index')
-            logger.info("RDF vector store saved to disk")
-            
-            return self.rdf_vectorstore
+            details = []
+            for result in results["results"]["bindings"]:
+                detail = {
+                    "predicate": result["predicate"]["value"],
+                    "object": result["object"]["value"]
+                }
+                if "predicateLabel" in result:
+                    detail["predicateLabel"] = result["predicateLabel"]["value"]
+                if "objectLabel" in result:
+                    detail["objectLabel"] = result["objectLabel"]["value"]
+                details.append(detail)
+                
+            logger.info(f"Retrieved {len(details)} details for entity")
+            return details
         except Exception as e:
-            logger.error(f"Error creating RDF vector store: {str(e)}")
-            return None
-    
-    def build_ontology_vectorstore(self, force_rebuild=False):
+            logger.error(f"Error fetching entity details: {str(e)}")
+            return []
+
+    def get_related_entities(self, entity_uri):
         """
-        Build ontology vector store from ontology documentation.
+        Get all entities that reference this entity.
         
         Args:
-            force_rebuild: Whether to force rebuilding the vector store
+            entity_uri: URI of the entity to get related entities for
             
         Returns:
-            FAISS vector store or None if failed
+            List of dictionaries with related entity information
         """
-        if not self.ontology_processor:
-            logger.error("Ontology processor not initialized")
-            return None
-            
-        # Build the ontology vector store
-        self.ontology_vectorstore = self.ontology_processor.build_vectorstore(self.embeddings, force_rebuild)
-        return self.ontology_vectorstore
-    
-    def ensure_vectorstores(self):
-        """
-        Ensure both RDF and ontology vector stores are available.
+        logger.info(f"Fetching related entities for: {entity_uri}")
+        query = f"""
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
         
+        SELECT ?subject ?predicate ?predicateLabel ?subjectLabel WHERE {{
+            ?subject ?predicate <{entity_uri}> .
+            OPTIONAL {{ ?subject rdfs:label ?subjectLabel }}
+            OPTIONAL {{ ?predicate rdfs:label ?predicateLabel }}
+        }}
+        """
+        
+        try:
+            self.sparql.setQuery(query)
+            results = self.sparql.query().convert()
+            
+            related = []
+            for result in results["results"]["bindings"]:
+                relation = {
+                    "subject": result["subject"]["value"],
+                    "predicate": result["predicate"]["value"]
+                }
+                if "subjectLabel" in result:
+                    relation["subjectLabel"] = result["subjectLabel"]["value"]
+                if "predicateLabel" in result:
+                    relation["predicateLabel"] = result["predicateLabel"]["value"]
+                related.append(relation)
+                
+            logger.info(f"Retrieved {len(related)} related entities")
+            return related
+        except Exception as e:
+            logger.error(f"Error fetching related entities: {str(e)}")
+            return []
+
+    def search(self, query, k=5):
+        """
+        Search for information in the vector stores.
+        
+        Args:
+            query: Search query
+            k: Number of results to return
+            
         Returns:
-            bool: True if at least RDF vector store is available, False otherwise
+            List of Document objects
         """
-        # Initialize RDF vector store
-        if self.rdf_vectorstore is None:
-            logger.info("RDF vector store not initialized, attempting to load...")
-            self.build_rdf_vectorstore()
-            
-        # Initialize ontology vector store
-        if self.ontology_vectorstore is None:
-            logger.info("Ontology vector store not initialized, attempting to load...")
-            self.ontology_vectorstore = self.build_ontology_vectorstore()
+        documents = []
         
-        # Check if both vector stores are available
-        if self.rdf_vectorstore is None:
-            logger.error("Failed to initialize RDF vector store")
-            return False
-            
-        if self.ontology_vectorstore is None:
-            logger.warning("Failed to initialize ontology vector store, will continue with RDF only")
-            
-        return True
-
-
+        # Ensure vector stores are initialized
+        if not self.ensure_vectorstores():
+            logger.error("Cannot search without vector stores")
+            return documents
+        
+        # Search RDF vector store
+        if self.rdf_vectorstore:
+            rdf_docs = self.rdf_vectorstore.similarity_search(query, k=k)
+            documents.extend(rdf_docs)
+        
+        # Search ontology vector store (with fewer results)
+        if self.ontology_vectorstore:
+            ontology_docs = self.ontology_vectorstore.similarity_search(query, k=min(k//2, 3))
+            documents.extend(ontology_docs)
+        
+        return documents
 
     def add_geographic_context(self):
         """Process geographic relationships between entities"""
@@ -1139,182 +568,6 @@ class FusekiRagSystem:
             logger.error(f"Error building temporal context: {str(e)}")
             return None
 
-    def context_aware_retrieval(self, query):
-        """
-        Retrieval process that uses ontology context dictionary to enhance understanding.
-        """
-        # Ensure ontology context dictionary is available
-        if not hasattr(self, 'ontology_context') or not self.ontology_context:
-            self.ontology_context = self.build_ontology_context_dictionary()
-        
-        # 1. Analyze the query for entity mentions and potential relationship questions
-        entity_mentions, relationship_types = self.analyze_query_for_relationships(query)
-        
-        # 2. If query involves specific relationships, enhance with relevant context
-        enhanced_context = ""
-        if relationship_types:
-            for rel_type in relationship_types:
-                if rel_type in self.ontology_context:
-                    rel_info = self.ontology_context[rel_type]
-                    enhanced_context += f"\nRelationship information: {rel_info['interpretation']}\n"
-                    enhanced_context += f"Examples: {'; '.join(rel_info['examples'])}\n"
-        
-        # 3. Conduct base retrieval
-        docs = self.search(query, k=5)
-        
-        # 4. Extract relationships from retrieved documents
-        extracted_relationships = self.extract_relationships_from_docs(docs)
-        
-        # 5. Apply relationship-specific reasoning
-        for rel_id, rel_instances in extracted_relationships.items():
-            if rel_id in self.ontology_context:
-                # Apply correct interpretation based on ontology context
-                rel_info = self.ontology_context[rel_id]
-                for instance in rel_instances:
-                    # Correct interpretation of relationship instances
-                    self.apply_relationship_reasoning(instance, rel_info)
-        
-        # 6. Return enhanced documents with relationship context
-        return self.format_docs_with_ontology_context(docs, extracted_relationships, enhanced_context)
-
-
-    def analyze_query_for_relationships(self, query):
-        """
-        Analyze the query to identify entity mentions and potential relationship questions.
-        """
-        entity_mentions = []
-        relationship_types = []
-        
-        # Simple pattern matching for entity mentions
-        # This could be enhanced with NER or more sophisticated techniques
-        for entity in self.get_all_entities():
-            if entity["label"].lower() in query.lower():
-                entity_mentions.append(entity)
-        
-        # Check for relationship keywords
-        relationship_keywords = {
-            "located": ["P89_falls_within", "P55_has_current_location"],
-            "place": ["P89_falls_within", "P7_took_place_at"],
-            "contained": ["P89_falls_within"],
-            "modified": ["P31_has_modified"],
-            "created": ["P108i_was_produced_by"],
-            "when": ["P4_has_time-span", "P82_at_some_time_within"],
-            "depicts": ["K24_portray", "K17_has_attribute"]
-        }
-        
-        for keyword, rel_types in relationship_keywords.items():
-            if keyword.lower() in query.lower():
-                relationship_types.extend(rel_types)
-        
-        # Remove duplicates
-        relationship_types = list(set(relationship_types))
-        
-        return entity_mentions, relationship_types
-
-    def extract_relationships_from_docs(self, docs):
-        """
-        Extract explicit CIDOC-CRM relationships from retrieved documents.
-        """
-        relationships = {}
-        
-        # Regex patterns for relationship extraction
-        property_pattern = r'(P\d+[_i]?[A-Za-z_-]+|K\d+[_i]?[A-Za-z_-]+)'
-        entity_pattern = r'<(http://[\w\./:-]+)>'
-        
-        for doc in docs:
-            content = doc.page_content
-            
-            # Find all relationship mentions
-            for match in re.finditer(f"{entity_pattern}\\s+{property_pattern}\\s+{entity_pattern}", content):
-                subj_uri = match.group(1)
-                predicate = match.group(2)
-                obj_uri = match.group(3)
-                
-                if predicate not in relationships:
-                    relationships[predicate] = []
-                    
-                relationships[predicate].append({
-                    "subject": subj_uri,
-                    "predicate": predicate,
-                    "object": obj_uri,
-                    "doc_id": doc.metadata.get("entity", "")
-                })
-        
-        return relationships
-
-    def apply_relationship_reasoning(self, relationship_instance, relationship_info):
-        """
-        Apply ontology-aware reasoning to a relationship instance.
-        """
-        predicate = relationship_instance["predicate"]
-        
-        # Special handling for key predicates
-        if predicate == "P89_falls_within":
-            # Make sure we understand it's "subject falls within object"
-            relationship_instance["correct_interpretation"] = f"'{self.get_entity_label(relationship_instance['subject'])}' is contained within '{self.get_entity_label(relationship_instance['object'])}'"
-            
-        elif predicate == "P7_took_place_at":
-            # Make sure we understand it's "subject event happened at object place"
-            relationship_instance["correct_interpretation"] = f"'{self.get_entity_label(relationship_instance['subject'])}' occurred at '{self.get_entity_label(relationship_instance['object'])}'"
-        
-        elif predicate == "P31_has_modified":
-            # Make sure we understand it's "subject activity modified object thing"
-            relationship_instance["correct_interpretation"] = f"'{self.get_entity_label(relationship_instance['subject'])}' changed '{self.get_entity_label(relationship_instance['object'])}'"
-        
-        else:
-            # Generic interpretation based on relationship info
-            relationship_instance["correct_interpretation"] = f"'{self.get_entity_label(relationship_instance['subject'])}' {relationship_info['label']} '{self.get_entity_label(relationship_instance['object'])}'"
-        
-        return relationship_instance
-
-    def format_docs_with_ontology_context(self, docs, relationships, enhanced_context):
-        """
-        Format the documents with added ontology context for better interpretation.
-        """
-        enhanced_docs = []
-        
-        for doc in docs:
-            # Create a copy of the document
-            enhanced_content = doc.page_content
-            
-            # Add relationship interpretations if relevant to this document
-            doc_uri = doc.metadata.get("entity", "")
-            if doc_uri:
-                interpretations = []
-                
-                # Find all relationships involving this entity
-                for rel_instances in relationships.values():
-                    for instance in rel_instances:
-                        if instance["subject"] == doc_uri or instance["object"] == doc_uri:
-                            if "correct_interpretation" in instance:
-                                interpretations.append(instance["correct_interpretation"])
-                
-                # Add interpretations to content
-                if interpretations:
-                    enhanced_content += "\n\nOntology interpretations:\n"
-                    for interp in interpretations:
-                        enhanced_content += f"- {interp}\n"
-            
-            # Create enhanced document
-            enhanced_doc = Document(
-                page_content=enhanced_content,
-                metadata=doc.metadata
-            )
-            enhanced_docs.append(enhanced_doc)
-        
-        # If we have enhanced context, add it as a separate document
-        if enhanced_context:
-            context_doc = Document(
-                page_content=f"Ontology Context Information:\n{enhanced_context}",
-                metadata={"source": "ontology_context"}
-            )
-            enhanced_docs.append(context_doc)
-        
-        return enhanced_docs
-
-
-
-
     def add_iconographic_context(self):
         """Process iconographic themes and build connections between related imagery"""
         logger.info("Building iconographic context index...")
@@ -1431,27 +684,495 @@ class FusekiRagSystem:
             logger.error(f"Error building iconographic context: {str(e)}")
             return None
 
+    def answer_question(self, question):
+        """Answer a question using both RDF and ontology knowledge."""
+        logger.info(f"Answering question: '{question}'")
+        
+        # Initialize chat chain if needed
+        if not hasattr(self, 'chat_chain') or self.chat_chain is None:
+            logger.info("Chat chain not initialized, setting up...")
+            if not self.setup_chat_chain():
+                logger.error("Failed to set up chat chain")
+                return {
+                    "answer": "I'm sorry, I couldn't set up the answering system. Please check the logs for details.",
+                    "sources": []
+                }
+        
+        try:
+            # Use standard retrieval for regular questions
+            result = self.chat_chain.invoke({"question": question})
+            
+            # Process answer and sources
+            answer = result["answer"]
+            source_docs = result.get("source_documents", [])
+            
+            # Format sources
+            sources = []
+            
+            # Group sources by type
+            rdf_sources = []
+            ontology_sources = []
+            
+            for i, doc in enumerate(source_docs):
+                source_type = doc.metadata.get("source", "unknown")
+                
+                if "rdf_data" in source_type:
+                    entity_uri = doc.metadata.get("entity", "")
+                    entity_label = doc.metadata.get("label", "")
+                    
+                    rdf_sources.append({
+                        "id": i,
+                        "entity_uri": entity_uri,
+                        "entity_label": entity_label,
+                        "type": source_type
+                    })
+                elif source_type == "ontology_documentation":
+                    concept_id = doc.metadata.get("concept_id", "")
+                    concept_name = doc.metadata.get("concept_name", "")
+                    
+                    ontology_sources.append({
+                        "id": i,
+                        "concept_id": concept_id,
+                        "concept_name": concept_name,
+                        "type": "ontology_documentation"
+                    })
+            
+            # Add sources in order
+            sources.extend(rdf_sources)
+            sources.extend(ontology_sources)
+            
+            logger.info(f"Generated answer with {len(sources)} sources")
+            
+            return {
+                "answer": answer,
+                "sources": sources
+            }
+        except Exception as e:
+            logger.error(f"Error answering question: {str(e)}")
+            return {
+                "answer": f"I'm sorry, I encountered an error while answering your question: {str(e)}",
+                "sources": []
+            }
 
+
+    def answer_question_with_graph(self, question):
+        """Answer a question using both vector search and graph reasoning"""
+        # Initialize chat chain if needed
+        if not hasattr(self, 'chat_chain') or self.chat_chain is None:
+            logger.info("Chat chain not initialized, setting up...")
+            if not self.setup_chat_chain():
+                logger.error("Failed to set up chat chain")
+                return {
+                    "answer": "I'm sorry, I couldn't set up the answering system. Please check the logs for details.",
+                    "sources": []
+                }
+        
+        # Use graph-aware retrieval
+        retrieved_docs = self.retrieve_with_graph(question, k=10)
+        
+        # Extract key entities from retrieved documents
+        key_entities = []
+        for doc in retrieved_docs:
+            if doc.metadata.get("source", "").startswith("rdf_data"):
+                entity_uri = doc.metadata.get("entity", "")
+                if entity_uri and len(key_entities) < 5:  # Limit to 5 key entities
+                    key_entities.append(entity_uri)
+        
+        # If we have multiple entities, extract reasoning paths between them
+        reasoning_paths = []
+        if len(key_entities) >= 2:
+            # Find paths between key entities
+            for i in range(len(key_entities) - 1):
+                path = self.extract_reasoning_path(key_entities[i], key_entities[i+1])
+                if path:
+                    reasoning_paths.append(path)
+        
+        # Create context from documents and reasoning paths
+        context = ""
+        
+        # Add documents to context
+        for doc in retrieved_docs:
+            context += doc.page_content + "\n\n"
+        
+        # Add reasoning paths to context
+        if reasoning_paths:
+            context += "Reasoning paths between entities:\n"
+            for path in reasoning_paths:
+                path_str = " -> ".join([f"{self.get_entity_label(step[0])} {step[1]} {self.get_entity_label(step[2])}" for step in path])
+                context += path_str + "\n"
+        
+        # Now use the chat chain with the enhanced context
+        result = self.chat_chain.invoke({"question": question, "context": context})
+        
+        # Process answer and sources
+        answer = result["answer"]
+        source_docs = result.get("source_documents", retrieved_docs)
+        
+        # Format sources
+        sources = []
+        for i, doc in enumerate(source_docs):
+            if doc.metadata.get("source", "").startswith("rdf_data"):
+                entity_uri = doc.metadata.get("entity", "")
+                entity_label = doc.metadata.get("label", "")
+                
+                sources.append({
+                    "id": i,
+                    "entity_uri": entity_uri,
+                    "entity_label": entity_label,
+                    "type": doc.metadata.get("source", "unknown")
+                })
+            elif doc.metadata.get("source") == "ontology_documentation":
+                concept_id = doc.metadata.get("concept_id", "")
+                concept_name = doc.metadata.get("concept_name", "")
+                
+                sources.append({
+                    "id": i,
+                    "concept_id": concept_id,
+                    "concept_name": concept_name,
+                    "type": "ontology_documentation"
+                })
+        
+        return {
+            "answer": answer,
+            "sources": sources,
+            "reasoning_paths": [{"path": path} for path in reasoning_paths]
+        }
+
+    def retrieve_with_graph(self, query, k=10):
+        """Enhanced retrieval that combines vector search with graph traversal"""
+        # Get query embedding for later scoring
+        query_embedding = self.embeddings.embed_query(query)
+        
+        # Get regular vector search results
+        vector_docs = self.search(query, k=k//2)
+        
+        # Get graph-traversal results
+        graph_docs = self.graph_retrieval(query, initial_k=3, expansion_depth=2, max_nodes=k)
+        
+        # Score and rank all documents
+        all_docs = []
+        for doc in vector_docs:
+            # Vector docs already have relevance built in from the retrieval
+            all_docs.append((doc, 0.9))  # High base score for direct vector matches
+        
+        for doc in graph_docs:
+            entity_uri = doc.metadata.get("entity", "")
+            if entity_uri:
+                # For graph docs, compute relevance based on combination
+                # of vector similarity and graph structure
+                path_length = doc.metadata.get("path_length", 1)
+                score = self.compute_graph_relevance(entity_uri, query_embedding, path_length)
+                all_docs.append((doc, score))
+        
+        # Sort by score
+        all_docs.sort(key=lambda x: x[1], reverse=True)
+        
+        # Take top k unique documents
+        unique_docs = []
+        seen_ids = set()
+        for doc, score in all_docs:
+            doc_id = doc.metadata.get("entity", doc.metadata.get("concept_id", None))
+            if doc_id and doc_id not in seen_ids:
+                unique_docs.append(doc)
+                seen_ids.add(doc_id)
+                if len(unique_docs) >= k:
+                    break
+        
+        return unique_docs
+
+    def compute_graph_relevance(self, entity_uri, query_embedding, graph_path_length):
+        """Compute relevance score combining vector similarity and graph path length"""
+        # Get entity details
+        details = self.get_entity_details(entity_uri)
+        
+        # Create text representation of entity
+        entity_text = ""
+        for detail in details:
+            if "label" in detail["predicate"].lower():
+                entity_text += detail["object"] + " "
+            if "type" in detail["predicate"].lower():
+                entity_text += detail["object"].split("/")[-1] + " "
+        
+        # Compute vector similarity using cosine similarity
+        from sklearn.metrics.pairwise import cosine_similarity
+        import numpy as np
+        
+        # Embed the entity text
+        entity_embedding = self.embeddings.embed_query(entity_text)
+        
+        # Reshape for sklearn
+        query_embedding_reshaped = np.array(query_embedding).reshape(1, -1)
+        entity_embedding_reshaped = np.array(entity_embedding).reshape(1, -1)
+        
+        # Compute cosine similarity
+        similarity = cosine_similarity(query_embedding_reshaped, entity_embedding_reshaped)[0][0]
+        
+        # Discount by path length (closer nodes get higher scores)
+        path_discount = 1.0 / (1.0 + graph_path_length)
+        
+        # Final score combines vector similarity and graph proximity
+        final_score = similarity * path_discount
+        
+        return final_score
+
+    def graph_retrieval(self, query, initial_k=5, expansion_depth=2, max_nodes=15):
+        """
+        Graph-aware retrieval that combines vector search with graph traversal
+        
+        Args:
+            query: User query
+            initial_k: Number of initial nodes to retrieve
+            expansion_depth: How many hops to traverse from seed nodes
+            max_nodes: Maximum total nodes to return
+            
+        Returns:
+            List of Document objects from graph traversal
+        """
+        # Step 1: Get seed nodes from vector search
+        seed_documents = self.search(query, k=initial_k)
+        
+        # Extract entity URIs from seed documents
+        seed_entities = set()
+        for doc in seed_documents:
+            if doc.metadata.get("source") == "rdf_data":
+                entity_uri = doc.metadata.get("entity", "")
+                if entity_uri:
+                    seed_entities.add(entity_uri)
+        
+        # Step 2: Traverse the graph to find related entities
+        all_entities = set(seed_entities)
+        expanded_entities = set()
+        
+        # For each depth level
+        for depth in range(expansion_depth):
+            # Current frontier to expand from
+            frontier = seed_entities if depth == 0 else expanded_entities
+            expanded_entities = set()
+            
+            # For each entity in the frontier
+            for entity_uri in frontier:
+                # Get directly related entities
+                query = f"""
+                PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                
+                SELECT ?related WHERE {{
+                    # Outgoing relationships
+                    {{ <{entity_uri}> ?p ?related . }}
+                    UNION
+                    # Incoming relationships
+                    {{ ?related ?p <{entity_uri}> . }}
+                    
+                    # Filter for entities with labels only
+                    ?related rdfs:label ?label .
+                }}
+                LIMIT 10
+                """
+                
+                try:
+                    self.sparql.setQuery(query)
+                    results = self.sparql.query().convert()
+                    
+                    for result in results["results"]["bindings"]:
+                        related_uri = result["related"]["value"]
+                        if related_uri not in all_entities:
+                            expanded_entities.add(related_uri)
+                            all_entities.add(related_uri)
+                            
+                            # Stop if we've reached the maximum number of nodes
+                            if len(all_entities) >= max_nodes:
+                                break
+                    
+                    if len(all_entities) >= max_nodes:
+                        break
+                        
+                except Exception as e:
+                    logger.error(f"Error during graph traversal: {str(e)}")
+            
+            # If we've reached the maximum, stop traversal
+            if len(all_entities) >= max_nodes:
+                break
+        
+        # Step 3: Convert entities to documents
+        graph_documents = []
+        
+        for entity_uri in all_entities:
+            # Get entity details and format as document
+            details = self.get_entity_details(entity_uri)
+            
+            # Get entity label
+            entity_label = ""
+            for detail in details:
+                if "label" in detail["predicate"].lower():
+                    entity_label = detail["object"]
+                    break
+            
+            # Create text representation of entity
+            text = f"Entity: {entity_label} ({entity_uri})\n"
+            text += "Properties:\n"
+            for detail in details[:10]:  # Limit to avoid huge documents
+                pred = detail.get("predicateLabel", detail["predicate"])
+                obj = detail.get("objectLabel", detail["object"])
+                text += f"  - {pred}: {obj}\n"
+            
+            # Create document
+            doc = Document(
+                page_content=text, 
+                metadata={
+                    "entity": entity_uri, 
+                    "label": entity_label,
+                    "source": "rdf_data_graph"
+                }
+            )
+            graph_documents.append(doc)
+        
+        return graph_documents
+
+
+    def get_entity_label(self, entity_uri):
+        """Get label for an entity URI"""
+        query = f"""
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        
+        SELECT ?label WHERE {{
+            <{entity_uri}> rdfs:label ?label .
+        }}
+        LIMIT 1
+        """
+        
+        try:
+            self.sparql.setQuery(query)
+            results = self.sparql.query().convert()
+            
+            if results["results"]["bindings"]:
+                return results["results"]["bindings"][0]["label"]["value"]
+            return entity_uri.split("/")[-1]  # Fallback to last segment of URI
+        except Exception:
+            return entity_uri.split("/")[-1]  # Fallback to last segment of URI
+
+    def extract_reasoning_path(self, entity_uri1, entity_uri2, max_depth=3):
+        """Find reasoning paths between two entities in the graph"""
+        # Use BFS to find paths
+        visited = set()
+        queue = [(entity_uri1, [])]
+        
+        while queue:
+            current_uri, path = queue.pop(0)
+            
+            # If we reached the target
+            if current_uri == entity_uri2:
+                return path
+                
+            # If we've seen this node before or exceeded max depth
+            if current_uri in visited or len(path) >= max_depth:
+                continue
+                
+            visited.add(current_uri)
+            
+            # Query for neighbors
+            query = f"""
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            
+            SELECT ?related ?predicate ?predicateLabel WHERE {{
+                {{ <{current_uri}> ?predicate ?related . }}
+                
+                OPTIONAL {{ ?predicate rdfs:label ?predicateLabel }}
+                ?related rdfs:label ?relatedLabel .
+            }}
+            LIMIT 20
+            """
+            
+            try:
+                self.sparql.setQuery(query)
+                results = self.sparql.query().convert()
+                
+                for result in results["results"]["bindings"]:
+                    neighbor = result["related"]["value"]
+                    predicate = result["predicate"]["value"]
+                    predicate_label = result.get("predicateLabel", {"value": predicate})["value"]
+                    
+                    # Add to queue with extended path
+                    new_path = path + [(current_uri, predicate_label, neighbor)]
+                    queue.append((neighbor, new_path))
+                    
+            except Exception as e:
+                logger.error(f"Error finding path: {str(e)}")
+        
+        # No path found
+        return None
+
+    def test_connection(self):
+        """
+        Test connection to Fuseki endpoint.
+        
+        Returns:
+            bool: True if connection successful, False otherwise
+        """
+        try:
+            query = """
+            SELECT ?s ?p ?o WHERE {
+                ?s ?p ?o
+            } LIMIT 1
+            """
+            self.sparql.setQuery(query)
+            results = self.sparql.query().convert()
+            logger.info("Successfully connected to Fuseki endpoint")
+            return True
+        except Exception as e:
+            logger.error(f"Connection error: {str(e)}")
+            return False
+
+    def get_all_entities(self):
+        """
+        Get all labeled entities from the SPARQL endpoint.
+        
+        Returns:
+            List of dictionaries with entity information
+        """
+        query = """
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        
+        SELECT ?entity ?label WHERE {
+            ?entity rdfs:label ?label .
+        }
+        LIMIT 1000
+        """
+        
+        try:
+            self.sparql.setQuery(query)
+            results = self.sparql.query().convert()
+            
+            entities = []
+            for result in results["results"]["bindings"]:
+                entities.append({
+                    "entity": result["entity"]["value"],
+                    "label": result["label"]["value"]
+                })
+                
+            logger.info(f"Retrieved {len(entities)} entities with labels")
+            return entities
+        except Exception as e:
+            logger.error(f"Error fetching entities: {str(e)}")
+            return []
 
     def setup_chat_chain(self):
         """
-        Set up a conversational chain using Ollama and both vector store retrievers.
+        Set up a conversational chain using OpenAI and both vector store retrievers.
         
         Returns:
             bool: True if setup successful, False otherwise
         """
-        logger.info("Setting up conversational chain with Ollama...")
+        logger.info("Setting up conversational chain with OpenAI...")
         
         if not self.ensure_vectorstores():
             logger.error("Cannot set up chat chain without at least the RDF vector store")
             return False
         
         try:
-            # Set up Ollama LLM
-            llm = ChatOllama(
-                model=self.ollama_model,
-                temperature=0.7,
-                top_p=0.9
+            # Set up OpenAI LLM instead of Ollama
+            llm = ChatOpenAI(
+                model=self.openai_model,
+                temperature=self.temperature,
+                openai_api_key=self.openai_api_key
             )
             
             # Set up retrievers for both vector stores
@@ -1534,721 +1255,3 @@ class FusekiRagSystem:
         except Exception as e:
             logger.error(f"Error setting up chat chain: {str(e)}")
             return False
-
-    def answer_question(self, question):
-        """Answer a question using both RDF and ontology knowledge."""
-        logger.info(f"Answering question: '{question}'")
-        
-        # Initialize chat chain if needed
-        if not hasattr(self, 'chat_chain') or self.chat_chain is None:
-            logger.info("Chat chain not initialized, setting up...")
-            if not self.setup_chat_chain():
-                logger.error("Failed to set up chat chain")
-                return {
-                    "answer": "I'm sorry, I couldn't set up the answering system. Please check the logs for details.",
-                    "sources": []
-                }
-        
-        try:
-            # First, check for explicit ontology terms
-            ontology_terms = self.extract_ontology_terms(question)
-            
-            # Then, map natural language to ontology concepts
-            nl_mapping = self.map_natural_language_to_ontology(question)
-            
-            # Determine query focus for context-aware retrieval
-            query_focus = self.identify_query_focus(question)
-            
-            # Enhanced retrieval based on query understanding
-            if nl_mapping or ontology_terms:
-                logger.info(f"Found ontology mapping: {nl_mapping}")
-                # Use context-aware retrieval if we have taxonomy groups identified
-                taxonomy_groups = nl_mapping.get("taxonomy_groups", []) if nl_mapping else []
-                
-                if taxonomy_groups:
-                    # Temporary improvement to retrieval
-                    docs_by_group = []
-                    
-                    # Get docs from each relevant taxonomy group
-                    for group in taxonomy_groups:
-                        entities = self.get_entity_by_taxonomy_group(group, limit=5)
-                        for entity in entities:
-                            entity_docs = self.search(f"{question} {entity['entity_label']}", k=2)
-                            docs_by_group.extend(entity_docs)
-                    
-                    # Combine with regular retrieval
-                    regular_docs = self.search(question, k=5)
-                    all_docs = regular_docs + docs_by_group
-                    
-                    # Deduplicate
-                    unique_docs = []
-                    seen_ids = set()
-                    for doc in all_docs:
-                        doc_id = doc.metadata.get("entity", doc.metadata.get("concept_id", None))
-                        if doc_id and doc_id not in seen_ids:
-                            unique_docs.append(doc)
-                            seen_ids.add(doc_id)
-                    
-                    # Limit to top k
-                    context_docs = unique_docs[:8]  # Increase to 8 for better coverage
-                    
-                    # Create temporary retriever with enhanced docs
-                    from langchain.schema import Document
-                    
-                    class ContextRetriever:
-                        def __init__(self, docs):
-                            self.docs = docs
-                        
-                        def get_relevant_documents(self, query):
-                            return self.docs
-                    
-                    # Swap retrievers
-                    original_retriever = self.chat_chain.retriever
-                    self.chat_chain.retriever = ContextRetriever(context_docs)
-                    
-                    # Get answer
-                    result = self.chat_chain.invoke({"question": question})
-                    
-                    # Restore original retriever
-                    self.chat_chain.retriever = original_retriever
-                else:
-                    # Use standard retrieval
-                    result = self.chat_chain.invoke({"question": question})
-            else:
-                # Use standard retrieval for regular questions
-                result = self.chat_chain.invoke({"question": question})
-            
-            # Process answer and sources
-            answer = result["answer"]
-            source_docs = result.get("source_documents", [])
-            
-            # Format sources like in original code...
-            sources = []
-            
-            # Group sources by type
-            rdf_sources = []
-            ontology_sources = []
-            
-            for i, doc in enumerate(source_docs):
-                source_type = doc.metadata.get("source", "unknown")
-                
-                if "rdf_data" in source_type:
-                    entity_uri = doc.metadata.get("entity", "")
-                    entity_label = doc.metadata.get("label", "")
-                    
-                    rdf_sources.append({
-                        "id": i,
-                        "entity_uri": entity_uri,
-                        "entity_label": entity_label,
-                        "type": source_type
-                    })
-                elif source_type == "ontology_documentation":
-                    concept_id = doc.metadata.get("concept_id", "")
-                    concept_name = doc.metadata.get("concept_name", "")
-                    
-                    ontology_sources.append({
-                        "id": i,
-                        "concept_id": concept_id,
-                        "concept_name": concept_name,
-                        "type": "ontology_documentation"
-                    })
-            
-            # Add sources in order
-            sources.extend(rdf_sources)
-            sources.extend(ontology_sources)
-            
-            # Don't add ontology explanations to the answer since users 
-            # shouldn't need to see technical ontology details
-            
-            logger.info(f"Generated answer with {len(sources)} sources")
-            
-            return {
-                "answer": answer,
-                "sources": sources
-            }
-        except Exception as e:
-            logger.error(f"Error answering question: {str(e)}")
-            return {
-                "answer": f"I'm sorry, I encountered an error while answering your question: {str(e)}",
-                "sources": []
-            }
-
-    def search(self, query, k=5):
-        """
-        Search for information in the vector stores.
-        
-        Args:
-            query: Search query
-            k: Number of results to return
-            
-        Returns:
-            List of Document objects
-        """
-        documents = []
-        
-        # Ensure vector stores are initialized
-        if not self.ensure_vectorstores():
-            logger.error("Cannot search without vector stores")
-            return documents
-        
-        # Search RDF vector store
-        if self.rdf_vectorstore:
-            rdf_docs = self.rdf_vectorstore.similarity_search(query, k=k)
-            documents.extend(rdf_docs)
-        
-        # Search ontology vector store (with fewer results)
-        if self.ontology_vectorstore:
-            ontology_docs = self.ontology_vectorstore.similarity_search(query, k=min(k//2, 3))
-            documents.extend(ontology_docs)
-        
-        return documents
-        
-    def get_wikidata_entities(self):
-        """
-        Get all entities that have Wikidata references.
-        
-        Returns:
-            List of dictionaries with Wikidata entity information
-        """
-        logger.info("Finding entities with Wikidata references")
-        
-        query = """
-        PREFIX crmdig: <http://www.ics.forth.gr/isl/CRMdig/>
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        
-        SELECT ?entity ?entityLabel ?wikidata WHERE {
-            ?entity crmdig:L54_is_same-as ?wikidata .
-            ?entity rdfs:label ?entityLabel .
-            FILTER(STRSTARTS(STR(?wikidata), "http://www.wikidata.org/entity/"))
-        }
-        """
-        
-        try:
-            self.sparql.setQuery(query)
-            results = self.sparql.query().convert()
-            
-            wikidata_entities = []
-            for result in results["results"]["bindings"]:
-                wikidata_uri = result["wikidata"]["value"]
-                wikidata_id = wikidata_uri.split("/")[-1]
-                
-                wikidata_entities.append({
-                    "entity_uri": result["entity"]["value"],
-                    "entity_label": result["entityLabel"]["value"],
-                    "wikidata_uri": wikidata_uri,
-                    "wikidata_id": wikidata_id
-                })
-            
-            logger.info(f"Found {len(wikidata_entities)} entities with Wikidata references")
-            return wikidata_entities
-        except Exception as e:
-            logger.error(f"Error fetching Wikidata entities: {str(e)}")
-            return []
-
-    def get_wikidata_for_entity(self, entity_uri):
-        """
-        Get Wikidata ID for a specific entity if it exists.
-        
-        Args:
-            entity_uri: URI of the entity to get Wikidata ID for
-            
-        Returns:
-            Wikidata ID or None if not found
-        """
-        logger.info(f"Getting Wikidata ID for entity: {entity_uri}")
-        
-        query = f"""
-        PREFIX crmdig: <http://www.ics.forth.gr/isl/CRMdig/>
-        
-        SELECT ?wikidata WHERE {{
-            <{entity_uri}> crmdig:L54_is_same-as ?wikidata .
-            FILTER(STRSTARTS(STR(?wikidata), "http://www.wikidata.org/entity/"))
-        }}
-        LIMIT 1
-        """
-        
-        try:
-            self.sparql.setQuery(query)
-            results = self.sparql.query().convert()
-            
-            if results["results"]["bindings"]:
-                wikidata_uri = results["results"]["bindings"][0]["wikidata"]["value"]
-                wikidata_id = wikidata_uri.split("/")[-1]
-                logger.info(f"Found Wikidata ID: {wikidata_id}")
-                return wikidata_id
-            else:
-                logger.info("No Wikidata ID found for this entity")
-                return None
-        except Exception as e:
-            logger.error(f"Error fetching Wikidata ID: {str(e)}")
-            return None
-
-    def extract_ontology_terms(self, query):
-        """Extract ontology terms from a query"""
-        terms = []
-        
-        # Look for CIDOC-CRM class patterns: E1, E22, etc.
-        class_matches = re.findall(r'E\d+(?:_[A-Za-z_-]+)?', query)
-        terms.extend(class_matches)
-        
-        # Look for CIDOC-CRM property patterns: P1, P2, etc.
-        property_matches = re.findall(r'P\d+(?:_[A-Za-z_-]+)?', query)
-        terms.extend(property_matches)
-        
-        # Look for VIR patterns: IC1, IC9, etc.
-        vir_matches = re.findall(r'IC\d+(?:_[A-Za-z_-]+)?', query)
-        terms.extend(vir_matches)
-        
-        # Look for K-pattern properties from VIR
-        vir_prop_matches = re.findall(r'K\d+(?:_[A-Za-z_-]+)?', query)
-        terms.extend(vir_prop_matches)
-        
-        return terms
-
-    def generate_ontology_enhanced_queries(self, query):
-        """Generate multiple ontology-aware queries from a single user query"""
-        ontology_terms = self.extract_ontology_terms(query)
-        
-        enhanced_queries = [query]  # Start with original query
-        
-        # Add taxonomy-aware variations
-        for term in ontology_terms:
-            if not self.ontology_processor or not self.ontology_processor.concepts:
-                continue
-                
-            concept = self.ontology_processor.concepts.get(term)
-            if concept:
-                # Add query with full concept definition
-                enhanced_queries.append(f"{query} related to {term} which is defined as {concept.get('definition', '')}")
-                
-                # Add query with taxonomy group
-                for group in concept.get('taxonomy_group', []):
-                    enhanced_queries.append(f"{query} related to {group} {term}")
-                    
-                # Add query with related concepts
-                context = self.ontology_processor.get_concept_context(term)
-                if context and 'related' in context:
-                    related_terms = [rel['concept']['id'] for rel in context['related'] if rel.get('concept')]
-                    for rel_term in related_terms[:2]:  # Limit to avoid too many queries
-                        enhanced_queries.append(f"{query} involving {term} and {rel_term}")
-        
-        return enhanced_queries[:5]  # Limit to 5 queries
-
-    # In rag_system.py
-    def map_natural_language_to_ontology(self, query):
-        """Map natural language terms to ontology concepts"""
-        # Common natural language mappings to CIDOC-CRM concepts
-        mappings = {
-            "church": ["E22_Man-Made_Object", "church"],
-            "building": ["E22_Man-Made_Object", "building"],
-            "artwork": ["E22_Man-Made_Object", "artwork"],
-            "painting": ["E22_Man-Made_Object", "painting"],
-            "icon": ["E22_Man-Made_Object", "icon"],
-            "mosaic": ["E22_Man-Made_Object", "mosaic"],
-            "fresco": ["E22_Man-Made_Object", "fresco"],
-            "location": ["E53_Place"],
-            "place": ["E53_Place"],
-            "creation": ["E65_Creation"],
-            "production": ["E12_Production"],
-            "time": ["E52_Time-Span"],
-            "date": ["E52_Time-Span"],
-            "period": ["E4_Period"],
-            "person": ["E21_Person"],
-            "character": ["vir:IC16_Character"],
-            "saint": ["vir:IC16_Character", "saint"],
-            "attribute": ["vir:IC10_Attribute"],
-            "symbol": ["vir:IC10_Attribute", "symbol"],
-            "representation": ["vir:IC9_Representation"],
-            "iconography": ["vir:IC9_Representation"]
-        }
-        
-        # Check if query contains any of the terms
-        enhanced_query = query
-        matched_terms = []
-        
-        for term, ontology_concepts in mappings.items():
-            # Use word boundary pattern to avoid partial matches
-            pattern = r'\b' + re.escape(term) + r'\b'
-            if re.search(pattern, query.lower()):
-                matched_terms.append((term, ontology_concepts))
-        
-        # If we found matches, enhance the query internally
-        if matched_terms:
-            # Create an internal representation that will help the retrieval
-            # but won't be shown to the user
-            internal_representation = {
-                "original_query": query,
-                "ontology_mappings": matched_terms,
-                "taxonomy_groups": []
-            }
-            
-            # Determine which taxonomy groups might be relevant
-            if any(concept[0].startswith("E77") or concept[0] in ["E22_Man-Made_Object", "E53_Place"] for _, concepts in matched_terms for concept in concepts):
-                internal_representation["taxonomy_groups"].append("physical_entities")
-                
-            if any(concept[0].startswith("E2") or concept[0] in ["E12_Production", "E65_Creation"] for _, concepts in matched_terms for concept in concepts):
-                internal_representation["taxonomy_groups"].append("temporal_entities")
-                
-            if any(concept[0].startswith("E28") or concept[0].startswith("vir:") for _, concepts in matched_terms for concept in concepts):
-                internal_representation["taxonomy_groups"].append("conceptual_entities")
-                
-            if any(concept[0].startswith("vir:") for _, concepts in matched_terms for concept in concepts):
-                internal_representation["taxonomy_groups"].append("visual_representation")
-                
-            return internal_representation
-            
-        return None
-
-    def identify_query_focus(self, query):
-        """Identify the focus of a query (location, temporal, conceptual)"""
-        # Convert to lowercase for case-insensitive matching
-        query_lower = query.lower()
-        
-        # Location patterns
-        location_patterns = ["where", "located", "location", "place", "region", "area", "country"]
-        for pattern in location_patterns:
-            if pattern in query_lower:
-                return "location"
-        
-        # Temporal patterns
-        temporal_patterns = ["when", "date", "period", "century", "year", "time", "era"]
-        for pattern in temporal_patterns:
-            if pattern in query_lower:
-                return "temporal"
-        
-        # Conceptual patterns
-        conceptual_patterns = ["meaning", "symbol", "represent", "concept", "iconography", "attribute"]
-        for pattern in conceptual_patterns:
-            if pattern in query_lower:
-                return "conceptual"
-        
-        # Default to generic
-        return "generic"
-
-    def get_entity_location_context(self, entity_uri):
-        """Get location context for an entity"""
-        # Check if entity has location information
-        query = f"""
-        PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        
-        SELECT ?location ?locationLabel ?parent ?parentLabel WHERE {{
-            <{entity_uri}> crm:P55_has_current_location ?location .
-            OPTIONAL {{ ?location rdfs:label ?locationLabel }}
-            OPTIONAL {{ 
-                ?location crm:P89_falls_within ?parent .
-                ?parent rdfs:label ?parentLabel .
-            }}
-        }}
-        """
-        
-        try:
-            self.sparql.setQuery(query)
-            results = self.sparql.query().convert()
-            
-            context_docs = []
-            for result in results["results"]["bindings"]:
-                location_uri = result["location"]["value"]
-                
-                # Format text with location context
-                text = f"Entity: {entity_uri}\n"
-                text += f"Location: {result.get('locationLabel', {'value': location_uri})['value']}\n"
-                
-                if "parent" in result:
-                    text += f"Within: {result.get('parentLabel', {'value': result['parent']['value']})['value']}\n"
-                
-                # Create document
-                doc = Document(
-                    page_content=text,
-                    metadata={
-                        "entity": entity_uri,
-                        "location": location_uri,
-                        "source": "rdf_data_location"
-                    }
-                )
-                context_docs.append(doc)
-                
-            return context_docs
-        except Exception as e:
-            logger.error(f"Error fetching location context: {str(e)}")
-            return []
-
-    def get_entity_temporal_context(self, entity_uri):
-        """Get temporal context for an entity"""
-        # Check if entity has temporal information
-        query = f"""
-        PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        
-        SELECT ?production ?date ?dateLabel WHERE {{
-            <{entity_uri}> crm:P108i_was_produced_by ?production .
-            OPTIONAL {{ 
-                ?production crm:P4_has_time-span/crm:P82_at_some_time_within ?date .
-                OPTIONAL {{ ?date rdfs:label ?dateLabel }}
-            }}
-        }}
-        """
-        
-        try:
-            self.sparql.setQuery(query)
-            results = self.sparql.query().convert()
-            
-            context_docs = []
-            for result in results["results"]["bindings"]:
-                # Format text with temporal context
-                text = f"Entity: {entity_uri}\n"
-                
-                if "date" in result:
-                    date_value = result.get('dateLabel', {'value': result['date']['value']})['value']
-                    text += f"Created: {date_value}\n"
-                
-                # Create document
-                doc = Document(
-                    page_content=text,
-                    metadata={
-                        "entity": entity_uri,
-                        "source": "rdf_data_temporal"
-                    }
-                )
-                context_docs.append(doc)
-                
-            return context_docs
-        except Exception as e:
-            logger.error(f"Error fetching temporal context: {str(e)}")
-            return []
-
-    def get_entity_conceptual_context(self, entity_uri):
-        """Get conceptual context for an entity (e.g., iconography, symbolism)"""
-        # Check if entity has conceptual information
-        query = f"""
-        PREFIX vir: <http://w3id.org/vir#>
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        
-        SELECT ?attribute ?attributeLabel ?symbol ?symbolLabel WHERE {{
-            <{entity_uri}> vir:K17_has_attribute ?attribute .
-            OPTIONAL {{ ?attribute rdfs:label ?attributeLabel }}
-            OPTIONAL {{ 
-                ?attribute vir:K14_symbolize ?symbol .
-                OPTIONAL {{ ?symbol rdfs:label ?symbolLabel }}
-            }}
-        }}
-        """
-        
-        try:
-            self.sparql.setQuery(query)
-            results = self.sparql.query().convert()
-            
-            context_docs = []
-            for result in results["results"]["bindings"]:
-                # Format text with conceptual context
-                text = f"Entity: {entity_uri}\n"
-                
-                if "attribute" in result:
-                    attr_label = result.get('attributeLabel', {'value': result['attribute']['value']})['value']
-                    text += f"Attribute: {attr_label}\n"
-                    
-                    if "symbol" in result:
-                        symbol_label = result.get('symbolLabel', {'value': result['symbol']['value']})['value']
-                        text += f"Symbolizes: {symbol_label}\n"
-                
-                # Create document
-                doc = Document(
-                    page_content=text,
-                    metadata={
-                        "entity": entity_uri,
-                        "source": "rdf_data_conceptual"
-                    }
-                )
-                context_docs.append(doc)
-                
-            return context_docs
-        except Exception as e:
-            logger.error(f"Error fetching conceptual context: {str(e)}")
-            return []
-
-
-    def retrieve_with_context(self, query, k=5):
-        """Enhanced retrieval that considers entity types and taxonomy"""
-        
-        # Identify the query intent
-        query_focus = self.identify_query_focus(query)
-        
-        # First, get base results
-        base_docs = self.search(query, k=k)
-        
-        # Get entities from base results
-        entities = set()
-        for doc in base_docs:
-            if doc.metadata.get("source") == "rdf_data":
-                entity_uri = doc.metadata.get("entity", "")
-                if entity_uri:
-                    entities.add(entity_uri)
-        
-        # Get context for each entity
-        context_docs = []
-        for entity_uri in entities:
-            # Get entity details including type
-            details = self.get_entity_details(entity_uri)
-            
-            entity_type = None
-            for detail in details:
-                if "rdf-syntax-ns#type" in detail["predicate"]:
-                    entity_type = detail["object"].split("/")[-1]
-                    break
-            
-            # Based on query focus, get additional context
-            if query_focus == "location" and entity_type and "E22_" in entity_type:
-                # If query is about location and entity is a physical object
-                location_details = self.get_entity_location_context(entity_uri)
-                if location_details:
-                    context_docs.extend(location_details)
-            elif query_focus == "temporal" and entity_type:
-                # If query is about time
-                temporal_details = self.get_entity_temporal_context(entity_uri)
-                if temporal_details:
-                    context_docs.extend(temporal_details)
-            elif query_focus == "conceptual" and entity_type:
-                # If query is about concepts
-                concept_details = self.get_entity_conceptual_context(entity_uri)
-                if concept_details:
-                    context_docs.extend(concept_details)
-        
-        # Combine original results with context documents
-        all_docs = base_docs + context_docs
-        
-        # Deduplicate
-        unique_docs = []
-        seen_ids = set()
-        for doc in all_docs:
-            doc_id = doc.metadata.get("entity", doc.metadata.get("concept_id", None))
-            if doc_id and doc_id not in seen_ids:
-                unique_docs.append(doc)
-                seen_ids.add(doc_id)
-        
-        return unique_docs[:k]  # Return top k results
-
-
-
-    def fetch_wikidata_info(self, wikidata_id):
-        """
-        Fetch information from Wikidata for a given entity ID.
-        
-        Args:
-            wikidata_id: Wikidata entity ID
-            
-        Returns:
-            Dictionary with Wikidata information or None if failed
-        """
-        logger.info(f"Fetching Wikidata info for: {wikidata_id}")
-        
-        try:
-            # Using the Wikidata SPARQL endpoint
-            wikidata_endpoint = "https://query.wikidata.org/sparql"
-            sparql = SPARQLWrapper(wikidata_endpoint)
-            sparql.setReturnFormat(JSON)
-            
-            # Query to get basic information and description
-            query = f"""
-            PREFIX wd: <http://www.wikidata.org/entity/>
-            PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-            PREFIX schema: <http://schema.org/>
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-            
-            SELECT ?item ?itemLabel ?itemDescription ?image ?inception ?coordinates WHERE {{
-              BIND(wd:{wikidata_id} AS ?item)
-              OPTIONAL {{ ?item wdt:P18 ?image. }}
-              OPTIONAL {{ ?item wdt:P571 ?inception. }}
-              OPTIONAL {{ ?item wdt:P625 ?coordinates. }}
-              SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
-            }}
-            """
-            
-            sparql.setQuery(query)
-            results = sparql.query().convert()
-            
-            if not results["results"]["bindings"]:
-                logger.warning(f"No Wikidata results for ID: {wikidata_id}")
-                return None
-            
-            info = results["results"]["bindings"][0]
-            
-            # Format the result
-            wikidata_info = {
-                "id": wikidata_id,
-                "url": f"https://www.wikidata.org/wiki/{wikidata_id}"
-            }
-            
-            if "itemLabel" in info:
-                wikidata_info["label"] = info["itemLabel"]["value"]
-            
-            if "itemDescription" in info:
-                wikidata_info["description"] = info["itemDescription"]["value"]
-            
-            if "image" in info:
-                wikidata_info["image"] = info["image"]["value"]
-            
-            if "inception" in info:
-                wikidata_info["inception"] = info["inception"]["value"]
-            
-            if "coordinates" in info:
-                wikidata_info["coordinates"] = info["coordinates"]["value"]
-            
-            # Query to get additional properties
-            properties_query = f"""
-            PREFIX wd: <http://www.wikidata.org/entity/>
-            PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-            PREFIX p: <http://www.wikidata.org/prop/>
-            PREFIX ps: <http://www.wikidata.org/prop/statement/>
-            PREFIX wikibase: <http://wikiba.se/ontology#>
-            
-            SELECT ?propLabel ?valLabel WHERE {{
-              {{
-                wd:{wikidata_id} ?p ?statement .
-                ?statement ?ps ?val .
-                
-                ?prop wikibase:claim ?p .
-                ?prop wikibase:statementProperty ?ps .
-                
-                FILTER(STRSTARTS(STR(?val), "http://www.wikidata.org/entity/"))
-              }}
-              SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en" }}
-              
-              # Limit to common relevant properties
-              VALUES ?prop {{
-                wdt:P31  # instance of
-                wdt:P279 # subclass of
-                wdt:P180 # depicts
-                wdt:P186 # material used
-                wdt:P170 # creator
-                wdt:P276 # location
-                wdt:P1343 # described by source
-                wdt:P571 # inception
-                wdt:P136 # genre
-                wdt:P921 # main subject
-              }}
-            }}
-            LIMIT 50
-            """
-            
-            sparql.setQuery(properties_query)
-            prop_results = sparql.query().convert()
-            
-            properties = {}
-            for prop_result in prop_results["results"]["bindings"]:
-                prop_label = prop_result["propLabel"]["value"]
-                val_label = prop_result["valLabel"]["value"]
-                
-                if prop_label not in properties:
-                    properties[prop_label] = []
-                
-                if val_label not in properties[prop_label]:
-                    properties[prop_label].append(val_label)
-            
-            wikidata_info["properties"] = properties
-            
-            logger.info(f"Successfully retrieved Wikidata info for {wikidata_id}")
-            return wikidata_info
-        
-        except Exception as e:
-            logger.error(f"Error fetching from Wikidata: {str(e)}")
-            return None

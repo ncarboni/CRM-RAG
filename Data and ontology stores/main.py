@@ -9,8 +9,10 @@ import logging
 import os
 from flask import Flask, render_template, request, jsonify, url_for, redirect
 from logging.handlers import RotatingFileHandler
-
 from rag_system import FusekiRagSystem
+from dotenv import load_dotenv
+load_dotenv()  
+
 
 # Configure logging
 logging.basicConfig(
@@ -32,14 +34,22 @@ ONTOLOGY_DOCS = [
     "docs/vir.ttl" # path to VIR ontology
 ]
 
-# Configure Fuseki endpoint
+# Configure Fuseki endpoint and OpenAI settings
 FUSEKI_ENDPOINT = os.environ.get('FUSEKI_ENDPOINT', 'http://localhost:3030/asinou/sparql')
-OLLAMA_MODEL = os.environ.get('OLLAMA_MODEL', 'llama3')
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-4o')  # Or 'gpt-4o' if you have access
+TEMPERATURE = float(os.environ.get('TEMPERATURE', '0.7'))
+
+# Check if API key is set
+if not OPENAI_API_KEY:
+    logger.warning("OPENAI_API_KEY environment variable is not set! The application may not function correctly.")
 
 # Initialize the RAG system with configuration
 rag_system = FusekiRagSystem(
     endpoint_url=FUSEKI_ENDPOINT,
-    ollama_model=OLLAMA_MODEL,
+    openai_api_key=OPENAI_API_KEY,
+    openai_model=OPENAI_MODEL,
+    temperature=TEMPERATURE,
     ontology_docs_path=ONTOLOGY_DOCS
 )
 

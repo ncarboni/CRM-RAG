@@ -19,6 +19,7 @@ from langchain.docstore.document import Document
 from langchain_community.vectorstores import FAISS
 from langchain_core.embeddings import Embeddings
 from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_openai import OpenAIEmbeddings 
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -702,56 +703,56 @@ class OntologyProcessor:
     
     
     def build_vectorstore(self, embeddings: Embeddings, force_rebuild: bool = False) -> Optional[FAISS]:
-        """
-        Build vector store from ontology concepts.
-        
-        Args:
-            embeddings: Embedding model to use
-            force_rebuild: Whether to force rebuilding the vector store
+            """
+            Build vector store from ontology concepts.
             
-        Returns:
-            FAISS vector store or None if failed
-        """
-        if not self.concepts:
-            logger.info("Processing ontology documentation first")
-            self.process_ontology_docs()
+            Args:
+                embeddings: Embedding model to use
+                force_rebuild: Whether to force rebuilding the vector store
+                
+            Returns:
+                FAISS vector store or None if failed
+            """
+            if not self.concepts:
+                logger.info("Processing ontology documentation first")
+                self.process_ontology_docs()
+                
+            if not self.concepts:
+                logger.error("No ontology concepts found to index")
+                return None
+                
+            # Check if vector store already exists
+            if not force_rebuild and os.path.exists('ontology_index/index.faiss'):
+                logger.info("Loading existing ontology vector store")
+                try:
+                    self.vectorstore = FAISS.load_local('ontology_index', embeddings,
+                                                       allow_dangerous_deserialization=True)
+                    logger.info("Ontology vector store loaded successfully")
+                    return self.vectorstore
+                except Exception as e:
+                    logger.error(f"Failed to load ontology vector store: {str(e)}")
+                    # If loading fails, we'll rebuild
+                    
+            # Create concept documents
+            logger.info("Creating ontology concept documents")
+            documents = self.create_concept_documents()
             
-        if not self.concepts:
-            logger.error("No ontology concepts found to index")
-            return None
+            if not documents:
+                logger.error("No ontology documents created")
+                return None
             
-        # Check if vector store already exists
-        if not force_rebuild and os.path.exists('ontology_index/index.faiss'):
-            logger.info("Loading existing ontology vector store")
+            # Create vector store
+            logger.info("Building ontology vector store")
             try:
-                self.vectorstore = FAISS.load_local('ontology_index', embeddings,
-                                                   allow_dangerous_deserialization=True)
-                logger.info("Ontology vector store loaded successfully")
+                self.vectorstore = FAISS.from_documents(documents, embeddings)
+                
+                # Save for future use
+                if not os.path.exists('ontology_index'):
+                    os.makedirs('ontology_index')
+                self.vectorstore.save_local('ontology_index')
+                logger.info("Ontology vector store created and saved")
+                
                 return self.vectorstore
             except Exception as e:
-                logger.error(f"Failed to load ontology vector store: {str(e)}")
-                # If loading fails, we'll rebuild
-                
-        # Create concept documents
-        logger.info("Creating ontology concept documents")
-        documents = self.create_concept_documents()
-        
-        if not documents:
-            logger.error("No ontology documents created")
-            return None
-        
-        # Create vector store
-        logger.info("Building ontology vector store")
-        try:
-            self.vectorstore = FAISS.from_documents(documents, embeddings)
-            
-            # Save for future use
-            if not os.path.exists('ontology_index'):
-                os.makedirs('ontology_index')
-            self.vectorstore.save_local('ontology_index')
-            logger.info("Ontology vector store created and saved")
-            
-            return self.vectorstore
-        except Exception as e:
-            logger.error(f"Error creating ontology vector store: {str(e)}")
-            return None
+                logger.error(f"Error creating ontology vector store: {str(e)}")
+                return None

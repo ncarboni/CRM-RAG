@@ -151,7 +151,7 @@ def get_taxonomy_group(taxonomy_group):
 
 @app.route('/api/chat', methods=['POST'])
 def chat_api():
-    """API endpoint for chat functionality with graph reasoning"""
+    """API endpoint for chat functionality with smart query routing"""
     question = request.json.get('question', '')
     logger.info(f"Chat request: '{question}'")
     
@@ -161,8 +161,8 @@ def chat_api():
             "sources": []
         })
     
-    # Get the answer using graph reasoning
-    result = rag_system.answer_question_with_graph(question)
+    # Use smart routing system to handle different question types
+    result = rag_system.route_and_answer_question(question)
     return jsonify(result)
 
 @app.route('/api/search', methods=['POST'])

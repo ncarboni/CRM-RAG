@@ -149,7 +149,7 @@ def chat_api():
     question = request.json.get('question', '')
     logger.info(f"Chat request: '{question}'")
     
-    # Use the universal system to answer the question
+    # Use the direct approach to answer the question
     result = rag_system.answer_question(question)
     return jsonify(result)
 
@@ -227,10 +227,40 @@ if __name__ == '__main__':
 
     # Initialize the system
     try:
-        rag_system.initialize()
+        # First, check if saved data exists
+        if (os.path.exists('document_graph.pkl') and os.path.exists('vector_index/index.faiss')):
+            logger.info("Found existing data, loading...")
+            if rag_system.initialize():
+                logger.info("Successfully loaded existing data")
+            else:
+                raise Exception("Failed to load existing data")
+        else:
+            # If we need to create new data, check whether it would exceed rate limits
+            entities = rag_system.get_all_entities()
+            total_entities = len(entities)
+            logger.info(f"Need to process {total_entities} entities")
+            
+            if total_entities > 500:  # Threshold that might cause rate limiting
+                logger.warning(f"Large dataset with {total_entities} entities may exceed rate limits")
+                logger.warning("Consider running initialization with a higher batch size and longer sleep times")
+                response = input("Do you want to continue with initialization? (y/n): ")
+                if response.lower() != 'y':
+                    logger.info("Initialization cancelled. Starting with limited functionality")
+                    print("Application starting with limited functionality")
+                    app.run(debug=False, host='127.0.0.1', port=port)
+                    exit()
+            
+            logger.info("Initializing system with new data...")
+            if rag_system.initialize():
+                logger.info("Successfully initialized with new data")
+            else:
+                raise Exception("Failed to initialize with new data")
     except Exception as e:
         logger.error(f"Error initializing the system: {str(e)}")
-        logger.info("Application will still start, but functionality may be limited")
+        logger.error("Application cannot start without proper initialization")
+        print(f"ERROR: {str(e)}")
+        print("Application cannot start without proper initialization. Please fix the issues and try again.")
+        exit(1)
     
     # Print explicit startup information
     print(f"Starting Flask application...")
@@ -238,4 +268,4 @@ if __name__ == '__main__':
     print(f"Press CTRL+C to stop the server")
     
     # Run the Flask application
-    app.run(debug=False, host='127.0.0.1', port=port)  # Changed host to 127.0.0.1
+    app.run(debug=False, host='127.0.0.1', port=port)

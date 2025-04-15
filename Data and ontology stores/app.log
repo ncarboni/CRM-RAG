@@ -7452,3 +7452,118 @@ AttributeError: 'UniversalRagSystem' object has no attribute 'get_cidoc_system_p
 2025-04-14 21:51:46,321 - universal_rag_system - INFO - Retrieved and re-ranked 10 documents
 2025-04-14 21:51:52,440 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
 2025-04-14 21:51:52,445 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:51:52] "POST /api/chat HTTP/1.1" 200 -
+2025-04-15 10:58:27,000 - __main__ - INFO - Found existing data, loading...
+2025-04-15 10:58:27,037 - universal_rag_system - INFO - Successfully connected to SPARQL endpoint
+2025-04-15 10:58:27,037 - universal_rag_system - INFO - Initializing embeddings model...
+2025-04-15 10:58:27,071 - universal_rag_system - INFO - OpenAI embeddings model initialized successfully
+2025-04-15 10:58:27,076 - universal_rag_system - INFO - Checking for saved data at document_graph.pkl and vector_index/index.faiss
+2025-04-15 10:58:27,076 - universal_rag_system - INFO - Found document graph at document_graph.pkl
+2025-04-15 10:58:27,076 - universal_rag_system - INFO - Found vector index at vector_index/index.faiss
+2025-04-15 10:58:27,076 - universal_rag_system - INFO - Found both document graph and vector store, attempting to load...
+2025-04-15 10:58:27,096 - graph_document_store - INFO - Document graph loaded from document_graph.pkl with 641 documents
+2025-04-15 10:58:27,098 - faiss.loader - INFO - Loading faiss.
+2025-04-15 10:58:27,122 - faiss.loader - INFO - Successfully loaded faiss.
+2025-04-15 10:58:27,125 - faiss - INFO - Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes.
+2025-04-15 10:58:27,130 - universal_rag_system - INFO - Vector store loaded successfully
+2025-04-15 10:58:27,130 - universal_rag_system - INFO - Successfully loaded existing document graph and vector store
+2025-04-15 10:58:27,130 - __main__ - INFO - Successfully loaded existing data
+2025-04-15 10:58:27,133 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+2025-04-15 10:58:27,133 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-04-15 10:58:36,873 - main - ERROR - Exception on / [GET]
+Traceback (most recent call last):
+  File "/opt/homebrew/Caskroom/miniforge/base/envs/rag/lib/python3.13/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/opt/homebrew/Caskroom/miniforge/base/envs/rag/lib/python3.13/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/opt/homebrew/Caskroom/miniforge/base/envs/rag/lib/python3.13/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/opt/homebrew/Caskroom/miniforge/base/envs/rag/lib/python3.13/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/carboni/Documents/pynotebook/personal/RAG rdf/CRM_RAG/Data and ontology stores/main.py", line 52, in index
+    return render_template('chat.html')
+  File "/opt/homebrew/Caskroom/miniforge/base/envs/rag/lib/python3.13/site-packages/flask/templating.py", line 149, in render_template
+    template = app.jinja_env.get_or_select_template(template_name_or_list)
+  File "/opt/homebrew/Caskroom/miniforge/base/envs/rag/lib/python3.13/site-packages/jinja2/environment.py", line 1087, in get_or_select_template
+    return self.get_template(template_name_or_list, parent, globals)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Caskroom/miniforge/base/envs/rag/lib/python3.13/site-packages/jinja2/environment.py", line 1016, in get_template
+    return self._load_template(name, globals)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Caskroom/miniforge/base/envs/rag/lib/python3.13/site-packages/jinja2/environment.py", line 975, in _load_template
+    template = self.loader.load(self, name, self.make_globals(globals))
+  File "/opt/homebrew/Caskroom/miniforge/base/envs/rag/lib/python3.13/site-packages/jinja2/loaders.py", line 126, in load
+    source, filename, uptodate = self.get_source(environment, name)
+                                 ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Caskroom/miniforge/base/envs/rag/lib/python3.13/site-packages/flask/templating.py", line 65, in get_source
+    return self._get_source_fast(environment, template)
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Caskroom/miniforge/base/envs/rag/lib/python3.13/site-packages/flask/templating.py", line 99, in _get_source_fast
+    raise TemplateNotFound(template)
+jinja2.exceptions.TemplateNotFound: chat.html
+2025-04-15 10:58:36,882 - werkzeug - INFO - 127.0.0.1 - - [15/Apr/2025 10:58:36] "[35m[1mGET / HTTP/1.1[0m" 500 -
+2025-04-15 10:59:10,318 - werkzeug - INFO - 127.0.0.1 - - [15/Apr/2025 10:59:10] "GET / HTTP/1.1" 200 -
+2025-04-15 11:01:24,891 - werkzeug - INFO - 127.0.0.1 - - [15/Apr/2025 11:01:24] "GET / HTTP/1.1" 200 -
+2025-04-15 11:01:32,533 - __main__ - INFO - Found existing data, loading...
+2025-04-15 11:01:32,549 - universal_rag_system - INFO - Successfully connected to SPARQL endpoint
+2025-04-15 11:01:32,549 - universal_rag_system - INFO - Initializing embeddings model...
+2025-04-15 11:01:32,576 - universal_rag_system - INFO - OpenAI embeddings model initialized successfully
+2025-04-15 11:01:32,577 - universal_rag_system - INFO - Checking for saved data at document_graph.pkl and vector_index/index.faiss
+2025-04-15 11:01:32,577 - universal_rag_system - INFO - Found document graph at document_graph.pkl
+2025-04-15 11:01:32,577 - universal_rag_system - INFO - Found vector index at vector_index/index.faiss
+2025-04-15 11:01:32,577 - universal_rag_system - INFO - Found both document graph and vector store, attempting to load...
+2025-04-15 11:01:32,597 - graph_document_store - INFO - Document graph loaded from document_graph.pkl with 641 documents
+2025-04-15 11:01:32,598 - faiss.loader - INFO - Loading faiss.
+2025-04-15 11:01:32,610 - faiss.loader - INFO - Successfully loaded faiss.
+2025-04-15 11:01:32,613 - faiss - INFO - Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes.
+2025-04-15 11:01:32,618 - universal_rag_system - INFO - Vector store loaded successfully
+2025-04-15 11:01:32,618 - universal_rag_system - INFO - Successfully loaded existing document graph and vector store
+2025-04-15 11:01:32,618 - __main__ - INFO - Successfully loaded existing data
+2025-04-15 11:01:32,620 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+2025-04-15 11:01:32,620 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-04-15 11:01:35,119 - werkzeug - INFO - 127.0.0.1 - - [15/Apr/2025 11:01:35] "GET / HTTP/1.1" 200 -
+2025-04-15 11:01:37,650 - __main__ - INFO - Chat request: 'What events occur in Cyprus?'
+2025-04-15 11:01:37,650 - universal_rag_system - INFO - Answering question directly: 'What events occur in Cyprus?'
+2025-04-15 11:01:37,650 - universal_rag_system - INFO - Retrieving documents for query: 'What events occur in Cyprus?'
+2025-04-15 11:01:37,650 - graph_document_store - INFO - Retrieving documents for query: 'What events occur in Cyprus?'
+2025-04-15 11:01:39,033 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-15 11:01:39,043 - graph_document_store - INFO - Retrieved 60 documents
+2025-04-15 11:01:42,652 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-15 11:01:42,680 - universal_rag_system - INFO - Retrieved and re-ranked 10 documents
+2025-04-15 11:01:52,996 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-04-15 11:01:53,022 - werkzeug - INFO - 127.0.0.1 - - [15/Apr/2025 11:01:53] "POST /api/chat HTTP/1.1" 200 -
+2025-04-15 11:12:43,156 - __main__ - INFO - Found existing data, loading...
+2025-04-15 11:12:43,169 - universal_rag_system - INFO - Successfully connected to SPARQL endpoint
+2025-04-15 11:12:43,169 - universal_rag_system - INFO - Initializing embeddings model...
+2025-04-15 11:12:43,197 - universal_rag_system - INFO - OpenAI embeddings model initialized successfully
+2025-04-15 11:12:43,198 - universal_rag_system - INFO - Checking for saved data at document_graph.pkl and vector_index/index.faiss
+2025-04-15 11:12:43,198 - universal_rag_system - INFO - Found document graph at document_graph.pkl
+2025-04-15 11:12:43,198 - universal_rag_system - INFO - Found vector index at vector_index/index.faiss
+2025-04-15 11:12:43,198 - universal_rag_system - INFO - Found both document graph and vector store, attempting to load...
+2025-04-15 11:12:43,218 - graph_document_store - INFO - Document graph loaded from document_graph.pkl with 641 documents
+2025-04-15 11:12:43,219 - faiss.loader - INFO - Loading faiss.
+2025-04-15 11:12:43,232 - faiss.loader - INFO - Successfully loaded faiss.
+2025-04-15 11:12:43,234 - faiss - INFO - Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes.
+2025-04-15 11:12:43,239 - universal_rag_system - INFO - Vector store loaded successfully
+2025-04-15 11:12:43,239 - universal_rag_system - INFO - Successfully loaded existing document graph and vector store
+2025-04-15 11:12:43,239 - __main__ - INFO - Successfully loaded existing data
+2025-04-15 11:12:43,242 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+2025-04-15 11:12:43,242 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-04-15 11:12:47,820 - werkzeug - INFO - 127.0.0.1 - - [15/Apr/2025 11:12:47] "GET / HTTP/1.1" 200 -
+2025-04-15 11:12:47,856 - werkzeug - INFO - 127.0.0.1 - - [15/Apr/2025 11:12:47] "GET /static/css/chat.css HTTP/1.1" 200 -
+2025-04-15 11:12:47,856 - werkzeug - INFO - 127.0.0.1 - - [15/Apr/2025 11:12:47] "GET /static/js/chat.js HTTP/1.1" 200 -
+2025-04-15 11:12:47,857 - werkzeug - INFO - 127.0.0.1 - - [15/Apr/2025 11:12:47] "GET /static/css/base.css HTTP/1.1" 200 -
+2025-04-15 11:12:58,616 - __main__ - INFO - Chat request: 'Where is Panagia Phorbiottisa located?'
+2025-04-15 11:12:58,618 - universal_rag_system - INFO - Answering question directly: 'Where is Panagia Phorbiottisa located?'
+2025-04-15 11:12:58,618 - universal_rag_system - INFO - Retrieving documents for query: 'Where is Panagia Phorbiottisa located?'
+2025-04-15 11:12:58,618 - graph_document_store - INFO - Retrieving documents for query: 'Where is Panagia Phorbiottisa located?'
+2025-04-15 11:13:00,033 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-15 11:13:00,047 - graph_document_store - INFO - Retrieved 60 documents
+2025-04-15 11:13:00,555 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-15 11:13:00,571 - universal_rag_system - INFO - Retrieved and re-ranked 10 documents
+2025-04-15 11:13:06,058 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-04-15 11:13:06,075 - werkzeug - INFO - 127.0.0.1 - - [15/Apr/2025 11:13:06] "POST /api/chat HTTP/1.1" 200 -
+2025-04-15 11:13:15,999 - werkzeug - INFO - 127.0.0.1 - - [15/Apr/2025 11:13:15] "GET /api/entity/http:%2F%2Fmap.cnrs.fr%2Fsemantics%2Fphysical%2F0062f461-2dc8-4830-b53a-c3ad0f8d65a4/wikidata HTTP/1.1" 200 -

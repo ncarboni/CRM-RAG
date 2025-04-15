@@ -119,20 +119,6 @@ def get_entity(entity_uri):
     
     return jsonify({"details": details, "related": related})
 
-@app.route('/api/entity/<path:entity_uri>/wikidata')
-def get_entity_wikidata(entity_uri):
-    """API endpoint to get Wikidata information for a specific entity"""
-    wikidata_id = rag_system.get_wikidata_for_entity(entity_uri)
-    
-    if not wikidata_id:
-        return jsonify({"error": "No Wikidata ID found for this entity"}), 404
-    
-    wikidata_info = rag_system.fetch_wikidata_info(wikidata_id)
-    
-    if not wikidata_info:
-        return jsonify({"error": f"Could not fetch Wikidata info for ID: {wikidata_id}"}), 404
-    
-    return jsonify(wikidata_info)
 
 @app.route('/api/ontology/taxonomy/<taxonomy_group>')
 def get_taxonomy_group(taxonomy_group):
@@ -204,6 +190,22 @@ def get_wikidata_entities():
     """API endpoint to get all entities with Wikidata references"""
     entities = rag_system.get_wikidata_entities()
     return jsonify(entities)
+
+
+@app.route('/api/entity/<path:entity_uri>/wikidata')
+def get_entity_wikidata(entity_uri):
+    """API endpoint to get Wikidata information for a specific entity"""
+    wikidata_id = rag_system.get_wikidata_for_entity(entity_uri)
+    
+    if not wikidata_id:
+        return jsonify({"error": "No Wikidata ID found for this entity"}), 404
+    
+    wikidata_info = rag_system.fetch_wikidata_info(wikidata_id)
+    
+    if not wikidata_info:
+        return jsonify({"error": f"Could not fetch Wikidata info for ID: {wikidata_id}"}), 404
+    
+    return jsonify(wikidata_info)
 
 @app.route('/api/ontology/concept/<concept_id>')
 def get_ontology_concept(concept_id):

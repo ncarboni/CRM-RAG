@@ -7321,3 +7321,134 @@ AttributeError: 'UniversalRagSystem' object has no attribute 'get_cidoc_system_p
 2025-04-14 21:22:32,919 - universal_rag_system - INFO - Retrieved and re-ranked 10 documents
 2025-04-14 21:22:37,889 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
 2025-04-14 21:22:37,893 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:22:37] "POST /api/chat HTTP/1.1" 200 -
+2025-04-14 21:40:44,115 - __main__ - INFO - Found existing data, loading...
+2025-04-14 21:40:44,125 - universal_rag_system - INFO - Successfully connected to SPARQL endpoint
+2025-04-14 21:40:44,125 - universal_rag_system - INFO - Initializing embeddings model...
+2025-04-14 21:40:44,157 - universal_rag_system - INFO - OpenAI embeddings model initialized successfully
+2025-04-14 21:40:44,163 - universal_rag_system - INFO - Checking for saved data at document_graph.pkl and vector_index/index.faiss
+2025-04-14 21:40:44,163 - universal_rag_system - INFO - Found document graph at document_graph.pkl
+2025-04-14 21:40:44,163 - universal_rag_system - INFO - Found vector index at vector_index/index.faiss
+2025-04-14 21:40:44,163 - universal_rag_system - INFO - Found both document graph and vector store, attempting to load...
+2025-04-14 21:40:44,191 - graph_document_store - INFO - Document graph loaded from document_graph.pkl with 641 documents
+2025-04-14 21:40:44,193 - faiss.loader - INFO - Loading faiss.
+2025-04-14 21:40:44,216 - faiss.loader - INFO - Successfully loaded faiss.
+2025-04-14 21:40:44,219 - faiss - INFO - Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes.
+2025-04-14 21:40:44,225 - universal_rag_system - INFO - Vector store loaded successfully
+2025-04-14 21:40:44,225 - universal_rag_system - INFO - Successfully loaded existing document graph and vector store
+2025-04-14 21:40:44,225 - __main__ - INFO - Successfully loaded existing data
+2025-04-14 21:40:44,227 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+2025-04-14 21:40:44,227 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-04-14 21:40:50,638 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:40:50] "GET / HTTP/1.1" 200 -
+2025-04-14 21:40:52,536 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:40:52] "GET /chat HTTP/1.1" 200 -
+2025-04-14 21:40:55,129 - __main__ - INFO - Chat request: 'Where is Panagia Phorbiottisa located?'
+2025-04-14 21:40:55,130 - universal_rag_system - INFO - Answering question directly: 'Where is Panagia Phorbiottisa located?'
+2025-04-14 21:40:55,130 - universal_rag_system - INFO - Retrieving documents for query: 'Where is Panagia Phorbiottisa located?'
+2025-04-14 21:40:55,130 - graph_document_store - INFO - Retrieving documents for query: 'Where is Panagia Phorbiottisa located?'
+2025-04-14 21:40:55,897 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:40:55,921 - graph_document_store - INFO - Retrieved 60 documents
+2025-04-14 21:40:56,373 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:40:56,403 - universal_rag_system - INFO - Retrieved and re-ranked 10 documents
+2025-04-14 21:41:01,410 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-04-14 21:41:01,426 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:41:01] "POST /api/chat HTTP/1.1" 200 -
+2025-04-14 21:41:27,877 - __main__ - INFO - Chat request: 'Tell me about Saint George depictions'
+2025-04-14 21:41:27,879 - universal_rag_system - INFO - Answering question directly: 'Tell me about Saint George depictions'
+2025-04-14 21:41:27,879 - universal_rag_system - INFO - Retrieving documents for query: 'Tell me about Saint George depictions'
+2025-04-14 21:41:27,879 - graph_document_store - INFO - Retrieving documents for query: 'Tell me about Saint George depictions'
+2025-04-14 21:41:30,341 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:41:30,346 - graph_document_store - INFO - Retrieved 60 documents
+2025-04-14 21:41:31,043 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:41:31,054 - universal_rag_system - INFO - Retrieved and re-ranked 10 documents
+2025-04-14 21:41:44,962 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-04-14 21:41:44,987 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:41:44] "POST /api/chat HTTP/1.1" 200 -
+2025-04-14 21:42:25,570 - __main__ - INFO - Chat request: 'when was the Asinou church built?'
+2025-04-14 21:42:25,572 - universal_rag_system - INFO - Answering question directly: 'when was the Asinou church built?'
+2025-04-14 21:42:25,572 - universal_rag_system - INFO - Retrieving documents for query: 'when was the Asinou church built?'
+2025-04-14 21:42:25,572 - graph_document_store - INFO - Retrieving documents for query: 'when was the Asinou church built?'
+2025-04-14 21:42:26,237 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:42:26,242 - graph_document_store - INFO - Retrieved 60 documents
+2025-04-14 21:42:26,493 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:42:26,504 - universal_rag_system - INFO - Retrieved and re-ranked 10 documents
+2025-04-14 21:42:34,578 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-04-14 21:42:34,583 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:42:34] "POST /api/chat HTTP/1.1" 200 -
+2025-04-14 21:43:10,352 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:43:10] "GET /api/entity/http:%2F%2Fmap.cnrs.fr%2Fsemantics%2Fperiod%2F1edaada6-f940-4c43-9f52-72e584375f2d/wikidata HTTP/1.1" 200 -
+2025-04-14 21:43:30,550 - __main__ - INFO - Chat request: 'what is the Église des Cordeliers de Nancy and how is connected with asinou?'
+2025-04-14 21:43:30,550 - universal_rag_system - INFO - Answering question directly: 'what is the Église des Cordeliers de Nancy and how is connected with asinou?'
+2025-04-14 21:43:30,550 - universal_rag_system - INFO - Retrieving documents for query: 'what is the Église des Cordeliers de Nancy and how is connected with asinou?'
+2025-04-14 21:43:30,550 - graph_document_store - INFO - Retrieving documents for query: 'what is the Église des Cordeliers de Nancy and how is connected with asinou?'
+2025-04-14 21:43:31,114 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:43:31,118 - graph_document_store - INFO - Retrieved 60 documents
+2025-04-14 21:43:31,396 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:43:31,407 - universal_rag_system - INFO - Retrieved and re-ranked 10 documents
+2025-04-14 21:43:38,963 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-04-14 21:43:38,968 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:43:38] "POST /api/chat HTTP/1.1" 200 -
+2025-04-14 21:44:26,512 - __main__ - INFO - Chat request: 'what events are linked with church of Asinou?'
+2025-04-14 21:44:26,513 - universal_rag_system - INFO - Answering question directly: 'what events are linked with church of Asinou?'
+2025-04-14 21:44:26,513 - universal_rag_system - INFO - Retrieving documents for query: 'what events are linked with church of Asinou?'
+2025-04-14 21:44:26,514 - graph_document_store - INFO - Retrieving documents for query: 'what events are linked with church of Asinou?'
+2025-04-14 21:44:27,171 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:44:27,175 - graph_document_store - INFO - Retrieved 60 documents
+2025-04-14 21:44:27,470 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:44:27,489 - universal_rag_system - INFO - Retrieved and re-ranked 10 documents
+2025-04-14 21:44:35,055 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-04-14 21:44:35,058 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:44:35] "POST /api/chat HTTP/1.1" 200 -
+2025-04-14 21:45:10,477 - __main__ - INFO - Chat request: 'what kind of liturgical rites took place in Asinou?'
+2025-04-14 21:45:10,479 - universal_rag_system - INFO - Answering question directly: 'what kind of liturgical rites took place in Asinou?'
+2025-04-14 21:45:10,479 - universal_rag_system - INFO - Retrieving documents for query: 'what kind of liturgical rites took place in Asinou?'
+2025-04-14 21:45:10,479 - graph_document_store - INFO - Retrieving documents for query: 'what kind of liturgical rites took place in Asinou?'
+2025-04-14 21:45:10,850 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:45:10,855 - graph_document_store - INFO - Retrieved 60 documents
+2025-04-14 21:45:11,570 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:45:11,583 - universal_rag_system - INFO - Retrieved and re-ranked 10 documents
+2025-04-14 21:45:19,353 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-04-14 21:45:19,357 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:45:19] "POST /api/chat HTTP/1.1" 200 -
+2025-04-14 21:45:49,624 - __main__ - INFO - Chat request: 'what paintings are present in Asinou?'
+2025-04-14 21:45:49,624 - universal_rag_system - INFO - Answering question directly: 'what paintings are present in Asinou?'
+2025-04-14 21:45:49,625 - universal_rag_system - INFO - Retrieving documents for query: 'what paintings are present in Asinou?'
+2025-04-14 21:45:49,625 - graph_document_store - INFO - Retrieving documents for query: 'what paintings are present in Asinou?'
+2025-04-14 21:45:50,026 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:45:50,031 - graph_document_store - INFO - Retrieved 60 documents
+2025-04-14 21:45:50,273 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:45:50,285 - universal_rag_system - INFO - Retrieved and re-ranked 10 documents
+2025-04-14 21:45:58,697 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-04-14 21:45:58,704 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:45:58] "POST /api/chat HTTP/1.1" 200 -
+2025-04-14 21:46:28,429 - __main__ - INFO - Chat request: 'what about donor paintings?'
+2025-04-14 21:46:28,429 - universal_rag_system - INFO - Answering question directly: 'what about donor paintings?'
+2025-04-14 21:46:28,429 - universal_rag_system - INFO - Retrieving documents for query: 'what about donor paintings?'
+2025-04-14 21:46:28,429 - graph_document_store - INFO - Retrieving documents for query: 'what about donor paintings?'
+2025-04-14 21:46:28,744 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:46:28,750 - graph_document_store - INFO - Retrieved 60 documents
+2025-04-14 21:46:28,972 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:46:28,983 - universal_rag_system - INFO - Retrieved and re-ranked 10 documents
+2025-04-14 21:46:38,100 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-04-14 21:46:38,103 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:46:38] "POST /api/chat HTTP/1.1" 200 -
+2025-04-14 21:47:21,746 - __main__ - INFO - Chat request: 'are there any inscriptions in asinou, and what they says?'
+2025-04-14 21:47:21,746 - universal_rag_system - INFO - Answering question directly: 'are there any inscriptions in asinou, and what they says?'
+2025-04-14 21:47:21,746 - universal_rag_system - INFO - Retrieving documents for query: 'are there any inscriptions in asinou, and what they says?'
+2025-04-14 21:47:21,746 - graph_document_store - INFO - Retrieving documents for query: 'are there any inscriptions in asinou, and what they says?'
+2025-04-14 21:47:22,261 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:47:22,265 - graph_document_store - INFO - Retrieved 60 documents
+2025-04-14 21:47:22,786 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:47:22,802 - universal_rag_system - INFO - Retrieved and re-ranked 10 documents
+2025-04-14 21:47:29,523 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-04-14 21:47:29,530 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:47:29] "POST /api/chat HTTP/1.1" 200 -
+2025-04-14 21:49:14,866 - __main__ - INFO - Chat request: 'are there any coordinates linked with the narthex?'
+2025-04-14 21:49:14,867 - universal_rag_system - INFO - Answering question directly: 'are there any coordinates linked with the narthex?'
+2025-04-14 21:49:14,867 - universal_rag_system - INFO - Retrieving documents for query: 'are there any coordinates linked with the narthex?'
+2025-04-14 21:49:14,868 - graph_document_store - INFO - Retrieving documents for query: 'are there any coordinates linked with the narthex?'
+2025-04-14 21:49:15,154 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:49:15,159 - graph_document_store - INFO - Retrieved 60 documents
+2025-04-14 21:49:15,426 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:49:15,439 - universal_rag_system - INFO - Retrieved and re-ranked 10 documents
+2025-04-14 21:49:20,930 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-04-14 21:49:20,933 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:49:20] "POST /api/chat HTTP/1.1" 200 -
+2025-04-14 21:51:45,307 - __main__ - INFO - Chat request: 'what is a narthex exactly>'
+2025-04-14 21:51:45,309 - universal_rag_system - INFO - Answering question directly: 'what is a narthex exactly>'
+2025-04-14 21:51:45,309 - universal_rag_system - INFO - Retrieving documents for query: 'what is a narthex exactly>'
+2025-04-14 21:51:45,309 - graph_document_store - INFO - Retrieving documents for query: 'what is a narthex exactly>'
+2025-04-14 21:51:46,032 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:51:46,038 - graph_document_store - INFO - Retrieved 60 documents
+2025-04-14 21:51:46,305 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:51:46,321 - universal_rag_system - INFO - Retrieved and re-ranked 10 documents
+2025-04-14 21:51:52,440 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-04-14 21:51:52,445 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:51:52] "POST /api/chat HTTP/1.1" 200 -

@@ -7233,3 +7233,91 @@ AttributeError: 'UniversalRagSystem' object has no attribute 'get_cidoc_system_p
 2025-04-14 21:11:54,412 - universal_rag_system - INFO - Retrieved and re-ranked 10 documents
 2025-04-14 21:11:57,662 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
 2025-04-14 21:11:57,709 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:11:57] "POST /api/chat HTTP/1.1" 200 -
+2025-04-14 21:16:07,416 - __main__ - INFO - Found existing data, loading...
+2025-04-14 21:16:07,424 - universal_rag_system - INFO - Successfully connected to SPARQL endpoint
+2025-04-14 21:16:07,424 - universal_rag_system - INFO - Initializing embeddings model...
+2025-04-14 21:16:07,453 - universal_rag_system - INFO - OpenAI embeddings model initialized successfully
+2025-04-14 21:16:07,454 - universal_rag_system - INFO - Checking for saved data at document_graph.pkl and vector_index/index.faiss
+2025-04-14 21:16:07,454 - universal_rag_system - INFO - Found document graph at document_graph.pkl
+2025-04-14 21:16:07,454 - universal_rag_system - INFO - Found vector index at vector_index/index.faiss
+2025-04-14 21:16:07,454 - universal_rag_system - INFO - Found both document graph and vector store, attempting to load...
+2025-04-14 21:16:07,477 - graph_document_store - INFO - Document graph loaded from document_graph.pkl with 641 documents
+2025-04-14 21:16:07,478 - faiss.loader - INFO - Loading faiss.
+2025-04-14 21:16:07,491 - faiss.loader - INFO - Successfully loaded faiss.
+2025-04-14 21:16:07,493 - faiss - INFO - Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes.
+2025-04-14 21:16:07,497 - universal_rag_system - INFO - Vector store loaded successfully
+2025-04-14 21:16:07,497 - universal_rag_system - INFO - Successfully loaded existing document graph and vector store
+2025-04-14 21:16:07,497 - __main__ - INFO - Successfully loaded existing data
+2025-04-14 21:16:07,500 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+2025-04-14 21:16:07,500 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-04-14 21:16:13,293 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:16:13] "GET /chat HTTP/1.1" 200 -
+2025-04-14 21:16:16,868 - __main__ - INFO - Chat request: 'Where is Panagia Phorbiottisa located?'
+2025-04-14 21:16:16,869 - universal_rag_system - INFO - Answering question directly: 'Where is Panagia Phorbiottisa located?'
+2025-04-14 21:16:16,869 - universal_rag_system - INFO - Retrieving documents for query: 'Where is Panagia Phorbiottisa located?'
+2025-04-14 21:16:16,870 - graph_document_store - INFO - Retrieving documents for query: 'Where is Panagia Phorbiottisa located?'
+2025-04-14 21:16:21,523 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:16:21,569 - graph_document_store - INFO - Retrieved 60 documents
+2025-04-14 21:16:22,085 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:16:22,095 - universal_rag_system - INFO - Retrieved and re-ranked 10 documents
+2025-04-14 21:16:28,000 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-04-14 21:16:28,010 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:16:28] "POST /api/chat HTTP/1.1" 200 -
+2025-04-14 21:16:53,722 - __main__ - INFO - Chat request: 'Tell me about Saint George depictions'
+2025-04-14 21:16:53,724 - universal_rag_system - INFO - Answering question directly: 'Tell me about Saint George depictions'
+2025-04-14 21:16:53,724 - universal_rag_system - INFO - Retrieving documents for query: 'Tell me about Saint George depictions'
+2025-04-14 21:16:53,724 - graph_document_store - INFO - Retrieving documents for query: 'Tell me about Saint George depictions'
+2025-04-14 21:16:54,229 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:16:54,237 - graph_document_store - INFO - Retrieved 60 documents
+2025-04-14 21:16:54,505 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:16:54,517 - universal_rag_system - INFO - Retrieved and re-ranked 10 documents
+2025-04-14 21:17:08,053 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-04-14 21:17:08,059 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:17:08] "POST /api/chat HTTP/1.1" 200 -
+2025-04-14 21:20:27,532 - __main__ - INFO - Found existing data, loading...
+2025-04-14 21:20:27,541 - universal_rag_system - INFO - Successfully connected to SPARQL endpoint
+2025-04-14 21:20:27,541 - universal_rag_system - INFO - Initializing embeddings model...
+2025-04-14 21:20:27,569 - universal_rag_system - INFO - OpenAI embeddings model initialized successfully
+2025-04-14 21:20:27,570 - universal_rag_system - INFO - Checking for saved data at document_graph.pkl and vector_index/index.faiss
+2025-04-14 21:20:27,570 - universal_rag_system - INFO - Found document graph at document_graph.pkl
+2025-04-14 21:20:27,570 - universal_rag_system - INFO - Found vector index at vector_index/index.faiss
+2025-04-14 21:20:27,570 - universal_rag_system - INFO - Found both document graph and vector store, attempting to load...
+2025-04-14 21:20:27,590 - graph_document_store - INFO - Document graph loaded from document_graph.pkl with 641 documents
+2025-04-14 21:20:27,591 - faiss.loader - INFO - Loading faiss.
+2025-04-14 21:20:27,603 - faiss.loader - INFO - Successfully loaded faiss.
+2025-04-14 21:20:27,605 - faiss - INFO - Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes.
+2025-04-14 21:20:27,610 - universal_rag_system - INFO - Vector store loaded successfully
+2025-04-14 21:20:27,610 - universal_rag_system - INFO - Successfully loaded existing document graph and vector store
+2025-04-14 21:20:27,610 - __main__ - INFO - Successfully loaded existing data
+2025-04-14 21:20:27,612 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5001
+2025-04-14 21:20:27,612 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-04-14 21:20:30,658 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:20:30] "GET /chat HTTP/1.1" 200 -
+2025-04-14 21:20:32,361 - __main__ - INFO - Chat request: 'Tell me about Saint George depictions'
+2025-04-14 21:20:32,361 - universal_rag_system - INFO - Answering question directly: 'Tell me about Saint George depictions'
+2025-04-14 21:20:32,361 - universal_rag_system - INFO - Retrieving documents for query: 'Tell me about Saint George depictions'
+2025-04-14 21:20:32,361 - graph_document_store - INFO - Retrieving documents for query: 'Tell me about Saint George depictions'
+2025-04-14 21:20:33,137 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:20:33,153 - graph_document_store - INFO - Retrieved 60 documents
+2025-04-14 21:20:33,355 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:20:33,368 - universal_rag_system - INFO - Retrieved and re-ranked 10 documents
+2025-04-14 21:20:49,650 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-04-14 21:20:49,660 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:20:49] "POST /api/chat HTTP/1.1" 200 -
+2025-04-14 21:21:30,183 - __main__ - INFO - Chat request: 'give me a list of all the depictions of saint george in the data'
+2025-04-14 21:21:30,184 - universal_rag_system - INFO - Answering question directly: 'give me a list of all the depictions of saint george in the data'
+2025-04-14 21:21:30,184 - universal_rag_system - INFO - Retrieving documents for query: 'give me a list of all the depictions of saint george in the data'
+2025-04-14 21:21:30,184 - graph_document_store - INFO - Retrieving documents for query: 'give me a list of all the depictions of saint george in the data'
+2025-04-14 21:21:30,567 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:21:30,571 - graph_document_store - INFO - Retrieved 60 documents
+2025-04-14 21:21:31,349 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:21:31,353 - universal_rag_system - INFO - Retrieved and re-ranked 10 documents
+2025-04-14 21:21:46,700 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-04-14 21:21:46,707 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:21:46] "POST /api/chat HTTP/1.1" 200 -
+2025-04-14 21:22:31,661 - __main__ - INFO - Chat request: 'What churches in Cyprus have Last Judgment iconography?'
+2025-04-14 21:22:31,662 - universal_rag_system - INFO - Answering question directly: 'What churches in Cyprus have Last Judgment iconography?'
+2025-04-14 21:22:31,662 - universal_rag_system - INFO - Retrieving documents for query: 'What churches in Cyprus have Last Judgment iconography?'
+2025-04-14 21:22:31,662 - graph_document_store - INFO - Retrieving documents for query: 'What churches in Cyprus have Last Judgment iconography?'
+2025-04-14 21:22:32,323 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:22:32,327 - graph_document_store - INFO - Retrieved 60 documents
+2025-04-14 21:22:32,907 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-04-14 21:22:32,919 - universal_rag_system - INFO - Retrieved and re-ranked 10 documents
+2025-04-14 21:22:37,889 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-04-14 21:22:37,893 - werkzeug - INFO - 127.0.0.1 - - [14/Apr/2025 21:22:37] "POST /api/chat HTTP/1.1" 200 -

@@ -1320,6 +1320,45 @@ For each answer, if the data is insufficient to provide a complete answer, expla
         
         return matched_entities
 
+    def normalize_scores(self, scores):
+        """
+        Normalize scores to [0, 1] range using min-max normalization.
+
+        Args:
+            scores: Dictionary of {id: score} or list of scores
+
+        Returns:
+            Dictionary or list with normalized scores in [0, 1] range
+        """
+        import numpy as np
+
+        if isinstance(scores, dict):
+            if not scores:
+                return scores
+
+            values = np.array(list(scores.values()))
+            min_val = np.min(values)
+            max_val = np.max(values)
+
+            # Handle case where all scores are the same
+            if max_val - min_val < 1e-10:
+                return {k: 1.0 for k in scores.keys()}
+
+            # Min-max normalization
+            normalized = {k: float((v - min_val) / (max_val - min_val))
+                         for k, v in scores.items()}
+            return normalized
+        else:
+            # Handle list/array
+            values = np.array(scores)
+            min_val = np.min(values)
+            max_val = np.max(values)
+
+            if max_val - min_val < 1e-10:
+                return np.ones_like(values)
+
+            return (values - min_val) / (max_val - min_val)
+
     def calculate_relationship_scores(self, entity_uris, damping=0.85, iterations=20):
         """Calculate personalized PageRank scores for all entities in the graph"""
         import numpy as np
@@ -1388,42 +1427,93 @@ For each answer, if the data is insufficient to provide a complete answer, expla
         """Enhanced retrieval using both vector similarity and relationship importance"""
         # Step 1: Standard vector-based retrieval
         vector_results = self.document_store.retrieve(query, k=k*2)
-        
+
         if not vector_results:
             logger.warning("No documents found in vector retrieval")
             return []
-        
+
         # Step 2: Extract entities from query
         query_entities = self.extract_entities_from_query(query)
         logger.info(f"Extracted entities from query: {query_entities}")
-        
-        # Step 3: Calculate personalized PageRank scores
-        pr_scores = {}
+
+        # Step 3: Calculate personalized PageRank scores (raw)
+        pr_scores_raw = {}
         if query_entities:
-            pr_scores = self.calculate_relationship_scores(query_entities)
-        
-        # Step 4: Combine vector similarity with relationship scores
-        combined_results = []
-        alpha = 0.6  # Weight for vector similarity vs. relationship (0.6 vs 0.4)
-        
-        # Transform vector ranking to scores (higher rank = higher score)
+            pr_scores_raw = self.calculate_relationship_scores(query_entities)
+
+        # Step 4: Collect raw vector similarity scores
+        # Use rank-based scoring: higher rank = higher score
+        vector_scores_raw = {}
         for i, doc in enumerate(vector_results):
-            # Vector similarity score (inversely proportional to rank)
-            sim_score = (len(vector_results) - i) / len(vector_results)
-            
-            # Relationship score (defaults to 0 if not found)
-            rel_score = pr_scores.get(doc.id, 0.0)
-            
-            # Combined score
-            final_score = alpha * sim_score + (1 - alpha) * rel_score
-            
-            combined_results.append((doc, final_score))
-            
+            # Score inversely proportional to rank position
+            vector_scores_raw[doc.id] = len(vector_results) - i
+
+        # Step 5: Normalize both score sets to [0, 1] using min-max normalization
+        vector_scores_norm = self.normalize_scores(vector_scores_raw)
+        pr_scores_norm = self.normalize_scores(pr_scores_raw) if pr_scores_raw else {}
+
+        logger.info(f"\n{'='*80}")
+        logger.info(f"RELATIONSHIP-AWARE RETRIEVAL SCORING")
+        logger.info(f"{'='*80}")
+        logger.info(f"Combining: Vector Similarity ({alpha:.1f}) + PageRank ({1-alpha:.1f})")
+        logger.info(f"\n--- Raw Vector Scores (rank-based) ---")
+        logger.info(f"  Min: {min(vector_scores_raw.values())}")
+        logger.info(f"  Max: {max(vector_scores_raw.values())}")
+        logger.info(f"  Mean: {np.mean(list(vector_scores_raw.values())):.1f}")
+
+        if pr_scores_raw:
+            logger.info(f"\n--- Raw PageRank Scores (probability distribution) ---")
+            pr_values = list(pr_scores_raw.values())
+            logger.info(f"  Min: {min(pr_values):.6f}")
+            logger.info(f"  Max: {max(pr_values):.6f}")
+            logger.info(f"  Mean: {np.mean(pr_values):.6f}")
+            logger.info(f"  Sum: {sum(pr_values):.6f} (should ≈ 1.0)")
+
+        logger.info(f"\n--- Normalized Vector Scores [0,1] ---")
+        logger.info(f"  Min: {min(vector_scores_norm.values()):.3f}")
+        logger.info(f"  Max: {max(vector_scores_norm.values()):.3f}")
+        logger.info(f"  Mean: {np.mean(list(vector_scores_norm.values())):.3f}")
+
+        if pr_scores_norm:
+            logger.info(f"\n--- Normalized PageRank Scores [0,1] ---")
+            pr_norm_values = list(pr_scores_norm.values())
+            logger.info(f"  Min: {min(pr_norm_values):.3f}")
+            logger.info(f"  Max: {max(pr_norm_values):.3f}")
+            logger.info(f"  Mean: {np.mean(pr_norm_values):.3f}")
+
+        # Step 6: Combine normalized scores with weights
+        alpha = 0.6  # Weight for vector similarity vs. relationship (0.6 vs 0.4)
+        combined_results = []
+
+        for doc in vector_results:
+            # Get normalized scores (default to 0 if not found)
+            sim_score_norm = vector_scores_norm.get(doc.id, 0.0)
+            rel_score_norm = pr_scores_norm.get(doc.id, 0.0)
+
+            # Combined score on [0, 1] scale
+            final_score = alpha * sim_score_norm + (1 - alpha) * rel_score_norm
+
+            combined_results.append((doc, final_score, sim_score_norm, rel_score_norm))
+
         # Sort by combined score and take top k
         combined_results.sort(key=lambda x: x[1], reverse=True)
-        final_results = [doc for doc, _ in combined_results[:k]]
-        
-        logger.info(f"Relationship-aware retrieval found {len(final_results)} documents")
+
+        # Log top results for transparency
+        logger.info(f"\n{'='*80}")
+        logger.info(f"TOP 10 COMBINED RESULTS")
+        logger.info(f"{'='*80}")
+        for i, (doc, final, sim, rel) in enumerate(combined_results[:10]):
+            label = doc.metadata.get('label', 'Unknown')
+            logger.info(f"\n{i+1}. {label}")
+            logger.info(f"   Vector Sim: {sim:.3f} (weight={alpha:.1f}) → contrib={alpha*sim:.3f}")
+            logger.info(f"   PageRank: {rel:.3f} (weight={1-alpha:.1f}) → contrib={(1-alpha)*rel:.3f}")
+            logger.info(f"   Combined: {final:.3f}")
+
+        final_results = [doc for doc, _, _, _ in combined_results[:k]]
+
+        logger.info(f"\n{'='*80}")
+        logger.info(f"Relationship-aware retrieval returning top {len(final_results)} documents")
+        logger.info(f"{'='*80}\n")
         return final_results
 
 
@@ -1678,51 +1768,65 @@ For each answer, if the data is insufficient to provide a complete answer, expla
     def compute_coherent_subgraph(self, candidates, adjacency_matrix, initial_scores, k=10, alpha=0.7):
         """
         Extract a coherent subgraph using greedy selection that balances individual relevance and connectivity.
-        
+
         Args:
             candidates: List of GraphDocument objects
             adjacency_matrix: Weighted adjacency matrix (n x n)
             initial_scores: Initial relevance scores for each candidate (n,)
             k: Number of documents to select
             alpha: Weight for individual relevance vs connectivity (0-1, higher = more emphasis on relevance)
-        
+
         Returns:
             List of selected GraphDocument objects in order of selection
         """
         n = len(candidates)
         selected_indices = []
         selected_mask = np.zeros(n, dtype=bool)
-        
-        # Normalize initial scores to [0, 1]
-        if np.max(initial_scores) > 0:
-            normalized_scores = initial_scores / np.max(initial_scores)
-        else:
-            normalized_scores = initial_scores
-        
-        logger.info(f"Starting coherent subgraph extraction with alpha={alpha}")
-        
+
+        # Normalize initial scores to [0, 1] using min-max normalization
+        normalized_scores = self.normalize_scores(initial_scores)
+
+        logger.info(f"\n{'='*80}")
+        logger.info(f"COHERENT SUBGRAPH EXTRACTION")
+        logger.info(f"{'='*80}")
+        logger.info(f"Parameters: k={k}, alpha={alpha} (relevance weight)")
+        logger.info(f"Candidates: {n} documents")
+        logger.info(f"\n--- Initial Relevance Scores (normalized to [0,1]) ---")
+        logger.info(f"  Min: {np.min(normalized_scores):.3f}")
+        logger.info(f"  Max: {np.max(normalized_scores):.3f}")
+        logger.info(f"  Mean: {np.mean(normalized_scores):.3f}")
+        logger.info(f"  Std: {np.std(normalized_scores):.3f}")
+
+        # Show top 5 initial candidates
+        logger.info(f"\n--- Top 5 Initial Candidates (by relevance) ---")
+        top_indices = np.argsort(normalized_scores)[::-1][:5]
+        for rank, idx in enumerate(top_indices, 1):
+            label = candidates[idx].metadata.get('label', 'Unknown')
+            logger.info(f"  {rank}. {label}: {normalized_scores[idx]:.3f}")
+
         # First selection: pick the highest-scoring document
         first_idx = np.argmax(normalized_scores)
         selected_indices.append(first_idx)
         selected_mask[first_idx] = True
-        logger.info(f"Selected document 1/{k}: {candidates[first_idx].metadata.get('label', 'Unknown')}")
-        
+        logger.info(f"\n{'='*80}")
+        logger.info(f"SELECTION ROUND 1/{k}")
+        logger.info(f"{'='*80}")
+        logger.info(f"Strategy: Select highest relevance score")
+        logger.info(f"Selected: {candidates[first_idx].metadata.get('label', 'Unknown')} (score={normalized_scores[first_idx]:.3f})")
+
         # Iteratively select remaining documents
         for iteration in range(1, k):
             if len(selected_indices) >= n:
                 break
-            
-            best_score = -np.inf
-            best_idx = -1
-            
-            # Evaluate each unselected candidate
+
+            # Collect connectivity scores for all unselected candidates
+            connectivity_scores = []
+            candidate_indices = []
+
             for idx in range(n):
                 if selected_mask[idx]:
                     continue
-                
-                # Individual relevance component
-                relevance = normalized_scores[idx]
-                
+
                 # Connectivity component: sum of weighted edges to already-selected documents
                 connectivity = 0.0
                 for selected_idx in selected_indices:
@@ -1732,28 +1836,70 @@ For each answer, if the data is insufficient to provide a complete answer, expla
                         adjacency_matrix[selected_idx, idx]
                     )
                     connectivity += edge_weight
-                
-                # Normalize connectivity by number of selected documents to avoid bias toward later iterations
+
+                # Average by number of selected documents to avoid bias toward later iterations
                 if len(selected_indices) > 0:
                     connectivity = connectivity / len(selected_indices)
-                
-                # Combined score: balance individual relevance and connectivity
-                combined_score = alpha * relevance + (1 - alpha) * connectivity
-                
-                if combined_score > best_score:
-                    best_score = combined_score
-                    best_idx = idx
-            
+
+                connectivity_scores.append(connectivity)
+                candidate_indices.append(idx)
+
+            # Normalize connectivity scores to [0, 1] for this iteration
+            if len(connectivity_scores) > 0:
+                connectivity_array = np.array(connectivity_scores)
+                normalized_connectivity = self.normalize_scores(connectivity_array)
+            else:
+                break
+
+            logger.info(f"\n{'='*80}")
+            logger.info(f"SELECTION ROUND {iteration+1}/{k}")
+            logger.info(f"{'='*80}")
+            logger.info(f"Strategy: Combine relevance ({alpha:.1f}) + connectivity ({1-alpha:.1f})")
+            logger.info(f"Connectivity scores (normalized): min={np.min(normalized_connectivity):.3f}, "
+                       f"max={np.max(normalized_connectivity):.3f}, mean={np.mean(normalized_connectivity):.3f}")
+
+            # Compute all scores and collect top candidates
+            all_scores = []
+            for i, idx in enumerate(candidate_indices):
+                relevance = normalized_scores[idx]
+                connectivity_norm = normalized_connectivity[i]
+                combined_score = alpha * relevance + (1 - alpha) * connectivity_norm
+                all_scores.append((idx, combined_score, relevance, connectivity_norm))
+
+            # Sort by combined score
+            all_scores.sort(key=lambda x: x[1], reverse=True)
+
+            # Show top 3 candidates for this iteration
+            logger.info(f"\n--- Top 3 Candidates for Round {iteration+1} ---")
+            for rank, (idx, combined, rel, conn) in enumerate(all_scores[:3], 1):
+                label = candidates[idx].metadata.get('label', 'Unknown')
+                logger.info(f"  {rank}. {label}")
+                logger.info(f"      Relevance: {rel:.3f} (weight={alpha:.1f}) → contrib={alpha*rel:.3f}")
+                logger.info(f"      Connectivity: {conn:.3f} (weight={1-alpha:.1f}) → contrib={(1-alpha)*conn:.3f}")
+                logger.info(f"      Combined: {combined:.3f}")
+
+            # Select the best
+            best_idx, best_score, best_rel, best_connectivity_norm = all_scores[0]
+
             if best_idx == -1:
                 logger.warning(f"Could not find more connected documents after {len(selected_indices)} selections")
                 break
-            
+
             selected_indices.append(best_idx)
             selected_mask[best_idx] = True
-            logger.info(f"Selected document {iteration+1}/{k}: {candidates[best_idx].metadata.get('label', 'Unknown')} "
-                       f"(relevance={normalized_scores[best_idx]:.3f}, connectivity={(1-alpha)*best_score/alpha if alpha > 0 else 0:.3f}, "
-                       f"combined={best_score:.3f})")
-        
+            logger.info(f"\n✓ SELECTED: {candidates[best_idx].metadata.get('label', 'Unknown')}")
+            logger.info(f"  Final score: {best_score:.3f} = {alpha:.1f}×{best_rel:.3f} + {1-alpha:.1f}×{best_connectivity_norm:.3f}")
+
+        # Log final summary
+        logger.info(f"\n{'='*80}")
+        logger.info(f"SUBGRAPH EXTRACTION COMPLETE")
+        logger.info(f"{'='*80}")
+        logger.info(f"Selected {len(selected_indices)}/{k} documents:")
+        for i, idx in enumerate(selected_indices, 1):
+            label = candidates[idx].metadata.get('label', 'Unknown')
+            logger.info(f"  {i}. {label} (relevance={normalized_scores[idx]:.3f})")
+        logger.info(f"{'='*80}\n")
+
         # Return selected documents in order
         return [candidates[idx] for idx in selected_indices]
 

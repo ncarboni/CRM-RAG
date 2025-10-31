@@ -166,7 +166,19 @@ class GraphDocumentStore:
         
         # Add self-loops to prevent isolated nodes
         adj_matrix = adj_matrix + np.eye(n)
-        
+
+        # Log adjacency matrix statistics before normalization
+        non_zero_count = np.count_nonzero(adj_matrix - np.eye(n))  # Exclude self-loops
+        total_possible = n * n - n  # Exclude diagonal
+        sparsity = 1.0 - (non_zero_count / total_possible) if total_possible > 0 else 0.0
+
+        logger.info(f"=== Adjacency Matrix Statistics (before normalization) ===")
+        logger.info(f"  Size: {n}x{n} nodes")
+        logger.info(f"  Non-zero edges: {non_zero_count} ({(1-sparsity)*100:.1f}% density)")
+        logger.info(f"  Value range: [{np.min(adj_matrix):.3f}, {np.max(adj_matrix):.3f}]")
+        logger.info(f"  Mean weight: {np.mean(adj_matrix):.3f}")
+        logger.info(f"  Std weight: {np.std(adj_matrix):.3f}")
+
         # Normalize the adjacency matrix with numerical stability
         rowsum = np.array(adj_matrix.sum(1))
         
@@ -191,7 +203,14 @@ class GraphDocumentStore:
             # If all rows are zero (no connections), return identity matrix
             logger.warning("All rows in adjacency matrix are zero, using identity matrix")
             adj_normalized = np.eye(n)
-        
+
+        # Log adjacency matrix statistics after normalization
+        logger.info(f"=== Adjacency Matrix Statistics (after symmetric normalization) ===")
+        logger.info(f"  Value range: [{np.min(adj_normalized):.3f}, {np.max(adj_normalized):.3f}]")
+        logger.info(f"  Mean: {np.mean(adj_normalized):.3f}")
+        logger.info(f"  Std: {np.std(adj_normalized):.3f}")
+        logger.info(f"  Row sum range: [{np.min(np.sum(adj_normalized, axis=1)):.3f}, {np.max(np.sum(adj_normalized, axis=1)):.3f}]")
+
         return adj_normalized
     
     def get_subgraph(self, doc_ids):

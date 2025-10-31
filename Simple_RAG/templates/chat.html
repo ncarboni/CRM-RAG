@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Byzantine Art Chat{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="../static/css/chat.css">
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-comments me-2"></i>Byzantine Art & Architecture Chat</h5>
+            </div>
+            <div class="card-body">
+                <div class="chat-container" id="chat-container">
+                    <div class="message assistant-message">
+                        <p>Hello! I'm your Byzantine Art & Architecture assistant. I can answer questions about Byzantine churches, iconography, attributes, and historical context based on our RDF database and CIDOC-CRM ontology. How can I help you today?</p>
+                    </div>
+                </div>
+                
+                <div class="input-group mb-3">
+                    <input type="text" id="question-input" class="form-control" placeholder="Ask about Byzantine art, architecture, iconography...">
+                    <button class="btn btn-primary" id="send-button">
+                        <i class="fas fa-paper-plane me-1"></i>Send
+                    </button>
+                </div>
+                
+                <div class="mt-3">
+                    <p><strong>Example questions:</strong></p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul>
+                                <li><a href="#" class="example-question">Where is Panagia Phorbiottisa located?</a></li>
+                                <li><a href="#" class="example-question">What churches in Cyprus have Last Judgment iconography?</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul>
+                                <li><a href="#" class="example-question">Tell me about Saint George depictions</a></li>
+                                <li><a href="#" class="example-question">Explain what E22_Man-Made_Object means in CIDOC-CRM</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle me-2"></i>About This Chat</h5>
+            </div>
+            <div class="card-body">
+                <p>This chat interface uses a locally-hosted Retrieval-Augmented Generation (RAG) system to answer questions about Byzantine art and architecture based on:</p>
+                <ul>
+                    <li>An RDF knowledge graph with data about Byzantine churches and artwork</li>
+                    <li>The CIDOC-CRM ontology that provides structure and relationships for cultural heritage objects</li>
+                </ul>
+                <p>The system combines vector search technology with a local language model to provide accurate, sourced answers about Byzantine art history and cultural context.</p>
+                <p><strong>All processing happens locally</strong> — no data is sent to external services.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="../static/js/chat.js"></script>
+{% endblock %}

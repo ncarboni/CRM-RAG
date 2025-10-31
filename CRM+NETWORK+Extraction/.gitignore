@@ -1,0 +1,8 @@
+.env.openai
+.env.ollama
+.env.claude
+.env.r1
+.DS_Store
+document_graph.pkl
+vector_index/
+__pycache__/

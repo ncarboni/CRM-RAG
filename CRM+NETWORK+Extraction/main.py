@@ -9,6 +9,7 @@ import logging
 import os
 import sys
 import argparse
+import shutil
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from logging.handlers import RotatingFileHandler
 from universal_rag_system import UniversalRagSystem
@@ -101,7 +102,6 @@ if __name__ == '__main__':
     if args.rebuild:
         logger.info("Rebuilding document graph and vector store...")
         # Delete existing files
-        import shutil
         if os.path.exists('document_graph.pkl'):
             os.remove('document_graph.pkl')
         if os.path.exists('vector_index'):

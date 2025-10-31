@@ -37,29 +37,6 @@ from llm_providers import get_llm_provider, BaseLLMProvider
 logger = logging.getLogger(__name__)
 
 
-class RetrievalConfig:
-    """Configuration constants for the RAG retrieval system"""
-
-    # Score combination weights
-    VECTOR_PAGERANK_ALPHA = 0.6  # Weight for combining vector similarity and PageRank scores
-    RELEVANCE_CONNECTIVITY_ALPHA = 0.7  # Weight for combining relevance and connectivity scores
-
-    # PageRank parameters
-    PAGERANK_DAMPING = 0.85  # Damping factor for PageRank algorithm
-    PAGERANK_ITERATIONS = 20  # Number of iterations for PageRank computation
-
-    # Rate limiting
-    TOKENS_PER_MINUTE_LIMIT = 950_000  # Token limit for rate limiting (TPM)
-
-    # Retrieval parameters
-    DEFAULT_RETRIEVAL_K = 10  # Default number of documents to retrieve
-    INITIAL_POOL_MULTIPLIER = 2  # Multiplier for initial candidate pool size
-
-    # Processing parameters
-    DEFAULT_BATCH_SIZE = 50  # Default batch size for processing entities
-    ENTITY_CONTEXT_DEPTH = 2  # Depth for entity context traversal
-    MAX_ADJACENCY_HOPS = 2  # Maximum hops for adjacency matrix construction
-
 
 class UniversalRagSystem:
     """Universal RAG system with graph-based document retrieval"""
@@ -165,6 +142,7 @@ class UniversalRagSystem:
                 # Define the method if it doesn't exist
                 def load_document_graph(self, path='document_graph.pkl'):
                     """Load document graph from disk"""
+                    import pickle
                     if os.path.exists(path):
                         try:
                             with open(path, 'rb') as f:
@@ -177,6 +155,7 @@ class UniversalRagSystem:
                     return False
                     
                 # Add method to class
+                import types
                 self.document_store.load_document_graph = types.MethodType(load_document_graph, self.document_store)
             
             # Try to load document graph
@@ -185,6 +164,7 @@ class UniversalRagSystem:
             # Try to load vector store
             vector_loaded = False
             try:
+                from langchain_community.vectorstores import FAISS
                 self.document_store.vector_store = FAISS.load_local(
                     'vector_index', 
                     self.embeddings,
@@ -213,6 +193,7 @@ class UniversalRagSystem:
             # Define the method if it doesn't exist
             def save_document_graph(self, path='document_graph.pkl'):
                 """Save document graph to disk"""
+                import pickle
                 try:
                     with open(path, 'wb') as f:
                         pickle.dump(self.docs, f)
@@ -221,8 +202,9 @@ class UniversalRagSystem:
                 except Exception as e:
                     logger.error(f"Error saving document graph: {str(e)}")
                     return False
-
+                    
             # Add method to class
+            import types
             self.document_store.save_document_graph = types.MethodType(save_document_graph, self.document_store)
         
         # Save document graph
@@ -330,7 +312,7 @@ class UniversalRagSystem:
 
         return False
 
-    def get_entity_context(self, entity_uri, depth=RetrievalConfig.ENTITY_CONTEXT_DEPTH):
+    def get_entity_context(self, entity_uri, depth=2):
         """Get entity context by traversing the graph bidirectionally"""
 
         context_statements = []
@@ -494,7 +476,7 @@ class UniversalRagSystem:
 
             # Get relationships and convert to natural language
             try:
-                context_statements = self.get_entity_context(entity_uri, depth=RetrievalConfig.ENTITY_CONTEXT_DEPTH)
+                context_statements = self.get_entity_context(entity_uri, depth=2)
             except Exception as e:
                 logger.warning(f"Error getting entity context for {entity_uri}: {str(e)}")
                 context_statements = []
@@ -549,6 +531,9 @@ class UniversalRagSystem:
 
     def save_entity_document(self, entity_uri, document_text, entity_label, output_dir="entity_documents"):
         """Save entity document to disk for transparency and reuse"""
+        import os
+        import re
+        from datetime import datetime
 
         try:
             # Create output directory if it doesn't exist
@@ -561,6 +546,7 @@ class UniversalRagSystem:
             safe_label = safe_label[:100]  # Limit filename length
 
             # Use hash of URI to ensure uniqueness
+            import hashlib
             uri_hash = hashlib.md5(entity_uri.encode()).hexdigest()[:8]
 
             # Create filename: label + hash
@@ -588,6 +574,10 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
     def process_rdf_data(self):
         """Process RDF data into graph documents with enhanced CIDOC-CRM understanding"""
+        import os
+        import time
+        from tqdm import tqdm
+
         logger.info("Processing RDF data with enhanced CIDOC-CRM understanding...")
 
         # Get all entities
@@ -598,6 +588,7 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         # Clear entity_documents directory if it exists
         output_dir = "entity_documents"
         if os.path.exists(output_dir):
+            import shutil
             shutil.rmtree(output_dir)
             logger.info(f"Cleared existing {output_dir} directory")
         os.makedirs(output_dir, exist_ok=True)
@@ -636,12 +627,12 @@ Each file contains:
         
         # Global rate limit tracking
         global_token_count = 0
-        tokens_per_min_limit = RetrievalConfig.TOKENS_PER_MINUTE_LIMIT  # Set slightly below the actual limit of 1M
+        tokens_per_min_limit = 950000  # Set slightly below the actual limit of 1M
         last_reset_time = time.time()
         
         # First pass: create document nodes with enhanced content
         logger.info("Creating enhanced document nodes...")
-        batch_size = RetrievalConfig.DEFAULT_BATCH_SIZE  # Process in reasonable batches for progress tracking
+        batch_size = 50  # Process in reasonable batches for progress tracking
         
         for i in range(0, total_entities, batch_size):
             batch = entities[i:i+batch_size]
@@ -780,8 +771,10 @@ Each file contains:
         
         logger.info("RDF data processing complete with enhanced CIDOC-CRM understanding")
 
-    def build_vector_store_batched(self, batch_size=RetrievalConfig.DEFAULT_BATCH_SIZE):
+    def build_vector_store_batched(self, batch_size=50):
         """Build vector store with batched embedding requests to avoid rate limits"""
+        import os
+        import time
         
         vector_index_path = 'vector_index'
         os.makedirs(vector_index_path, exist_ok=True)
@@ -801,7 +794,7 @@ Each file contains:
         
         # Global rate limit tracking
         global_token_count = 0
-        tokens_per_min_limit = RetrievalConfig.TOKENS_PER_MINUTE_LIMIT
+        tokens_per_min_limit = 950000
         last_reset_time = time.time()
         
         # Process batches
@@ -1003,7 +996,7 @@ Each file contains:
             graph_score = G.nodes.get(doc.id, {}).get("score", 0.0)
             
             # Combined score
-            combined_score = RetrievalConfig.VECTOR_PAGERANK_ALPHA * vector_score + (1 - RetrievalConfig.VECTOR_PAGERANK_ALPHA) * graph_score
+            combined_score = 0.6 * vector_score + 0.4 * graph_score
             
             ranked_docs.append((doc, combined_score))
         
@@ -1068,6 +1061,7 @@ For each answer, if the data is insufficient to provide a complete answer, expla
         
         if direct_results:
             # Convert SPARQL results to natural language
+            from langchain_openai import ChatOpenAI
             
             # Format results for LLM
             formatted_results = "SPARQL Query Results:\n"
@@ -1302,6 +1296,7 @@ For each answer, if the data is insufficient to provide a complete answer, expla
 
     def extract_entities_from_query(self, query):
         """Extract entity URIs mentioned in the query for relationship-aware retrieval"""
+        import re
         
         # Look for potential entity names
         potential_entities = []
@@ -1350,6 +1345,7 @@ For each answer, if the data is insufficient to provide a complete answer, expla
         Returns:
             Dictionary or list with normalized scores in [0, 1] range
         """
+        import numpy as np
 
         if isinstance(scores, dict):
             if not scores:
@@ -1378,8 +1374,9 @@ For each answer, if the data is insufficient to provide a complete answer, expla
 
             return (values - min_val) / (max_val - min_val)
 
-    def calculate_relationship_scores(self, entity_uris, damping=RetrievalConfig.PAGERANK_DAMPING, iterations=RetrievalConfig.PAGERANK_ITERATIONS):
+    def calculate_relationship_scores(self, entity_uris, damping=0.85, iterations=20):
         """Calculate personalized PageRank scores for all entities in the graph"""
+        import numpy as np
         
         # Get full list of documents
         doc_ids = list(self.document_store.docs.keys())
@@ -1444,7 +1441,7 @@ For each answer, if the data is insufficient to provide a complete answer, expla
     def relationship_aware_retrieval(self, query, k=20):
         """Enhanced retrieval using both vector similarity and relationship importance"""
         # Step 1: Standard vector-based retrieval
-        vector_results = self.document_store.retrieve(query, k=k * RetrievalConfig.INITIAL_POOL_MULTIPLIER)
+        vector_results = self.document_store.retrieve(query, k=k*2)
 
         if not vector_results:
             logger.warning("No documents found in vector retrieval")
@@ -1469,9 +1466,6 @@ For each answer, if the data is insufficient to provide a complete answer, expla
         # Step 5: Normalize both score sets to [0, 1] using min-max normalization
         vector_scores_norm = self.normalize_scores(vector_scores_raw)
         pr_scores_norm = self.normalize_scores(pr_scores_raw) if pr_scores_raw else {}
-
-        # Step 6: Define weighting for score combination
-        alpha = RetrievalConfig.VECTOR_PAGERANK_ALPHA  # Weight for vector similarity vs. relationship
 
         logger.info(f"\n{'='*80}")
         logger.info(f"RELATIONSHIP-AWARE RETRIEVAL SCORING")
@@ -1502,7 +1496,8 @@ For each answer, if the data is insufficient to provide a complete answer, expla
             logger.info(f"  Max: {max(pr_norm_values):.3f}")
             logger.info(f"  Mean: {np.mean(pr_norm_values):.3f}")
 
-        # Step 7: Combine normalized scores with weights (alpha already defined above)
+        # Step 6: Combine normalized scores with weights
+        alpha = 0.6  # Weight for vector similarity vs. relationship (0.6 vs 0.4)
         combined_results = []
 
         for doc in vector_results:
@@ -1565,6 +1560,8 @@ For each answer, if the data is insufficient to provide a complete answer, expla
 
     def fetch_wikidata_info(self, wikidata_id):
         """Fetch information from Wikidata for a given Q-ID"""
+        import requests
+        import time
         
         # Handle rate limits with retries
         max_retries = 3
@@ -1741,7 +1738,7 @@ For each answer, if the data is insufficient to provide a complete answer, expla
             logger.error(f"Error fetching Wikidata entities: {str(e)}")
             return []
 
-    def batch_process_documents(self, entities, batch_size=RetrievalConfig.DEFAULT_BATCH_SIZE, sleep_time=2):
+    def batch_process_documents(self, entities, batch_size=50, sleep_time=2):
         """Process RDF data into graph documents with batch processing to avoid rate limits"""
         total_entities = len(entities)
         logger.info(f"Processing {total_entities} entities in batches of {batch_size}")
@@ -1783,7 +1780,7 @@ For each answer, if the data is insufficient to provide a complete answer, expla
                 logger.info(f"Sleeping for {sleep_time} seconds to avoid rate limits...")
                 time.sleep(sleep_time)
     
-    def compute_coherent_subgraph(self, candidates, adjacency_matrix, initial_scores, k=RetrievalConfig.DEFAULT_RETRIEVAL_K, alpha=RetrievalConfig.RELEVANCE_CONNECTIVITY_ALPHA):
+    def compute_coherent_subgraph(self, candidates, adjacency_matrix, initial_scores, k=10, alpha=0.7):
         """
         Extract a coherent subgraph using greedy selection that balances individual relevance and connectivity.
 
@@ -1921,7 +1918,7 @@ For each answer, if the data is insufficient to provide a complete answer, expla
         # Return selected documents in order
         return [candidates[idx] for idx in selected_indices]
 
-    def retrieve(self, query, k=RetrievalConfig.DEFAULT_RETRIEVAL_K, initial_pool_size=30, alpha=RetrievalConfig.RELEVANCE_CONNECTIVITY_ALPHA):
+    def retrieve(self, query, k=10, initial_pool_size=30, alpha=0.7):
         """
         Retrieve documents for a query using coherent subgraph extraction:
         1. CIDOC-CRM aware retrieval with relationship weights (initial pool)
@@ -1952,7 +1949,7 @@ For each answer, if the data is insufficient to provide a complete answer, expla
         doc_ids = [doc.id for doc in initial_docs]
         
         # Create weighted adjacency matrix with multi-hop connections
-        adjacency_matrix = self.document_store.create_adjacency_matrix(doc_ids, max_hops=RetrievalConfig.MAX_ADJACENCY_HOPS)
+        adjacency_matrix = self.document_store.create_adjacency_matrix(doc_ids, max_hops=2)
         
         # Compute initial relevance scores based on ranking position
         # Higher rank = higher score (inverse of position)
@@ -1979,7 +1976,7 @@ For each answer, if the data is insufficient to provide a complete answer, expla
             logger.info(f"Answering question directly: '{question}'")
             
             # Retrieve relevant documents
-            retrieved_docs = self.retrieve(question, k=RetrievalConfig.DEFAULT_RETRIEVAL_K)  # Get more documents
+            retrieved_docs = self.retrieve(question, k=10)  # Get more documents
             
             if not retrieved_docs:
                 return {

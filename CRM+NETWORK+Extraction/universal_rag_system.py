@@ -267,24 +267,22 @@ class UniversalRagSystem:
         def traverse(uri, current_depth=0, direction="both"):
             if uri in visited or current_depth > depth:
                 return
-                
+
             visited.add(uri)
-            
-            # Get entity label
-            label_query = f"""
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-            SELECT ?label WHERE {{ <{uri}> rdfs:label ?label }}
-            LIMIT 1
-            """
-            
-            entity_label = None
+
+            # Get entity label from any available literal property
+            entity_label = uri.split('/')[-1]  # Default to URI fragment
             try:
-                self.sparql.setQuery(label_query)
-                label_results = self.sparql.query().convert()
-                if label_results["results"]["bindings"]:
-                    entity_label = label_results["results"]["bindings"][0]["label"]["value"]
+                # Try to get any literal that could serve as a label
+                literals = self.get_entity_literals(uri)
+                if literals:
+                    # Try common label properties
+                    for label_prop in ['label', 'prefLabel', 'name', 'title']:
+                        if label_prop in literals and literals[label_prop]:
+                            entity_label = literals[label_prop][0]
+                            break
             except Exception as e:
-                logger.error(f"Error getting entity label: {str(e)}")
+                logger.error(f"Error getting entity literals: {str(e)}")
             
             # Get outgoing relationships if direction is "both" or "outgoing"
             if direction in ["both", "outgoing"]:
@@ -368,74 +366,91 @@ class UniversalRagSystem:
 
     def create_enhanced_document(self, entity_uri):
         """Create an enhanced document with natural language interpretation of CIDOC-CRM relationships"""
-        
+
         try:
-            # Get entity label
-            label_query = f"""
-            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-            SELECT ?label WHERE {{ <{entity_uri}> rdfs:label ?label }}
-            LIMIT 1
-            """
-            
+            # Get all literal properties for this entity
+            literals = self.get_entity_literals(entity_uri)
+
+            # Extract label from literals
             entity_label = entity_uri.split('/')[-1]  # Default to URI fragment
-            try:
-                self.sparql.setQuery(label_query)
-                label_results = self.sparql.query().convert()
-                if label_results["results"]["bindings"]:
-                    entity_label = label_results["results"]["bindings"][0]["label"]["value"]
-            except Exception as e:
-                logger.warning(f"Error getting entity label for {entity_uri}: {str(e)}")
-            
+            for label_prop in ['label', 'prefLabel', 'name', 'title']:
+                if label_prop in literals and literals[label_prop]:
+                    entity_label = literals[label_prop][0]
+                    break
+
             # Get entity type
             type_query = f"""
             PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-            
+
             SELECT ?type ?typeLabel WHERE {{
                 <{entity_uri}> rdf:type ?type .
                 OPTIONAL {{ ?type rdfs:label ?typeLabel }}
                 FILTER(STRSTARTS(STR(?type), "http://"))
             }}
             """
-            
+
             entity_types = []
             try:
                 self.sparql.setQuery(type_query)
                 type_results = self.sparql.query().convert()
-                
+
                 for result in type_results["results"]["bindings"]:
                     type_uri = result["type"]["value"]
                     type_label = result.get("typeLabel", {}).get("value", type_uri.split('/')[-1])
                     entity_types.append(type_label)
             except Exception as e:
                 logger.warning(f"Error getting entity types for {entity_uri}: {str(e)}")
-            
+
             # Get relationships and convert to natural language
             try:
-                context_statements = self.get_entity_context(entity_uri, depth=2) 
+                context_statements = self.get_entity_context(entity_uri, depth=2)
             except Exception as e:
                 logger.warning(f"Error getting entity context for {entity_uri}: {str(e)}")
                 context_statements = []
-            
+
             # Create document text
             text = f"# {entity_label}\n\n"
-            
+
             # Add entity identifier
             text += f"URI: {entity_uri}\n\n"
-            
+
             # Add entity types
             if entity_types:
                 text += "## Types\n\n"
                 for type_label in entity_types:
                     text += f"- {type_label}\n"
                 text += "\n"
-            
+
+            # Add all literal properties (labels, descriptions, WKT, dates, etc.)
+            if literals:
+                text += "## Properties\n\n"
+                for prop_name, values in sorted(literals.items()):
+                    # Format property name for display
+                    display_name = prop_name.replace('_', ' ').title()
+
+                    # Handle single vs multiple values
+                    if len(values) == 1:
+                        # Truncate very long values (like WKT) for readability
+                        value_str = values[0]
+                        if len(value_str) > 200:
+                            value_str = value_str[:200] + "... [truncated]"
+                        text += f"- **{display_name}**: {value_str}\n"
+                    else:
+                        text += f"- **{display_name}**:\n"
+                        for value in values:
+                            value_str = value
+                            if len(value_str) > 200:
+                                value_str = value_str[:200] + "... [truncated]"
+                            text += f"  - {value_str}\n"
+                text += "\n"
+
             # Add natural language descriptions of relationships
             if context_statements:
                 text += "## Relationships\n\n"
                 for statement in context_statements:
                     text += f"- {statement}\n"
-            
+
             return text, entity_label, entity_types
         except Exception as e:
             logger.error(f"Error creating enhanced document for {entity_uri}: {str(e)}")
@@ -932,28 +947,83 @@ For each answer, if the data is insufficient to provide a complete answer, expla
         
         return rag_response
     
-    def get_all_entities(self):
-        """Get all labeled entities from SPARQL endpoint"""
-        query = """
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        
-        SELECT DISTINCT ?entity ?label WHERE {
-            ?entity rdfs:label ?label .
-        }
-        LIMIT 1000
+    def get_entity_literals(self, entity_uri):
+        """Get all literal values for an entity (labels, WKT, dates, descriptions, etc.)"""
+        query = f"""
+        SELECT DISTINCT ?property ?value
+        WHERE {{
+            <{entity_uri}> ?property ?value .
+            FILTER(isLiteral(?value))
+        }}
         """
-        
+
         try:
             self.sparql.setQuery(query)
             results = self.sparql.query().convert()
-            
-            entities = []
+
+            literals = {}
             for result in results["results"]["bindings"]:
+                prop = result["property"]["value"]
+                value = result["value"]["value"]
+
+                # Store literals by property, handling multiple values
+                prop_name = prop.split('/')[-1].split('#')[-1]
+                if prop_name not in literals:
+                    literals[prop_name] = []
+                literals[prop_name].append(value)
+
+            return literals
+        except Exception as e:
+            logger.error(f"Error fetching entity literals for {entity_uri}: {str(e)}")
+            return {}
+
+    def get_all_entities(self):
+        """Get all entities that have literal properties from SPARQL endpoint"""
+        query = """
+        SELECT DISTINCT ?entity ?property ?value
+        WHERE {
+            ?entity ?property ?value .
+            FILTER(isLiteral(?value))
+        }
+        """
+
+        try:
+            self.sparql.setQuery(query)
+            results = self.sparql.query().convert()
+
+            # Group literals by entity
+            entity_map = {}
+            for result in results["results"]["bindings"]:
+                entity_uri = result["entity"]["value"]
+                prop = result["property"]["value"]
+                value = result["value"]["value"]
+
+                if entity_uri not in entity_map:
+                    entity_map[entity_uri] = {}
+
+                # Store literals by property, handling multiple values
+                prop_name = prop.split('/')[-1].split('#')[-1]
+                if prop_name not in entity_map[entity_uri]:
+                    entity_map[entity_uri][prop_name] = []
+                entity_map[entity_uri][prop_name].append(value)
+
+            # Convert to list format with labels
+            entities = []
+            for entity_uri, literals in entity_map.items():
+                # Try to find a label from various common properties
+                label = entity_uri.split('/')[-1]  # Default to URI fragment
+                for label_prop in ['label', 'prefLabel', 'name', 'title']:
+                    if label_prop in literals and literals[label_prop]:
+                        label = literals[label_prop][0]
+                        break
+
                 entities.append({
-                    "entity": result["entity"]["value"],
-                    "label": result["label"]["value"]
+                    "entity": entity_uri,
+                    "label": label,
+                    "literals": literals
                 })
-                
+
+            logger.info(f"Retrieved {len(entities)} entities with literals")
             return entities
         except Exception as e:
             logger.error(f"Error fetching entities: {str(e)}")
@@ -1377,30 +1447,34 @@ For each answer, if the data is insufficient to provide a complete answer, expla
         query = """
         PREFIX crmdig: <http://www.ics.forth.gr/isl/CRMdig/>
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        
+
         SELECT ?entity ?label ?wikidata WHERE {
             ?entity crmdig:L54_is_same-as ?wikidata .
-            ?entity rdfs:label ?label .
+            OPTIONAL { ?entity rdfs:label ?label }
             FILTER(STRSTARTS(STR(?wikidata), "http://www.wikidata.org/entity/"))
         }
         """
-        
+
         try:
             self.sparql.setQuery(query)
             results = self.sparql.query().convert()
-            
+
             entities = []
             for result in results["results"]["bindings"]:
+                entity_uri = result["entity"]["value"]
                 wikidata_uri = result["wikidata"]["value"]
                 wikidata_id = wikidata_uri.split('/')[-1]
-                
+
+                # Get label, with fallback
+                label = result.get("label", {}).get("value", entity_uri.split('/')[-1])
+
                 entities.append({
-                    "entity": result["entity"]["value"],
-                    "label": result["label"]["value"],
+                    "entity": entity_uri,
+                    "label": label,
                     "wikidata_id": wikidata_id,
                     "wikidata_url": f"https://www.wikidata.org/wiki/{wikidata_id}"
                 })
-                
+
             return entities
         except Exception as e:
             logger.error(f"Error fetching Wikidata entities: {str(e)}")

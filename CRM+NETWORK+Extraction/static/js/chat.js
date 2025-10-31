@@ -3,6 +3,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const questionInput = document.getElementById('question-input');
     const sendButton = document.getElementById('send-button');
     const exampleQuestions = document.querySelectorAll('.example-question');
+
+    // Fetch system info and update greeting
+    async function loadSystemInfo() {
+        try {
+            const response = await fetch('/api/info');
+            if (response.ok) {
+                const data = await response.json();
+                // Update the initial greeting with dataset description
+                const initialMessage = chatContainer.querySelector('.assistant-message p');
+                if (initialMessage && data.dataset_description) {
+                    initialMessage.textContent = `Hello! I'm a chatbot assistant. I can answer questions about ${data.dataset_description}. How can I help you today?`;
+                }
+            }
+        } catch (error) {
+            console.error('Error loading system info:', error);
+        }
+    }
+
+    // Load system info on page load
+    loadSystemInfo();
     
     // Function to add user message
     function addUserMessage(text) {

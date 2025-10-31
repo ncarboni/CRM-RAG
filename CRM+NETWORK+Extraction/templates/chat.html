@@ -39,7 +39,7 @@
                         <div class="col-md-6">
                             <ul>
                                 <li><a href="#" class="example-question">Tell me about Saint George depictions</a></li>
-                                <li><a href="#" class="example-question">Explain what E22_Man-Made_Object means in CIDOC-CRM</a></li>
+                                <li><a href="#" class="example-question">What attributes are depicted in the panel of the south lunette?</a></li>
                             </ul>
                         </div>
                     </div>
@@ -52,13 +52,14 @@
                 <h5><i class="fas fa-info-circle me-2"></i>About This Chat</h5>
             </div>
             <div class="card-body">
-                <p>This chat interface uses a locally-hosted Retrieval-Augmented Generation (RAG) system to answer questions about Byzantine art and architecture based on:</p>
+                <p>This chat interface uses an advanced graph-based Retrieval-Augmented Generation (RAG) system with the following features:</p>
                 <ul>
-                    <li>An RDF knowledge graph with data about Byzantine churches and artwork</li>
-                    <li>The CIDOC-CRM ontology that provides structure and relationships for cultural heritage objects</li>
+                    <li><strong>Graph-Based Document Retrieval:</strong> Documents are organized as a graph with weighted edges based on CIDOC-CRM relationship semantics</li>
+                    <li><strong>Coherent Subgraph Extraction:</strong> Uses greedy selection to balance individual document relevance with network connectivity</li>
+                    <li><strong>Relationship-Aware Scoring:</strong> Combines vector similarity search with Personalized PageRank to leverage the semantic relationships between entities</li>
+                    <li><strong>CIDOC-CRM Integration:</strong> Automatically processes RDF triples and converts ontology relationships into natural language</li>
                 </ul>
-                <p>The system combines vector search technology with a local language model to provide accurate, sourced answers about Byzantine art history and cultural context.</p>
-                <p><strong>All processing happens locally</strong> — no data is sent to external services.</p>
+                <p>The system retrieves information from an RDF knowledge graph and uses network analysis to extract coherent, contextually-connected answers about cultural heritage data.</p>
             </div>
         </div>
     </div>

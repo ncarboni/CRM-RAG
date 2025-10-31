@@ -88,10 +88,17 @@ def chat_api():
 @app.route('/api/info', methods=['GET'])
 def info_api():
     """API endpoint to get system information"""
+    # Get dataset description from config or use default
+    dataset_description = config.get(
+        "dataset_description",
+        "Byzantine art and architecture, including churches, iconography, and cultural heritage objects"
+    )
+
     return jsonify({
         "llm_provider": config.get("llm_provider", "unknown"),
         "llm_model": config.get("model", "unknown"),
         "embedding_model": config.get("embedding_model", "unknown"),
+        "dataset_description": dataset_description,
     })
 
 if __name__ == '__main__':

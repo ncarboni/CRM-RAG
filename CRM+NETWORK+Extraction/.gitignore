@@ -4,5 +4,9 @@
 .env.r1
 .DS_Store
 document_graph.pkl
+document_graph_temp.pkl
 vector_index/
+entity_documents/
 __pycache__/
+app.log
+*.pyc

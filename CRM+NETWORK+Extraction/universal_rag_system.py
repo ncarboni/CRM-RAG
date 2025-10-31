@@ -206,14 +206,20 @@ class UniversalRagSystem:
 
     def process_cidoc_relationship(self, subject_uri, predicate, object_uri, subject_label=None, object_label=None):
         """Convert CIDOC-CRM RDF relationships to natural language"""
-        
-        # Get the simplified predicate (without namespace)
-        simple_pred = predicate.split('/')[-1]
-        
+
+        # Extract predicate name handling various namespace formats
+        # Handle: http://example.com/P89_falls_within, vir#K1i, crm:P89_falls_within
+        if '/' in predicate:
+            simple_pred = predicate.split('/')[-1]
+        elif '#' in predicate:
+            simple_pred = predicate.split('#')[-1]
+        else:
+            simple_pred = predicate
+
         # Handle missing labels
         subject_label = subject_label or subject_uri.split('/')[-1]
         object_label = object_label or object_uri.split('/')[-1]
-        
+
         # Core CIDOC-CRM properties with their natural language interpretations
         cidoc_relationships = {
             # Spatial relationships
@@ -222,7 +228,7 @@ class UniversalRagSystem:
             "P53_has_former_or_current_location": f"{subject_label} is or was located at {object_label}",
             "P156_occupies": f"{subject_label} occupies {object_label}",
             "P157_is_at_rest_relative_to": f"{subject_label} is fixed relative to {object_label}",
-            
+
             # Temporal relationships
             "P4_has_time-span": f"{subject_label} occurred during {object_label}",
             "P114_is_equal_in_time_to": f"{subject_label} occurred at the same time as {object_label}",
@@ -230,37 +236,70 @@ class UniversalRagSystem:
             "P116_starts": f"{subject_label} started at the same time as {object_label}",
             "P117_occurs_during": f"{subject_label} occurred during {object_label}",
             "P118_overlaps_in_time_with": f"{subject_label} overlaps in time with {object_label}",
-            
+
             # Physical relationships
             "P46_is_composed_of": f"{subject_label} is composed of {object_label}",
+            "P46i_forms_part_of": f"{subject_label} forms part of {object_label}",
             "P56_bears_feature": f"{subject_label} has the feature {object_label}",
+            "P56i_is_found_on": f"{subject_label} is found on {object_label}",
             "P128_carries": f"{subject_label} carries {object_label}",
             "P59_has_section": f"{subject_label} has section {object_label}",
-            
+
             # Conceptual relationships
             "P2_has_type": f"{subject_label} is of type {object_label}",
             "P1_is_identified_by": f"{subject_label} is identified by {object_label}",
             "P67_refers_to": f"{subject_label} refers to {object_label}",
             "P129_is_about": f"{subject_label} is about {object_label}",
             "P138_represents": f"{subject_label} represents {object_label}",
-            
+
             # Production and creation
             "P108i_was_produced_by": f"{subject_label} was produced by {object_label}",
             "P94i_was_created_by": f"{subject_label} was created by {object_label}",
-            
-            # VIR ontology (for visual items)
+            "P31_has_modified": f"{subject_label} has modified {object_label}",
+
+            # VIR ontology (for visual items) - handle both full names and short codes
             "K1i_is_denoted_by": f"{subject_label} is denoted by {object_label}",
+            "K1i": f"{subject_label} is denoted by {object_label}",  # Short form
             "K17_has_attribute": f"{subject_label} has the attribute {object_label}",
+            "K17": f"{subject_label} has the attribute {object_label}",
             "K24_portray": f"{subject_label} portrays {object_label}",
-            "K20i_is_composed_of": f"{subject_label} is composed of {object_label}"
+            "K24": f"{subject_label} portrays {object_label}",
+            "K20i_is_composed_of": f"{subject_label} is composed of {object_label}",
+            "K20i": f"{subject_label} is composed of {object_label}"
         }
-        
+
         # Return natural language interpretation if available, otherwise a default format
         return cidoc_relationships.get(simple_pred, f"{subject_label} {simple_pred.replace('_', ' ')} {object_label}")
 
+    def is_schema_predicate(self, predicate):
+        """Check if a predicate is a schema-level predicate that should be filtered out"""
+        # Schema-level predicates to exclude
+        schema_patterns = [
+            'rdf-syntax-ns#type',
+            'rdf-schema#subClassOf',
+            'rdf-schema#domain',
+            'rdf-schema#range',
+            'rdf-schema#Class',
+            'rdf-schema#subPropertyOf',
+            'rdf-schema#label',
+            'rdf-schema#comment',
+            'owl#',
+            '/type',  # Catch various type predicates
+            '/subClassOf',
+            '/domain',
+            '/range'
+        ]
+
+        # Check if predicate contains any schema pattern
+        for pattern in schema_patterns:
+            if pattern in predicate:
+                return True
+
+        return False
+
     def get_entity_context(self, entity_uri, depth=2):
         """Get entity context by traversing the graph bidirectionally"""
-        
+
         context_statements = []
         visited = set()
         
@@ -299,22 +338,31 @@ class UniversalRagSystem:
                 try:
                     self.sparql.setQuery(outgoing_query)
                     outgoing_results = self.sparql.query().convert()
-                    
+
                     for result in outgoing_results["results"]["bindings"]:
                         pred = result["pred"]["value"]
                         obj = result["obj"]["value"]
-                        
+
+                        # Filter out schema-level predicates
+                        if self.is_schema_predicate(pred):
+                            continue
+
                         # Get labels if available
                         pred_label = result.get("predLabel", {}).get("value", pred.split('/')[-1])
                         obj_label = result.get("objLabel", {}).get("value", obj.split('/')[-1])
-                        
+
+                        # Filter out self-referential relationships
+                        # Skip if same URI or same label (redundant statements)
+                        if uri == obj or (entity_label and obj_label and entity_label.lower() == obj_label.lower()):
+                            continue
+
                         # Create natural language statement
                         statement = self.process_cidoc_relationship(
                             uri, pred, obj, entity_label, obj_label
                         )
-                        
+
                         context_statements.append(statement)
-                        
+
                         # Recursively traverse outgoing relationships
                         if current_depth < depth:
                             traverse(obj, current_depth + 1, "outgoing")
@@ -336,22 +384,31 @@ class UniversalRagSystem:
                 try:
                     self.sparql.setQuery(incoming_query)
                     incoming_results = self.sparql.query().convert()
-                    
+
                     for result in incoming_results["results"]["bindings"]:
                         subj = result["subj"]["value"]
                         pred = result["pred"]["value"]
-                        
+
+                        # Filter out schema-level predicates
+                        if self.is_schema_predicate(pred):
+                            continue
+
                         # Get labels if available
                         subj_label = result.get("subjLabel", {}).get("value", subj.split('/')[-1])
                         pred_label = result.get("predLabel", {}).get("value", pred.split('/')[-1])
-                        
+
+                        # Filter out self-referential relationships
+                        # Skip if same URI or same label (redundant statements)
+                        if subj == uri or (subj_label and entity_label and subj_label.lower() == entity_label.lower()):
+                            continue
+
                         # Create natural language statement
                         statement = self.process_cidoc_relationship(
                             subj, pred, uri, subj_label, entity_label
                         )
-                        
+
                         context_statements.append(statement)
-                        
+
                         # Recursively traverse incoming relationships
                         if current_depth < depth:
                             traverse(subj, current_depth + 1, "incoming")
@@ -457,18 +514,101 @@ class UniversalRagSystem:
             # Return minimal document to prevent complete failure
             return f"Entity: {entity_uri}", entity_uri, []
 
+    def save_entity_document(self, entity_uri, document_text, entity_label, output_dir="entity_documents"):
+        """Save entity document to disk for transparency and reuse"""
+        import os
+        import re
+        from datetime import datetime
+
+        try:
+            # Create output directory if it doesn't exist
+            os.makedirs(output_dir, exist_ok=True)
+
+            # Create a safe filename from the entity label
+            # Remove special characters and limit length
+            safe_label = re.sub(r'[^\w\s-]', '', entity_label)
+            safe_label = re.sub(r'[-\s]+', '_', safe_label)
+            safe_label = safe_label[:100]  # Limit filename length
+
+            # Use hash of URI to ensure uniqueness
+            import hashlib
+            uri_hash = hashlib.md5(entity_uri.encode()).hexdigest()[:8]
+
+            # Create filename: label + hash
+            filename = f"{safe_label}_{uri_hash}.md"
+            filepath = os.path.join(output_dir, filename)
+
+            # Add metadata header to document
+            metadata = f"""---
+URI: {entity_uri}
+Label: {entity_label}
+Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+---
+
+"""
+
+            # Write document to file
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(metadata)
+                f.write(document_text)
+
+            return filepath
+        except Exception as e:
+            logger.error(f"Error saving entity document for {entity_uri}: {str(e)}")
+            return None
+
     def process_rdf_data(self):
         """Process RDF data into graph documents with enhanced CIDOC-CRM understanding"""
         import os
         import time
         from tqdm import tqdm
-        
+
         logger.info("Processing RDF data with enhanced CIDOC-CRM understanding...")
-        
+
         # Get all entities
         entities = self.get_all_entities()
         total_entities = len(entities)
         logger.info(f"Found {total_entities} entities")
+
+        # Clear entity_documents directory if it exists
+        output_dir = "entity_documents"
+        if os.path.exists(output_dir):
+            import shutil
+            shutil.rmtree(output_dir)
+            logger.info(f"Cleared existing {output_dir} directory")
+        os.makedirs(output_dir, exist_ok=True)
+        logger.info(f"Entity documents will be saved to: {output_dir}/")
+
+        # Create README for entity_documents directory
+        readme_content = """# Entity Documents
+
+This directory contains individual markdown files for each entity processed from the RDF data.
+
+## Purpose
+- **Transparency**: View exactly what the system extracts and processes for each entity
+- **Debugging**: Identify issues with relationship extraction or label processing
+- **Reuse**: These documents can be reused for other purposes or analyses
+
+## File Naming Convention
+Files are named: `{label}_{hash}.md`
+- `label`: Cleaned entity label (special chars removed, spaces replaced with underscores)
+- `hash`: 8-character MD5 hash of the entity URI (ensures uniqueness)
+
+## File Structure
+Each file contains:
+1. **Metadata header**: URI, label, generation timestamp
+2. **Types**: RDF types of the entity
+3. **Properties**: All literal values (labels, descriptions, WKT geometries, dates, etc.)
+4. **Relationships**: Filtered CIDOC-CRM relationships in natural language
+
+## Notes
+- Schema-level predicates (rdf:type, rdfs:subClassOf, etc.) are filtered from relationships
+- Self-referential relationships are removed
+- Files are regenerated on each rebuild
+"""
+        readme_path = os.path.join(output_dir, "README.md")
+        with open(readme_path, 'w', encoding='utf-8') as f:
+            f.write(readme_content)
         
         # Global rate limit tracking
         global_token_count = 0
@@ -505,21 +645,24 @@ class UniversalRagSystem:
                 # Create enhanced document with CIDOC-CRM aware natural language
                 try:
                     doc_text, entity_label, entity_types = self.create_enhanced_document(entity_uri)
-                    
-                    # Estimate token count - very rough estimate 
+
+                    # Save document to disk for transparency and reuse
+                    self.save_entity_document(entity_uri, doc_text, entity_label)
+
+                    # Estimate token count - very rough estimate
                     # (1 token ≈ 4 chars in English on average)
                     estimated_tokens = len(doc_text) / 4
                     global_token_count += estimated_tokens
-                    
+
                     # Determine primary entity type
                     primary_type = "Unknown"
                     if entity_types:
                         primary_type = entity_types[0]
-                    
+
                     # Add to document store
                     self.document_store.add_document(
-                        entity_uri, 
-                        doc_text, 
+                        entity_uri,
+                        doc_text,
                         {
                             "label": entity_label,
                             "type": primary_type,
@@ -1063,64 +1206,74 @@ For each answer, if the data is insufficient to provide a complete answer, expla
             return []
     
     def get_outgoing_relationships(self, entity_uri):
-        """Get outgoing relationships from an entity"""
+        """Get outgoing relationships from an entity (domain-level only, no schema predicates)"""
         query = f"""
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        
+
         SELECT ?predicate ?object WHERE {{
             <{entity_uri}> ?predicate ?object .
-            
-            # Only include relationships to other entities with labels
-            ?object rdfs:label ?objectLabel .
-            
+
             # Filter for meaningful relationships
             FILTER(STRSTARTS(STR(?predicate), "http://"))
+            FILTER(isURI(?object))
         }}
         """
-        
+
         try:
             self.sparql.setQuery(query)
             results = self.sparql.query().convert()
-            
+
             relationships = []
             for result in results["results"]["bindings"]:
+                predicate = result["predicate"]["value"]
+                object_uri = result["object"]["value"]
+
+                # Filter out schema-level predicates
+                if self.is_schema_predicate(predicate):
+                    continue
+
                 relationships.append({
-                    "predicate": result["predicate"]["value"],
-                    "object": result["object"]["value"]
+                    "predicate": predicate,
+                    "object": object_uri
                 })
-                
+
             return relationships
         except Exception as e:
             logger.error(f"Error fetching outgoing relationships: {str(e)}")
             return []
     
     def get_incoming_relationships(self, entity_uri):
-        """Get incoming relationships to an entity"""
+        """Get incoming relationships to an entity (domain-level only, no schema predicates)"""
         query = f"""
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        
+
         SELECT ?subject ?predicate WHERE {{
             ?subject ?predicate <{entity_uri}> .
-            
-            # Only include relationships from other entities with labels
-            ?subject rdfs:label ?subjectLabel .
-            
+
             # Filter for meaningful relationships
             FILTER(STRSTARTS(STR(?predicate), "http://"))
+            FILTER(isURI(?subject))
         }}
         """
-        
+
         try:
             self.sparql.setQuery(query)
             results = self.sparql.query().convert()
-            
+
             relationships = []
             for result in results["results"]["bindings"]:
+                subject_uri = result["subject"]["value"]
+                predicate = result["predicate"]["value"]
+
+                # Filter out schema-level predicates
+                if self.is_schema_predicate(predicate):
+                    continue
+
                 relationships.append({
-                    "subject": result["subject"]["value"],
-                    "predicate": result["predicate"]["value"]
+                    "subject": subject_uri,
+                    "predicate": predicate
                 })
-                
+
             return relationships
         except Exception as e:
             logger.error(f"Error fetching incoming relationships: {str(e)}")

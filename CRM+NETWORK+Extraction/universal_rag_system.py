@@ -6,6 +6,7 @@ to enhance document retrieval using CIDOC-CRM relationship weights.
 
 # Standard library imports
 import hashlib
+import json
 import logging
 import os
 import pickle
@@ -33,6 +34,7 @@ import requests
 # Local imports
 from graph_document_store import GraphDocumentStore
 from llm_providers import get_llm_provider, BaseLLMProvider
+from extract_ontology_labels import run_extraction
 
 logger = logging.getLogger(__name__)
 
@@ -63,11 +65,16 @@ class RetrievalConfig:
 
 class UniversalRagSystem:
     """Universal RAG system with graph-based document retrieval"""
-    
+
+    # Class-level cache for property labels
+    _property_labels = None
+    _extraction_attempted = False  # Track if we've tried extraction to avoid infinite loops
+    _missing_properties = set()  # Track properties that couldn't be found
+
     def __init__(self, endpoint_url, config=None):
         """
         Initialize the universal RAG system.
-        
+
         Args:
             endpoint_url: SPARQL endpoint URL
             config: Configuration dictionary for LLM provider
@@ -75,10 +82,10 @@ class UniversalRagSystem:
         self.endpoint_url = endpoint_url
         self.sparql = SPARQLWrapper(endpoint_url)
         self.sparql.setReturnFormat(JSON)
-        
+
         # Initialize configuration
         self.config = config or {}
-        
+
         # Initialize LLM provider
         provider_name = self.config.get("llm_provider", "openai")
         try:
@@ -86,9 +93,74 @@ class UniversalRagSystem:
         except Exception as e:
             logger.error(f"Error initializing LLM provider: {str(e)}")
             raise
-        
+
         # Initialize document store
         self.document_store = None
+
+        # Load property labels from ontology extraction (cached at class level)
+        if UniversalRagSystem._property_labels is None:
+            UniversalRagSystem._property_labels = self._load_property_labels()
+
+    def _load_property_labels(self, force_extract=False):
+        """
+        Load property labels from JSON file generated from ontologies.
+        Automatically extracts labels from ontology files if JSON doesn't exist.
+
+        Args:
+            force_extract: If True, force re-extraction even if JSON exists
+
+        Returns:
+            dict: Property labels mapping
+        """
+        labels_file = 'property_labels.json'
+        ontology_dir = 'ontology'
+
+        # Check if we need to extract
+        should_extract = force_extract or not os.path.exists(labels_file)
+
+        if should_extract:
+            # Check if ontology directory exists
+            if not os.path.exists(ontology_dir):
+                logger.error(f"Ontology directory not found at '{ontology_dir}'")
+                logger.error("Cannot extract property labels without ontology files")
+                return {}
+
+            # Check if ontology files exist
+            ontology_files = [f for f in os.listdir(ontology_dir) if f.endswith(('.ttl', '.rdf', '.owl', '.n3'))]
+            if not ontology_files:
+                logger.error(f"No ontology files found in '{ontology_dir}'")
+                logger.error("Add CIDOC-CRM, VIR, CRMdig ontology files to the ontology directory")
+                return {}
+
+            # Run extraction
+            logger.info("Extracting property labels from ontology files...")
+            logger.info(f"Found {len(ontology_files)} ontology files: {', '.join(ontology_files)}")
+
+            try:
+                success = run_extraction(ontology_dir, labels_file)
+                if not success:
+                    logger.error("Failed to extract property labels from ontologies")
+                    return {}
+                else:
+                    logger.info(f"✓ Successfully extracted property labels to {labels_file}")
+                    UniversalRagSystem._extraction_attempted = True
+            except Exception as e:
+                logger.error(f"Error during property label extraction: {str(e)}")
+                return {}
+
+        # Load the JSON file
+        if os.path.exists(labels_file):
+            try:
+                with open(labels_file, 'r', encoding='utf-8') as f:
+                    labels = json.load(f)
+                logger.info(f"Loaded {len(labels)} property labels from {labels_file}")
+                return labels
+            except Exception as e:
+                logger.error(f"Error loading property labels from {labels_file}: {str(e)}")
+                return {}
+        else:
+            logger.error(f"Property labels file not found at {labels_file}")
+            return {}
         
     @property
     def embeddings(self):
@@ -238,71 +310,68 @@ class UniversalRagSystem:
 
 
     def process_cidoc_relationship(self, subject_uri, predicate, object_uri, subject_label=None, object_label=None):
-        """Convert CIDOC-CRM RDF relationships to natural language"""
+        """Convert CIDOC-CRM RDF relationships to natural language using ontology labels"""
 
         # Extract predicate name handling various namespace formats
         # Handle: http://example.com/P89_falls_within, vir#K1i, crm:P89_falls_within
-        if '/' in predicate:
-            simple_pred = predicate.split('/')[-1]
-        elif '#' in predicate:
-            simple_pred = predicate.split('#')[-1]
-        else:
-            simple_pred = predicate
+        # First split by '/' to get the last segment
+        simple_pred = predicate.split('/')[-1]
 
-        # Handle missing labels
-        subject_label = subject_label or subject_uri.split('/')[-1]
-        object_label = object_label or object_uri.split('/')[-1]
+        # If that segment contains '#', split by '#' to get the actual predicate
+        if '#' in simple_pred:
+            simple_pred = simple_pred.split('#')[-1]
 
-        # Core CIDOC-CRM properties with their natural language interpretations
-        cidoc_relationships = {
-            # Spatial relationships
-            "P89_falls_within": f"{subject_label} is located within {object_label}",
-            "P55_has_current_location": f"{subject_label} is currently located at {object_label}",
-            "P53_has_former_or_current_location": f"{subject_label} is or was located at {object_label}",
-            "P156_occupies": f"{subject_label} occupies {object_label}",
-            "P157_is_at_rest_relative_to": f"{subject_label} is fixed relative to {object_label}",
+        # Handle missing entity labels
+        subject_label = subject_label or subject_uri.split('/')[-1].rstrip('/')
+        object_label = object_label or object_uri.split('/')[-1].rstrip('/')
 
-            # Temporal relationships
-            "P4_has_time-span": f"{subject_label} occurred during {object_label}",
-            "P114_is_equal_in_time_to": f"{subject_label} occurred at the same time as {object_label}",
-            "P115_finishes": f"{subject_label} finished at the same time as {object_label}",
-            "P116_starts": f"{subject_label} started at the same time as {object_label}",
-            "P117_occurs_during": f"{subject_label} occurred during {object_label}",
-            "P118_overlaps_in_time_with": f"{subject_label} overlaps in time with {object_label}",
+        # Look up the predicate label from the ontology-extracted labels
+        # Try multiple strategies: full URI, local name with code, stripped name
+        predicate_label = None
 
-            # Physical relationships
-            "P46_is_composed_of": f"{subject_label} is composed of {object_label}",
-            "P46i_forms_part_of": f"{subject_label} forms part of {object_label}",
-            "P56_bears_feature": f"{subject_label} has the feature {object_label}",
-            "P56i_is_found_on": f"{subject_label} is found on {object_label}",
-            "P128_carries": f"{subject_label} carries {object_label}",
-            "P59_has_section": f"{subject_label} has section {object_label}",
+        if self._property_labels:
+            # Try full predicate URI first
+            predicate_label = self._property_labels.get(predicate)
 
-            # Conceptual relationships
-            "P2_has_type": f"{subject_label} is of type {object_label}",
-            "P1_is_identified_by": f"{subject_label} is identified by {object_label}",
-            "P67_refers_to": f"{subject_label} refers to {object_label}",
-            "P129_is_about": f"{subject_label} is about {object_label}",
-            "P138_represents": f"{subject_label} represents {object_label}",
+            # Try local name with prefix code (e.g., "K24_portray", "L54_is_same-as")
+            if not predicate_label:
+                predicate_label = self._property_labels.get(simple_pred)
 
-            # Production and creation
-            "P108i_was_produced_by": f"{subject_label} was produced by {object_label}",
-            "P94i_was_created_by": f"{subject_label} was created by {object_label}",
-            "P31_has_modified": f"{subject_label} has modified {object_label}",
+            # Try stripped name without prefix code (e.g., "portray", "is_same-as")
+            if not predicate_label:
+                stripped_pred = re.sub(r'^[A-Z]\d+[a-z]?_', '', simple_pred)
+                predicate_label = self._property_labels.get(stripped_pred)
 
-            # VIR ontology (for visual items) - handle both full names and short codes
-            "K1i_is_denoted_by": f"{subject_label} is denoted by {object_label}",
-            "K1i": f"{subject_label} is denoted by {object_label}",  # Short form
-            "K17_has_attribute": f"{subject_label} has the attribute {object_label}",
-            "K17": f"{subject_label} has the attribute {object_label}",
-            "K24_portray": f"{subject_label} portrays {object_label}",
-            "K24": f"{subject_label} portrays {object_label}",
-            "K20i_is_composed_of": f"{subject_label} is composed of {object_label}",
-            "K20i": f"{subject_label} is composed of {object_label}"
-        }
+        # If no label found in ontology, handle missing property
+        if not predicate_label:
+            # Track this missing property
+            if predicate not in UniversalRagSystem._missing_properties:
+                UniversalRagSystem._missing_properties.add(predicate)
+                logger.warning(f"Property label not found for: {predicate} (local: {simple_pred})")
 
-        # Return natural language interpretation if available, otherwise a default format
-        return cidoc_relationships.get(simple_pred, f"{subject_label} {simple_pred.replace('_', ' ')} {object_label}")
+                # If we haven't tried extraction yet, trigger it
+                if not UniversalRagSystem._extraction_attempted:
+                    logger.info("Attempting to re-extract property labels from ontologies...")
+                    new_labels = self._load_property_labels(force_extract=True)
+                    if new_labels:
+                        # Update the class-level cache
+                        UniversalRagSystem._property_labels = new_labels
+                        # Try to find the label again
+                        predicate_label = (
+                            new_labels.get(predicate) or
+                            new_labels.get(simple_pred) or
+                            new_labels.get(re.sub(r'^[A-Z]\d+[a-z]?_', '', simple_pred))
+                        )
+
+            # If still not found, create a fallback label
+            if not predicate_label:
+                # Strip prefix codes and convert underscores to spaces
+                stripped_pred = re.sub(r'^[A-Z]\d+[a-z]?_', '', simple_pred)
+                predicate_label = stripped_pred.replace('_', ' ').lower()
+                logger.debug(f"Using fallback label '{predicate_label}' for property {simple_pred}")
+
+        # Return natural language statement using the predicate label
+        return f"{subject_label} {predicate_label} {object_label}"
 
     def is_schema_predicate(self, predicate):
         """Check if a predicate is a schema-level predicate that should be filtered out"""
@@ -330,6 +399,45 @@ class UniversalRagSystem:
 
         return False
 
+    def get_entity_label(self, entity_uri):
+        """
+        Get a human-readable label for an entity.
+        Tries multiple strategies to find a good label instead of falling back to UUIDs.
+        """
+        # Try to get any literal that could serve as a label
+        try:
+            literals = self.get_entity_literals(entity_uri)
+            if literals:
+                # Try common label properties in order of preference
+                for label_prop in ['label', 'prefLabel', 'name', 'title', 'skos:prefLabel']:
+                    if label_prop in literals and literals[label_prop]:
+                        return literals[label_prop][0]
+
+                # If no standard label found, try to find any literal that looks like a label
+                # Prefer shorter strings that don't look like UUIDs or descriptions
+                for prop, values in literals.items():
+                    if values and len(values) > 0:
+                        first_value = str(values[0])
+                        # Skip if it looks like a UUID or is very long (likely a description)
+                        if len(first_value) < 100 and not re.match(r'^[0-9a-f]{8}-[0-9a-f]{4}-', first_value):
+                            return first_value
+        except Exception as e:
+            logger.debug(f"Error getting literals for {entity_uri}: {str(e)}")
+
+        # Last resort: try to extract a meaningful part from the URI
+        # Avoid UUIDs and prefer human-readable segments
+        uri_parts = entity_uri.rstrip('/').split('/')
+        for part in reversed(uri_parts):
+            # Skip empty parts, UUIDs, and generic terms
+            if part and not re.match(r'^[0-9a-f]{8}-[0-9a-f]{4}-', part) and part not in ['semantics', 'icon', 'appellation', 'data']:
+                # Clean up the part (remove underscores, etc.)
+                cleaned = part.replace('_', ' ').replace('-', ' ')
+                if cleaned and len(cleaned) < 50:
+                    return cleaned
+
+        # Absolute fallback: return the last part of URI
+        return entity_uri.rstrip('/').split('/')[-1] if entity_uri else "Unknown"
+
     def get_entity_context(self, entity_uri, depth=RetrievalConfig.ENTITY_CONTEXT_DEPTH):
         """Get entity context by traversing the graph bidirectionally"""
 
@@ -342,19 +450,8 @@ class UniversalRagSystem:
 
             visited.add(uri)
 
-            # Get entity label from any available literal property
-            entity_label = uri.split('/')[-1]  # Default to URI fragment
-            try:
-                # Try to get any literal that could serve as a label
-                literals = self.get_entity_literals(uri)
-                if literals:
-                    # Try common label properties
-                    for label_prop in ['label', 'prefLabel', 'name', 'title']:
-                        if label_prop in literals and literals[label_prop]:
-                            entity_label = literals[label_prop][0]
-                            break
-            except Exception as e:
-                logger.error(f"Error getting entity literals: {str(e)}")
+            # Get entity label using the improved label retrieval method
+            entity_label = self.get_entity_label(uri)
             
             # Get outgoing relationships if direction is "both" or "outgoing"
             if direction in ["both", "outgoing"]:
@@ -380,9 +477,11 @@ class UniversalRagSystem:
                         if self.is_schema_predicate(pred):
                             continue
 
-                        # Get labels if available
+                        # Get labels if available, with improved fallback
                         pred_label = result.get("predLabel", {}).get("value", pred.split('/')[-1])
-                        obj_label = result.get("objLabel", {}).get("value", obj.split('/')[-1])
+                        obj_label = result.get("objLabel", {}).get("value")
+                        if not obj_label:
+                            obj_label = self.get_entity_label(obj)
 
                         # Filter out self-referential relationships
                         # Skip if same URI or same label (redundant statements)
@@ -426,8 +525,10 @@ class UniversalRagSystem:
                         if self.is_schema_predicate(pred):
                             continue
 
-                        # Get labels if available
-                        subj_label = result.get("subjLabel", {}).get("value", subj.split('/')[-1])
+                        # Get labels if available, with improved fallback
+                        subj_label = result.get("subjLabel", {}).get("value")
+                        if not subj_label:
+                            subj_label = self.get_entity_label(subj)
                         pred_label = result.get("predLabel", {}).get("value", pred.split('/')[-1])
 
                         # Filter out self-referential relationships

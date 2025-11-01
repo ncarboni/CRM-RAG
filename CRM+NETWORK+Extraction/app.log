@@ -14263,3 +14263,273 @@ anthropic.NotFoundError: Error code: 404 - {'type': 'error', 'error': {'type': '
 2025-10-31 18:27:19,189 - universal_rag_system - INFO - Retrieved and selected 10 coherent documents
 2025-10-31 18:27:35,869 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
 2025-10-31 18:27:35,877 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 18:27:35] "POST /api/chat HTTP/1.1" 200 -
+2025-10-31 18:39:43,143 - __main__ - INFO - Chat request: 'What churches in Cyprus have Last Judgment iconography?'
+2025-10-31 18:39:43,145 - universal_rag_system - INFO - Answering question directly: 'What churches in Cyprus have Last Judgment iconography?'
+2025-10-31 18:39:43,145 - universal_rag_system - INFO - Retrieving documents for query: 'What churches in Cyprus have Last Judgment iconography?'
+2025-10-31 18:39:43,145 - graph_document_store - INFO - Retrieving documents for query: 'What churches in Cyprus have Last Judgment iconography?'
+2025-10-31 18:39:43,766 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/embeddings "HTTP/1.1 200 OK"
+2025-10-31 18:39:43,777 - graph_document_store - INFO - Retrieved 60 documents
+2025-10-31 18:39:43,810 - graph_document_store - INFO - === Adjacency Matrix Statistics (before normalization) ===
+2025-10-31 18:39:43,810 - graph_document_store - INFO -   Size: 30x30 nodes
+2025-10-31 18:39:43,810 - graph_document_store - INFO -   Non-zero edges: 185 (21.3% density)
+2025-10-31 18:39:43,811 - graph_document_store - INFO -   Value range: [0.000, 4.125]
+2025-10-31 18:39:43,811 - graph_document_store - INFO -   Mean weight: 0.240
+2025-10-31 18:39:43,811 - graph_document_store - INFO -   Std weight: 0.584
+2025-10-31 18:39:43,811 - graph_document_store - INFO - === Adjacency Matrix Statistics (after symmetric normalization) ===
+2025-10-31 18:39:43,811 - graph_document_store - INFO -   Value range: [0.000, 1.000]
+2025-10-31 18:39:43,811 - graph_document_store - INFO -   Mean: 0.033
+2025-10-31 18:39:43,811 - graph_document_store - INFO -   Std: 0.107
+2025-10-31 18:39:43,811 - graph_document_store - INFO -   Row sum range: [0.720, 1.177]
+2025-10-31 18:39:43,811 - universal_rag_system - INFO - Extracting coherent subgraph of size 10 from 30 candidates
+2025-10-31 18:39:43,811 - universal_rag_system - INFO - 
+================================================================================
+2025-10-31 18:39:43,811 - universal_rag_system - INFO - COHERENT SUBGRAPH EXTRACTION
+2025-10-31 18:39:43,811 - universal_rag_system - INFO - ================================================================================
+2025-10-31 18:39:43,811 - universal_rag_system - INFO - Parameters: k=10, alpha=0.7 (relevance weight)
+2025-10-31 18:39:43,811 - universal_rag_system - INFO - Candidates: 30 documents
+2025-10-31 18:39:43,811 - universal_rag_system - INFO - 
+--- Initial Relevance Scores (normalized to [0,1]) ---
+2025-10-31 18:39:43,811 - universal_rag_system - INFO -   Min: 0.000
+2025-10-31 18:39:43,811 - universal_rag_system - INFO -   Max: 1.000
+2025-10-31 18:39:43,811 - universal_rag_system - INFO -   Mean: 0.500
+2025-10-31 18:39:43,811 - universal_rag_system - INFO -   Std: 0.298
+2025-10-31 18:39:43,811 - universal_rag_system - INFO - 
+--- Top 5 Initial Candidates (by relevance) ---
+2025-10-31 18:39:43,812 - universal_rag_system - INFO -   1. Last judgment: 1.000
+2025-10-31 18:39:43,812 - universal_rag_system - INFO -   2. Last judgment: 0.966
+2025-10-31 18:39:43,812 - universal_rag_system - INFO -   3. Painting of the last Judgment: 0.931
+2025-10-31 18:39:43,812 - universal_rag_system - INFO -   4. Last judgment: 0.897
+2025-10-31 18:39:43,812 - universal_rag_system - INFO -   5. Last judgment: 0.862
+2025-10-31 18:39:43,812 - universal_rag_system - INFO - 
+================================================================================
+2025-10-31 18:39:43,812 - universal_rag_system - INFO - SELECTION ROUND 1/10
+2025-10-31 18:39:43,812 - universal_rag_system - INFO - ================================================================================
+2025-10-31 18:39:43,812 - universal_rag_system - INFO - Strategy: Select highest relevance score
+2025-10-31 18:39:43,812 - universal_rag_system - INFO - Selected: Last judgment (score=1.000)
+2025-10-31 18:39:43,812 - universal_rag_system - INFO - 
+================================================================================
+2025-10-31 18:39:43,812 - universal_rag_system - INFO - SELECTION ROUND 2/10
+2025-10-31 18:39:43,812 - universal_rag_system - INFO - ================================================================================
+2025-10-31 18:39:43,812 - universal_rag_system - INFO - Strategy: Combine relevance (0.7) + connectivity (0.3)
+2025-10-31 18:39:43,812 - universal_rag_system - INFO - Connectivity scores (normalized): min=0.000, max=1.000, mean=0.122
+2025-10-31 18:39:43,812 - universal_rag_system - INFO - 
+--- Top 3 Candidates for Round 2 ---
+2025-10-31 18:39:43,812 - universal_rag_system - INFO -   1. Painting of the last Judgment
+2025-10-31 18:39:43,812 - universal_rag_system - INFO -       Relevance: 0.931 (weight=0.7) → contrib=0.652
+2025-10-31 18:39:43,812 - universal_rag_system - INFO -       Connectivity: 1.000 (weight=0.3) → contrib=0.300
+2025-10-31 18:39:43,812 - universal_rag_system - INFO -       Combined: 0.952
+2025-10-31 18:39:43,812 - universal_rag_system - INFO -   2. Last judgment
+2025-10-31 18:39:43,812 - universal_rag_system - INFO -       Relevance: 0.966 (weight=0.7) → contrib=0.676
+2025-10-31 18:39:43,812 - universal_rag_system - INFO -       Connectivity: 0.000 (weight=0.3) → contrib=0.000
+2025-10-31 18:39:43,812 - universal_rag_system - INFO -       Combined: 0.676
+2025-10-31 18:39:43,812 - universal_rag_system - INFO -   3. St. John Lampadistis
+2025-10-31 18:39:43,812 - universal_rag_system - INFO -       Relevance: 0.483 (weight=0.7) → contrib=0.338
+2025-10-31 18:39:43,812 - universal_rag_system - INFO -       Connectivity: 0.987 (weight=0.3) → contrib=0.296
+2025-10-31 18:39:43,812 - universal_rag_system - INFO -       Combined: 0.634
+2025-10-31 18:39:43,812 - universal_rag_system - INFO - 
+✓ SELECTED: Painting of the last Judgment
+2025-10-31 18:39:43,812 - universal_rag_system - INFO -   Final score: 0.952 = 0.7×0.931 + 0.3×1.000
+2025-10-31 18:39:43,812 - universal_rag_system - INFO - 
+================================================================================
+2025-10-31 18:39:43,812 - universal_rag_system - INFO - SELECTION ROUND 3/10
+2025-10-31 18:39:43,812 - universal_rag_system - INFO - ================================================================================
+2025-10-31 18:39:43,812 - universal_rag_system - INFO - Strategy: Combine relevance (0.7) + connectivity (0.3)
+2025-10-31 18:39:43,812 - universal_rag_system - INFO - Connectivity scores (normalized): min=0.000, max=1.000, mean=0.110
+2025-10-31 18:39:43,813 - universal_rag_system - INFO - 
+--- Top 3 Candidates for Round 3 ---
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -   1. Last judgment
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -       Relevance: 0.966 (weight=0.7) → contrib=0.676
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -       Connectivity: 0.000 (weight=0.3) → contrib=0.000
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -       Combined: 0.676
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -   2. St. John Lampadistis
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -       Relevance: 0.483 (weight=0.7) → contrib=0.338
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -       Connectivity: 1.000 (weight=0.3) → contrib=0.300
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -       Combined: 0.638
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -   3. Last judgment
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -       Relevance: 0.897 (weight=0.7) → contrib=0.628
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -       Connectivity: 0.000 (weight=0.3) → contrib=0.000
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -       Combined: 0.628
+2025-10-31 18:39:43,813 - universal_rag_system - INFO - 
+✓ SELECTED: Last judgment
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -   Final score: 0.676 = 0.7×0.966 + 0.3×0.000
+2025-10-31 18:39:43,813 - universal_rag_system - INFO - 
+================================================================================
+2025-10-31 18:39:43,813 - universal_rag_system - INFO - SELECTION ROUND 4/10
+2025-10-31 18:39:43,813 - universal_rag_system - INFO - ================================================================================
+2025-10-31 18:39:43,813 - universal_rag_system - INFO - Strategy: Combine relevance (0.7) + connectivity (0.3)
+2025-10-31 18:39:43,813 - universal_rag_system - INFO - Connectivity scores (normalized): min=0.000, max=1.000, mean=0.195
+2025-10-31 18:39:43,813 - universal_rag_system - INFO - 
+--- Top 3 Candidates for Round 4 ---
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -   1. St. John Lampadistis
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -       Relevance: 0.483 (weight=0.7) → contrib=0.338
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -       Connectivity: 1.000 (weight=0.3) → contrib=0.300
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -       Combined: 0.638
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -   2. Last judgment
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -       Relevance: 0.897 (weight=0.7) → contrib=0.628
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -       Connectivity: 0.000 (weight=0.3) → contrib=0.000
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -       Combined: 0.628
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -   3. Painting of the last judgment
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -       Relevance: 0.828 (weight=0.7) → contrib=0.579
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -       Connectivity: 0.145 (weight=0.3) → contrib=0.044
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -       Combined: 0.623
+2025-10-31 18:39:43,813 - universal_rag_system - INFO - 
+✓ SELECTED: St. John Lampadistis
+2025-10-31 18:39:43,813 - universal_rag_system - INFO -   Final score: 0.638 = 0.7×0.483 + 0.3×1.000
+2025-10-31 18:39:43,813 - universal_rag_system - INFO - 
+================================================================================
+2025-10-31 18:39:43,814 - universal_rag_system - INFO - SELECTION ROUND 5/10
+2025-10-31 18:39:43,814 - universal_rag_system - INFO - ================================================================================
+2025-10-31 18:39:43,814 - universal_rag_system - INFO - Strategy: Combine relevance (0.7) + connectivity (0.3)
+2025-10-31 18:39:43,814 - universal_rag_system - INFO - Connectivity scores (normalized): min=0.000, max=1.000, mean=0.193
+2025-10-31 18:39:43,814 - universal_rag_system - INFO - 
+--- Top 3 Candidates for Round 5 ---
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -   1. Last judgment
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -       Relevance: 0.897 (weight=0.7) → contrib=0.628
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -       Connectivity: 0.000 (weight=0.3) → contrib=0.000
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -       Combined: 0.628
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -   2. Painting of the last judgment
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -       Relevance: 0.828 (weight=0.7) → contrib=0.579
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -       Connectivity: 0.137 (weight=0.3) → contrib=0.041
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -       Combined: 0.620
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -   3. Church
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -       Relevance: 0.621 (weight=0.7) → contrib=0.434
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -       Connectivity: 0.610 (weight=0.3) → contrib=0.183
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -       Combined: 0.618
+2025-10-31 18:39:43,814 - universal_rag_system - INFO - 
+✓ SELECTED: Last judgment
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -   Final score: 0.628 = 0.7×0.897 + 0.3×0.000
+2025-10-31 18:39:43,814 - universal_rag_system - INFO - 
+================================================================================
+2025-10-31 18:39:43,814 - universal_rag_system - INFO - SELECTION ROUND 6/10
+2025-10-31 18:39:43,814 - universal_rag_system - INFO - ================================================================================
+2025-10-31 18:39:43,814 - universal_rag_system - INFO - Strategy: Combine relevance (0.7) + connectivity (0.3)
+2025-10-31 18:39:43,814 - universal_rag_system - INFO - Connectivity scores (normalized): min=0.000, max=1.000, mean=0.201
+2025-10-31 18:39:43,814 - universal_rag_system - INFO - 
+--- Top 3 Candidates for Round 6 ---
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -   1. Painting of the last judgment
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -       Relevance: 0.828 (weight=0.7) → contrib=0.579
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -       Connectivity: 0.137 (weight=0.3) → contrib=0.041
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -       Combined: 0.620
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -   2. Church
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -       Relevance: 0.621 (weight=0.7) → contrib=0.434
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -       Connectivity: 0.610 (weight=0.3) → contrib=0.183
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -       Combined: 0.618
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -   3. Last judgment
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -       Relevance: 0.862 (weight=0.7) → contrib=0.603
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -       Connectivity: 0.000 (weight=0.3) → contrib=0.000
+2025-10-31 18:39:43,814 - universal_rag_system - INFO -       Combined: 0.603
+2025-10-31 18:39:43,815 - universal_rag_system - INFO - 
+✓ SELECTED: Painting of the last judgment
+2025-10-31 18:39:43,815 - universal_rag_system - INFO -   Final score: 0.620 = 0.7×0.828 + 0.3×0.137
+2025-10-31 18:39:43,815 - universal_rag_system - INFO - 
+================================================================================
+2025-10-31 18:39:43,815 - universal_rag_system - INFO - SELECTION ROUND 7/10
+2025-10-31 18:39:43,815 - universal_rag_system - INFO - ================================================================================
+2025-10-31 18:39:43,815 - universal_rag_system - INFO - Strategy: Combine relevance (0.7) + connectivity (0.3)
+2025-10-31 18:39:43,815 - universal_rag_system - INFO - Connectivity scores (normalized): min=0.000, max=1.000, mean=0.280
+2025-10-31 18:39:43,815 - universal_rag_system - INFO - 
+--- Top 3 Candidates for Round 7 ---
+2025-10-31 18:39:43,815 - universal_rag_system - INFO -   1. Last judgment
+2025-10-31 18:39:43,815 - universal_rag_system - INFO -       Relevance: 0.862 (weight=0.7) → contrib=0.603
+2025-10-31 18:39:43,815 - universal_rag_system - INFO -       Connectivity: 0.577 (weight=0.3) → contrib=0.173
+2025-10-31 18:39:43,815 - universal_rag_system - INFO -       Combined: 0.776
+2025-10-31 18:39:43,815 - universal_rag_system - INFO -   2. Panagia Kanakaria
+2025-10-31 18:39:43,815 - universal_rag_system - INFO -       Relevance: 0.793 (weight=0.7) → contrib=0.555
+2025-10-31 18:39:43,815 - universal_rag_system - INFO -       Connectivity: 0.624 (weight=0.3) → contrib=0.187
+2025-10-31 18:39:43,815 - universal_rag_system - INFO -       Combined: 0.742
+2025-10-31 18:39:43,815 - universal_rag_system - INFO -   3. Church
+2025-10-31 18:39:43,815 - universal_rag_system - INFO -       Relevance: 0.621 (weight=0.7) → contrib=0.434
+2025-10-31 18:39:43,815 - universal_rag_system - INFO -       Connectivity: 0.731 (weight=0.3) → contrib=0.219
+2025-10-31 18:39:43,815 - universal_rag_system - INFO -       Combined: 0.654
+2025-10-31 18:39:43,815 - universal_rag_system - INFO - 
+✓ SELECTED: Last judgment
+2025-10-31 18:39:43,815 - universal_rag_system - INFO -   Final score: 0.776 = 0.7×0.862 + 0.3×0.577
+2025-10-31 18:39:43,815 - universal_rag_system - INFO - 
+================================================================================
+2025-10-31 18:39:43,815 - universal_rag_system - INFO - SELECTION ROUND 8/10
+2025-10-31 18:39:43,815 - universal_rag_system - INFO - ================================================================================
+2025-10-31 18:39:43,815 - universal_rag_system - INFO - Strategy: Combine relevance (0.7) + connectivity (0.3)
+2025-10-31 18:39:43,815 - universal_rag_system - INFO - Connectivity scores (normalized): min=0.000, max=1.000, mean=0.256
+2025-10-31 18:39:43,815 - universal_rag_system - INFO - 
+--- Top 3 Candidates for Round 8 ---
+2025-10-31 18:39:43,815 - universal_rag_system - INFO -   1. Panagia Kanakaria
+2025-10-31 18:39:43,815 - universal_rag_system - INFO -       Relevance: 0.793 (weight=0.7) → contrib=0.555
+2025-10-31 18:39:43,815 - universal_rag_system - INFO -       Connectivity: 1.000 (weight=0.3) → contrib=0.300
+2025-10-31 18:39:43,815 - universal_rag_system - INFO -       Combined: 0.855
+2025-10-31 18:39:43,815 - universal_rag_system - INFO -   2. Church
+2025-10-31 18:39:43,815 - universal_rag_system - INFO -       Relevance: 0.621 (weight=0.7) → contrib=0.434
+2025-10-31 18:39:43,815 - universal_rag_system - INFO -       Connectivity: 0.735 (weight=0.3) → contrib=0.221
+2025-10-31 18:39:43,816 - universal_rag_system - INFO -       Combined: 0.655
+2025-10-31 18:39:43,816 - universal_rag_system - INFO -   3. Last judgment
+2025-10-31 18:39:43,816 - universal_rag_system - INFO -       Relevance: 0.690 (weight=0.7) → contrib=0.483
+2025-10-31 18:39:43,816 - universal_rag_system - INFO -       Connectivity: 0.309 (weight=0.3) → contrib=0.093
+2025-10-31 18:39:43,816 - universal_rag_system - INFO -       Combined: 0.576
+2025-10-31 18:39:43,816 - universal_rag_system - INFO - 
+✓ SELECTED: Panagia Kanakaria
+2025-10-31 18:39:43,816 - universal_rag_system - INFO -   Final score: 0.855 = 0.7×0.793 + 0.3×1.000
+2025-10-31 18:39:43,816 - universal_rag_system - INFO - 
+================================================================================
+2025-10-31 18:39:43,816 - universal_rag_system - INFO - SELECTION ROUND 9/10
+2025-10-31 18:39:43,816 - universal_rag_system - INFO - ================================================================================
+2025-10-31 18:39:43,816 - universal_rag_system - INFO - Strategy: Combine relevance (0.7) + connectivity (0.3)
+2025-10-31 18:39:43,816 - universal_rag_system - INFO - Connectivity scores (normalized): min=0.000, max=1.000, mean=0.254
+2025-10-31 18:39:43,816 - universal_rag_system - INFO - 
+--- Top 3 Candidates for Round 9 ---
+2025-10-31 18:39:43,816 - universal_rag_system - INFO -   1. Church
+2025-10-31 18:39:43,816 - universal_rag_system - INFO -       Relevance: 0.621 (weight=0.7) → contrib=0.434
+2025-10-31 18:39:43,816 - universal_rag_system - INFO -       Connectivity: 0.976 (weight=0.3) → contrib=0.293
+2025-10-31 18:39:43,816 - universal_rag_system - INFO -       Combined: 0.727
+2025-10-31 18:39:43,816 - universal_rag_system - INFO -   2. Last judgment
+2025-10-31 18:39:43,816 - universal_rag_system - INFO -       Relevance: 0.690 (weight=0.7) → contrib=0.483
+2025-10-31 18:39:43,816 - universal_rag_system - INFO -       Connectivity: 0.318 (weight=0.3) → contrib=0.096
+2025-10-31 18:39:43,816 - universal_rag_system - INFO -       Combined: 0.578
+2025-10-31 18:39:43,816 - universal_rag_system - INFO -   3. Painting of the last judgment
+2025-10-31 18:39:43,816 - universal_rag_system - INFO -       Relevance: 0.724 (weight=0.7) → contrib=0.507
+2025-10-31 18:39:43,816 - universal_rag_system - INFO -       Connectivity: 0.210 (weight=0.3) → contrib=0.063
+2025-10-31 18:39:43,816 - universal_rag_system - INFO -       Combined: 0.570
+2025-10-31 18:39:43,816 - universal_rag_system - INFO - 
+✓ SELECTED: Church
+2025-10-31 18:39:43,816 - universal_rag_system - INFO -   Final score: 0.727 = 0.7×0.621 + 0.3×0.976
+2025-10-31 18:39:43,816 - universal_rag_system - INFO - 
+================================================================================
+2025-10-31 18:39:43,816 - universal_rag_system - INFO - SELECTION ROUND 10/10
+2025-10-31 18:39:43,816 - universal_rag_system - INFO - ================================================================================
+2025-10-31 18:39:43,816 - universal_rag_system - INFO - Strategy: Combine relevance (0.7) + connectivity (0.3)
+2025-10-31 18:39:43,816 - universal_rag_system - INFO - Connectivity scores (normalized): min=0.000, max=1.000, mean=0.271
+2025-10-31 18:39:43,816 - universal_rag_system - INFO - 
+--- Top 3 Candidates for Round 10 ---
+2025-10-31 18:39:43,816 - universal_rag_system - INFO -   1. Painting of the last judgment
+2025-10-31 18:39:43,816 - universal_rag_system - INFO -       Relevance: 0.724 (weight=0.7) → contrib=0.507
+2025-10-31 18:39:43,817 - universal_rag_system - INFO -       Connectivity: 0.301 (weight=0.3) → contrib=0.090
+2025-10-31 18:39:43,817 - universal_rag_system - INFO -       Combined: 0.597
+2025-10-31 18:39:43,817 - universal_rag_system - INFO -   2. Last judgment
+2025-10-31 18:39:43,817 - universal_rag_system - INFO -       Relevance: 0.690 (weight=0.7) → contrib=0.483
+2025-10-31 18:39:43,817 - universal_rag_system - INFO -       Connectivity: 0.318 (weight=0.3) → contrib=0.096
+2025-10-31 18:39:43,817 - universal_rag_system - INFO -       Combined: 0.578
+2025-10-31 18:39:43,817 - universal_rag_system - INFO -   3. Last judgment
+2025-10-31 18:39:43,817 - universal_rag_system - INFO -       Relevance: 0.759 (weight=0.7) → contrib=0.531
+2025-10-31 18:39:43,817 - universal_rag_system - INFO -       Connectivity: 0.114 (weight=0.3) → contrib=0.034
+2025-10-31 18:39:43,817 - universal_rag_system - INFO -       Combined: 0.565
+2025-10-31 18:39:43,817 - universal_rag_system - INFO - 
+✓ SELECTED: Painting of the last judgment
+2025-10-31 18:39:43,817 - universal_rag_system - INFO -   Final score: 0.597 = 0.7×0.724 + 0.3×0.301
+2025-10-31 18:39:43,817 - universal_rag_system - INFO - 
+================================================================================
+2025-10-31 18:39:43,817 - universal_rag_system - INFO - SUBGRAPH EXTRACTION COMPLETE
+2025-10-31 18:39:43,817 - universal_rag_system - INFO - ================================================================================
+2025-10-31 18:39:43,817 - universal_rag_system - INFO - Selected 10/10 documents:
+2025-10-31 18:39:43,817 - universal_rag_system - INFO -   1. Last judgment (relevance=1.000)
+2025-10-31 18:39:43,817 - universal_rag_system - INFO -   2. Painting of the last Judgment (relevance=0.931)
+2025-10-31 18:39:43,817 - universal_rag_system - INFO -   3. Last judgment (relevance=0.966)
+2025-10-31 18:39:43,817 - universal_rag_system - INFO -   4. St. John Lampadistis (relevance=0.483)
+2025-10-31 18:39:43,817 - universal_rag_system - INFO -   5. Last judgment (relevance=0.897)
+2025-10-31 18:39:43,817 - universal_rag_system - INFO -   6. Painting of the last judgment (relevance=0.828)
+2025-10-31 18:39:43,817 - universal_rag_system - INFO -   7. Last judgment (relevance=0.862)
+2025-10-31 18:39:43,817 - universal_rag_system - INFO -   8. Panagia Kanakaria (relevance=0.793)
+2025-10-31 18:39:43,817 - universal_rag_system - INFO -   9. Church (relevance=0.621)
+2025-10-31 18:39:43,817 - universal_rag_system - INFO -   10. Painting of the last judgment (relevance=0.724)
+2025-10-31 18:39:43,817 - universal_rag_system - INFO - ================================================================================
+
+2025-10-31 18:39:43,817 - universal_rag_system - INFO - Retrieved and selected 10 coherent documents
+2025-10-31 18:39:52,563 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-31 18:39:52,568 - werkzeug - INFO - 127.0.0.1 - - [31/Oct/2025 18:39:52] "POST /api/chat HTTP/1.1" 200 -

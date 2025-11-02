@@ -90,47 +90,13 @@ def extract_property_labels(ontology_dir='ontology'):
                 label = str(row.label)
                 lang = str(row.lang) if row.lang else None
 
-                # Prefer English labels, or labels without language tag
+                # Only store full URI mapping to save space
+                # The system always receives full URIs from SPARQL queries
                 if lang == 'en' or lang == '' or lang == 'None':
-                    # Store by full URI
                     property_labels[prop_uri] = label
-
-                    # Extract local name (e.g., "K24_portray", "P89_falls_within")
-                    if '#' in prop_uri:
-                        local_name = prop_uri.split('#')[-1]
-                    elif '/' in prop_uri:
-                        local_name = prop_uri.split('/')[-1]
-                    else:
-                        local_name = prop_uri
-
-                    # Store by local name with prefix code
-                    if local_name and local_name != prop_uri:
-                        property_labels[local_name] = label
-
-                    # Also store stripped version (without prefix codes)
-                    # E.g., "K24_portray" -> "portray", "L54_is_same-as" -> "is_same-as"
-                    stripped_name = re.sub(r'^[A-Z]\d+[a-z]?_', '', local_name)
-                    if stripped_name and stripped_name != local_name:
-                        property_labels[stripped_name] = label
-
                 elif prop_uri not in property_labels:
                     # If no English label exists yet, use any available label as fallback
                     property_labels[prop_uri] = label
-
-                    # Still try to store local name variants for non-English labels
-                    if '#' in prop_uri:
-                        local_name = prop_uri.split('#')[-1]
-                    elif '/' in prop_uri:
-                        local_name = prop_uri.split('/')[-1]
-                    else:
-                        local_name = prop_uri
-
-                    if local_name and local_name != prop_uri and local_name not in property_labels:
-                        property_labels[local_name] = label
-
-                    stripped_name = re.sub(r'^[A-Z]\d+[a-z]?_', '', local_name)
-                    if stripped_name and stripped_name != local_name and stripped_name not in property_labels:
-                        property_labels[stripped_name] = label
 
             # Second, process properties without explicit labels (like CRMdig)
             # For these, we derive the label from the property name itself
@@ -157,15 +123,10 @@ def extract_property_labels(ontology_dir='ontology'):
                 # Convert underscores to spaces for the label
                 derived_label = stripped_name.replace('_', ' ').replace('-', ' ')
 
-                # Store all variants
+                # Only store full URI mapping
                 if prop_uri not in property_labels:
                     property_labels[prop_uri] = derived_label
-                if local_name not in property_labels:
-                    property_labels[local_name] = derived_label
-                if stripped_name and stripped_name not in property_labels:
-                    property_labels[stripped_name] = derived_label
-
-                count_without_labels += 1
+                    count_without_labels += 1
 
             logger.info(f"  Extracted {len([r for r in results_with_labels])} properties with labels")
             logger.info(f"  Extracted {count_without_labels} properties without labels (derived from names)")

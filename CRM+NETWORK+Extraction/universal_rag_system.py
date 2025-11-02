@@ -399,6 +399,28 @@ class UniversalRagSystem:
 
         return False
 
+    def is_technical_class_name(self, class_name):
+        """
+        Check if a class name is a technical CIDOC-CRM identifier that should be filtered
+        from natural language output.
+
+        Technical patterns:
+        - E\d+_Name (e.g., E22_Man-Made_Object, E53_Place)
+        - D\d+_Name (e.g., D1_Digital_Object from CRMdig)
+        - IC\d+_Name (e.g., IC9_Representation from VIR)
+        - F\d+_Name (e.g., from FRBRoo)
+
+        Args:
+            class_name: The class name to check
+
+        Returns:
+            bool: True if it's a technical identifier, False if it's human-readable
+        """
+        # Pattern for technical CIDOC-CRM and extension class names
+        # Matches: E22_..., D1_..., IC9_..., F38_..., etc.
+        technical_pattern = r'^[A-Z]+\d+[a-z]?_'
+        return bool(re.match(technical_pattern, class_name))
+
     def get_entity_label(self, entity_uri):
         """
         Get a human-readable label for an entity.
@@ -606,12 +628,20 @@ class UniversalRagSystem:
             # Add entity identifier
             text += f"URI: {entity_uri}\n\n"
 
-            # Add entity types
+            # Add entity types (filter out technical CIDOC-CRM class names)
             if entity_types:
-                text += "## Types\n\n"
-                for type_label in entity_types:
-                    text += f"- {type_label}\n"
-                text += "\n"
+                # Filter to keep only human-readable type labels
+                human_readable_types = [
+                    t for t in entity_types
+                    if not self.is_technical_class_name(t)
+                ]
+
+                # Only include Types section if there are human-readable types
+                if human_readable_types:
+                    text += "## Types\n\n"
+                    for type_label in human_readable_types:
+                        text += f"- {type_label}\n"
+                    text += "\n"
 
             # Add all literal properties (labels, descriptions, WKT, dates, etc.)
             if literals:
@@ -779,10 +809,16 @@ Each file contains:
                     estimated_tokens = len(doc_text) / 4
                     global_token_count += estimated_tokens
 
-                    # Determine primary entity type
+                    # Determine primary entity type (filter out technical CIDOC-CRM class names)
                     primary_type = "Unknown"
                     if entity_types:
-                        primary_type = entity_types[0]
+                        # Get human-readable types only
+                        human_readable_types = [
+                            t for t in entity_types
+                            if not self.is_technical_class_name(t)
+                        ]
+                        # Use first human-readable type, or fall back to "Unknown"
+                        primary_type = human_readable_types[0] if human_readable_types else "Entity"
 
                     # Add to document store
                     self.document_store.add_document(
@@ -792,7 +828,7 @@ Each file contains:
                             "label": entity_label,
                             "type": primary_type,
                             "uri": entity_uri,
-                            "all_types": entity_types
+                            "all_types": entity_types  # Keep all types for debugging if needed
                         }
                     )
                 except Exception as e:
@@ -1116,49 +1152,33 @@ Each file contains:
 
     def get_cidoc_system_prompt(self):
         """Get a system prompt with CIDOC-CRM knowledge"""
-        
-        return """You are a cultural heritage expert with deep knowledge of the CIDOC-CRM ontology.
-        
-ABOUT CIDOC-CRM:
-CIDOC-CRM is an ontology that provides definitions and a formal structure for describing the concepts and relationships used in cultural heritage documentation. When interpreting data with CIDOC-CRM:
 
-1. Entities are organized in a hierarchy where:
-   - E1_CRM_Entity is the root
-   - E77_Persistent_Item includes physical and conceptual items that persist over time
-   - E53_Place represents physical spaces
-   - E18_Physical_Thing represents tangible objects
-   - E28_Conceptual_Object represents abstract concepts
+        return """You are a cultural heritage expert who provides clear, accessible answers about cultural heritage.
 
-2. Key relationship properties include:
-   - P89_falls_within: spatial containment (X falls within Y means Y contains X)
-   - P46_is_composed_of: part-whole relationships
-   - P1_is_identified_by: connects entities to their identifiers
-   - P2_has_type: classifies entities
-   - P55_has_current_location: physical location of an object
-   - P108i_was_produced_by: connects objects to their creation events
+IMPORTANT - Natural Language Output:
+- Write in clear, natural language suitable for general audiences
+- NEVER use technical ontology identifiers (like E22_Man-Made_Object, E53_Place, IC9_Representation, D1_Digital_Object)
+- Use everyday terms: instead of "E22_Man-Made_Object" say "church", "building", "artwork", "object"
+- Instead of "E53_Place" say "place" or "location"
+- Instead of "IC9_Representation" say "depiction", "image", or "representation"
+- Focus on the actual entities and their meaningful relationships
 
-3. For spatial relationships:
-   - Follow P89_falls_within chains to get complete location hierarchies
-   - P168_is_approximated_by with WKT literals provides coordinates
-   - P55_has_current_location points to current physical location
-
-4. For temporal relationships:
-   - P4_has_time-span connects to time periods
-   - P82_at_some_time_within provides date ranges
-   - P108i_was_produced_by connects to production events
-
-5. For visual representations (VIR ontology):
-   - IC9_Representation represents visual depictions
-   - K24_portray connects images to what they depict
-   - K17_has_attribute connects to visual attributes
+Understanding the Data:
+The data comes from a structured cultural heritage database (CIDOC-CRM) which organizes information about:
+- Physical objects (churches, artworks, buildings)
+- Places and locations
+- Visual representations (paintings, icons, frescoes)
+- People, events, and historical contexts
+- Relationships between these entities
 
 When answering questions:
-1. Interpret the CIDOC-CRM relationships to extract meaningful information
-2. Follow chains of relationships to get complete context
-3. Translate CIDOC-CRM terminology into natural language
-4. Provide accurate information based solely on the data provided
+1. Interpret the structured relationships to extract meaningful information
+2. Present information in natural, flowing language
+3. Focus on what matters to the user, not technical classifications
+4. Use specific entity names (like "Panagia Phorbiottisa") rather than generic terms
+5. If information is missing or unclear, say so plainly
 
-For each answer, if the data is insufficient to provide a complete answer, explain what information is available and what is missing.
+Remember: Your audience wants to learn about cultural heritage, not database schemas. Make your answers informative and accessible.
 """
 
     def hybrid_answer_question(self, question):
@@ -1858,21 +1878,27 @@ For each answer, if the data is insufficient to provide a complete answer, expla
                 
                 # Create enhanced document with CIDOC-CRM aware natural language
                 doc_text, entity_label, entity_types = self.create_enhanced_document(entity_uri)
-                
-                # Determine primary entity type
+
+                # Determine primary entity type (filter out technical CIDOC-CRM class names)
                 primary_type = "Unknown"
                 if entity_types:
-                    primary_type = entity_types[0]
-                
+                    # Get human-readable types only
+                    human_readable_types = [
+                        t for t in entity_types
+                        if not self.is_technical_class_name(t)
+                    ]
+                    # Use first human-readable type, or fall back to "Entity"
+                    primary_type = human_readable_types[0] if human_readable_types else "Entity"
+
                 # Add to document store
                 self.document_store.add_document(
-                    entity_uri, 
-                    doc_text, 
+                    entity_uri,
+                    doc_text,
                     {
                         "label": entity_label,
                         "type": primary_type,
                         "uri": entity_uri,
-                        "all_types": entity_types
+                        "all_types": entity_types  # Keep all types for debugging if needed
                     }
                 )
             
@@ -2098,9 +2124,9 @@ For each answer, if the data is insufficient to provide a complete answer, expla
             for i, doc in enumerate(retrieved_docs):
                 entity_uri = doc.id
                 entity_label = doc.metadata.get("label", entity_uri.split('/')[-1])
-                entity_type = doc.metadata.get("type", "Unknown")
-                
-                context += f"Entity: {entity_label} (Type: {entity_type}, URI: {entity_uri})\n"
+
+                # Build context without technical type information
+                context += f"Entity: {entity_label}\n"
                 context += doc.text + "\n\n"
                 
                 # Get Wikidata info if available and requested
@@ -2160,9 +2186,11 @@ For each answer, if the data is insufficient to provide a complete answer, expla
             prompt += f"""
     Question: {question}
 
-    Provide a comprehensive answer that accurately interprets the CIDOC-CRM relationships in the data.
-    When referring to entities in your answer, use their proper names rather than saying "Document 1" or "Document 2".
-    Refer to the entities by their actual names (like "Panagia Phorbiottisa" or "Nikitari") instead of document numbers.
+    Provide a clear, comprehensive answer in natural language:
+    - Use the entities' actual names (like "Panagia Phorbiottisa", "Nikitari") not document numbers
+    - Write in accessible language - avoid technical ontology codes (E22_, IC9_, D1_, etc.)
+    - Focus on meaningful information that answers the question
+    - Present relationships and context in natural, flowing prose
     """
             
             # Generate answer using the provider

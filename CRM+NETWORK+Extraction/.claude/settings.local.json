@@ -3,7 +3,8 @@
     "allow": [
       "Bash(cat:*)",
       "Bash(python -c:*)",
-      "Bash(python extract_ontology_labels.py:*)"
+      "Bash(python extract_ontology_labels.py:*)",
+      "Bash(cd /Users/carboni/Documents/pynotebook/personal/RAG\\ rdf/CRM_RAG/CRM+NETWORK+Extraction && python3:*)"
     ],
     "deny": [],
     "ask": []

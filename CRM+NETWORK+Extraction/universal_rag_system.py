@@ -66,8 +66,9 @@ class RetrievalConfig:
 class UniversalRagSystem:
     """Universal RAG system with graph-based document retrieval"""
 
-    # Class-level cache for property labels
+    # Class-level cache for property labels and ontology classes
     _property_labels = None
+    _ontology_classes = None
     _extraction_attempted = False  # Track if we've tried extraction to avoid infinite loops
     _missing_properties = set()  # Track properties that couldn't be found
 
@@ -97,9 +98,12 @@ class UniversalRagSystem:
         # Initialize document store
         self.document_store = None
 
-        # Load property labels from ontology extraction (cached at class level)
+        # Load property labels and ontology classes from ontology extraction (cached at class level)
         if UniversalRagSystem._property_labels is None:
             UniversalRagSystem._property_labels = self._load_property_labels()
+
+        if UniversalRagSystem._ontology_classes is None:
+            UniversalRagSystem._ontology_classes = self._load_ontology_classes()
 
     def _load_property_labels(self, force_extract=False):
         """
@@ -161,7 +165,69 @@ class UniversalRagSystem:
         else:
             logger.error(f"Property labels file not found at {labels_file}")
             return {}
-        
+
+    def _load_ontology_classes(self, force_extract=False):
+        """
+        Load ontology classes from JSON file generated from ontologies.
+        Automatically extracts classes from ontology files if JSON doesn't exist.
+
+        Args:
+            force_extract: If True, force re-extraction even if JSON exists
+
+        Returns:
+            set: Set of ontology class names (both URIs and local names)
+        """
+        classes_file = 'ontology_classes.json'
+        ontology_dir = 'ontology'
+
+        # Check if we need to extract (the extraction is done together with properties)
+        should_extract = force_extract or not os.path.exists(classes_file)
+
+        if should_extract:
+            # Check if ontology directory exists
+            if not os.path.exists(ontology_dir):
+                logger.error(f"Ontology directory not found at '{ontology_dir}'")
+                logger.error("Cannot extract ontology classes without ontology files")
+                return set()
+
+            # Check if ontology files exist
+            ontology_files = [f for f in os.listdir(ontology_dir) if f.endswith(('.ttl', '.rdf', '.owl', '.n3'))]
+            if not ontology_files:
+                logger.error(f"No ontology files found in '{ontology_dir}'")
+                logger.error("Add CIDOC-CRM, VIR, CRMdig ontology files to the ontology directory")
+                return set()
+
+            # Run extraction (this extracts both properties and classes)
+            logger.info("Extracting ontology classes from ontology files...")
+            logger.info(f"Found {len(ontology_files)} ontology files: {', '.join(ontology_files)}")
+
+            try:
+                # This will extract both properties and classes
+                success = run_extraction(ontology_dir, 'property_labels.json', classes_file)
+                if not success:
+                    logger.error("Failed to extract ontology classes from ontologies")
+                    return set()
+                else:
+                    logger.info(f"✓ Successfully extracted ontology classes to {classes_file}")
+            except Exception as e:
+                logger.error(f"Error during ontology class extraction: {str(e)}")
+                return set()
+
+        # Load the JSON file
+        if os.path.exists(classes_file):
+            try:
+                with open(classes_file, 'r', encoding='utf-8') as f:
+                    classes_list = json.load(f)
+                classes_set = set(classes_list)
+                logger.info(f"Loaded {len(classes_set)} ontology classes from {classes_file}")
+                return classes_set
+            except Exception as e:
+                logger.error(f"Error loading ontology classes from {classes_file}: {str(e)}")
+                return set()
+        else:
+            logger.error(f"Ontology classes file not found at {classes_file}")
+            return set()
+
     @property
     def embeddings(self):
         """
@@ -401,25 +467,44 @@ class UniversalRagSystem:
 
     def is_technical_class_name(self, class_name):
         """
-        Check if a class name is a technical CIDOC-CRM identifier that should be filtered
+        Check if a class name is a technical ontology class that should be filtered
         from natural language output.
 
-        Technical patterns:
-        - E\d+_Name (e.g., E22_Man-Made_Object, E53_Place)
-        - D\d+_Name (e.g., D1_Digital_Object from CRMdig)
-        - IC\d+_Name (e.g., IC9_Representation from VIR)
-        - F\d+_Name (e.g., from FRBRoo)
+        This method uses the ontology classes extracted from CIDOC-CRM, VIR, CRMdig, etc.
+        ontology files rather than hard-coded regex patterns.
+
+        Examples of technical classes that will be filtered:
+        - E22_Human-Made_Object
+        - E53_Place
+        - D1_Digital_Object (CRMdig)
+        - IC9_Representation (VIR)
+        - FXX_Name (FRBRoo)
 
         Args:
-            class_name: The class name to check
+            class_name: The class name to check (can be full URI or local name)
 
         Returns:
-            bool: True if it's a technical identifier, False if it's human-readable
+            bool: True if it's a technical ontology class, False if it's human-readable
         """
-        # Pattern for technical CIDOC-CRM and extension class names
-        # Matches: E22_..., D1_..., IC9_..., F38_..., etc.
-        technical_pattern = r'^[A-Z]+\d+[a-z]?_'
-        return bool(re.match(technical_pattern, class_name))
+        # Use ontology classes loaded from ontology files
+        if UniversalRagSystem._ontology_classes is None:
+            # Fallback to regex pattern if classes haven't been loaded
+            logger.warning("Ontology classes not loaded, falling back to regex pattern matching")
+            technical_pattern = r'^[A-Z]+\d+[a-z]?_'
+            return bool(re.match(technical_pattern, class_name))
+
+        # Check if the class name (or its local name) is in the ontology classes
+        # First check direct match
+        if class_name in UniversalRagSystem._ontology_classes:
+            return True
+
+        # Also check if the local name (after last / or #) is a technical class
+        if '/' in class_name or '#' in class_name:
+            local_name = class_name.split('/')[-1].split('#')[-1]
+            if local_name in UniversalRagSystem._ontology_classes:
+                return True
+
+        return False
 
     def get_entity_label(self, entity_uri):
         """
@@ -460,12 +545,23 @@ class UniversalRagSystem:
         # Absolute fallback: return the last part of URI
         return entity_uri.rstrip('/').split('/')[-1] if entity_uri else "Unknown"
 
-    def get_entity_context(self, entity_uri, depth=RetrievalConfig.ENTITY_CONTEXT_DEPTH):
-        """Get entity context by traversing the graph bidirectionally"""
+    def get_entity_context(self, entity_uri, depth=RetrievalConfig.ENTITY_CONTEXT_DEPTH, return_triples=False):
+        """Get entity context by traversing the graph bidirectionally
+
+        Args:
+            entity_uri: The URI of the entity to get context for
+            depth: How many hops to traverse
+            return_triples: If True, also return raw RDF triples
+
+        Returns:
+            If return_triples is False: list of natural language statements
+            If return_triples is True: tuple of (statements list, triples list)
+        """
 
         context_statements = []
+        raw_triples = []
         visited = set()
-        
+
         def traverse(uri, current_depth=0, direction="both"):
             if uri in visited or current_depth > depth:
                 return
@@ -474,19 +570,18 @@ class UniversalRagSystem:
 
             # Get entity label using the improved label retrieval method
             entity_label = self.get_entity_label(uri)
-            
+
             # Get outgoing relationships if direction is "both" or "outgoing"
             if direction in ["both", "outgoing"]:
                 outgoing_query = f"""
                 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-                SELECT ?pred ?predLabel ?obj ?objLabel WHERE {{
+                SELECT ?pred ?obj ?objLabel WHERE {{
                     <{uri}> ?pred ?obj .
-                    OPTIONAL {{ ?pred rdfs:label ?predLabel }}
                     OPTIONAL {{ ?obj rdfs:label ?objLabel }}
                     FILTER(isURI(?obj))
                 }}
                 """
-                
+
                 try:
                     self.sparql.setQuery(outgoing_query)
                     outgoing_results = self.sparql.query().convert()
@@ -500,7 +595,12 @@ class UniversalRagSystem:
                             continue
 
                         # Get labels if available, with improved fallback
-                        pred_label = result.get("predLabel", {}).get("value", pred.split('/')[-1])
+                        # Use property_labels.json for English predicate labels
+                        pred_label = UniversalRagSystem._property_labels.get(pred)
+                        if not pred_label:
+                            # Fallback to local name if not in property_labels
+                            pred_label = pred.split('/')[-1].split('#')[-1]
+
                         obj_label = result.get("objLabel", {}).get("value")
                         if not obj_label:
                             obj_label = self.get_entity_label(obj)
@@ -509,6 +609,17 @@ class UniversalRagSystem:
                         # Skip if same URI or same label (redundant statements)
                         if uri == obj or (entity_label and obj_label and entity_label.lower() == obj_label.lower()):
                             continue
+
+                        # Store raw triple if requested
+                        if return_triples:
+                            raw_triples.append({
+                                "subject": uri,
+                                "subject_label": entity_label,
+                                "predicate": pred,
+                                "predicate_label": pred_label,
+                                "object": obj,
+                                "object_label": obj_label
+                            })
 
                         # Create natural language statement
                         statement = self.process_cidoc_relationship(
@@ -522,19 +633,18 @@ class UniversalRagSystem:
                             traverse(obj, current_depth + 1, "outgoing")
                 except Exception as e:
                     logger.error(f"Error traversing outgoing relationships: {str(e)}")
-            
+
             # Get incoming relationships if direction is "both" or "incoming"
             if direction in ["both", "incoming"]:
                 incoming_query = f"""
                 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-                SELECT ?subj ?subjLabel ?pred ?predLabel WHERE {{
+                SELECT ?subj ?subjLabel ?pred WHERE {{
                     ?subj ?pred <{uri}> .
                     OPTIONAL {{ ?subj rdfs:label ?subjLabel }}
-                    OPTIONAL {{ ?pred rdfs:label ?predLabel }}
                     FILTER(isURI(?subj))
                 }}
                 """
-                
+
                 try:
                     self.sparql.setQuery(incoming_query)
                     incoming_results = self.sparql.query().convert()
@@ -551,12 +661,28 @@ class UniversalRagSystem:
                         subj_label = result.get("subjLabel", {}).get("value")
                         if not subj_label:
                             subj_label = self.get_entity_label(subj)
-                        pred_label = result.get("predLabel", {}).get("value", pred.split('/')[-1])
+
+                        # Use property_labels.json for English predicate labels
+                        pred_label = UniversalRagSystem._property_labels.get(pred)
+                        if not pred_label:
+                            # Fallback to local name if not in property_labels
+                            pred_label = pred.split('/')[-1].split('#')[-1]
 
                         # Filter out self-referential relationships
                         # Skip if same URI or same label (redundant statements)
                         if subj == uri or (subj_label and entity_label and subj_label.lower() == entity_label.lower()):
                             continue
+
+                        # Store raw triple if requested
+                        if return_triples:
+                            raw_triples.append({
+                                "subject": subj,
+                                "subject_label": subj_label,
+                                "predicate": pred,
+                                "predicate_label": pred_label,
+                                "object": uri,
+                                "object_label": entity_label
+                            })
 
                         # Create natural language statement
                         statement = self.process_cidoc_relationship(
@@ -570,12 +696,25 @@ class UniversalRagSystem:
                             traverse(subj, current_depth + 1, "incoming")
                 except Exception as e:
                     logger.error(f"Error traversing incoming relationships: {str(e)}")
-        
+
         # Start traversal
         traverse(entity_uri)
-        
+
         # Return unique statements
-        return list(set(context_statements))
+        unique_statements = list(set(context_statements))
+
+        if return_triples:
+            # Deduplicate triples based on subject-predicate-object URIs
+            seen_triples = set()
+            unique_triples = []
+            for triple in raw_triples:
+                triple_key = (triple["subject"], triple["predicate"], triple["object"])
+                if triple_key not in seen_triples:
+                    seen_triples.add(triple_key)
+                    unique_triples.append(triple)
+            return unique_statements, unique_triples
+        else:
+            return unique_statements
 
     def create_enhanced_document(self, entity_uri):
         """Create an enhanced document with natural language interpretation of CIDOC-CRM relationships"""
@@ -615,12 +754,17 @@ class UniversalRagSystem:
             except Exception as e:
                 logger.warning(f"Error getting entity types for {entity_uri}: {str(e)}")
 
-            # Get relationships and convert to natural language
+            # Get relationships and convert to natural language (also get raw triples)
             try:
-                context_statements = self.get_entity_context(entity_uri, depth=RetrievalConfig.ENTITY_CONTEXT_DEPTH)
+                context_statements, raw_triples = self.get_entity_context(
+                    entity_uri,
+                    depth=RetrievalConfig.ENTITY_CONTEXT_DEPTH,
+                    return_triples=True
+                )
             except Exception as e:
                 logger.warning(f"Error getting entity context for {entity_uri}: {str(e)}")
                 context_statements = []
+                raw_triples = []
 
             # Create document text
             text = f"# {entity_label}\n\n"
@@ -672,11 +816,11 @@ class UniversalRagSystem:
                 for statement in context_statements:
                     text += f"- {statement}\n"
 
-            return text, entity_label, entity_types
+            return text, entity_label, entity_types, raw_triples
         except Exception as e:
             logger.error(f"Error creating enhanced document for {entity_uri}: {str(e)}")
             # Return minimal document to prevent complete failure
-            return f"Entity: {entity_uri}", entity_uri, []
+            return f"Entity: {entity_uri}", entity_uri, [], []
 
     def save_entity_document(self, entity_uri, document_text, entity_label, output_dir="entity_documents"):
         """Save entity document to disk for transparency and reuse"""
@@ -799,7 +943,7 @@ Each file contains:
                 
                 # Create enhanced document with CIDOC-CRM aware natural language
                 try:
-                    doc_text, entity_label, entity_types = self.create_enhanced_document(entity_uri)
+                    doc_text, entity_label, entity_types, raw_triples = self.create_enhanced_document(entity_uri)
 
                     # Save document to disk for transparency and reuse
                     self.save_entity_document(entity_uri, doc_text, entity_label)
@@ -828,7 +972,8 @@ Each file contains:
                             "label": entity_label,
                             "type": primary_type,
                             "uri": entity_uri,
-                            "all_types": entity_types  # Keep all types for debugging if needed
+                            "all_types": entity_types,  # Keep all types for debugging if needed
+                            "raw_triples": raw_triples  # Store raw RDF triples for source attribution
                         }
                     )
                 except Exception as e:
@@ -1265,10 +1410,29 @@ Remember: Your audience wants to learn about cultural heritage, not database sch
     def get_all_entities(self):
         """Get all entities that have literal properties from SPARQL endpoint"""
         query = """
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        PREFIX owl: <http://www.w3.org/2002/07/owl#>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
         SELECT DISTINCT ?entity ?property ?value
         WHERE {
             ?entity ?property ?value .
             FILTER(isLiteral(?value))
+
+            # Exclude predicates/properties from the ontology
+            FILTER NOT EXISTS {
+                ?entity rdf:type ?type .
+                VALUES ?type {
+                    rdf:Property
+                    owl:ObjectProperty
+                    owl:DatatypeProperty
+                    owl:AnnotationProperty
+                    owl:FunctionalProperty
+                    owl:InverseFunctionalProperty
+                    owl:TransitiveProperty
+                    owl:SymmetricProperty
+                }
+            }
         }
         """
 
@@ -1875,9 +2039,9 @@ Remember: Your audience wants to learn about cultural heritage, not database sch
             # Process batch
             for entity in tqdm(batch, desc=f"Batch {i//batch_size + 1}", unit="entity"):
                 entity_uri = entity["entity"]
-                
+
                 # Create enhanced document with CIDOC-CRM aware natural language
-                doc_text, entity_label, entity_types = self.create_enhanced_document(entity_uri)
+                doc_text, entity_label, entity_types, raw_triples = self.create_enhanced_document(entity_uri)
 
                 # Determine primary entity type (filter out technical CIDOC-CRM class names)
                 primary_type = "Unknown"
@@ -1898,7 +2062,8 @@ Remember: Your audience wants to learn about cultural heritage, not database sch
                         "label": entity_label,
                         "type": primary_type,
                         "uri": entity_uri,
-                        "all_types": entity_types  # Keep all types for debugging if needed
+                        "all_types": entity_types,  # Keep all types for debugging if needed
+                        "raw_triples": raw_triples  # Store raw RDF triples for source attribution
                     }
                 )
             
@@ -2201,14 +2366,17 @@ Remember: Your audience wants to learn about cultural heritage, not database sch
             for i, doc in enumerate(retrieved_docs):
                 entity_uri = doc.id
                 entity_label = doc.metadata.get("label", entity_uri.split('/')[-1])
-                
+                raw_triples = doc.metadata.get("raw_triples", [])
+
                 sources.append({
                     "id": i,
                     "entity_uri": entity_uri,
                     "entity_label": entity_label,
-                    "type": doc.metadata.get("type", "unknown")
+                    "type": "graph",  # Changed from doc.metadata.get("type", "unknown") to "graph"
+                    "entity_type": doc.metadata.get("type", "unknown"),  # Keep entity type separate
+                    "raw_triples": raw_triples  # Include raw RDF triples
                 })
-            
+
             # Add Wikidata sources
             for entity_info in entities_with_wikidata:
                 sources.append({

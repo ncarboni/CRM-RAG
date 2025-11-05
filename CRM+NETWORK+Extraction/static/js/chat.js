@@ -94,56 +94,111 @@ document.addEventListener('DOMContentLoaded', function() {
             if (sources && sources.length > 0) {
                 const sourcesDiv = document.createElement('div');
                 sourcesDiv.className = 'sources-section';
-                sourcesDiv.innerHTML = '<p><strong>Sources:</strong></p><ul class="source-list">';
-                
-                // Track if we have Wikidata sources
-                let hasWikidataSources = false;
-                
-                sources.forEach(source => {
-                    if (source.type === "rdf_data") {
-                        sourcesDiv.innerHTML += `<li class="source-item rdf-source">
-                            <a href="/entity/${encodeURIComponent(source.entity_uri)}" target="_blank">
-                                ${source.entity_label || source.entity_uri}
-                            </a>
-                        </li>`;
-                    } else if (source.type === "ontology_documentation") {
-                        sourcesDiv.innerHTML += `<li class="source-item ontology-source">
-                            <a href="/ontology#${source.concept_id}" target="_blank">
-                                ${source.concept_id} (${source.concept_name})
-                            </a>
-                        </li>`;
-                    } else if (source.type === "wikidata") {
-                        hasWikidataSources = true;
-                        sourcesDiv.innerHTML += `<li class="source-item wikidata-source">
+
+                // Separate sources into internal and external
+                const internalSources = sources.filter(s => s.type === "graph" || s.type === "rdf_data" || s.type === "ontology_documentation");
+                const externalSources = sources.filter(s => s.type === "wikidata");
+
+                // Create collapsible toggle
+                const toggleDiv = document.createElement('div');
+                toggleDiv.className = 'sources-toggle';
+                toggleDiv.innerHTML = `
+                    <i class="fas fa-chevron-right sources-toggle-icon"></i>
+                    <span>Sources</span>
+                `;
+
+                // Create collapsible content
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'sources-content';
+
+                let contentHtml = '';
+
+                // Add internal sources section
+                if (internalSources.length > 0) {
+                    contentHtml += '<div class="sources-subsection"><h6>Internal (Graph)</h6><ul class="source-list">';
+
+                    internalSources.forEach(source => {
+                        if (source.type === "graph") {
+                            const tripleCount = source.raw_triples ? source.raw_triples.length : 0;
+                            const triplesBtnHtml = tripleCount > 0 ?
+                                `<button class="btn btn-sm btn-outline-primary show-triples-btn ms-2"
+                                        data-source-id="${source.id}">
+                                    <i class="fas fa-code"></i> Show statements (${tripleCount})
+                                </button>` : '';
+
+                            contentHtml += `<li class="source-item graph-source" data-source-id="${source.id}">
+                                <i class="fas fa-project-diagram me-1"></i>
+                                <strong>Graph:</strong> ${source.entity_label}
+                                <br/>
+                                <small class="text-muted ms-3">URI: <code>${source.entity_uri}</code></small>
+                                ${triplesBtnHtml}
+                            </li>`;
+                        } else if (source.type === "rdf_data") {
+                            contentHtml += `<li class="source-item rdf-source">
+                                <a href="/entity/${encodeURIComponent(source.entity_uri)}" target="_blank">
+                                    ${source.entity_label || source.entity_uri}
+                                </a>
+                            </li>`;
+                        } else if (source.type === "ontology_documentation") {
+                            contentHtml += `<li class="source-item ontology-source">
+                                <a href="/ontology#${source.concept_id}" target="_blank">
+                                    ${source.concept_id} (${source.concept_name})
+                                </a>
+                            </li>`;
+                        }
+                    });
+
+                    contentHtml += '</ul></div>';
+                }
+
+                // Add external sources section
+                if (externalSources.length > 0) {
+                    contentHtml += '<div class="sources-subsection"><h6>External (Wikidata)</h6><ul class="source-list">';
+
+                    externalSources.forEach(source => {
+                        contentHtml += `<li class="source-item wikidata-source">
                             <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/Wikidata-logo.svg/20px-Wikidata-logo.svg.png" class="wikidata-logo" alt="Wikidata">
                             <a href="${source.wikidata_url}" target="_blank">
                                 ${source.entity_label} (Wikidata)
                             </a>
-                            <button class="btn btn-sm btn-outline-success show-wikidata-btn" 
-                                    data-entity="${source.entity_uri}" 
+                            <button class="btn btn-sm btn-outline-success show-wikidata-btn"
+                                    data-entity="${source.entity_uri}"
                                     data-wikidata-id="${source.wikidata_id}">
                                 <i class="fas fa-info-circle"></i> More info
                             </button>
                         </li>`;
-                    }
-                });
-                
-                sourcesDiv.innerHTML += '</ul>';
-                
-                // If we have Wikidata sources, add an explanation
-                if (hasWikidataSources) {
-                    sourcesDiv.innerHTML += '<div class="text-muted small mt-2">Wikidata sources provide additional context from external data sources.</div>';
+                    });
+
+                    contentHtml += '</ul>';
+                    contentHtml += '<div class="text-muted small mt-2">Wikidata sources provide additional context from external data sources.</div>';
+                    contentHtml += '</div>';
                 }
-                
+
+                contentDiv.innerHTML = contentHtml;
+
+                // Add toggle functionality
+                toggleDiv.addEventListener('click', function() {
+                    const icon = this.querySelector('.sources-toggle-icon');
+                    const content = this.nextElementSibling;
+
+                    icon.classList.toggle('expanded');
+                    content.classList.toggle('expanded');
+                });
+
+                sourcesDiv.appendChild(toggleDiv);
+                sourcesDiv.appendChild(contentDiv);
                 messageDiv.appendChild(sourcesDiv);
             }
             
             // Replace typing indicator with actual message
             chatContainer.replaceChild(messageDiv, indicatorDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
-            
+
             // Set up Wikidata buttons
             setupWikidataButtons();
+
+            // Set up triples buttons
+            setupTriplesButtons(sources);
         }, 1500); // Simulated typing delay
     }
     
@@ -249,7 +304,76 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
+    // Function to handle triples/statements buttons
+    function setupTriplesButtons(sources) {
+        document.querySelectorAll('.show-triples-btn').forEach(button => {
+            if (!button.hasListener) {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const sourceId = parseInt(this.getAttribute('data-source-id'));
+
+                    // Find the source in the sources array
+                    const source = sources.find(s => s.id === sourceId);
+                    if (!source || !source.raw_triples || source.raw_triples.length === 0) {
+                        return;
+                    }
+
+                    const parentLi = this.closest('li');
+
+                    // Check if triples are already shown
+                    const existingPanel = parentLi.querySelector('.triples-panel');
+                    if (existingPanel) {
+                        // Hide the panel
+                        existingPanel.remove();
+                        this.innerHTML = `<i class="fas fa-code"></i> Show statements (${source.raw_triples.length})`;
+                    } else {
+                        // Show the panel
+                        const triplesPanel = document.createElement('div');
+                        triplesPanel.className = 'triples-panel mt-2';
+
+                        let panelContent = `
+                            <div class="triples-header">
+                                <strong>RDF Statements</strong>
+                                <span class="text-muted">(${source.raw_triples.length} triples)</span>
+                            </div>
+                            <div class="triples-list">
+                        `;
+
+                        source.raw_triples.forEach((triple, idx) => {
+                            panelContent += `
+                                <div class="triple-item">
+                                    <div class="triple-part triple-subject">
+                                        <span class="triple-label">Subject:</span>
+                                        <span class="triple-value" title="${triple.subject}">${triple.subject_label || triple.subject}</span>
+                                    </div>
+                                    <div class="triple-part triple-predicate">
+                                        <span class="triple-label">Predicate:</span>
+                                        <span class="triple-value" title="${triple.predicate}">${triple.predicate_label || triple.predicate}</span>
+                                    </div>
+                                    <div class="triple-part triple-object">
+                                        <span class="triple-label">Object:</span>
+                                        <span class="triple-value" title="${triple.object}">${triple.object_label || triple.object}</span>
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        panelContent += '</div>';
+                        triplesPanel.innerHTML = panelContent;
+                        parentLi.appendChild(triplesPanel);
+
+                        // Update button text
+                        this.innerHTML = `<i class="fas fa-code"></i> Hide statements`;
+                    }
+                });
+
+                // Mark that we added a listener to avoid duplicates
+                button.hasListener = true;
+            }
+        });
+    }
+
     // Function to send question to server
     async function sendQuestion(question) {
         // Don't send empty questions

@@ -1,7 +1,8 @@
 """
-Extract property labels from ontology files and save to JSON.
-This script parses CIDOC-CRM, VIR, and CRMdig ontologies to extract
-rdfs:label for all properties.
+Extract property labels and class definitions from ontology files and save to JSON.
+This script parses CIDOC-CRM, VIR, and CRMdig ontologies to extract:
+- rdfs:label for all properties
+- All class URIs (owl:Class, rdfs:Class) for technical class filtering
 """
 
 import os
@@ -44,8 +45,8 @@ def extract_property_labels(ontology_dir='ontology'):
             g.parse(filepath)
             logger.info(f"  Loaded {len(g)} triples")
 
-            # Query for all properties with labels
-            # A property is typically an rdf:Property or owl:ObjectProperty
+            # Query for PROPERTIES ONLY (not classes!)
+            # Explicitly require the entity to be a property type
             query_with_labels = """
             PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -53,10 +54,16 @@ def extract_property_labels(ontology_dir='ontology'):
 
             SELECT ?property ?label ?lang
             WHERE {
+                # MUST be one of these property types
+                {
+                    ?property a rdf:Property .
+                } UNION {
+                    ?property a owl:ObjectProperty .
+                } UNION {
+                    ?property a owl:DatatypeProperty .
+                }
+                # Get labels for these properties
                 ?property rdfs:label ?label .
-                OPTIONAL { ?property a rdf:Property }
-                OPTIONAL { ?property a owl:ObjectProperty }
-                OPTIONAL { ?property a owl:DatatypeProperty }
                 BIND(LANG(?label) AS ?lang)
             }
             """
@@ -145,6 +152,104 @@ def extract_property_labels(ontology_dir='ontology'):
     return property_labels
 
 
+def extract_ontology_classes(ontology_dir='ontology'):
+    """
+    Extract all class URIs from ontology files.
+    Returns a set of class URIs (as strings) that represent technical ontology classes.
+    """
+    ontology_classes = set()
+
+    # Find all ontology files
+    ontology_files = []
+    for filename in os.listdir(ontology_dir):
+        if filename.endswith(('.ttl', '.rdf', '.owl', '.n3')):
+            ontology_files.append(os.path.join(ontology_dir, filename))
+
+    logger.info(f"Extracting classes from {len(ontology_files)} ontology files")
+
+    # Process each ontology file
+    for filepath in ontology_files:
+        logger.info(f"Processing classes in: {filepath}")
+
+        # Create a new graph and parse the file
+        g = Graph()
+        try:
+            # Try to parse the file (rdflib auto-detects format)
+            g.parse(filepath)
+
+            # Query for all classes with their labels and language tags
+            # Note: VIR uses rdf:Class, CIDOC-CRM uses owl:Class, others use rdfs:Class
+            query = """
+            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            PREFIX owl: <http://www.w3.org/2002/07/owl#>
+
+            SELECT DISTINCT ?class ?label ?lang
+            WHERE {
+                {
+                    ?class a owl:Class .
+                } UNION {
+                    ?class a rdfs:Class .
+                } UNION {
+                    ?class a rdf:Class .
+                }
+                OPTIONAL {
+                    ?class rdfs:label ?label .
+                    BIND(LANG(?label) AS ?lang)
+                }
+            }
+            """
+
+            results = g.query(query)
+
+            # Group labels by class URI to select English labels preferentially
+            class_labels = {}
+            for row in results:
+                class_uri = str(row['class'])
+                label = str(row['label']) if row['label'] else None
+                lang = str(row['lang']) if row['lang'] else None
+
+                if class_uri not in class_labels:
+                    class_labels[class_uri] = []
+
+                if label:
+                    class_labels[class_uri].append((label, lang))
+
+            # Process each class and add to ontology_classes
+            count = 0
+            for class_uri, labels in class_labels.items():
+                # Extract and store ONLY the local name (e.g., E22_Human-Made_Object)
+                # We don't need the full URI because is_technical_class_name() extracts
+                # local names from URIs for comparison
+                if '#' in class_uri:
+                    local_name = class_uri.split('#')[-1]
+                elif '/' in class_uri:
+                    local_name = class_uri.split('/')[-1]
+                else:
+                    local_name = class_uri
+
+                # Only store the local name (no full URI, no labels)
+                if local_name:
+                    ontology_classes.add(local_name)
+
+                count += 1
+
+            logger.info(f"  Extracted {count} classes (local names only)")
+
+        except Exception as e:
+            logger.error(f"  Error parsing {filepath}: {str(e)}")
+            continue
+
+    logger.info(f"\nTotal unique classes extracted: {len(ontology_classes)}")
+
+    # Log some examples
+    logger.info("\nExample classes:")
+    for i, class_name in enumerate(list(ontology_classes)[:10]):
+        logger.info(f"  {class_name}")
+
+    return ontology_classes
+
+
 def save_property_labels(property_labels, output_file='property_labels.json'):
     """Save property labels to JSON file"""
     with open(output_file, 'w', encoding='utf-8') as f:
@@ -152,37 +257,63 @@ def save_property_labels(property_labels, output_file='property_labels.json'):
     logger.info(f"\nSaved property labels to {output_file}")
 
 
-def run_extraction(ontology_dir='ontology', output_file='property_labels.json'):
+def save_ontology_classes(ontology_classes, output_file='ontology_classes.json'):
+    """Save ontology classes to JSON file"""
+    # Convert set to sorted list for better readability
+    classes_list = sorted(list(ontology_classes))
+    with open(output_file, 'w', encoding='utf-8') as f:
+        json.dump(classes_list, f, indent=2, ensure_ascii=False)
+    logger.info(f"Saved ontology classes to {output_file}")
+
+
+def run_extraction(ontology_dir='ontology', output_file='property_labels.json', classes_file='ontology_classes.json'):
     """
-    Main function to extract and save property labels.
+    Main function to extract and save property labels and ontology classes.
     Can be called from other modules.
+
+    Args:
+        ontology_dir: Directory containing ontology files
+        output_file: Output file for property labels
+        classes_file: Output file for ontology classes
 
     Returns:
         bool: True if successful, False otherwise
     """
     try:
         # Extract labels from ontology files
+        logger.info("=" * 60)
+        logger.info("EXTRACTING PROPERTY LABELS")
+        logger.info("=" * 60)
         labels = extract_property_labels(ontology_dir)
+
+        # Extract classes from ontology files
+        logger.info("\n" + "=" * 60)
+        logger.info("EXTRACTING ONTOLOGY CLASSES")
+        logger.info("=" * 60)
+        classes = extract_ontology_classes(ontology_dir)
 
         # Save to JSON
         save_property_labels(labels, output_file)
+        save_ontology_classes(classes, classes_file)
 
         logger.info(f"\n✓ Successfully extracted {len(labels)} property labels")
         logger.info(f"✓ Saved to {output_file}")
+        logger.info(f"✓ Successfully extracted {len(classes)} ontology classes")
+        logger.info(f"✓ Saved to {classes_file}")
         return True
     except Exception as e:
-        logger.error(f"Failed to extract property labels: {str(e)}")
+        logger.error(f"Failed to extract ontology data: {str(e)}")
         return False
 
 
 if __name__ == '__main__':
     # Run extraction when called directly
-    success = run_extraction('ontology', 'property_labels.json')
+    success = run_extraction('ontology', 'property_labels.json', 'ontology_classes.json')
 
     if success:
-        print(f"\n✓ Successfully extracted property labels")
-        print("✓ Saved to property_labels.json")
+        print(f"\n✓ Successfully extracted property labels and ontology classes")
+        print("✓ Saved to property_labels.json and ontology_classes.json")
     else:
-        print("\n✗ Failed to extract property labels")
+        print("\n✗ Failed to extract ontology data")
         import sys
         sys.exit(1)

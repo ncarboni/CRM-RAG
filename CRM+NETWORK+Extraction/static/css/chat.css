@@ -134,3 +134,158 @@
     color: #13294B; /* Illini Blue */
     text-decoration: underline;
 }
+
+/* Graph source styles */
+.graph-source {
+    color: #13294B; /* Illini Blue */
+    padding: 8px 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.graph-source:last-child {
+    border-bottom: none;
+}
+
+.graph-source code {
+    font-size: 0.85em;
+    background-color: #f8f9fa;
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: #495057;
+}
+
+/* Triples panel styles */
+.triples-panel {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-left: 4px solid #FF5F05; /* Illini Orange */
+    border-radius: 4px;
+    padding: 12px;
+    margin-top: 10px;
+    font-size: 0.85em;
+}
+
+.triples-header {
+    font-weight: 600;
+    color: #13294B; /* Illini Blue */
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.triples-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.triple-item {
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 8px;
+}
+
+.triple-item:last-child {
+    margin-bottom: 0;
+}
+
+.triple-part {
+    margin-bottom: 6px;
+    display: flex;
+    align-items: start;
+}
+
+.triple-part:last-child {
+    margin-bottom: 0;
+}
+
+.triple-label {
+    font-weight: 600;
+    color: #6c757d;
+    min-width: 80px;
+    margin-right: 10px;
+}
+
+.triple-value {
+    color: #495057;
+    word-break: break-word;
+}
+
+.triple-subject .triple-value {
+    color: #13294B; /* Illini Blue */
+    font-weight: 500;
+}
+
+.triple-predicate .triple-value {
+    color: #FF5F05; /* Illini Orange */
+    font-weight: 500;
+}
+
+.triple-object .triple-value {
+    color: #13294B; /* Illini Blue */
+    font-weight: 500;
+}
+
+/* Button styles for show/hide triples */
+.show-triples-btn {
+    font-size: 0.8em;
+    padding: 4px 8px;
+    margin-top: 6px;
+}
+
+/* Collapsible sources styles */
+.sources-toggle {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    font-weight: 600;
+    color: #13294B; /* Illini Blue */
+}
+
+.sources-toggle:hover {
+    color: #FF5F05; /* Illini Orange */
+}
+
+.sources-toggle-icon {
+    transition: transform 0.2s ease;
+    font-size: 0.9em;
+}
+
+.sources-toggle-icon.expanded {
+    transform: rotate(90deg);
+}
+
+.sources-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.sources-content.expanded {
+    max-height: 2000px;
+}
+
+.sources-subsection {
+    margin-bottom: 15px;
+}
+
+.sources-subsection:last-child {
+    margin-bottom: 0;
+}
+
+.sources-subsection h6 {
+    font-size: 0.9em;
+    font-weight: 600;
+    color: #6c757d;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.sources-subsection .source-list {
+    margin-top: 8px;
+}

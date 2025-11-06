@@ -436,6 +436,11 @@ class UniversalRagSystem:
                 predicate_label = stripped_pred.replace('_', ' ').lower()
                 logger.debug(f"Using fallback label '{predicate_label}' for property {simple_pred}")
 
+        # Special handling for type classification relationships (P2_has_type)
+        # to distinguish instances from types in iconographic classifications
+        if "P2_has_type" in predicate or "P2_has_type" in simple_pred:
+            return f"{subject_label} is classified as type: {object_label}"
+
         # Return natural language statement using the predicate label
         return f"{subject_label} {predicate_label} {object_label}"
 
@@ -1146,71 +1151,7 @@ Each file contains:
         self.document_store.vector_store = vector_store
         logger.info(f"Vector store built successfully with {total_docs} documents")
 
-    def generate_sparql_query(self, question):
-            """Generate a SPARQL query based on the question"""
-            
-            system_prompt = """You are an expert in converting natural language questions to SPARQL queries for CIDOC-CRM data.
-            
-            The data uses these key CIDOC-CRM classes:
-            - E53_Place for locations
-            - E18_Physical_Thing for physical objects
-            - E21_Person for people
-            - E55_Type for types/categories
-            - E36_Visual_Item for visual representations
-            - E41_Appellation for names (use labels instead)
-            
-            And these key properties:
-            - P89_falls_within for spatial containment
-            - P55_has_current_location for current location
-            - P168_is_approximated_by for coordinates
-            - P2_has_type for indicating categories
-            - P1_is_identified_by for names
-            - rdfs:label for names/labels
-            - K24_portray for portray visual items
-            
-            Generate a SPARQL query that will answer the question.
-            - Use PREFIX statements for common namespaces
-            - Return relevant labels for all URIs
-            - Only return the SPARQL query, no explanations
-            - Do not include any markdown formatting or code blocks (no backticks)
-            """
-            
-            prompt = f"""Generate a SPARQL query for the following question about CIDOC-CRM data:
-            
-            {question}
-            """
-            
-            sparql_query = self.llm_provider.generate(system_prompt, prompt)
-            
-            # Remove any markdown code formatting (backticks)
-            sparql_query = sparql_query.replace('```sparql', '').replace('```', '')
-            
-            return sparql_query
 
-    def answer_with_direct_query(self, question):
-        """Try to answer directly with a SPARQL query"""
-        
-        # Generate SPARQL query
-        sparql_query = self.generate_sparql_query(question)
-        
-        try:
-            # Execute the query
-            self.sparql.setQuery(sparql_query)
-            results = self.sparql.query().convert()
-            
-            # If we got results, use them
-            if results["results"]["bindings"]:
-                return {
-                    "direct_answer": True,
-                    "results": results["results"]["bindings"],
-                    "query": sparql_query
-                }
-            
-            # Otherwise, fall back to RAG approach
-            return None
-        except Exception as e:
-            logger.error(f"Error executing generated SPARQL query: {str(e)}")
-            return None
 
     def cidoc_aware_retrieval(self, query, k=20):
         """Enhanced retrieval using CIDOC-CRM aware scoring"""
@@ -1326,57 +1267,6 @@ When answering questions:
 Remember: Your audience wants to learn about cultural heritage, not database schemas. Make your answers informative and accessible.
 """
 
-    def hybrid_answer_question(self, question):
-        """Hybrid approach that tries direct querying first, then falls back to RAG"""
-        
-        # Try direct querying first
-        direct_results = self.answer_with_direct_query(question)
-        
-        if direct_results:
-            # Convert SPARQL results to natural language
-            
-            # Format results for LLM
-            formatted_results = "SPARQL Query Results:\n"
-            for i, result in enumerate(direct_results["results"]):
-                formatted_results += f"Result {i+1}:\n"
-                for var, value in result.items():
-                    formatted_results += f"  {var}: {value['value']}\n"
-            
-            system_prompt = """You are an expert in CIDOC-CRM who can convert SPARQL query results to natural language answers.
-            
-            Given the results of a SPARQL query, provide a clear, concise answer to the original question.
-            - Translate URIs and technical terminology into plain language
-            - Focus only on answering the question with the provided data
-            - If the data seems insufficient, say so
-            """
-            
-            prompt = f"""Original question: {question}
-
-    {formatted_results}
-
-    Please provide a clear natural language answer based on these results."""
-            
-            llm = ChatOpenAI(
-                model=self.openai_model,
-                temperature=self.temperature,
-                openai_api_key=self.openai_api_key
-            )
-            
-            response = llm.invoke(system_prompt + "\n\n" + prompt)
-            
-            return {
-                "answer": response.content,
-                "query_type": "direct_sparql",
-                "sources": [{"type": "direct_query", "query": "Direct SPARQL query used for answer"}]
-            }
-        
-        # Fall back to RAG approach
-        logger.info("Direct querying failed. Falling back to RAG approach.")
-        rag_response = self.answer_question(question)
-        rag_response["query_type"] = "rag"
-        
-        return rag_response
-    
     def get_entity_literals(self, entity_uri):
         """Get all literal values for an entity (labels, WKT, dates, descriptions, etc.)"""
         query = f"""
@@ -1478,39 +1368,6 @@ Remember: Your audience wants to learn about cultural heritage, not database sch
             logger.error(f"Error fetching entities: {str(e)}")
             return []
     
-    def get_entity_details(self, entity_uri):
-        """Get details about an entity"""
-        query = f"""
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        
-        SELECT ?predicate ?predicateLabel ?object ?objectLabel WHERE {{
-            <{entity_uri}> ?predicate ?object .
-            OPTIONAL {{ ?predicate rdfs:label ?predicateLabel }}
-            OPTIONAL {{ ?object rdfs:label ?objectLabel }}
-        }}
-        """
-        
-        try:
-            self.sparql.setQuery(query)
-            results = self.sparql.query().convert()
-            
-            details = []
-            for result in results["results"]["bindings"]:
-                detail = {
-                    "predicate": result["predicate"]["value"],
-                    "object": result["object"]["value"]
-                }
-                if "predicateLabel" in result:
-                    detail["predicateLabel"] = result["predicateLabel"]["value"]
-                if "objectLabel" in result:
-                    detail["objectLabel"] = result["objectLabel"]["value"]
-                details.append(detail)
-                
-            return details
-        except Exception as e:
-            logger.error(f"Error fetching entity details: {str(e)}")
-            return []
-    
     def get_outgoing_relationships(self, entity_uri):
         """Get outgoing relationships from an entity (domain-level only, no schema predicates)"""
         query = f"""
@@ -1585,45 +1442,6 @@ Remember: Your audience wants to learn about cultural heritage, not database sch
             logger.error(f"Error fetching incoming relationships: {str(e)}")
             return []
 
-    def extract_entities_from_query(self, query):
-        """Extract entity URIs mentioned in the query for relationship-aware retrieval"""
-        
-        # Look for potential entity names
-        potential_entities = []
-        
-        # Capitalized phrases
-        cap_phrases = re.findall(r'\b[A-Z][a-z]+(?: [A-Z][a-z]+)*\b', query)
-        potential_entities.extend(cap_phrases)
-        
-        # Words surrounded by quotes
-        quoted = re.findall(r'"([^"]+)"', query)
-        potential_entities.extend(quoted)
-        
-        # Match potential entities against known entity labels
-        matched_entities = []
-        
-        for potential in potential_entities:
-            potential_lower = potential.lower().strip()
-            
-            # Skip very short potential entities
-            if len(potential_lower) < 3:
-                continue
-                
-            # Search entity labels for matches
-            for doc_id, doc in self.document_store.docs.items():
-                label = doc.metadata.get("label", "").lower()
-                
-                # Check for substantial overlap
-                if potential_lower in label or label in potential_lower:
-                    # Calculate token overlap
-                    potential_tokens = set(potential_lower.split())
-                    label_tokens = set(label.split())
-                    overlap = len(potential_tokens & label_tokens) / max(len(potential_tokens), len(label_tokens))
-                    
-                    if overlap > 0.5:  # Require significant overlap
-                        matched_entities.append(doc_id)
-        
-        return matched_entities
 
     def normalize_scores(self, scores):
         """
@@ -1663,163 +1481,7 @@ Remember: Your audience wants to learn about cultural heritage, not database sch
 
             return (values - min_val) / (max_val - min_val)
 
-    def calculate_relationship_scores(self, entity_uris, damping=RetrievalConfig.PAGERANK_DAMPING, iterations=RetrievalConfig.PAGERANK_ITERATIONS):
-        """Calculate personalized PageRank scores for all entities in the graph"""
-        
-        # Get full list of documents
-        doc_ids = list(self.document_store.docs.keys())
-        n = len(doc_ids)
-        
-        # Create mapping from doc_id to index
-        id_to_idx = {doc_id: i for i, doc_id in enumerate(doc_ids)}
-        
-        # Build adjacency matrix
-        adjacency = np.zeros((n, n))
-        
-        # Fill with connections from the document graph
-        for i, doc_id in enumerate(doc_ids):
-            if doc_id not in self.document_store.docs:
-                continue
-                
-            doc = self.document_store.docs[doc_id]
-            
-            # Add edges from neighbors
-            for neighbor in doc.neighbors:
-                neighbor_id = neighbor["doc_id"]
-                if neighbor_id in id_to_idx:
-                    j = id_to_idx[neighbor_id]
-                    # Use edge weight if available
-                    weight = neighbor.get("weight", 1.0)
-                    adjacency[i, j] = weight
-        
-        # Normalize adjacency matrix
-        row_sums = adjacency.sum(axis=1)
-        # Handle rows with all zeros to avoid division by zero
-        row_sums[row_sums == 0] = 1
-        transition_matrix = adjacency / row_sums[:, np.newaxis]
-        
-        # Create personalization vector
-        personalization = np.ones(n) / n
-        
-        # Boost the entities of interest
-        for entity_uri in entity_uris:
-            if entity_uri in id_to_idx:
-                idx = id_to_idx[entity_uri]
-                personalization[idx] = 1.0
-        
-        # Normalize personalization vector
-        personalization = personalization / personalization.sum()
-        
-        # Run PageRank algorithm
-        pr = np.ones(n) / n
-        
-        # Power iteration
-        for _ in range(iterations):
-            next_pr = (1 - damping) * personalization + damping * np.dot(pr, transition_matrix)
-            
-            # Check for convergence
-            if np.linalg.norm(next_pr - pr) < 1e-6:
-                break
-                
-            pr = next_pr
-        
-        # Convert back to document IDs
-        return {doc_ids[i]: float(pr[i]) for i in range(n)}
 
-    def relationship_aware_retrieval(self, query, k=20):
-        """Enhanced retrieval using both vector similarity and relationship importance"""
-        # Step 1: Standard vector-based retrieval
-        vector_results = self.document_store.retrieve(query, k=k * RetrievalConfig.INITIAL_POOL_MULTIPLIER)
-
-        if not vector_results:
-            logger.warning("No documents found in vector retrieval")
-            return []
-
-        # Step 2: Extract entities from query
-        query_entities = self.extract_entities_from_query(query)
-        logger.info(f"Extracted entities from query: {query_entities}")
-
-        # Step 3: Calculate personalized PageRank scores (raw)
-        pr_scores_raw = {}
-        if query_entities:
-            pr_scores_raw = self.calculate_relationship_scores(query_entities)
-
-        # Step 4: Collect raw vector similarity scores
-        # Use rank-based scoring: higher rank = higher score
-        vector_scores_raw = {}
-        for i, doc in enumerate(vector_results):
-            # Score inversely proportional to rank position
-            vector_scores_raw[doc.id] = len(vector_results) - i
-
-        # Step 5: Normalize both score sets to [0, 1] using min-max normalization
-        vector_scores_norm = self.normalize_scores(vector_scores_raw)
-        pr_scores_norm = self.normalize_scores(pr_scores_raw) if pr_scores_raw else {}
-
-        # Step 6: Define weighting for score combination
-        alpha = RetrievalConfig.VECTOR_PAGERANK_ALPHA  # Weight for vector similarity vs. relationship
-
-        logger.info(f"\n{'='*80}")
-        logger.info(f"RELATIONSHIP-AWARE RETRIEVAL SCORING")
-        logger.info(f"{'='*80}")
-        logger.info(f"Combining: Vector Similarity ({alpha:.1f}) + PageRank ({1-alpha:.1f})")
-        logger.info(f"\n--- Raw Vector Scores (rank-based) ---")
-        logger.info(f"  Min: {min(vector_scores_raw.values())}")
-        logger.info(f"  Max: {max(vector_scores_raw.values())}")
-        logger.info(f"  Mean: {np.mean(list(vector_scores_raw.values())):.1f}")
-
-        if pr_scores_raw:
-            logger.info(f"\n--- Raw PageRank Scores (probability distribution) ---")
-            pr_values = list(pr_scores_raw.values())
-            logger.info(f"  Min: {min(pr_values):.6f}")
-            logger.info(f"  Max: {max(pr_values):.6f}")
-            logger.info(f"  Mean: {np.mean(pr_values):.6f}")
-            logger.info(f"  Sum: {sum(pr_values):.6f} (should ≈ 1.0)")
-
-        logger.info(f"\n--- Normalized Vector Scores [0,1] ---")
-        logger.info(f"  Min: {min(vector_scores_norm.values()):.3f}")
-        logger.info(f"  Max: {max(vector_scores_norm.values()):.3f}")
-        logger.info(f"  Mean: {np.mean(list(vector_scores_norm.values())):.3f}")
-
-        if pr_scores_norm:
-            logger.info(f"\n--- Normalized PageRank Scores [0,1] ---")
-            pr_norm_values = list(pr_scores_norm.values())
-            logger.info(f"  Min: {min(pr_norm_values):.3f}")
-            logger.info(f"  Max: {max(pr_norm_values):.3f}")
-            logger.info(f"  Mean: {np.mean(pr_norm_values):.3f}")
-
-        # Step 7: Combine normalized scores with weights (alpha already defined above)
-        combined_results = []
-
-        for doc in vector_results:
-            # Get normalized scores (default to 0 if not found)
-            sim_score_norm = vector_scores_norm.get(doc.id, 0.0)
-            rel_score_norm = pr_scores_norm.get(doc.id, 0.0)
-
-            # Combined score on [0, 1] scale
-            final_score = alpha * sim_score_norm + (1 - alpha) * rel_score_norm
-
-            combined_results.append((doc, final_score, sim_score_norm, rel_score_norm))
-
-        # Sort by combined score and take top k
-        combined_results.sort(key=lambda x: x[1], reverse=True)
-
-        # Log top results for transparency
-        logger.info(f"\n{'='*80}")
-        logger.info(f"TOP 10 COMBINED RESULTS")
-        logger.info(f"{'='*80}")
-        for i, (doc, final, sim, rel) in enumerate(combined_results[:10]):
-            label = doc.metadata.get('label', 'Unknown')
-            logger.info(f"\n{i+1}. {label}")
-            logger.info(f"   Vector Sim: {sim:.3f} (weight={alpha:.1f}) → contrib={alpha*sim:.3f}")
-            logger.info(f"   PageRank: {rel:.3f} (weight={1-alpha:.1f}) → contrib={(1-alpha)*rel:.3f}")
-            logger.info(f"   Combined: {final:.3f}")
-
-        final_results = [doc for doc, _, _, _ in combined_results[:k]]
-
-        logger.info(f"\n{'='*80}")
-        logger.info(f"Relationship-aware retrieval returning top {len(final_results)} documents")
-        logger.info(f"{'='*80}\n")
-        return final_results
 
 
     def get_wikidata_for_entity(self, entity_uri):
@@ -1988,93 +1650,7 @@ Remember: Your audience wants to learn about cultural heritage, not database sch
         logger.error(f"Failed to fetch Wikidata info after {max_retries} attempts for {wikidata_id}")
         return None
 
-    def get_wikidata_entities(self):
-        """Get all entities that have Wikidata references"""
-        query = """
-        PREFIX crmdig: <http://www.ics.forth.gr/isl/CRMdig/>
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
-        SELECT ?entity ?label ?wikidata WHERE {
-            ?entity crmdig:L54_is_same-as ?wikidata .
-            OPTIONAL { ?entity rdfs:label ?label }
-            FILTER(STRSTARTS(STR(?wikidata), "http://www.wikidata.org/entity/"))
-        }
-        """
-
-        try:
-            self.sparql.setQuery(query)
-            results = self.sparql.query().convert()
-
-            entities = []
-            for result in results["results"]["bindings"]:
-                entity_uri = result["entity"]["value"]
-                wikidata_uri = result["wikidata"]["value"]
-                wikidata_id = wikidata_uri.split('/')[-1]
-
-                # Get label, with fallback
-                label = result.get("label", {}).get("value", entity_uri.split('/')[-1])
-
-                entities.append({
-                    "entity": entity_uri,
-                    "label": label,
-                    "wikidata_id": wikidata_id,
-                    "wikidata_url": f"https://www.wikidata.org/wiki/{wikidata_id}"
-                })
-
-            return entities
-        except Exception as e:
-            logger.error(f"Error fetching Wikidata entities: {str(e)}")
-            return []
-
-    def batch_process_documents(self, entities, batch_size=RetrievalConfig.DEFAULT_BATCH_SIZE, sleep_time=2):
-        """Process RDF data into graph documents with batch processing to avoid rate limits"""
-        total_entities = len(entities)
-        logger.info(f"Processing {total_entities} entities in batches of {batch_size}")
-        
-        # Process in batches
-        for i in range(0, total_entities, batch_size):
-            batch = entities[i:i+batch_size]
-            logger.info(f"Processing batch {i//batch_size + 1}/{(total_entities + batch_size - 1)//batch_size}")
-            
-            # Process batch
-            for entity in tqdm(batch, desc=f"Batch {i//batch_size + 1}", unit="entity"):
-                entity_uri = entity["entity"]
-
-                # Create enhanced document with CIDOC-CRM aware natural language
-                doc_text, entity_label, entity_types, raw_triples = self.create_enhanced_document(entity_uri)
-
-                # Determine primary entity type (filter out technical CIDOC-CRM class names)
-                primary_type = "Unknown"
-                if entity_types:
-                    # Get human-readable types only
-                    human_readable_types = [
-                        t for t in entity_types
-                        if not self.is_technical_class_name(t)
-                    ]
-                    # Use first human-readable type, or fall back to "Entity"
-                    primary_type = human_readable_types[0] if human_readable_types else "Entity"
-
-                # Add to document store
-                self.document_store.add_document(
-                    entity_uri,
-                    doc_text,
-                    {
-                        "label": entity_label,
-                        "type": primary_type,
-                        "uri": entity_uri,
-                        "all_types": entity_types,  # Keep all types for debugging if needed
-                        "raw_triples": raw_triples  # Store raw RDF triples for source attribution
-                    }
-                )
-            
-            # Save progress after each batch
-            self.document_store.save_document_graph('document_graph_temp.pkl')
-            
-            # Sleep between batches to avoid rate limits
-            if i + batch_size < total_entities:
-                logger.info(f"Sleeping for {sleep_time} seconds to avoid rate limits...")
-                time.sleep(sleep_time)
-    
     def compute_coherent_subgraph(self, candidates, adjacency_matrix, initial_scores, k=RetrievalConfig.DEFAULT_RETRIEVAL_K, alpha=RetrievalConfig.RELEVANCE_CONNECTIVITY_ALPHA):
         """
         Extract a coherent subgraph using greedy selection that balances individual relevance and connectivity.

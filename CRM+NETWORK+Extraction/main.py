@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Main application file for the Byzantine Art RDF Chatbot.
+Main application file for the Asinou Dataset Chatbot.
 This file contains all the Flask routes and application initialization.
 """
 
@@ -27,7 +27,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Parse command-line arguments
-parser = argparse.ArgumentParser(description='Byzantine Art RDF Chatbot')
+parser = argparse.ArgumentParser(description='Asinou Dataset Chatbot')
 parser.add_argument('--env', type=str, help='Path to environment file')
 parser.add_argument('--rebuild', action='store_true', help='Force rebuild of document graph and vector store')
 args = parser.parse_args()
@@ -91,7 +91,7 @@ def info_api():
     # Get dataset description from config or use default
     dataset_description = config.get(
         "dataset_description",
-        "Byzantine art and architecture, including churches, iconography, and cultural heritage objects"
+        "Asinou church dataset including frescoes, iconography, and cultural heritage objects"
     )
 
     return jsonify({

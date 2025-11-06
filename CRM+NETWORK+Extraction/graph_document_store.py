@@ -213,10 +213,3 @@ class GraphDocumentStore:
 
         return adj_normalized
     
-    def get_subgraph(self, doc_ids):
-        """Get a subgraph of documents"""
-        subgraph = {}
-        for doc_id in doc_ids:
-            if doc_id in self.docs:
-                subgraph[doc_id] = self.docs[doc_id]
-        return subgraph

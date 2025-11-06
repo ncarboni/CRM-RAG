@@ -1,5 +1,5 @@
 """
-Configuration loader for the Byzantine Art RDF Chatbot.
+Configuration loader for the Asinou Dataset Chatbot.
 This module handles loading configuration from environment files.
 """
 
@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 logger = logging.getLogger(__name__)
 
 class ConfigLoader:
-    """Configuration loader for the Byzantine Art RDF Chatbot"""
+    """Configuration loader for the Asinou Dataset Chatbot"""
     
     @staticmethod
     def load_config(env_file: str = None) -> Dict[str, Any]:

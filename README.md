@@ -1,2 +1,1 @@
-# CRM_RAG
-Testing RAG solutions for CRM
+# RAG Architecture for CIDOC-CRM

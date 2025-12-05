@@ -19,5 +19,5 @@ __pycache__/
 app.log
 
 # Claude
-.claude
-CLAUDE.MD
+.claude/
+CLAUDE.md

@@ -17,3 +17,7 @@ __pycache__/
 
 # Logs
 app.log
+
+# Claude
+.claude
+CLAUDE.MD

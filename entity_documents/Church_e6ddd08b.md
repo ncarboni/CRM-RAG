@@ -1,0 +1,171 @@
+---
+URI: http://map.cnrs.fr/semantics/type/e932fb91-8333-47f3-9862-db213163f0d4
+Label: Church
+Generated: 2025-11-06 10:46:48
+---
+
+# Church
+
+URI: http://map.cnrs.fr/semantics/type/e932fb91-8333-47f3-9862-db213163f0d4
+
+## Types
+
+- Type
+- Typus
+- Τύπος
+- Type
+- Tipo
+- Tип
+- 类型
+
+## Properties
+
+- **Label**: Church
+
+## Relationships
+
+- Painting of the last judgment has modified Church of the Transfiguration
+- Scroll of heaven was produced by Painting cycle of 1332/33
+- Anastasia is found on Church of the Virgin
+- Church is same as 300007466
+- West door forms part of Narthex
+- Saint George forms part of South lunette
+- Virgin in Sklaverochori has type Church
+- Painting of the last Judgment has modified St. John Lampadistis
+- The preparation of the throne was produced by Painting cycle of 1332/33
+- Anastasias is found on Panagia Phorbiottisa
+- Fiery stream was produced by Painting cycle of 1332/33
+- Gnashing of the teeth 46i forms part of Collective torments
+- Last judgment is found on Panagia Kanakaria
+- Addition of the narthex has modified Panagia Phorbiottisa
+- Painting of Anastasias has modified Panagia Phorbiottisa
+- Anastasia was produced by Painting of Anastasia
+- Donor couple forms part of Narthex
+- Saint Nicholas of the Roof has type Church
+- North wall of sanctuary forms part of Our Lady of Moutoullas
+- Panagia Phorbiottisa was produced by Construction of Asinou
+- Saint George was produced by Painting of Saint George
+- Donor is found on Naos
+- Wife of Michael Katzouroumpos is denoted by Donor Michael Katzouroumpos and wife
+- Last judgment is found on Panagia Phorbiottisa
+- Last judgment is found on Saint Nicholas of the Roof
+- Museum of the foundation of archbishop Makarios III has type Church
+- Bema forms part of Our Lady of Moutoullas
+- Gnashing of the teeth forms part of South arch
+- Painting of Anastasia has modified St. Herakleidos
+- Nikephoros Ischyrios is denoted by Donor
+- West door forms part of Panagia Phorbiottisa
+- Donor couple is found on Saint Nicholas of the Roof
+- Virgin of Mercy forms part of South lunette
+- Last judgment was produced by Painting cycle of 1332/33
+- Donor Michael Katzouroumpos and wife is found on Saint Dimitrianos
+- Hugues et Aigeline is denoted by Statue of Hugues de Vaudemont
+- Statue of Hugues de Vaudemont is found on Église des Cordeliers de Nancy
+- Saint Mamas is found on South lunette
+- St Irene has type Church
+- The preparation of the throne is found on west lunette
+- Collective torments was produced by Painting cycle of 1332/33
+- Donor Ioannes and Irene was produced by Painting of donors Ioannes and Irene
+- South lunette forms part of Narthex
+- Construction of Asinou has produced Panagia Phorbiottisa
+- Church of the Virgin has type Church
+- Saint Mamas is found on Church of the Virgin
+- Donor Ioannes and Irene is found on Our Lady of Moutoullas
+- Fiery stream is found on west lunette
+- Last judgment is found on Church of the Transfiguration
+- Painting cycle of 1332/33 has modified Panagia Phorbiottisa
+- Saint Anastasia is denoted by Anastasia
+- Preparation of the throne is denoted by The preparation of the throne
+- Mother of god Phorbiotissa is found on Panagia Phorbiottisa
+- Headdress of Irene is denoted by Donor Ioannes and Irene
+- Last judgment is found on St. John Lampadistis
+- Headdress of Aigeline de Bourgogne is denoted by Statue of Hugues de Vaudemont
+- Virgin of Mercy is found on Panagia Phorbiottisa
+- Individual torments is found on Panagia Phorbiottisa
+- Asinou was produced by Construction of Asinou
+- Latin Donor is denoted by Virgin of Mercy
+- Bema forms part of Panagia Phorbiottisa
+- Christ child is denoted by Virgin of Mercy
+- Panagia Kanakaria has type Church
+- Panagia Phorbiottisa has type Church
+- Our Lady of Moutoullas has type Church
+- St. Herakleidos has type Church
+- Headdress of Anastasia Saramalina is denoted by Anastasias
+- Saint Mamas was produced by Painting cycle of 1332/33
+- Wall paintings of 1332/33 has modified Panagia Phorbiottisa
+- Collective torments is found on Panagia Phorbiottisa
+- Construction of Asinou has modified Panagia Phorbiottisa
+- Narthex forms part of Panagia Phorbiottisa
+- Initial painting has modified Panagia Phorbiottisa
+- Gnashing of the teeth is found on South arch
+- Donor's wife is denoted by Donor couple
+- Last judgment was produced by Painting of the last judgment
+- Asinou has type Church
+- Saints Joachim and Anna has type Church
+- Saint George on a horseback is denoted by Saint George
+- South lunette forms part of Panagia Phorbiottisa
+- Mother of god Phorbiotissa forms part of West door
+- Église des Cordeliers de Nancy has type Church
+- Construction of the church of Demetrianos has modified Saint Dimitrianos
+- South arch forms part of Narthex
+- Kneeling youth is denoted by Virgin of Mercy
+- Donor is found on Panagia Phorbiottisa
+- Last judgment was produced by Painting of the last Judgment
+- Individual torments was produced by Painting cycle of 1332/33
+- Anastasias forms part of South lunette
+- Construction of the church of Demetrianos has produced Saint Dimitrianos
+- Donor Michael Katzouroumpos and wife was produced by Construction of the church of Demetrianos
+- Closing of the south door of the Narthex has modified Panagia Phorbiottisa
+- Fiery stream is found on Panagia Phorbiottisa
+- South arch forms part of Panagia Phorbiottisa
+- Anastasia is found on St. Herakleidos
+- Gnashing of the teeth was produced by Painting cycle of 1332/33
+- Individual torments forms part of South arch
+- Collective torments forms part of South arch
+- Anastasia Saramalina is denoted by Anastasias
+- Anastasia is found on Palaia Enkleistra
+- Scroll of heaven is found on western arch
+- St. Marina has type Church
+- Individual torments is found on South arch
+- Madonna della misericordia is denoted by Virgin of Mercy
+- Palaia Enkleistra has type Church
+- Painting of the Virgin of Mercy has modified Panagia Phorbiottisa
+- Donor forms part of Naos
+- Painting of Anastasia has modified Palaia Enkleistra
+- Scroll of heaven is found on Panagia Phorbiottisa
+- Narthex forms part of Saint Nicholas of the Roof
+- Virgin of Mercy was produced by Painting of the Virgin of Mercy
+- Scroll of heaven forms part of western arch
+- Painting of donors Ioannes and Irene has modified Our Lady of Moutoullas
+- Church of the Transfiguration has type Church
+- Panagia Kera has type Church
+- western arch forms part of Narthex
+- Painting of Anastasia has modified Church of the Virgin
+- west lunette forms part of Panagia Phorbiottisa
+- Painting of the last judgment has modified Panagia Kanakaria
+- Saint Anastasia is denoted by Anastasias
+- Fiery stream forms part of west lunette
+- Irene is denoted by Donor Ioannes and Irene
+- western arch forms part of Panagia Phorbiottisa
+- Last judgment is found on Narthex
+- Collective torments is found on South arch
+- Last judgment forms part of Narthex
+- Church is same as Q16970
+- Saint Dimitrianos was produced by Construction of the church of Demetrianos
+- Saint George is found on Narthex
+- The preparation of the throne is found on Panagia Phorbiottisa
+- Donor Ioannes and Irene is found on North wall of sanctuary
+- Donor Ioannes and Irene forms part of North wall of sanctuary
+- St. George of Ancona has type Church
+- Painting of Saint George has modified Panagia Phorbiottisa
+- St. John Lampadistis has type Church
+- The preparation of the throne forms part of west lunette
+- west lunette forms part of Narthex
+- Naos forms part of Panagia Phorbiottisa
+- Anastasias is found on South lunette
+- Saint Dimitrianos has type Church
+- Saint George is found on Panagia Phorbiottisa
+- Gnashing of the teeth is found on Panagia Phorbiottisa
+- Anastasias was produced by Painting of Anastasias
+- Saint Mamas is found on Panagia Phorbiottisa
+- Narthex forms part of St. John Lampadistis

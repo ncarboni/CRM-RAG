@@ -1,0 +1,24 @@
+---
+URI: http://map.cnrs.fr/semantics/appellation/d2058159-5ec7-4539-9909-c9636c09ced4/
+Label: T-shaped garment
+Generated: 2025-11-06 10:44:57
+---
+
+# T-shaped garment
+
+URI: http://map.cnrs.fr/semantics/appellation/d2058159-5ec7-4539-9909-c9636c09ced4/
+
+## Types
+
+- Appellation
+- Benennung
+- Ονομασία
+- Appellation
+- Designação
+- Обозначeниe
+- 称谓
+
+## Properties
+
+- **Label**: T-shaped garment
+

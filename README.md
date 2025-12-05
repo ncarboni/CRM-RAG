@@ -24,8 +24,6 @@ ANTHROPIC_API_KEY=your_actual_anthropic_key_here
 R1_API_KEY=your_actual_r1_key_here
 ```
 
-**Important**: `.env.secrets` is gitignored and will never be pushed to GitHub. All other `.env.*` files are safe to commit since they only contain configuration settings, not secrets.
-
 ### 3. Customize Settings (Optional)
 
 The repository includes pre-configured `.env.*` files for each provider. You can customize:
@@ -38,6 +36,7 @@ The repository includes pre-configured `.env.*` files for each provider. You can
 ### 4. Start Apache Jena Fuseki
 
 Ensure Fuseki is running with your CIDOC-CRM dataset:
+
 ```bash
 # Default endpoint: http://localhost:3030/asinou/sparql
 ```
@@ -62,7 +61,3 @@ python main.py --env .env.openai --rebuild
 ```
 
 Access the chat interface at `http://localhost:5001`
-
-## Architecture
-
-See [CLAUDE.md](CLAUDE.md) for detailed architecture documentation.

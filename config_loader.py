@@ -24,7 +24,15 @@ class ConfigLoader:
             logger.info("Loading configuration from default .env file")
             # Load the default .env file
             load_dotenv()
-        
+
+        # Load secrets from .env.secrets (if it exists)
+        secrets_file = os.path.join(os.path.dirname(env_file) if env_file else os.getcwd(), ".env.secrets")
+        if os.path.exists(secrets_file):
+            logger.info(f"Loading secrets from {secrets_file}")
+            load_dotenv(secrets_file, override=True)
+        else:
+            logger.warning(".env.secrets file not found. API keys should be set in environment or .env.secrets")
+
         # Load LLM provider configuration
         llm_provider = os.environ.get("LLM_PROVIDER", "openai").lower()
         

@@ -1,12 +1,19 @@
-.env.openai
-.env.ollama
-.env.claude
-.env.r1
+# Environment files with secrets
+.env.secrets
+.env.local
+
+# MacOS
 .DS_Store
+
+# Data files
 document_graph.pkl
 document_graph_temp.pkl
 vector_index/
 entity_documents/
+
+# Python
 __pycache__/
-app.log
 *.pyc
+
+# Logs
+app.log

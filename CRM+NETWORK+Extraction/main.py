@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Main application file for the Byzantine Art RDF Chatbot.
+Main application file for the Asinou Dataset Chatbot.
 This file contains all the Flask routes and application initialization.
 """
 
@@ -9,6 +9,7 @@ import logging
 import os
 import sys
 import argparse
+import shutil
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from logging.handlers import RotatingFileHandler
 from universal_rag_system import UniversalRagSystem
@@ -26,7 +27,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Parse command-line arguments
-parser = argparse.ArgumentParser(description='Byzantine Art RDF Chatbot')
+parser = argparse.ArgumentParser(description='Asinou Dataset Chatbot')
 parser.add_argument('--env', type=str, help='Path to environment file')
 parser.add_argument('--rebuild', action='store_true', help='Force rebuild of document graph and vector store')
 args = parser.parse_args()
@@ -87,10 +88,17 @@ def chat_api():
 @app.route('/api/info', methods=['GET'])
 def info_api():
     """API endpoint to get system information"""
+    # Get dataset description from config or use default
+    dataset_description = config.get(
+        "dataset_description",
+        "Asinou church dataset including frescoes, iconography, and cultural heritage objects"
+    )
+
     return jsonify({
         "llm_provider": config.get("llm_provider", "unknown"),
         "llm_model": config.get("model", "unknown"),
         "embedding_model": config.get("embedding_model", "unknown"),
+        "dataset_description": dataset_description,
     })
 
 if __name__ == '__main__':
@@ -101,7 +109,6 @@ if __name__ == '__main__':
     if args.rebuild:
         logger.info("Rebuilding document graph and vector store...")
         # Delete existing files
-        import shutil
         if os.path.exists('document_graph.pkl'):
             os.remove('document_graph.pkl')
         if os.path.exists('vector_index'):

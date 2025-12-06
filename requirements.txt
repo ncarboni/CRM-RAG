@@ -8,7 +8,7 @@ rdflib==7.1.1
 
 # LangChain and RAG
 langchain==0.3.13
-langchain-community==0.3.13
+langchain-community==0.3.27  # Updated to fix XXE vulnerability (CVE)
 langchain-openai==0.2.14
 langchain-anthropic==0.3.6
 

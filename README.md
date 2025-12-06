@@ -24,22 +24,28 @@ ANTHROPIC_API_KEY=your_actual_anthropic_key_here
 R1_API_KEY=your_actual_r1_key_here
 ```
 
-### 3. Customize Settings (Optional)
+### 3. Configure SPARQL Endpoint
 
-The repository includes pre-configured `.env.*` files for each provider. You can customize:
+The default SPARQL endpoint is `http://localhost:3030/asinou/sparql`.
+
+**To change the endpoint**: Edit the `FUSEKI_ENDPOINT` variable in your `.env.*` files:
+
+```bash
+# Example: .env.openai, .env.claude, .env.r1, .env.ollama
+FUSEKI_ENDPOINT=http://your-server:3030/your-dataset/sparql
+```
+
+### 4. Customize Settings (Optional)
+
+The repository includes pre-configured `.env.*` files for each provider. You can also customize:
 - Model names
 - Temperature
 - Max tokens
-- SPARQL endpoint
 - Port number
 
-### 4. Start Apache Jena Fuseki
+### 5. Start Your SPARQL Endpoint
 
-Ensure Fuseki is running with your CIDOC-CRM dataset:
-
-```bash
-# Default endpoint: http://localhost:3030/asinou/sparql
-```
+Ensure your SPARQL server is running with your CIDOC-CRM dataset loaded at the configured endpoint.
 
 ## Usage
 

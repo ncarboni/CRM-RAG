@@ -10,7 +10,9 @@ import os
 import sys
 import argparse
 import shutil
-from flask import Flask, render_template, request, jsonify, send_from_directory
+import re
+from pathlib import Path
+from flask import Flask, render_template, request, jsonify, send_from_directory, abort
 from logging.handlers import RotatingFileHandler
 from universal_rag_system import UniversalRagSystem
 from config_loader import ConfigLoader
@@ -38,15 +40,104 @@ config = ConfigLoader.load_config(args.env)
 # Flask application setup
 app = Flask(__name__)
 
+# Configure Flask secret key for session security
+# Even though sessions aren't currently used, this is required for:
+# - Future session support
+# - CSRF protection
+# - Flash messages
+# - Secure cookies
+import secrets
+secret_key = config.get("flask_secret_key")
+if not secret_key:
+    # Generate a random secret key if not configured
+    secret_key = secrets.token_hex(32)
+    logger.warning("No FLASK_SECRET_KEY configured in .env, using randomly generated key")
+    logger.warning("Sessions will not persist across server restarts. Set FLASK_SECRET_KEY in .env for production")
+app.config['SECRET_KEY'] = secret_key
+
 # Initialize the RAG system with configuration
 rag_system = UniversalRagSystem(
     endpoint_url=config.get("fuseki_endpoint"),
     config=config
 )
 
+# Windows device names that should be blocked (case-insensitive)
+WINDOWS_DEVICE_NAMES = {
+    'CON', 'PRN', 'AUX', 'NUL',
+    'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
+    'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'
+}
+
+def is_safe_path(base_directory, path):
+    """
+    Validate that a path is safe to serve.
+    Prevents:
+    1. Path traversal attacks (../)
+    2. Absolute paths
+    3. Windows device names (CON, AUX, etc.)
+
+    Args:
+        base_directory: The base directory to serve from
+        path: The requested path
+
+    Returns:
+        bool: True if path is safe, False otherwise
+    """
+    # Reject empty paths
+    if not path:
+        return False
+
+    # Reject absolute paths
+    if os.path.isabs(path):
+        logger.warning(f"Rejected absolute path: {path}")
+        return False
+
+    # Normalize the path to resolve any .. or . components
+    normalized_path = os.path.normpath(path)
+
+    # Check if normalized path tries to escape the base directory
+    if normalized_path.startswith('..') or normalized_path.startswith('/'):
+        logger.warning(f"Rejected path traversal attempt: {path} (normalized: {normalized_path})")
+        return False
+
+    # Check each component of the path for Windows device names
+    path_components = Path(normalized_path).parts
+    for component in path_components:
+        # Extract the base name without extension
+        base_name = component.upper().split('.')[0]
+
+        # Check if it's a Windows device name
+        if base_name in WINDOWS_DEVICE_NAMES:
+            logger.warning(f"Rejected Windows device name in path: {path} (component: {component})")
+            return False
+
+    # Verify the final path is within the base directory
+    try:
+        base_path = Path(base_directory).resolve()
+        full_path = (base_path / normalized_path).resolve()
+
+        # Check if the resolved path is within the base directory
+        if not str(full_path).startswith(str(base_path)):
+            logger.warning(f"Rejected path outside base directory: {path}")
+            return False
+    except (OSError, ValueError) as e:
+        logger.warning(f"Error resolving path {path}: {str(e)}")
+        return False
+
+    return True
+
 # Route to serve static files
 @app.route('/static/<path:path>')
 def send_static(path):
+    """
+    Serve static files with security validation.
+    Prevents path traversal and Windows device name attacks.
+    """
+    # Validate the path
+    if not is_safe_path('static', path):
+        logger.warning(f"Blocked unsafe static file request: {path}")
+        abort(404)  # Return 404 instead of error message to avoid information disclosure
+
     return send_from_directory('static', path)
 
 @app.route('/')

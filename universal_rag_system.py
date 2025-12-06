@@ -100,6 +100,11 @@ class UniversalRagSystem:
         # Initialize document store
         self.document_store = None
 
+        # Create a secure session for HTTP requests (e.g., Wikidata API)
+        # Disable trust_env to prevent .netrc credential leaks (CVE fix)
+        self._http_session = requests.Session()
+        self._http_session.trust_env = False
+
         # Load property labels and ontology classes from ontology extraction (cached at class level)
         if UniversalRagSystem._property_labels is None:
             UniversalRagSystem._property_labels = self._load_property_labels()
@@ -1838,8 +1843,9 @@ Remember: Your audience wants to learn about cultural heritage, not database sch
                     'User-Agent': 'Mozilla/5.0 (compatible; RAG-Bot/1.0; +http://example.com/bot)',
                     'Accept': 'application/json'
                 }
-                
-                response = requests.get(url, params=params, headers=headers, timeout=10)
+
+                # Use secure session instead of direct requests call
+                response = self._http_session.get(url, params=params, headers=headers, timeout=10)
                 
                 # Check if response is empty
                 if not response.text:

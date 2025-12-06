@@ -119,10 +119,12 @@ class AnthropicProvider(BaseLLMProvider):
 
 class R1Provider(BaseLLMProvider):
     """R1 API provider"""
-    
+
     def __init__(self, api_key: str, model: str = "rank-r1-v16", embedding_model: str = "e5-small-v2",
                  temperature: float = 0.7, max_tokens: Optional[int] = None):
         """Initialize R1 provider"""
+        import requests
+
         self.api_key = api_key
         self.model = model
         self.embedding_model = embedding_model
@@ -130,19 +132,22 @@ class R1Provider(BaseLLMProvider):
         self.max_tokens = max_tokens
         self._llm = None
         self._embeddings = None
+
+        # Create a secure session that doesn't use .netrc credentials
+        # This prevents CVE-related .netrc credential leaks
+        self._session = requests.Session()
+        self._session.trust_env = False
         
     def generate(self, system_prompt: str, user_prompt: str) -> str:
         """Generate a response using R1 API"""
-        import os
-        import requests
         import json
-        
+
         endpoint = "https://api.cohere.ai/v1/chat"
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
-        
+
         data = {
             "message": user_prompt,
             "model": self.model,
@@ -150,12 +155,13 @@ class R1Provider(BaseLLMProvider):
             "chat_history": [],
             "system_prompt": system_prompt
         }
-        
+
         if self.max_tokens:
             data["max_tokens"] = self.max_tokens
-        
-        response = requests.post(endpoint, headers=headers, json=data)
-        
+
+        # Use secure session instead of direct requests call
+        response = self._session.post(endpoint, headers=headers, json=data)
+
         if response.status_code == 200:
             return response.json()["text"]
         else:
@@ -163,22 +169,21 @@ class R1Provider(BaseLLMProvider):
     
     def get_embeddings(self, text: str) -> List[float]:
         """Get embeddings using R1 (Cohere) API"""
-        import requests
-        
         endpoint = "https://api.cohere.ai/v1/embed"
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
-        
+
         data = {
             "texts": [text],
             "model": self.embedding_model,
             "input_type": "search_query"
         }
-        
-        response = requests.post(endpoint, headers=headers, json=data)
-        
+
+        # Use secure session instead of direct requests call
+        response = self._session.post(endpoint, headers=headers, json=data)
+
         if response.status_code == 200:
             return response.json()["embeddings"][0]
         else:

@@ -1,5 +1,5 @@
 # Web Framework
-Flask==3.1.0
+Flask>=3.1.1  # Fixed CVE: SECRET_KEY_FALLBACKS signing key order issue
 Werkzeug==3.1.3
 
 # SPARQL and RDF
@@ -24,7 +24,7 @@ numpy==2.2.0
 # Utilities
 python-dotenv==1.0.1
 tqdm==4.67.1
-requests==2.32.3
+requests>=2.32.4  # Fixed CVE: .netrc credential leak vulnerability
 
 # Optional: Development Tools
 # pytest==8.3.4

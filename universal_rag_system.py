@@ -69,8 +69,10 @@ class UniversalRagSystem:
     # Class-level cache for property labels and ontology classes
     _property_labels = None
     _ontology_classes = None
+    _class_labels = None  # Cache for class URI -> English label mapping
     _extraction_attempted = False  # Track if we've tried extraction to avoid infinite loops
     _missing_properties = set()  # Track properties that couldn't be found
+    _missing_classes = set()  # Track classes that couldn't be found in ontology files
 
     def __init__(self, endpoint_url, config=None):
         """
@@ -104,6 +106,9 @@ class UniversalRagSystem:
 
         if UniversalRagSystem._ontology_classes is None:
             UniversalRagSystem._ontology_classes = self._load_ontology_classes()
+
+        if UniversalRagSystem._class_labels is None:
+            UniversalRagSystem._class_labels = self._load_class_labels()
 
     def _load_property_labels(self, force_extract=False):
         """
@@ -227,6 +232,66 @@ class UniversalRagSystem:
         else:
             logger.error(f"Ontology classes file not found at {classes_file}")
             return set()
+
+    def _load_class_labels(self, force_extract=False):
+        """
+        Load class labels (URI -> English label mapping) from JSON file generated from ontologies.
+        Automatically extracts labels from ontology files if JSON doesn't exist.
+
+        Args:
+            force_extract: If True, force re-extraction even if JSON exists
+
+        Returns:
+            dict: Class labels mapping (URI -> English label)
+        """
+        labels_file = 'class_labels.json'
+        ontology_dir = 'ontology'
+
+        # Check if we need to extract (the extraction is done together with classes)
+        should_extract = force_extract or not os.path.exists(labels_file)
+
+        if should_extract:
+            # Check if ontology directory exists
+            if not os.path.exists(ontology_dir):
+                logger.error(f"Ontology directory not found at '{ontology_dir}'")
+                logger.error("Cannot extract class labels without ontology files")
+                return {}
+
+            # Check if ontology files exist
+            ontology_files = [f for f in os.listdir(ontology_dir) if f.endswith(('.ttl', '.rdf', '.owl', '.n3'))]
+            if not ontology_files:
+                logger.error(f"No ontology files found in '{ontology_dir}'")
+                logger.error("Add CIDOC-CRM, VIR, CRMdig ontology files to the ontology directory")
+                return {}
+
+            # Run extraction (this extracts properties, classes, and class labels)
+            logger.info("Extracting class labels from ontology files...")
+            logger.info(f"Found {len(ontology_files)} ontology files: {', '.join(ontology_files)}")
+
+            try:
+                success = run_extraction(ontology_dir, 'property_labels.json', 'ontology_classes.json', labels_file)
+                if not success:
+                    logger.error("Failed to extract class labels from ontologies")
+                    return {}
+                else:
+                    logger.info(f"✓ Successfully extracted class labels to {labels_file}")
+            except Exception as e:
+                logger.error(f"Error during class label extraction: {str(e)}")
+                return {}
+
+        # Load the JSON file
+        if os.path.exists(labels_file):
+            try:
+                with open(labels_file, 'r', encoding='utf-8') as f:
+                    labels = json.load(f)
+                logger.info(f"Loaded {len(labels)} class labels from {labels_file}")
+                return labels
+            except Exception as e:
+                logger.error(f"Error loading class labels from {labels_file}: {str(e)}")
+                return {}
+        else:
+            logger.error(f"Class labels file not found at {labels_file}")
+            return {}
 
     @property
     def embeddings(self):
@@ -735,14 +800,14 @@ class UniversalRagSystem:
                     entity_label = literals[label_prop][0]
                     break
 
-            # Get entity type
+            # Get entity types
             type_query = f"""
             PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
             PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
             SELECT ?type ?typeLabel WHERE {{
                 <{entity_uri}> rdf:type ?type .
-                OPTIONAL {{ ?type rdfs:label ?typeLabel }}
+                OPTIONAL {{ ?type rdfs:label ?typeLabel FILTER(LANG(?typeLabel) = "en" || LANG(?typeLabel) = "") }}
                 FILTER(STRSTARTS(STR(?type), "http://"))
             }}
             """
@@ -754,7 +819,32 @@ class UniversalRagSystem:
 
                 for result in type_results["results"]["bindings"]:
                     type_uri = result["type"]["value"]
-                    type_label = result.get("typeLabel", {}).get("value", type_uri.split('/')[-1])
+
+                    # Get English label from class_labels.json
+                    type_label = None
+                    if UniversalRagSystem._class_labels:
+                        type_label = UniversalRagSystem._class_labels.get(type_uri)
+
+                    # If not in ontology files, try to get from triplestore
+                    if not type_label:
+                        triplestore_label = result.get("typeLabel", {}).get("value")
+                        if triplestore_label:
+                            type_label = triplestore_label
+                            # Track this as a missing class from ontology files
+                            if type_uri not in UniversalRagSystem._missing_classes:
+                                UniversalRagSystem._missing_classes.add(type_uri)
+                                logger.warning(f"Class not found in ontology files: {type_uri}")
+                                logger.info(f"  Using label from triplestore: {type_label}")
+
+                    # Final fallback to local name if still no label found
+                    if not type_label:
+                        type_label = type_uri.split('/')[-1].split('#')[-1]
+                        # Track this as a missing class with no label anywhere
+                        if type_uri not in UniversalRagSystem._missing_classes:
+                            UniversalRagSystem._missing_classes.add(type_uri)
+                            logger.warning(f"Class not found in ontology files or triplestore: {type_uri}")
+                            logger.info(f"  Using fallback label from URI: {type_label}")
+
                     entity_types.append(type_label)
             except Exception as e:
                 logger.warning(f"Error getting entity types for {entity_uri}: {str(e)}")
@@ -865,6 +955,217 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         except Exception as e:
             logger.error(f"Error saving entity document for {entity_uri}: {str(e)}")
             return None
+
+    def generate_validation_report(self):
+        """
+        Generate a validation report showing missing classes and properties.
+        Provides recommendations for handling missing ontology elements.
+        """
+        logger.info("\n" + "=" * 80)
+        logger.info("ONTOLOGY VALIDATION REPORT")
+        logger.info("=" * 80)
+
+        # Report missing classes
+        if UniversalRagSystem._missing_classes:
+            logger.error("\n" + "!" * 80)
+            logger.error(f"⚠ WARNING: Found {len(UniversalRagSystem._missing_classes)} classes NOT in ontology files!")
+            logger.error("!" * 80)
+            logger.warning("\nThese classes exist in your triplestore but their ontology definitions are")
+            logger.warning("NOT present in the 'ontology/' directory (CIDOC-CRM/VIR/CRMdig):")
+
+            # Sort for consistent output
+            missing_classes_sorted = sorted(UniversalRagSystem._missing_classes)
+            for i, class_uri in enumerate(missing_classes_sorted[:20], 1):  # Show first 20
+                local_name = class_uri.split('/')[-1].split('#')[-1]
+                logger.warning(f"  {i}. {local_name}")
+                logger.warning(f"     URI: {class_uri}")
+
+            if len(UniversalRagSystem._missing_classes) > 20:
+                logger.warning(f"  ... and {len(UniversalRagSystem._missing_classes) - 20} more")
+
+            logger.error("\n" + "!" * 80)
+            logger.error("⚠ ACTION REQUIRED FOR PROPER RAG FUNCTIONALITY:")
+            logger.error("!" * 80)
+            logger.error("\nTo proceed with optimal use of the RAG system, you MUST:")
+            logger.error("\n  STEP 1: Identify missing ontology files")
+            logger.error("    • Check the URIs above - the namespace tells you which ontology")
+            logger.error("    • Examples: FRBRoo, CRMgeo, CRMsci, CRMarchaeo, or custom ontologies")
+            logger.error("\n  STEP 2: Download or locate the ontology files (.ttl, .rdf, .owl)")
+            logger.error("    • CIDOC-CRM extensions: https://www.cidoc-crm.org/extensions")
+            logger.error("    • Custom ontologies: check your data provider or project docs")
+            logger.error("\n  STEP 3: Add ontology files to 'ontology/' directory")
+            logger.error("    $ cp /path/to/ontology.ttl ontology/")
+            logger.error("\n  STEP 4: Extract labels from new ontology files")
+            logger.error("    $ python extract_ontology_labels.py")
+            logger.error("\n  STEP 5: Rebuild RAG system (delete caches and re-run)")
+            logger.error("    $ rm -rf document_graph.pkl vector_index/ entity_documents/")
+            logger.error("\nCurrently using fallback strategy:")
+            logger.error("  - Attempting to query labels from triplestore (English only)")
+            logger.error("  - If no label found, deriving from URI local names")
+            logger.error("  - This may result in incorrect or missing type information")
+            logger.error(f"\nSee detailed instructions in: ontology_validation_report.txt")
+            logger.error("!" * 80)
+        else:
+            logger.info("\n✓ All classes found in ontology files")
+
+        # Report missing properties
+        if UniversalRagSystem._missing_properties:
+            logger.error("\n" + "!" * 80)
+            logger.error(f"⚠ WARNING: Found {len(UniversalRagSystem._missing_properties)} properties NOT in ontology files!")
+            logger.error("!" * 80)
+            logger.warning("\nThese properties exist in your triplestore but their ontology definitions are")
+            logger.warning("NOT present in the 'ontology/' directory (CIDOC-CRM/VIR/CRMdig):")
+
+            # Sort for consistent output
+            missing_props_sorted = sorted(UniversalRagSystem._missing_properties)
+            for i, prop_uri in enumerate(missing_props_sorted[:20], 1):  # Show first 20
+                local_name = prop_uri.split('/')[-1].split('#')[-1]
+                logger.warning(f"  {i}. {local_name}")
+                logger.warning(f"     URI: {prop_uri}")
+
+            if len(UniversalRagSystem._missing_properties) > 20:
+                logger.warning(f"  ... and {len(UniversalRagSystem._missing_properties) - 20} more")
+
+            logger.error("\n" + "!" * 80)
+            logger.error("⚠ ACTION REQUIRED FOR PROPER RAG FUNCTIONALITY:")
+            logger.error("!" * 80)
+            logger.error("\nTo proceed with optimal use of the RAG system, you MUST:")
+            logger.error("\n  STEP 1: Identify missing ontology files")
+            logger.error("    • Check the URIs above - the namespace tells you which ontology")
+            logger.error("    • Examples: FRBRoo, CRMgeo, CRMsci, CRMarchaeo, or custom ontologies")
+            logger.error("\n  STEP 2: Download or locate the ontology files (.ttl, .rdf, .owl)")
+            logger.error("    • CIDOC-CRM extensions: https://www.cidoc-crm.org/extensions")
+            logger.error("    • Custom ontologies: check your data provider or project docs")
+            logger.error("\n  STEP 3: Add ontology files to 'ontology/' directory")
+            logger.error("    $ cp /path/to/ontology.ttl ontology/")
+            logger.error("\n  STEP 4: Extract labels from new ontology files")
+            logger.error("    $ python extract_ontology_labels.py")
+            logger.error("\n  STEP 5: Rebuild RAG system (delete caches and re-run)")
+            logger.error("    $ rm -rf document_graph.pkl vector_index/ entity_documents/")
+            logger.error("\nCurrently using fallback strategy:")
+            logger.error("  - Deriving labels from property local names")
+            logger.error("    Example: 'P1_is_identified_by' → 'is identified by'")
+            logger.error("  - This may result in suboptimal natural language descriptions")
+            logger.error(f"\nSee detailed instructions in: ontology_validation_report.txt")
+            logger.error("!" * 80)
+        else:
+            logger.info("\n✓ All properties found in ontology files")
+
+        # Save report to file
+        report_file = "ontology_validation_report.txt"
+        try:
+            with open(report_file, 'w', encoding='utf-8') as f:
+                f.write("=" * 80 + "\n")
+                f.write("ONTOLOGY VALIDATION REPORT\n")
+                f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write("=" * 80 + "\n\n")
+
+                f.write(f"Missing Classes: {len(UniversalRagSystem._missing_classes)}\n")
+                f.write(f"Missing Properties: {len(UniversalRagSystem._missing_properties)}\n\n")
+
+                has_missing = UniversalRagSystem._missing_classes or UniversalRagSystem._missing_properties
+
+                if has_missing:
+                    f.write("!" * 80 + "\n")
+                    f.write("⚠ WARNING: ONTOLOGY FILES MISSING\n")
+                    f.write("!" * 80 + "\n\n")
+                    f.write("The ontology files for these classes/properties are NOT present in the\n")
+                    f.write("'ontology/' directory. To proceed with optimal use of the RAG system,\n")
+                    f.write("you MUST add the missing ontology files.\n\n")
+
+                if UniversalRagSystem._missing_classes:
+                    f.write("MISSING CLASSES:\n")
+                    f.write("-" * 80 + "\n")
+                    for class_uri in sorted(UniversalRagSystem._missing_classes):
+                        f.write(f"{class_uri}\n")
+                    f.write("\n")
+
+                if UniversalRagSystem._missing_properties:
+                    f.write("MISSING PROPERTIES:\n")
+                    f.write("-" * 80 + "\n")
+                    for prop_uri in sorted(UniversalRagSystem._missing_properties):
+                        f.write(f"{prop_uri}\n")
+                    f.write("\n")
+
+                if has_missing:
+                    f.write("!" * 80 + "\n")
+                    f.write("STEP-BY-STEP FIX INSTRUCTIONS:\n")
+                    f.write("!" * 80 + "\n\n")
+
+                    f.write("STEP 1: Identify the missing ontology files\n")
+                    f.write("-" * 80 + "\n")
+                    f.write("Look at the URIs listed above. The namespace in the URI tells you which\n")
+                    f.write("ontology defines these classes/properties:\n\n")
+                    f.write("Example URI patterns and their ontologies:\n")
+                    f.write("  • http://www.cidoc-crm.org/cidoc-crm/...  → CIDOC-CRM (already in ontology/)\n")
+                    f.write("  • http://w3id.org/vir#...                  → VIR (already in ontology/)\n")
+                    f.write("  • http://www.ics.forth.gr/isl/CRMdig/...  → CRMdig (already in ontology/)\n")
+                    f.write("  • http://erlangen-crm.org/...             → Erlangen CRM\n")
+                    f.write("  • http://www.cidoc-crm.org/frbroo/...     → FRBRoo\n")
+                    f.write("  • http://www.cidoc-crm.org/crmgeo/...     → CRMgeo\n")
+                    f.write("  • http://www.cidoc-crm.org/crmsci/...     → CRMsci\n")
+                    f.write("  • http://www.cidoc-crm.org/crmarchaeo/... → CRMarchaeo\n")
+                    f.write("  • http://www.cidoc-crm.org/crminf/...     → CRMinf\n")
+                    f.write("  • http://www.ics.forth.gr/isl/CRMtex/...  → CRMtex\n")
+                    f.write("  • http://iflastandards.info/ns/lrm/...    → LRM\n")
+                    f.write("  • [Custom namespace]                      → Your custom ontology\n\n")
+
+                    f.write("STEP 2: Download or locate the ontology files\n")
+                    f.write("-" * 80 + "\n")
+                    f.write("For standard CIDOC-CRM extensions:\n")
+                    f.write("  • Visit: https://www.cidoc-crm.org/\n")
+                    f.write("  • Or: https://cidoc-crm.org/extensions\n")
+                    f.write("  • Download the .rdfs, .rdf, .owl, or .ttl file\n\n")
+                    f.write("For custom/domain-specific ontologies:\n")
+                    f.write("  • Contact your data provider\n")
+                    f.write("  • Check your project documentation\n")
+                    f.write("  • Look for ontology files alongside your RDF data\n\n")
+
+                    f.write("STEP 3: Add ontology files to the 'ontology/' directory\n")
+                    f.write("-" * 80 + "\n")
+                    f.write("  $ cp /path/to/downloaded/ontology.ttl ontology/\n")
+                    f.write("  $ cp /path/to/custom/ontology.rdf ontology/\n\n")
+                    f.write("Supported formats: .ttl, .rdf, .owl, .n3\n\n")
+
+                    f.write("STEP 4: Extract labels from ontology files\n")
+                    f.write("-" * 80 + "\n")
+                    f.write("  $ python extract_ontology_labels.py\n\n")
+                    f.write("This will regenerate:\n")
+                    f.write("  • property_labels.json (property URI → English label)\n")
+                    f.write("  • ontology_classes.json (class identifiers for filtering)\n")
+                    f.write("  • class_labels.json (class URI → English label)\n\n")
+
+                    f.write("STEP 5: Rebuild the RAG system\n")
+                    f.write("-" * 80 + "\n")
+                    f.write("Delete cached data:\n")
+                    f.write("  $ rm -f document_graph.pkl document_graph_temp.pkl\n")
+                    f.write("  $ rm -rf vector_index/\n")
+                    f.write("  $ rm -rf entity_documents/\n\n")
+                    f.write("Re-run your initialization script to rebuild with new labels.\n\n")
+
+                    f.write("!" * 80 + "\n")
+                    f.write("CURRENT FALLBACK BEHAVIOR (until you complete the steps above):\n")
+                    f.write("!" * 80 + "\n")
+                    f.write("• Class labels: Querying triplestore for English labels, or deriving from URIs\n")
+                    f.write("• Property labels: Deriving from property local names\n")
+                    f.write("• This may result in:\n")
+                    f.write("  - Incorrect or missing type information in documents\n")
+                    f.write("  - Suboptimal natural language descriptions\n")
+                    f.write("  - Reduced quality of RAG responses\n")
+                    f.write("!" * 80 + "\n")
+
+            logger.info(f"\n✓ Validation report saved to: {report_file}")
+        except Exception as e:
+            logger.error(f"Error saving validation report: {str(e)}")
+
+        # Print final summary
+        if UniversalRagSystem._missing_classes or UniversalRagSystem._missing_properties:
+            logger.error("\n" + "=" * 80)
+            logger.error("SUMMARY: Ontology files are missing for some classes/properties")
+            logger.error(f"See detailed report: {report_file}")
+            logger.error("=" * 80 + "\n")
+        else:
+            logger.info("=" * 80 + "\n")
 
     def process_rdf_data(self):
         """Process RDF data into graph documents with enhanced CIDOC-CRM understanding"""
@@ -1064,7 +1365,10 @@ Each file contains:
         # Build vector store with batched embedding requests
         logger.info("Building vector store...")
         self.build_vector_store_batched()
-        
+
+        # Generate validation report for missing classes and properties
+        self.generate_validation_report()
+
         logger.info("RDF data processing complete with enhanced CIDOC-CRM understanding")
 
     def build_vector_store_batched(self, batch_size=RetrievalConfig.DEFAULT_BATCH_SIZE):

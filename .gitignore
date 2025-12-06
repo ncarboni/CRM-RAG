@@ -4,6 +4,7 @@
 
 # MacOS
 .DS_Store
+**/.DS_Store
 
 # Data files
 document_graph.pkl
@@ -14,6 +15,15 @@ entity_documents/
 # Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
 
 # Logs
 app.log

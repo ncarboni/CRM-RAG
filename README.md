@@ -40,35 +40,35 @@ pip install -r requirements.txt
 
 ### 2. Configure API Keys
 
-Create configuration files from templates:
+Create configuration files from templates in the `config/` directory:
 
 ```bash
 # Copy the secrets template (for API keys)
-cp config/.env.secrets.example .env.secrets
+cp config/.env.secrets.example config/.env.secrets
 
-# Edit .env.secrets and add your actual API keys
+# Edit config/.env.secrets and add your actual API keys
 OPENAI_API_KEY=your_actual_openai_key_here
 ANTHROPIC_API_KEY=your_actual_anthropic_key_here
 R1_API_KEY=your_actual_r1_key_here
 
 # Copy the provider configuration you want to use
-cp config/.env.openai.example .env.openai
+cp config/.env.openai.example config/.env.openai
 # OR
-cp config/.env.claude.example .env.claude
+cp config/.env.claude.example config/.env.claude
 # OR
-cp config/.env.r1.example .env.r1
+cp config/.env.r1.example config/.env.r1
 # OR
-cp config/.env.ollama.example .env.ollama
+cp config/.env.ollama.example config/.env.ollama
 ```
 
 ### 3. Configure SPARQL Endpoint
 
 The default SPARQL endpoint is `http://localhost:3030/asinou/sparql`.
 
-**To change the endpoint**: Edit the `FUSEKI_ENDPOINT` variable in your `.env.*` files:
+**To change the endpoint**: Edit the `FUSEKI_ENDPOINT` variable in your `config/.env.*` files:
 
 ```bash
-# Example: .env.openai, .env.claude, .env.r1, .env.ollama
+# Example: config/.env.openai, config/.env.claude, etc.
 FUSEKI_ENDPOINT=http://your-server:3030/your-dataset/sparql
 ```
 

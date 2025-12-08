@@ -1293,7 +1293,7 @@ Each file contains:
                     continue
             
             # Save progress after each batch
-            self.document_store.save_document_graph('document_graph_temp.pkl')
+            self.document_store.save_document_graph('data/cache/document_graph_temp.pkl')
             
             # Pause for 2 seconds after each batch of 50
             logger.info("Completed batch of 50 documents, pausing for 2 seconds...")

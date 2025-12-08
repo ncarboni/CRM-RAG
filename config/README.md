@@ -16,15 +16,15 @@ Configuration files for different LLM providers:
 
 1. Copy the provider template you want to use:
    ```bash
-   cp config/.env.openai.example .env.openai
+   cp config/.env.openai.example config/.env.openai
    ```
 
 2. Copy the secrets template:
    ```bash
-   cp config/.env.secrets.example .env.secrets
+   cp config/.env.secrets.example config/.env.secrets
    ```
 
-3. Edit the files and add your API keys
+3. Edit the files in `config/` and add your API keys
 
 ## Interface Customization (interface.yaml)
 

@@ -1,6 +1,7 @@
-# Environment files with secrets
-.env
-.env.secrets
+# Environment files with secrets (now in config/)
+config/.env
+config/.env.*
+!config/.env.*.example
 .env.local
 
 # MacOS
@@ -11,6 +12,10 @@
 data/labels/*.json
 data/cache/
 data/documents/entity_documents/
+
+# Cache and temporary pickle files
+*.pkl
+document_graph_temp.pkl
 
 # Python
 __pycache__/

@@ -16,22 +16,41 @@ class ConfigLoader:
     @staticmethod
     def load_config(env_file: str = None) -> Dict[str, Any]:
         """Load configuration from environment file"""
-        if env_file and os.path.exists(env_file):
-            logger.info(f"Loading configuration from {env_file}")
-            # Load the specified .env file
-            load_dotenv(env_file)
-        else:
-            logger.info("Loading configuration from default .env file")
-            # Load the default .env file
-            load_dotenv()
+        # Determine base directory (repo root)
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        config_dir = os.path.join(base_dir, "config")
 
-        # Load secrets from .env.secrets (if it exists)
-        secrets_file = os.path.join(os.path.dirname(env_file) if env_file else os.getcwd(), ".env.secrets")
+        if env_file:
+            # If relative path provided, check both config/ and absolute path
+            if not os.path.isabs(env_file):
+                config_path = os.path.join(config_dir, env_file)
+                if os.path.exists(config_path):
+                    env_file = config_path
+
+            if os.path.exists(env_file):
+                logger.info(f"Loading configuration from {env_file}")
+                load_dotenv(env_file)
+            else:
+                logger.warning(f"Specified env file not found: {env_file}, loading default")
+                default_env = os.path.join(config_dir, ".env")
+                if os.path.exists(default_env):
+                    load_dotenv(default_env)
+        else:
+            # Load the default .env file from config/
+            default_env = os.path.join(config_dir, ".env")
+            if os.path.exists(default_env):
+                logger.info(f"Loading configuration from {default_env}")
+                load_dotenv(default_env)
+            else:
+                logger.warning("No .env file found in config/ directory")
+
+        # Load secrets from config/.env.secrets (if it exists)
+        secrets_file = os.path.join(config_dir, ".env.secrets")
         if os.path.exists(secrets_file):
             logger.info(f"Loading secrets from {secrets_file}")
             load_dotenv(secrets_file, override=True)
         else:
-            logger.warning(".env.secrets file not found. API keys should be set in environment or .env.secrets")
+            logger.warning(".env.secrets file not found. API keys should be set in environment or config/.env.secrets")
 
         # Load LLM provider configuration
         llm_provider = os.environ.get("LLM_PROVIDER", "openai").lower()

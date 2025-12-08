@@ -1,6 +1,6 @@
 # RAG Architecture for CIDOC-CRM
 
-Graph-based RAG (Retrieval-Augmented Generation) system for querying CIDOC-CRM RDF data about Byzantine art. Uses coherent subgraph extraction with weighted CIDOC-CRM relationships to enhance document retrieval.
+Graph-based RAG (Retrieval-Augmented Generation) system for querying CIDOC-CRM RDF data.
 
 ## Repository Structure
 

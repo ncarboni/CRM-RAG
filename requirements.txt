@@ -25,6 +25,7 @@ numpy==2.2.0
 python-dotenv==1.0.1
 tqdm==4.67.1
 requests>=2.32.4  # Fixed CVE: .netrc credential leak vulnerability
+PyYAML==6.0.2  # For loading interface configuration
 
 # Optional: Development Tools
 # pytest==8.3.4

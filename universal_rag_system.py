@@ -34,7 +34,7 @@ import requests
 # Local imports
 from graph_document_store import GraphDocumentStore
 from llm_providers import get_llm_provider, BaseLLMProvider
-from extract_ontology_labels import run_extraction
+from scripts.extract_ontology_labels import run_extraction
 
 logger = logging.getLogger(__name__)
 
@@ -126,8 +126,8 @@ class UniversalRagSystem:
         Returns:
             dict: Property labels mapping
         """
-        labels_file = 'property_labels.json'
-        ontology_dir = 'ontology'
+        labels_file = 'data/labels/property_labels.json'
+        ontology_dir = 'data/ontologies'
 
         # Check if we need to extract
         should_extract = force_extract or not os.path.exists(labels_file)
@@ -187,8 +187,8 @@ class UniversalRagSystem:
         Returns:
             set: Set of ontology class names (both URIs and local names)
         """
-        classes_file = 'ontology_classes.json'
-        ontology_dir = 'ontology'
+        classes_file = 'data/labels/ontology_classes.json'
+        ontology_dir = 'data/ontologies'
 
         # Check if we need to extract (the extraction is done together with properties)
         should_extract = force_extract or not os.path.exists(classes_file)
@@ -213,7 +213,7 @@ class UniversalRagSystem:
 
             try:
                 # This will extract both properties and classes
-                success = run_extraction(ontology_dir, 'property_labels.json', classes_file)
+                success = run_extraction(ontology_dir, 'data/labels/property_labels.json', classes_file)
                 if not success:
                     logger.error("Failed to extract ontology classes from ontologies")
                     return set()
@@ -249,8 +249,8 @@ class UniversalRagSystem:
         Returns:
             dict: Class labels mapping (URI -> English label)
         """
-        labels_file = 'class_labels.json'
-        ontology_dir = 'ontology'
+        labels_file = 'data/labels/class_labels.json'
+        ontology_dir = 'data/ontologies'
 
         # Check if we need to extract (the extraction is done together with classes)
         should_extract = force_extract or not os.path.exists(labels_file)
@@ -274,7 +274,7 @@ class UniversalRagSystem:
             logger.info(f"Found {len(ontology_files)} ontology files: {', '.join(ontology_files)}")
 
             try:
-                success = run_extraction(ontology_dir, 'property_labels.json', 'ontology_classes.json', labels_file)
+                success = run_extraction(ontology_dir, 'data/labels/property_labels.json', 'data/labels/ontology_classes.json', labels_file)
                 if not success:
                     logger.error("Failed to extract class labels from ontologies")
                     return {}
@@ -350,8 +350,8 @@ class UniversalRagSystem:
         self.document_store = GraphDocumentStore(self.embeddings)
         
         # Check if saved data exists
-        doc_graph_path = 'document_graph.pkl'
-        vector_index_path = 'vector_index/index.faiss'
+        doc_graph_path = 'data/cache/document_graph.pkl'
+        vector_index_path = 'data/cache/vector_index/index.faiss'
         
         logger.info(f"Checking for saved data at {doc_graph_path} and {vector_index_path}")
         
@@ -371,7 +371,7 @@ class UniversalRagSystem:
             # Add graph document load method
             if not hasattr(self.document_store, 'load_document_graph'):
                 # Define the method if it doesn't exist
-                def load_document_graph(self, path='document_graph.pkl'):
+                def load_document_graph(self, path='data/cache/document_graph.pkl'):
                     """Load document graph from disk"""
                     if os.path.exists(path):
                         try:
@@ -394,7 +394,7 @@ class UniversalRagSystem:
             vector_loaded = False
             try:
                 self.document_store.vector_store = FAISS.load_local(
-                    'vector_index', 
+                    'data/cache/vector_index', 
                     self.embeddings,
                     allow_dangerous_deserialization=True
                 )
@@ -419,7 +419,7 @@ class UniversalRagSystem:
         # Save the document graph
         if not hasattr(self.document_store, 'save_document_graph'):
             # Define the method if it doesn't exist
-            def save_document_graph(self, path='document_graph.pkl'):
+            def save_document_graph(self, path='data/cache/document_graph.pkl'):
                 """Save document graph to disk"""
                 try:
                     with open(path, 'wb') as f:
@@ -435,7 +435,7 @@ class UniversalRagSystem:
         
         # Save document graph
         self.document_store.save_document_graph(doc_graph_path)
-        vector_index_path = 'vector_index'
+        vector_index_path = 'data/cache/vector_index'
         os.makedirs(vector_index_path, exist_ok=True)
 
         # Save the vector store
@@ -922,7 +922,7 @@ class UniversalRagSystem:
             # Return minimal document to prevent complete failure
             return f"Entity: {entity_uri}", entity_uri, [], []
 
-    def save_entity_document(self, entity_uri, document_text, entity_label, output_dir="entity_documents"):
+    def save_entity_document(self, entity_uri, document_text, entity_label, output_dir="data/documents/entity_documents"):
         """Save entity document to disk for transparency and reuse"""
 
         try:
@@ -1003,12 +1003,12 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
             logger.error("\n  STEP 4: Extract labels from new ontology files")
             logger.error("    $ python extract_ontology_labels.py")
             logger.error("\n  STEP 5: Rebuild RAG system (delete caches and re-run)")
-            logger.error("    $ rm -rf document_graph.pkl vector_index/ entity_documents/")
+            logger.error("    $ rm -rf data/cache/document_graph.pkl data/cache/vector_index/ data/documents/entity_documents/")
             logger.error("\nCurrently using fallback strategy:")
             logger.error("  - Attempting to query labels from triplestore (English only)")
             logger.error("  - If no label found, deriving from URI local names")
             logger.error("  - This may result in incorrect or missing type information")
-            logger.error(f"\nSee detailed instructions in: ontology_validation_report.txt")
+            logger.error(f"\nSee detailed instructions in: logs/ontology_validation_report.txt")
             logger.error("!" * 80)
         else:
             logger.info("\n✓ All classes found in ontology files")
@@ -1046,18 +1046,18 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
             logger.error("\n  STEP 4: Extract labels from new ontology files")
             logger.error("    $ python extract_ontology_labels.py")
             logger.error("\n  STEP 5: Rebuild RAG system (delete caches and re-run)")
-            logger.error("    $ rm -rf document_graph.pkl vector_index/ entity_documents/")
+            logger.error("    $ rm -rf data/cache/document_graph.pkl data/cache/vector_index/ data/documents/entity_documents/")
             logger.error("\nCurrently using fallback strategy:")
             logger.error("  - Deriving labels from property local names")
             logger.error("    Example: 'P1_is_identified_by' → 'is identified by'")
             logger.error("  - This may result in suboptimal natural language descriptions")
-            logger.error(f"\nSee detailed instructions in: ontology_validation_report.txt")
+            logger.error(f"\nSee detailed instructions in: logs/ontology_validation_report.txt")
             logger.error("!" * 80)
         else:
             logger.info("\n✓ All properties found in ontology files")
 
         # Save report to file
-        report_file = "ontology_validation_report.txt"
+        report_file = "logs/ontology_validation_report.txt"
         try:
             with open(report_file, 'w', encoding='utf-8') as f:
                 f.write("=" * 80 + "\n")
@@ -1134,18 +1134,18 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
                     f.write("STEP 4: Extract labels from ontology files\n")
                     f.write("-" * 80 + "\n")
-                    f.write("  $ python extract_ontology_labels.py\n\n")
+                    f.write("  $ python scripts/extract_ontology_labels.py\n\n")
                     f.write("This will regenerate:\n")
-                    f.write("  • property_labels.json (property URI → English label)\n")
-                    f.write("  • ontology_classes.json (class identifiers for filtering)\n")
-                    f.write("  • class_labels.json (class URI → English label)\n\n")
+                    f.write("  • data/labels/property_labels.json (property URI → English label)\n")
+                    f.write("  • data/labels/ontology_classes.json (class identifiers for filtering)\n")
+                    f.write("  • data/labels/class_labels.json (class URI → English label)\n\n")
 
                     f.write("STEP 5: Rebuild the RAG system\n")
                     f.write("-" * 80 + "\n")
                     f.write("Delete cached data:\n")
-                    f.write("  $ rm -f document_graph.pkl document_graph_temp.pkl\n")
-                    f.write("  $ rm -rf vector_index/\n")
-                    f.write("  $ rm -rf entity_documents/\n\n")
+                    f.write("  $ rm -f data/cache/document_graph.pkl data/cache/document_graph_temp.pkl\n")
+                    f.write("  $ rm -rf data/cache/vector_index/\n")
+                    f.write("  $ rm -rf data/documents/entity_documents/\n\n")
                     f.write("Re-run your initialization script to rebuild with new labels.\n\n")
 
                     f.write("!" * 80 + "\n")
@@ -1182,7 +1182,7 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         logger.info(f"Found {total_entities} entities")
 
         # Clear entity_documents directory if it exists
-        output_dir = "entity_documents"
+        output_dir = "data/documents/entity_documents"
         if os.path.exists(output_dir):
             shutil.rmtree(output_dir)
             logger.info(f"Cleared existing {output_dir} directory")
@@ -1364,8 +1364,8 @@ Each file contains:
                     )
         
         # Rename temp file to final
-        if os.path.exists('document_graph_temp.pkl'):
-            os.replace('document_graph_temp.pkl', 'document_graph.pkl')
+        if os.path.exists('data/cache/document_graph_temp.pkl'):
+            os.replace('data/cache/document_graph_temp.pkl', 'data/cache/document_graph.pkl')
         
         # Build vector store with batched embedding requests
         logger.info("Building vector store...")
@@ -1379,7 +1379,7 @@ Each file contains:
     def build_vector_store_batched(self, batch_size=RetrievalConfig.DEFAULT_BATCH_SIZE):
         """Build vector store with batched embedding requests to avoid rate limits"""
         
-        vector_index_path = 'vector_index'
+        vector_index_path = 'data/cache/vector_index'
         os.makedirs(vector_index_path, exist_ok=True)
         
         # Prepare documents for FAISS

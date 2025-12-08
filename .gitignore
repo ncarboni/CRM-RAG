@@ -1,4 +1,5 @@
 # Environment files with secrets
+.env
 .env.secrets
 .env.local
 
@@ -6,12 +7,10 @@
 .DS_Store
 **/.DS_Store
 
-# Data files
-document_graph.pkl
-document_graph_temp.pkl
-vector_index/
-entity_documents/
-ontology_validation_report.txt
+# Generated data files
+data/labels/*.json
+data/cache/
+data/documents/entity_documents/
 
 # Python
 __pycache__/
@@ -25,11 +24,34 @@ __pycache__/
 dist/
 build/
 *.whl
+.pytest_cache/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
 
 # Logs
-app.log
+logs/*.log
+logs/*.txt
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
 # Claude
 .claude/
 CLAUDE.md
-ARCHITECTURE.md
+
+# Testing
+.coverage
+htmlcov/
+.tox/
+
+# Jupyter
+.ipynb_checkpoints/

@@ -11,6 +11,7 @@ import sys
 import argparse
 import shutil
 import re
+import yaml
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_from_directory, abort
 from logging.handlers import RotatingFileHandler
@@ -22,7 +23,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        RotatingFileHandler("app.log", maxBytes=10485760, backupCount=5),
+        RotatingFileHandler("logs/app.log", maxBytes=10485760, backupCount=5),
         logging.StreamHandler()
     ]
 )
@@ -36,6 +37,44 @@ args = parser.parse_args()
 
 # Load configuration
 config = ConfigLoader.load_config(args.env)
+
+# Load interface customization from YAML
+def load_interface_config():
+    """Load interface customization from config/interface.yaml"""
+    interface_config_path = 'config/interface.yaml'
+
+    # Default configuration if file doesn't exist
+    default_config = {
+        'page_title': 'RAG Chat Interface',
+        'header_title': 'RAG Chatbot',
+        'welcome_message': 'Hello! How can I help you today?',
+        'input_placeholder': 'Ask a question...',
+        'example_questions': [
+            'What is this dataset about?',
+            'Tell me about the main entities'
+        ],
+        'about': {
+            'title': 'About This Chat',
+            'description': 'This chat interface uses RAG.',
+            'features': [],
+            'footer': ''
+        }
+    }
+
+    try:
+        if os.path.exists(interface_config_path):
+            with open(interface_config_path, 'r', encoding='utf-8') as f:
+                loaded_config = yaml.safe_load(f)
+                logger.info(f"Loaded interface configuration from {interface_config_path}")
+                return loaded_config if loaded_config else default_config
+        else:
+            logger.warning(f"Interface config not found at {interface_config_path}, using defaults")
+            return default_config
+    except Exception as e:
+        logger.error(f"Error loading interface config: {str(e)}, using defaults")
+        return default_config
+
+interface_config = load_interface_config()
 
 # Flask application setup
 app = Flask(__name__)
@@ -143,12 +182,12 @@ def send_static(path):
 @app.route('/')
 def index():
     """Home page route (redirects to chat)"""
-    return render_template('chat.html')
+    return render_template('chat.html', interface=interface_config)
 
 @app.route('/chat')
 def chat():
     """Chat interface route"""
-    return render_template('chat.html')
+    return render_template('chat.html', interface=interface_config)
 
 # API endpoint for entity Wikidata information (needed for chat.js)
 @app.route('/api/entity/<path:entity_uri>/wikidata')
@@ -200,15 +239,15 @@ if __name__ == '__main__':
     if args.rebuild:
         logger.info("Rebuilding document graph and vector store...")
         # Delete existing files
-        if os.path.exists('document_graph.pkl'):
-            os.remove('document_graph.pkl')
-        if os.path.exists('vector_index'):
-            shutil.rmtree('vector_index')
+        if os.path.exists('data/cache/document_graph.pkl'):
+            os.remove('data/cache/document_graph.pkl')
+        if os.path.exists('data/cache/vector_index'):
+            shutil.rmtree('data/cache/vector_index')
 
     # Initialize the system
     try:
         # First, check if saved data exists
-        if (os.path.exists('document_graph.pkl') and os.path.exists('vector_index/index.faiss')):
+        if (os.path.exists('data/cache/document_graph.pkl') and os.path.exists('data/cache/vector_index/index.faiss')):
             logger.info("Found existing data, loading...")
             if rag_system.initialize():
                 logger.info("Successfully loaded existing data")

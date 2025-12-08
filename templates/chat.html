@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Asinou Dataset Chat{% endblock %}
+{% block title %}{{ interface.page_title }}{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="../static/css/chat.css">
@@ -11,17 +11,17 @@
     <div class="col-lg-8 mx-auto">
         <div class="card mb-4">
             <div class="card-header">
-                <h5><i class="fas fa-comments me-2"></i>Asinou Dataset Chatbot</h5>
+                <h5><i class="fas fa-comments me-2"></i>{{ interface.header_title }}</h5>
             </div>
             <div class="card-body">
                 <div class="chat-container" id="chat-container">
                     <div class="message assistant-message">
-                        <p>Hello! I'm your Asinou Dataset assistant. I can answer questions about the Asinou church, its frescoes, iconography, and historical context based on our RDF database and CIDOC-CRM ontology. How can I help you today?</p>
+                        <p>{{ interface.welcome_message }}</p>
                     </div>
                 </div>
-                
+
                 <div class="input-group mb-3">
-                    <input type="text" id="question-input" class="form-control" placeholder="Ask about Asinou church, frescoes, iconography...">
+                    <input type="text" id="question-input" class="form-control" placeholder="{{ interface.input_placeholder }}">
                     <button class="btn btn-primary" id="send-button">
                         <i class="fas fa-paper-plane me-1"></i>Send
                     </button>
@@ -32,14 +32,16 @@
                     <div class="row">
                         <div class="col-md-6">
                             <ul>
-                                <li><a href="#" class="example-question">Where is Panagia Phorbiottisa located?</a></li>
-                                <li><a href="#" class="example-question">What churches in Cyprus have Last Judgment iconography?</a></li>
+                                {% for question in interface.example_questions[:2] %}
+                                <li><a href="#" class="example-question">{{ question }}</a></li>
+                                {% endfor %}
                             </ul>
                         </div>
                         <div class="col-md-6">
                             <ul>
-                                <li><a href="#" class="example-question">Tell me about Saint George depictions</a></li>
-                                <li><a href="#" class="example-question">What attributes are depicted in the panel of the south lunette?</a></li>
+                                {% for question in interface.example_questions[2:] %}
+                                <li><a href="#" class="example-question">{{ question }}</a></li>
+                                {% endfor %}
                             </ul>
                         </div>
                     </div>
@@ -49,17 +51,20 @@
         
         <div class="card">
             <div class="card-header">
-                <h5><i class="fas fa-info-circle me-2"></i>About This Chat</h5>
+                <h5><i class="fas fa-info-circle me-2"></i>{{ interface.about.title }}</h5>
             </div>
             <div class="card-body">
-                <p>This chat interface uses an advanced graph-based Retrieval-Augmented Generation (RAG) system with the following features:</p>
+                <p>{{ interface.about.description }}</p>
+                {% if interface.about.features %}
                 <ul>
-                    <li><strong>Graph-Based Document Retrieval:</strong> Documents are organized as a graph with weighted edges based on CIDOC-CRM relationship semantics</li>
-                    <li><strong>Coherent Subgraph Extraction:</strong> Uses greedy selection to balance individual document relevance with network connectivity</li>
-                    <li><strong>Relationship-Aware Scoring:</strong> Combines vector similarity search with Personalized PageRank to leverage the semantic relationships between entities</li>
-                    <li><strong>CIDOC-CRM Integration:</strong> Automatically processes RDF triples and converts ontology relationships into natural language</li>
+                    {% for feature in interface.about.features %}
+                    <li><strong>{{ feature.title }}:</strong> {{ feature.description }}</li>
+                    {% endfor %}
                 </ul>
-                <p>The system retrieves information from an RDF knowledge graph and uses network analysis to extract coherent, contextually-connected answers about cultural heritage data.</p>
+                {% endif %}
+                {% if interface.about.footer %}
+                <p>{{ interface.about.footer }}</p>
+                {% endif %}
             </div>
         </div>
     </div>

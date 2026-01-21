@@ -70,6 +70,7 @@ class UniversalRagSystem:
     _property_labels = None
     _ontology_classes = None
     _class_labels = None  # Cache for class URI -> English label mapping
+    _inverse_properties = None  # Cache for property URI -> inverse property URI mapping
     _extraction_attempted = False  # Track if we've tried extraction to avoid infinite loops
     _missing_properties = set()  # Track properties that couldn't be found
     _missing_classes = set()  # Track classes that couldn't be found in ontology files
@@ -114,6 +115,32 @@ class UniversalRagSystem:
 
         if UniversalRagSystem._class_labels is None:
             UniversalRagSystem._class_labels = self._load_class_labels()
+
+        if UniversalRagSystem._inverse_properties is None:
+            UniversalRagSystem._inverse_properties = self._load_inverse_properties()
+
+    def _load_inverse_properties(self):
+        """
+        Load inverse property mappings from JSON file generated from ontologies.
+
+        Returns:
+            dict: Inverse property mappings (property URI -> inverse URI)
+        """
+        inverse_file = 'data/labels/inverse_properties.json'
+
+        if os.path.exists(inverse_file):
+            try:
+                with open(inverse_file, 'r', encoding='utf-8') as f:
+                    inverse_map = json.load(f)
+                logger.info(f"Loaded {len(inverse_map)} inverse property mappings from {inverse_file}")
+                return inverse_map
+            except Exception as e:
+                logger.error(f"Error loading inverse properties: {str(e)}")
+                return {}
+        else:
+            logger.warning(f"Inverse properties file not found at {inverse_file}")
+            logger.info("Run: python scripts/extract_ontology_labels.py to generate it")
+            return {}
 
     def _load_property_labels(self, force_extract=False):
         """
@@ -340,15 +367,25 @@ class UniversalRagSystem:
     
     def initialize(self):
         """Initialize the system"""
-        
+
         # Test connection
         if not self.test_connection():
             logger.error("Failed to connect to SPARQL endpoint")
             return False
-        
+
         # Initialize document store
         self.document_store = GraphDocumentStore(self.embeddings)
-        
+
+        # Check for extend-sample mode (add entities to existing graph)
+        extend_size = self.config.get('extend_sample_size')
+        if extend_size:
+            sample_classes = self.config.get('sample_classes')
+            class_uris = None
+            if sample_classes:
+                class_uris = [self._resolve_class_uri(c) for c in sample_classes]
+            logger.info(f"Extend-sample mode: adding {extend_size} entities to existing graph")
+            return self.extend_sample(extend_size, class_uris)
+
         # Check if saved data exists
         doc_graph_path = 'data/cache/document_graph.pkl'
         vector_index_path = 'data/cache/vector_index/index.faiss'
@@ -444,6 +481,195 @@ class UniversalRagSystem:
             logger.info(f"Vector store saved to {vector_index_path}")
         return True
 
+    def extend_sample(self, num_new_entities, class_uris=None):
+        """
+        Extend existing sample by adding more entities without rebuilding from scratch.
+
+        Args:
+            num_new_entities: Number of new entities to add
+            class_uris: Optional list of class URIs to filter by
+
+        Returns:
+            True if successful, False otherwise
+        """
+        doc_graph_path = 'data/cache/document_graph.pkl'
+        vector_index_path = 'data/cache/vector_index'
+
+        # First, load existing graph
+        if not os.path.exists(doc_graph_path):
+            logger.error("No existing document graph found. Use --sample first to create initial sample.")
+            return False
+
+        # Initialize document store if needed
+        if not self.document_store:
+            self.document_store = GraphDocumentStore(self.embeddings)
+
+        # Load existing graph
+        if not hasattr(self.document_store, 'load_document_graph'):
+            def load_document_graph(self, path='data/cache/document_graph.pkl'):
+                if os.path.exists(path):
+                    try:
+                        with open(path, 'rb') as f:
+                            self.docs = pickle.load(f)
+                        logger.info(f"Document graph loaded from {path} with {len(self.docs)} documents")
+                        return True
+                    except Exception as e:
+                        logger.error(f"Error loading document graph: {str(e)}")
+                        return False
+                return False
+            self.document_store.load_document_graph = types.MethodType(load_document_graph, self.document_store)
+
+        if not self.document_store.load_document_graph(doc_graph_path):
+            logger.error("Failed to load existing document graph")
+            return False
+
+        # Get existing entity URIs
+        existing_uris = set(self.document_store.docs.keys())
+        logger.info(f"Existing sample has {len(existing_uris)} entities")
+
+        # Sample new entities excluding existing ones
+        logger.info(f"Sampling {num_new_entities} additional entities...")
+
+        # Get more candidates than needed (some will be filtered out)
+        target_total = len(existing_uris) + num_new_entities
+        sampled = self.sample_connected_entities_sparql(target_total, class_uris)
+
+        if not sampled:
+            logger.error("SPARQL sampling returned no entities")
+            return False
+
+        # Filter out entities already in the graph
+        new_entities = [s for s in sampled if s["entity"] not in existing_uris]
+        new_entities = new_entities[:num_new_entities]  # Limit to requested count
+
+        if not new_entities:
+            logger.warning("No new entities found to add (all sampled entities already in graph)")
+            return True
+
+        logger.info(f"Found {len(new_entities)} new entities to add")
+
+        # Get full entity data for new entities
+        new_entity_uris = {e["entity"] for e in new_entities}
+        all_entities = self.get_all_entities()
+        entities_to_add = [e for e in all_entities if e["entity"] in new_entity_uris]
+
+        logger.info(f"Processing {len(entities_to_add)} new entities...")
+
+        # Process new entities (similar to process_rdf_data but incremental)
+        output_dir = "data/documents/entity_documents"
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Rate limit tracking
+        global_token_count = 0
+        tokens_per_min_limit = RetrievalConfig.TOKENS_PER_MINUTE_LIMIT
+        last_reset_time = time.time()
+        batch_size = RetrievalConfig.DEFAULT_BATCH_SIZE
+
+        for i in range(0, len(entities_to_add), batch_size):
+            batch = entities_to_add[i:i+batch_size]
+            logger.info(f"Processing batch {i//batch_size + 1}/{(len(entities_to_add) + batch_size - 1)//batch_size}")
+
+            for entity in tqdm(batch, desc=f"Adding entities", unit="entity"):
+                entity_uri = entity["entity"]
+
+                # Rate limit check
+                current_time = time.time()
+                if current_time - last_reset_time >= 60:
+                    global_token_count = 0
+                    last_reset_time = current_time
+
+                if global_token_count > tokens_per_min_limit:
+                    wait_time = 60 - (current_time - last_reset_time) + 1
+                    if wait_time > 0:
+                        logger.info(f"Rate limit pause: {wait_time:.1f}s...")
+                        time.sleep(wait_time)
+                        global_token_count = 0
+                        last_reset_time = time.time()
+
+                try:
+                    doc_text, entity_label, entity_types, raw_triples = self.create_enhanced_document(entity_uri)
+                    self.save_entity_document(entity_uri, doc_text, entity_label)
+
+                    estimated_tokens = len(doc_text) / 4
+                    global_token_count += estimated_tokens
+
+                    # Add document to store
+                    self.document_store.add_document(
+                        entity_uri,
+                        doc_text,
+                        {
+                            "uri": entity_uri,
+                            "label": entity_label,
+                            "types": entity_types
+                        }
+                    )
+                except Exception as e:
+                    logger.error(f"Error processing entity {entity_uri}: {str(e)}")
+                    continue
+
+        logger.info(f"Added {len(entities_to_add)} new entities. Total: {len(self.document_store.docs)}")
+
+        # Add edges for new entities
+        logger.info("Adding edges for new entities...")
+        for entity in tqdm(entities_to_add, desc="Adding edges", unit="entity"):
+            entity_uri = entity["entity"]
+            relationships = self.get_outgoing_relationships(entity_uri)
+
+            for rel in relationships:
+                object_uri = rel["object"]
+                predicate = rel["predicate"]
+
+                # Only add edge if target exists in graph
+                if object_uri in self.document_store.docs:
+                    weight = self.get_relationship_weight(predicate)
+                    self.document_store.add_edge(entity_uri, object_uri, predicate, weight)
+
+        # Rebuild vector store (FAISS doesn't support incremental well)
+        logger.info("Rebuilding vector store with all entities...")
+        self.document_store.rebuild_vector_store()
+
+        # Save updated graph
+        if not hasattr(self.document_store, 'save_document_graph'):
+            def save_document_graph(self, path='data/cache/document_graph.pkl'):
+                try:
+                    with open(path, 'wb') as f:
+                        pickle.dump(self.docs, f)
+                    logger.info(f"Document graph saved to {path}")
+                    return True
+                except Exception as e:
+                    logger.error(f"Error saving document graph: {str(e)}")
+                    return False
+            self.document_store.save_document_graph = types.MethodType(save_document_graph, self.document_store)
+
+        self.document_store.save_document_graph(doc_graph_path)
+
+        # Save vector store
+        os.makedirs(vector_index_path, exist_ok=True)
+        if self.document_store.vector_store:
+            self.document_store.vector_store.save_local(vector_index_path)
+            logger.info(f"Vector store saved to {vector_index_path}")
+
+        logger.info(f"Successfully extended sample to {len(self.document_store.docs)} entities")
+        return True
+
+    def _get_inverse_predicate(self, predicate_uri):
+        """
+        Get the inverse predicate URI for a CIDOC-CRM predicate.
+        Uses owl:inverseOf mappings extracted from ontology files.
+
+        Args:
+            predicate_uri: Full URI of the predicate
+
+        Returns:
+            Inverse predicate URI (or original if no inverse defined in ontology)
+        """
+        if UniversalRagSystem._inverse_properties:
+            inverse = UniversalRagSystem._inverse_properties.get(predicate_uri)
+            if inverse:
+                return inverse
+
+        # No inverse found in ontology - return original predicate
+        return predicate_uri
 
     def process_cidoc_relationship(self, subject_uri, predicate, object_uri, subject_label=None, object_label=None):
         """Convert CIDOC-CRM RDF relationships to natural language using ontology labels"""
@@ -703,9 +929,10 @@ class UniversalRagSystem:
 
                         context_statements.append(statement)
 
-                        # Recursively traverse outgoing relationships
+                        # Recursively traverse both directions to follow CIDOC-CRM patterns
+                        # (e.g., Painting ← P108 ← Production → P14 → Artist)
                         if current_depth < depth:
-                            traverse(obj, current_depth + 1, "outgoing")
+                            traverse(obj, current_depth + 1, "both")
                 except Exception as e:
                     logger.error(f"Error traversing outgoing relationships: {str(e)}")
 
@@ -759,16 +986,20 @@ class UniversalRagSystem:
                                 "object_label": entity_label
                             })
 
-                        # Create natural language statement
+                        # Create natural language statement using INVERSE predicate
+                        # For incoming: Production P108 Painting → Painting P108i Production
+                        # This expresses the relationship from the current entity's perspective
+                        inverse_pred = self._get_inverse_predicate(pred)
                         statement = self.process_cidoc_relationship(
-                            subj, pred, uri, subj_label, entity_label
+                            uri, inverse_pred, subj, entity_label, subj_label
                         )
 
                         context_statements.append(statement)
 
-                        # Recursively traverse incoming relationships
+                        # Recursively traverse both directions to follow CIDOC-CRM patterns
+                        # (e.g., Painting ← P108 ← Production → P14 → Artist)
                         if current_depth < depth:
-                            traverse(subj, current_depth + 1, "incoming")
+                            traverse(subj, current_depth + 1, "both")
                 except Exception as e:
                     logger.error(f"Error traversing incoming relationships: {str(e)}")
 
@@ -1180,6 +1411,31 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         entities = self.get_all_entities()
         total_entities = len(entities)
         logger.info(f"Found {total_entities} entities")
+
+        # Apply SPARQL-based connected sampling if enabled
+        sample_size = self.config.get('entity_sample_size')
+        if sample_size:
+            sample_classes = self.config.get('sample_classes')
+
+            # Convert class names to URIs if needed
+            class_uris = None
+            if sample_classes:
+                class_uris = [self._resolve_class_uri(c) for c in sample_classes]
+                logger.info(f"Resolved class URIs: {class_uris}")
+
+            logger.info(f"SPARQL sampling: target={sample_size}, classes={sample_classes or 'auto'}")
+
+            # Use SPARQL property paths for connected sampling
+            sampled = self.sample_connected_entities_sparql(sample_size, class_uris)
+
+            if sampled:
+                # Filter all_entities to only include sampled URIs
+                sampled_uris = {s["entity"] for s in sampled}
+                entities = [e for e in entities if e["entity"] in sampled_uris]
+                total_entities = len(entities)
+                logger.info(f"Sampled {total_entities} connected entities via SPARQL")
+            else:
+                logger.warning("SPARQL sampling returned empty, using all entities")
 
         # Clear entity_documents directory if it exists
         output_dir = "data/documents/entity_documents"
@@ -1676,7 +1932,234 @@ Remember: Your audience wants to learn about cultural heritage, not database sch
         except Exception as e:
             logger.error(f"Error fetching entities: {str(e)}")
             return []
-    
+
+    def sample_connected_entities_sparql(self, target_size, class_uris=None):
+        """
+        Sample connected entities using SPARQL property paths.
+        Guarantees connectivity by expanding from seed entities via property paths.
+
+        Args:
+            target_size: Number of entities to sample
+            class_uris: Optional list of class URIs to filter by
+
+        Returns:
+            List of entity dicts with 'entity' and 'degree' keys
+        """
+        # Number of seeds (more seeds = better coverage, less connectivity)
+        num_seeds = max(3, target_size // 50)
+
+        # Build class filter if specified
+        class_filter_clause = ""
+        seed_class_filter = ""
+        if class_uris:
+            class_values = " ".join(f"<{uri}>" for uri in class_uris)
+            class_filter_clause = f"?entity rdf:type ?class . VALUES ?class {{ {class_values} }}"
+            seed_class_filter = f"?seed rdf:type ?seedClass . VALUES ?seedClass {{ {class_values} }}"
+
+        query = f"""
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+        SELECT DISTINCT ?entity (COUNT(DISTINCT ?rel) AS ?degree) WHERE {{
+          # Step 1: Find seed entities (most connected)
+          {{
+            SELECT ?seed WHERE {{
+              ?seed ?p ?connected .
+              FILTER(isURI(?connected))
+              {seed_class_filter}
+            }}
+            GROUP BY ?seed
+            ORDER BY DESC(COUNT(?connected))
+            LIMIT {num_seeds}
+          }}
+
+          # Step 2: Expand from seeds via property paths (0-2 hops)
+          # Using alternation for both directions: outgoing (?p) and incoming (^?p)
+          ?seed (^<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>|<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>|!<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>){{0,2}} ?entity .
+          FILTER(isURI(?entity))
+
+          # Step 3: Filter by class if specified
+          {class_filter_clause}
+
+          # Step 4: Entity must have literals (to match get_all_entities behavior)
+          ?entity ?litPred ?litVal . FILTER(isLiteral(?litVal))
+
+          # Count connections for ordering (prefer well-connected entities)
+          ?entity ?rel ?other . FILTER(isURI(?other))
+        }}
+        GROUP BY ?entity
+        ORDER BY DESC(?degree)
+        LIMIT {target_size}
+        """
+
+        try:
+            logger.info(f"SPARQL sampling: target={target_size}, seeds={num_seeds}, classes={class_uris or 'auto'}")
+            self.sparql.setQuery(query)
+            results = self.sparql.query().convert()
+
+            sampled = []
+            for result in results["results"]["bindings"]:
+                entity_uri = result["entity"]["value"]
+                degree = int(result["degree"]["value"])
+                sampled.append({
+                    "entity": entity_uri,
+                    "degree": degree
+                })
+
+            logger.info(f"SPARQL sampling returned {len(sampled)} connected entities")
+
+            # If SPARQL property paths didn't return enough, try simpler fallback
+            if len(sampled) < target_size * 0.5:
+                logger.warning(f"SPARQL property path sampling returned only {len(sampled)} entities, trying simpler approach")
+                sampled = self._sample_entities_simple(target_size, class_uris)
+
+            return sampled
+
+        except Exception as e:
+            logger.error(f"SPARQL sampling failed: {str(e)}")
+            logger.info("Falling back to simple sampling")
+            return self._sample_entities_simple(target_size, class_uris)
+
+    def _sample_entities_simple(self, target_size, class_uris=None):
+        """
+        Fallback sampling method: get most connected entities.
+        Less sophisticated but more reliable across different SPARQL endpoints.
+        """
+        class_filter = ""
+        if class_uris:
+            class_values = " ".join(f"<{uri}>" for uri in class_uris)
+            class_filter = f"?entity rdf:type ?class . VALUES ?class {{ {class_values} }}"
+
+        query = f"""
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+        SELECT ?entity (COUNT(DISTINCT ?related) AS ?degree) WHERE {{
+            ?entity ?p ?related .
+            FILTER(isURI(?related))
+
+            # Must have literals (to match get_all_entities)
+            ?entity ?litPred ?litVal . FILTER(isLiteral(?litVal))
+
+            {class_filter}
+        }}
+        GROUP BY ?entity
+        ORDER BY DESC(?degree)
+        LIMIT {target_size}
+        """
+
+        try:
+            self.sparql.setQuery(query)
+            results = self.sparql.query().convert()
+
+            sampled = []
+            for result in results["results"]["bindings"]:
+                entity_uri = result["entity"]["value"]
+                degree = int(result["degree"]["value"])
+                sampled.append({
+                    "entity": entity_uri,
+                    "degree": degree
+                })
+
+            logger.info(f"Simple sampling returned {len(sampled)} entities (ordered by connectivity)")
+            return sampled
+
+        except Exception as e:
+            logger.error(f"Simple sampling also failed: {str(e)}")
+            return []
+
+    def _resolve_class_uri(self, class_name):
+        """
+        Resolve a class name (e.g., 'E22_Human-Made_Object' or 'crm:E22_Human-Made_Object') to full URI.
+        """
+        # If already a full URI, return as-is
+        if class_name.startswith("http://") or class_name.startswith("https://"):
+            return class_name
+
+        # Handle prefixed names like 'crm:E22_Human-Made_Object'
+        if ":" in class_name:
+            prefix, local = class_name.split(":", 1)
+            prefix_map = {
+                "crm": "http://www.cidoc-crm.org/cidoc-crm/",
+                "vir": "http://w3id.org/vir#",
+                "crmdig": "http://www.ics.forth.gr/isl/CRMdig/",
+                "frbroo": "http://iflastandards.info/ns/fr/frbr/frbroo/",
+            }
+            if prefix.lower() in prefix_map:
+                return prefix_map[prefix.lower()] + local
+            else:
+                logger.warning(f"Unknown prefix '{prefix}' in class name '{class_name}'")
+                return class_name
+
+        # Assume CIDOC-CRM namespace for bare class names like 'E22_Human-Made_Object'
+        return f"http://www.cidoc-crm.org/cidoc-crm/{class_name}"
+
+    def get_relationship_weight(self, predicate_uri):
+        """
+        Get weight for a CIDOC-CRM relationship predicate.
+        Higher weights indicate more semantically important relationships.
+
+        Args:
+            predicate_uri: Full URI of the predicate
+
+        Returns:
+            Float weight between 0 and 1
+        """
+        # Extract local name from URI
+        local_name = predicate_uri.split('/')[-1].split('#')[-1]
+
+        # CIDOC-CRM relationship weights
+        weights = {
+            # Spatial relationships (high weight - location is key context)
+            "P89_falls_within": 0.9,
+            "P89i_contains": 0.9,
+            "P55_has_current_location": 0.9,
+            "P55i_currently_holds": 0.9,
+
+            # Physical composition
+            "P56_bears_feature": 0.8,
+            "P56i_is_found_on": 0.8,
+            "P46_is_composed_of": 0.8,
+            "P46i_forms_part_of": 0.8,
+
+            # Creation/Production (important for authorship)
+            "P108_has_produced": 0.85,
+            "P108i_was_produced_by": 0.85,
+            "P14_carried_out_by": 0.85,
+            "P14i_performed": 0.85,
+            "P94_has_created": 0.85,
+            "P94i_was_created_by": 0.85,
+
+            # Visual representation (VIR)
+            "K24_portray": 0.7,
+            "K24i_is_portrayed_in": 0.7,
+            "K34_illustrates": 0.7,
+            "K34i_is_illustrated_by": 0.7,
+
+            # Type classification
+            "P2_has_type": 0.6,
+            "P2i_is_type_of": 0.6,
+
+            # Documentation/Reference
+            "P67_refers_to": 0.5,
+            "P67i_is_referred_to_by": 0.5,
+            "P70_documents": 0.5,
+            "P70i_is_documented_in": 0.5,
+
+            # Temporal
+            "P4_has_time-span": 0.6,
+            "P4i_is_time-span_of": 0.6,
+
+            # Identification
+            "P1_is_identified_by": 0.4,
+            "P1i_identifies": 0.4,
+        }
+
+        # Try full URI first, then local name
+        weight = weights.get(predicate_uri)
+        if weight is None:
+            weight = weights.get(local_name, 0.5)  # Default weight
+
+        return weight
+
     def get_outgoing_relationships(self, entity_uri):
         """Get outgoing relationships from an entity (domain-level only, no schema predicates)"""
         query = f"""
@@ -2172,13 +2655,20 @@ Remember: Your audience wants to learn about cultural heritage, not database sch
             wikidata_context = ""
             entities_with_wikidata = []
             
+            # Truncate each doc if needed to prevent rate limit errors
+            # Roughly 4 chars per token, limit ~500 tokens per doc
+            MAX_DOC_CHARS = 2000
+
             for i, doc in enumerate(retrieved_docs):
                 entity_uri = doc.id
                 entity_label = doc.metadata.get("label", entity_uri.split('/')[-1])
 
                 # Build context without technical type information
                 context += f"Entity: {entity_label}\n"
-                context += doc.text + "\n\n"
+                doc_text = doc.text
+                if len(doc_text) > MAX_DOC_CHARS:
+                    doc_text = doc_text[:MAX_DOC_CHARS] + "...[truncated]"
+                context += doc_text + "\n\n"
                 
                 # Get Wikidata info if available and requested
                 if include_wikidata:

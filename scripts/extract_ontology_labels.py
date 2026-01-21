@@ -298,9 +298,79 @@ def save_class_labels(class_labels, output_file='data/labels/class_labels.json')
     logger.info(f"Saved class labels to {output_file}")
 
 
-def run_extraction(ontology_dir='data/ontologies', output_file='data/labels/property_labels.json', classes_file='data/labels/ontology_classes.json', class_labels_file='data/labels/class_labels.json'):
+def extract_inverse_properties(ontology_dir='data/ontologies'):
     """
-    Main function to extract and save property labels and ontology classes.
+    Extract owl:inverseOf relationships from all ontology files.
+    Returns a dictionary mapping property URIs to their inverse property URIs.
+    """
+    inverse_map = {}
+
+    # Find all ontology files
+    ontology_files = []
+    for filename in os.listdir(ontology_dir):
+        if filename.endswith(('.ttl', '.rdf', '.owl', '.n3')):
+            ontology_files.append(os.path.join(ontology_dir, filename))
+
+    logger.info(f"Extracting inverse properties from {len(ontology_files)} ontology files")
+
+    # Process each ontology file
+    for filepath in ontology_files:
+        logger.info(f"Processing: {filepath}")
+
+        g = Graph()
+        try:
+            g.parse(filepath)
+
+            # Query for owl:inverseOf relationships
+            query = """
+            PREFIX owl: <http://www.w3.org/2002/07/owl#>
+
+            SELECT ?property ?inverse
+            WHERE {
+                ?property owl:inverseOf ?inverse .
+            }
+            """
+
+            results = g.query(query)
+            count = 0
+
+            for row in results:
+                prop_uri = str(row.property)
+                inverse_uri = str(row.inverse)
+
+                # Store bidirectional mapping
+                inverse_map[prop_uri] = inverse_uri
+                inverse_map[inverse_uri] = prop_uri
+                count += 1
+
+            logger.info(f"  Extracted {count} inverse pairs")
+
+        except Exception as e:
+            logger.error(f"  Error parsing {filepath}: {str(e)}")
+            continue
+
+    logger.info(f"\nTotal inverse mappings: {len(inverse_map)}")
+
+    # Log some examples
+    logger.info("\nExample inverse pairs:")
+    for i, (prop, inverse) in enumerate(list(inverse_map.items())[:10]):
+        prop_local = prop.split('/')[-1].split('#')[-1]
+        inverse_local = inverse.split('/')[-1].split('#')[-1]
+        logger.info(f"  {prop_local} <-> {inverse_local}")
+
+    return inverse_map
+
+
+def save_inverse_properties(inverse_map, output_file='data/labels/inverse_properties.json'):
+    """Save inverse property mappings to JSON file"""
+    with open(output_file, 'w', encoding='utf-8') as f:
+        json.dump(inverse_map, f, indent=2, ensure_ascii=False)
+    logger.info(f"Saved inverse properties to {output_file}")
+
+
+def run_extraction(ontology_dir='data/ontologies', output_file='data/labels/property_labels.json', classes_file='data/labels/ontology_classes.json', class_labels_file='data/labels/class_labels.json', inverse_file='data/labels/inverse_properties.json'):
+    """
+    Main function to extract and save property labels, ontology classes, and inverse mappings.
     Can be called from other modules.
 
     Args:
@@ -308,6 +378,7 @@ def run_extraction(ontology_dir='data/ontologies', output_file='data/labels/prop
         output_file: Output file for property labels
         classes_file: Output file for ontology classes
         class_labels_file: Output file for class labels (URI -> English label)
+        inverse_file: Output file for inverse property mappings
 
     Returns:
         bool: True if successful, False otherwise
@@ -325,10 +396,17 @@ def run_extraction(ontology_dir='data/ontologies', output_file='data/labels/prop
         logger.info("=" * 60)
         classes, class_labels = extract_ontology_classes(ontology_dir)
 
+        # Extract inverse property mappings
+        logger.info("\n" + "=" * 60)
+        logger.info("EXTRACTING INVERSE PROPERTIES")
+        logger.info("=" * 60)
+        inverse_map = extract_inverse_properties(ontology_dir)
+
         # Save to JSON
         save_property_labels(labels, output_file)
         save_ontology_classes(classes, classes_file)
         save_class_labels(class_labels, class_labels_file)
+        save_inverse_properties(inverse_map, inverse_file)
 
         logger.info(f"\n✓ Successfully extracted {len(labels)} property labels")
         logger.info(f"✓ Saved to {output_file}")
@@ -336,6 +414,8 @@ def run_extraction(ontology_dir='data/ontologies', output_file='data/labels/prop
         logger.info(f"✓ Saved to {classes_file}")
         logger.info(f"✓ Successfully extracted {len(class_labels)} class labels")
         logger.info(f"✓ Saved to {class_labels_file}")
+        logger.info(f"✓ Successfully extracted {len(inverse_map)} inverse mappings")
+        logger.info(f"✓ Saved to {inverse_file}")
         return True
     except Exception as e:
         logger.error(f"Failed to extract ontology data: {str(e)}")

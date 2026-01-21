@@ -3,20 +3,22 @@
 # Edit these values to customize the chatbot for your dataset
 
 # Page and header titles
-page_title: "Museum Collection Chat"
-header_title: "Museum Collection Chatbot"
+page_title: "Asinou Dataset Chat"
+header_title: "Asinou Dataset Chatbot"
 
 # Welcome message (shown when chat loads)
-welcome_message: "Hello! I'm your Collection assistant. I can answer questions about the Museum Collection, its artworks, artists, and exhibitions. How can I help you today?"
+welcome_message: "Hello! I'm your Asinou Dataset assistant. I can answer questions about the Asinou church, its frescoes, iconography, and historical context based on our RDF database and CIDOC-CRM ontology. How can I help you today?"
 
 # Input placeholder text
-input_placeholder: "Ask about Museum Collection, its artworks, artists..."
+input_placeholder: "Ask about Asinou church, frescoes, iconography..."
 
 # Example questions (shown below the input box)
 # You can add/remove/modify these questions
 example_questions:
-  - "Which pieces from Swiss Artists are in the museum?"
-  - "Which exhibitions contain artwork from France?"
+  - "Where is Panagia Phorbiottisa located?"
+  - "What churches in Cyprus have Last Judgment iconography?"
+  - "Tell me about Saint George depictions"
+  - "What attributes are depicted in the panel of the south lunette?"
 
 # About section
 about:

@@ -33,10 +33,26 @@ logger = logging.getLogger(__name__)
 parser = argparse.ArgumentParser(description='Asinou Dataset Chatbot')
 parser.add_argument('--env', type=str, help='Path to environment file')
 parser.add_argument('--rebuild', action='store_true', help='Force rebuild of document graph and vector store')
+parser.add_argument('--sample', type=int, default=None,
+                    help='Sample N entities using connected subgraph sampling for testing (e.g., --sample 100)')
+parser.add_argument('--extend-sample', type=int, default=None,
+                    help='Extend existing sample by N additional entities (e.g., --extend-sample 5000). Builds on existing graph without deleting.')
+parser.add_argument('--sample-classes', type=str, default=None,
+                    help='Comma-separated CIDOC-CRM classes to prioritize for sampling seeds (e.g., "E22_Human-Made_Object,E53_Place"). If not specified, auto-detects most connected classes.')
 args = parser.parse_args()
 
 # Load configuration
 config = ConfigLoader.load_config(args.env)
+
+# Pass sampling config if specified
+if args.sample:
+    config['entity_sample_size'] = args.sample
+    config['sample_classes'] = [c.strip() for c in args.sample_classes.split(',')] if args.sample_classes else None
+
+# Pass extend-sample config if specified
+if args.extend_sample:
+    config['extend_sample_size'] = args.extend_sample
+    config['sample_classes'] = [c.strip() for c in args.sample_classes.split(',')] if args.sample_classes else None
 
 # Load interface customization from YAML
 def load_interface_config():

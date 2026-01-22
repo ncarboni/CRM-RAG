@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/3b60a040-3e3b-4027-a59e-e5f65b25bf24/
 Label: Kalopanayiotis
-Generated: 2026-01-22 12:23:43
+Generated: 2026-01-22 13:35:47
 ---
 
 # Kalopanayiotis

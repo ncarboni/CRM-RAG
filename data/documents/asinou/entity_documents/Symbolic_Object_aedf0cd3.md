@@ -1,7 +1,7 @@
 ---
 URI: http://www.cidoc-crm.org/cidoc-crm/E90_Symbolic_Object
 Label: Symbolic Object
-Generated: 2026-01-22 12:23:13
+Generated: 2026-01-22 13:35:22
 ---
 
 # Symbolic Object

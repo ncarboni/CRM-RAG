@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/c316adb9-69bb-458d-9ac4-3f1d350a407d
 Label: white dove
-Generated: 2026-01-22 12:23:23
+Generated: 2026-01-22 13:35:30
 ---
 
 # white dove
@@ -19,35 +19,35 @@ URI: http://map.cnrs.fr/semantics/attribute/c316adb9-69bb-458d-9ac4-3f1d350a407d
 
 ## Relationships
 
-- The preparation of the throne is found on Panagia Phorbiottisa
-- crown of thorns symbolize Holy trinity
-- cross has attribute Preparation of the throne
-- Last judgment is composed of Fiery stream
-- gospel book symbolize Holy trinity
+- Holy spirit symbolize white dove
 - The preparation of the throne forms part of west lunette
-- Preparation of the throne has attribute cross
-- The preparation of the throne is found on Asinou
-- Last judgment is composed of Individual torments
-- The preparation of the throne is found on west lunette
-- gospel book has attribute Preparation of the throne
-- Last judgment is composed of Collective torments
-- Last judgment is composed of Preparation of the throne
-- cross symbolize Holy trinity
-- spear has attribute Saint George on a horseback
-- The preparation of the throne was produced by Painting cycle of 1332/33
-- Last judgment is composed of Scroll of heaven
-- spear has attribute Saint George and the Dragon
-- spear has attribute Preparation of the throne
-- spear has attribute Sunset
-- white dove has attribute Preparation of the throne
-- Preparation of the throne has attribute gospel book
-- Preparation of the throne is denoted by The preparation of the throne
-- The preparation of the throne is denoted by Preparation of the throne
-- white dove symbolize Holy spirit
-- Last judgment is composed of Gnashing of the teeth
 - Preparation of the throne has attribute crown of thorns
 - Preparation of the throne is composed of Last judgment
-- Preparation of the throne has attribute white dove
+- cross has attribute Preparation of the throne
+- Last judgment is composed of Fiery stream
+- cross symbolize Holy trinity
+- Last judgment is composed of Preparation of the throne
+- Preparation of the throne is denoted by The preparation of the throne
+- Last judgment is composed of Scroll of heaven
+- Preparation of the throne has attribute cross
+- white dove has attribute Preparation of the throne
+- The preparation of the throne is denoted by Preparation of the throne
+- gospel book has attribute Preparation of the throne
 - crown of thorns has attribute Preparation of the throne
-- Holy spirit symbolize white dove
+- The preparation of the throne is found on Asinou
+- Last judgment is composed of Collective torments
+- white dove symbolize Holy spirit
+- The preparation of the throne is found on west lunette
+- Preparation of the throne has attribute white dove
+- Preparation of the throne has attribute gospel book
 - Preparation of the throne has attribute spear
+- gospel book symbolize Holy trinity
+- spear has attribute Saint George on a horseback
+- spear has attribute Saint George and the Dragon
+- The preparation of the throne was produced by Painting cycle of 1332/33
+- Last judgment is composed of Individual torments
+- Last judgment is composed of Gnashing of the teeth
+- spear has attribute Sunset
+- The preparation of the throne is found on Panagia Phorbiottisa
+- spear has attribute Preparation of the throne
+- crown of thorns symbolize Holy trinity

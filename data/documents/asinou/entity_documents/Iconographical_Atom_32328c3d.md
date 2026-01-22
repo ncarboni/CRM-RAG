@@ -1,7 +1,7 @@
 ---
 URI: http://w3id.org/vir#IC1_Iconographical_Atom
 Label: Iconographical Atom
-Generated: 2026-01-22 12:23:35
+Generated: 2026-01-22 13:35:41
 ---
 
 # Iconographical Atom

@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/type/f618f1e0-6291-4a8e-a186-f3a863f8ad25
 Label: Conch
-Generated: 2026-01-22 12:23:46
+Generated: 2026-01-22 13:35:48
 ---
 
 # Conch
@@ -18,57 +18,57 @@ URI: http://map.cnrs.fr/semantics/type/f618f1e0-6291-4a8e-a186-f3a863f8ad25
 
 ## Relationships
 
-- west lunette bears feature Fiery stream
-- Narthex is same as 300004624
-- West door is composed of Mother of god Phorbiotissa
-- Apse is same as Q170463
-- Architectural element is type of West door
-- West door has current location place
-- Soffit has broader term Architectural element
-- Architectural element has narrower term Conch
-- Bema is same as 300266806
-- west lunette bears feature The preparation of the throne
-- Architectural element is same as 300000885
-- 300133015 is same as Conch
-- Conch has broader term Architectural element
 - Architectural element has narrower term Narthex
-- West door forms part of Narthex
-- Architectural element has narrower term Naos
-- North wall of sanctuary is classified as type: Architectural element
-- Architectural element is type of North wall of sanctuary
-- Q170463 is same as Conch
-- Naos has broader term Architectural element
-- west lunette is composed of The preparation of the throne
-- Soffit is same as 300003614
-- North wall of sanctuary bears feature Donor Ioannes and Irene
-- Apse is type of South lunette
-- Naos is same as 300185263
-- west lunette forms part of Asinou
-- Architectural element has narrower term Bema
-- Apse has broader term Architectural element
-- Conch is same as 300133015
-- west lunette is classified as type: Architectural element
-- west lunette forms part of Panagia Phorbiottisa
-- West door is classified as type: Architectural element
-- west lunette is composed of Fiery stream
-- Naos is same as Q827125
-- Bema has broader term Architectural element
-- Architectural element is type of west lunette
-- Architectural element has narrower term Arch
 - Narthex has broader term Architectural element
-- Arch has broader term Architectural element
+- Narthex is same as Q208576
 - Conch is same as Q170463
-- Q170463 is same as Apse
-- North wall of sanctuary forms part of Our Lady of Moutoullas
+- west lunette bears feature The preparation of the throne
+- West door is classified as type: Architectural element
+- Q170463 is same as Conch
+- Soffit is same as 300003614
+- West door forms part of Panagia Phorbiottisa
+- West door forms part of Narthex
+- Architectural element is type of North wall of sanctuary
+- west lunette forms part of Panagia Phorbiottisa
+- Naos has broader term Architectural element
+- 300133015 is same as Conch
+- Arch has broader term Architectural element
+- west lunette has current location place
+- Naos is same as 300185263
+- North wall of sanctuary is classified as type: Architectural element
+- Architectural element has narrower term Arch
+- Apse is same as Q170463
+- Soffit has broader term Architectural element
+- Bema has broader term Architectural element
 - Apse is same as 300004607
+- west lunette is classified as type: Architectural element
+- west lunette is composed of Fiery stream
+- Bema is same as 300266806
+- west lunette bears feature Fiery stream
+- West door is composed of Mother of god Phorbiotissa
+- Bema is same as Q2029217
+- Conch is same as 300133015
+- West door has current location place
+- Architectural element has narrower term Naos
+- Narthex is same as 300004624
 - Architectural element has narrower term Soffit
+- Naos is same as Q827125
+- Q170463 is same as Apse
+- Conch has broader term Architectural element
+- West door forms part of Asinou
+- Architectural element is same as 300000885
+- Architectural element is type of West door
+- Apse is type of South lunette
 - North wall of sanctuary is composed of Donor Ioannes and Irene
 - North wall of sanctuary has current location place
-- west lunette has current location place
-- Bema is same as Q2029217
-- Architectural element has narrower term Apse
-- West door forms part of Panagia Phorbiottisa
-- west lunette forms part of Narthex
+- west lunette forms part of Asinou
+- Apse has broader term Architectural element
+- North wall of sanctuary bears feature Donor Ioannes and Irene
+- Architectural element has narrower term Conch
 - 300000885 is same as Architectural element
-- West door forms part of Asinou
-- Narthex is same as Q208576
+- Architectural element is type of west lunette
+- Architectural element has narrower term Apse
+- west lunette is composed of The preparation of the throne
+- west lunette forms part of Narthex
+- Architectural element has narrower term Bema
+- North wall of sanctuary forms part of Our Lady of Moutoullas

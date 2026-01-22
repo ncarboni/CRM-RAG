@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/ee619dd2-5b73-4db2-8c56-f84bf0af4e9b/
 Label: hand
-Generated: 2026-01-22 12:23:46
+Generated: 2026-01-22 13:35:48
 ---
 
 # hand

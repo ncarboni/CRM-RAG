@@ -1,7 +1,7 @@
 ---
 URI: http://www.cidoc-crm.org/cidoc-crm/E64_End_of_Existence
 Label: End of Existence
-Generated: 2026-01-22 12:23:47
+Generated: 2026-01-22 13:35:49
 ---
 
 # End of Existence

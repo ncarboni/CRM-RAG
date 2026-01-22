@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/db214583-9e3e-4935-be5f-159697761450/
 Label: Painting of Anastasia
-Generated: 2026-01-22 12:23:31
+Generated: 2026-01-22 13:35:37
 ---
 
 # Painting of Anastasia

@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/a7740e44-e086-4b05-8765-9326aa7885ea/
 Label: Bottle
-Generated: 2026-01-22 12:23:46
+Generated: 2026-01-22 13:35:48
 ---
 
 # Bottle

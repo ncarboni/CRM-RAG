@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/3836e340-6531-4d96-9ccd-49f1deefc6b4/symbolic
 Label: protection
-Generated: 2026-01-22 12:23:14
+Generated: 2026-01-22 13:35:23
 ---
 
 # protection
@@ -18,17 +18,17 @@ URI: http://map.cnrs.fr/semantics/attribute/3836e340-6531-4d96-9ccd-49f1deefc6b4
 
 ## Relationships
 
-- Madonna dei Francescani portray Virgin Mary
-- Mapharion symbolize protection
-- Mantle is same as 41D2122
-- Madonna della misericordia portray Virgin Mary
-- Mapharion has attribute Madonna dei Francescani
-- Mapharion depict things of type Mantle
 - Mantle depict things of type Mapharion
-- Madonna dei Francescani is classified as type: Madonna della misericordia
+- Mapharion symbolize protection
+- Madonna dei Francescani portray Virgin Mary
+- Madonna della misericordia portray Virgin Mary
+- Mantle is same as 300212298
 - Mapharion has attribute Madonna della misericordia
 - Madonna dei Francescani has attribute Mapharion
-- Madonna della misericordia has attribute Mapharion
+- Mapharion has attribute Madonna dei Francescani
 - protection symbolize Mapharion
-- Mantle is same as 300212298
+- Mapharion depict things of type Mantle
+- Madonna dei Francescani is classified as type: Madonna della misericordia
+- Madonna della misericordia has attribute Mapharion
+- Mantle is same as 41D2122
 - Madonna della misericordia is denoted by Virgin of Mercy

@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/d919e124-4022-4dad-bfe0-ff676c68a573/
 Label: Hades
-Generated: 2026-01-22 12:23:25
+Generated: 2026-01-22 13:35:32
 ---
 
 # Hades

@@ -1,7 +1,7 @@
 ---
 URI: http://www.cidoc-crm.org/cidoc-crm/E85_Joining
 Label: Joining
-Generated: 2026-01-22 12:23:47
+Generated: 2026-01-22 13:35:49
 ---
 
 # Joining

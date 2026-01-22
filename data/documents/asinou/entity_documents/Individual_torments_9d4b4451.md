@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/ebea8f8b-c2a8-4e5d-b0b5-ffebd6b88aba/
 Label: Individual torments
-Generated: 2026-01-22 12:23:38
+Generated: 2026-01-22 13:35:43
 ---
 
 # Individual torments

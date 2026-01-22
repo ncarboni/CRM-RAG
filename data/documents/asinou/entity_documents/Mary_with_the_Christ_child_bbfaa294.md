@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/389ebfda-31bc-4221-9863-0af10e05628c/
 Label: Mary with the Christ-child
-Generated: 2026-01-22 12:23:44
+Generated: 2026-01-22 13:35:47
 ---
 
 # Mary with the Christ-child

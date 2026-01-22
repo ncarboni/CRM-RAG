@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/21f5d459-1e8c-4547-be24-cd493e44acfb/
 Label: Creation of the statue of Hugues de Vaudemont
-Generated: 2026-01-22 12:23:26
+Generated: 2026-01-22 13:35:32
 ---
 
 # Creation of the statue of Hugues de Vaudemont

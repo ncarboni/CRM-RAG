@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/location/1435d1b4-acef-4a36-a7f0-4c9e1ae4e880/
 Label: Nancy
-Generated: 2026-01-22 12:23:35
+Generated: 2026-01-22 13:35:40
 ---
 
 # Nancy
@@ -19,9 +19,9 @@ URI: http://map.cnrs.fr/semantics/location/1435d1b4-acef-4a36-a7f0-4c9e1ae4e880/
 
 ## Relationships
 
-- France contains Nancy
-- Nancy contains Église des Cordeliers de Nancy
-- Q40898 is same as Nancy
 - Nancy falls within France
+- Nancy contains Église des Cordeliers de Nancy
 - Nancy is same as Q40898
+- Q40898 is same as Nancy
+- France contains Nancy
 - Église des Cordeliers de Nancy falls within Nancy

@@ -1,7 +1,7 @@
 ---
 URI: http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing
 Label: Physical Human-Made Thing
-Generated: 2026-01-22 12:23:47
+Generated: 2026-01-22 13:35:49
 ---
 
 # Physical Human-Made Thing

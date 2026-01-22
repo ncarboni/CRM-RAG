@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/f41bece1-d1ef-409f-885b-474bf25886ad/
 Label: Wife of Michael Katzouroumpos
-Generated: 2026-01-22 12:23:25
+Generated: 2026-01-22 13:35:32
 ---
 
 # Wife of Michael Katzouroumpos

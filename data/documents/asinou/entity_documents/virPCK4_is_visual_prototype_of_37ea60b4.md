@@ -1,7 +1,7 @@
 ---
 URI: http://w3id.org/vir#PCK4_is_visual_prototype_of
 Label: vir#PCK4_is_visual_prototype_of
-Generated: 2026-01-22 12:23:47
+Generated: 2026-01-22 13:35:50
 ---
 
 # vir#PCK4_is_visual_prototype_of

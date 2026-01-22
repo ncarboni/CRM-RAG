@@ -123,17 +123,53 @@ class GraphDocumentStore:
             self.docs[doc_id2].add_neighbor(self.docs[doc_id1], edge_type, weight)
     
     def rebuild_vector_store(self):
-        """Build/rebuild the vector store for initial retrieval"""
-        docs_for_faiss = []
-        for doc_id, graph_doc in self.docs.items():
-            doc = Document(
-                page_content=graph_doc.text,
-                metadata={**graph_doc.metadata, "doc_id": doc_id}
+        """Build/rebuild the vector store for initial retrieval using pre-computed embeddings"""
+        # Check if documents have pre-computed embeddings
+        docs_with_embeddings = [(doc_id, doc) for doc_id, doc in self.docs.items() if doc.embedding is not None]
+        docs_without_embeddings = [(doc_id, doc) for doc_id, doc in self.docs.items() if doc.embedding is None]
+
+        if docs_without_embeddings:
+            logger.warning(f"{len(docs_without_embeddings)} documents missing embeddings, will generate them")
+
+        # Use pre-computed embeddings when available (avoids redundant API calls)
+        if docs_with_embeddings:
+            text_embeddings = []
+            metadatas = []
+
+            for doc_id, graph_doc in docs_with_embeddings:
+                text_embeddings.append((graph_doc.text, graph_doc.embedding))
+                metadatas.append({**graph_doc.metadata, "doc_id": doc_id})
+
+            logger.info(f"Building vector store with {len(text_embeddings)} pre-computed embeddings (no API calls)")
+            self.vector_store = FAISS.from_embeddings(
+                text_embeddings=text_embeddings,
+                embedding=self.embeddings_model,
+                metadatas=metadatas
             )
-            docs_for_faiss.append(doc)
-            
-        logger.info(f"Building vector store with {len(docs_for_faiss)} documents")
-        self.vector_store = FAISS.from_documents(docs_for_faiss, self.embeddings_model)
+
+            # Add any documents without embeddings (will generate embeddings via API)
+            if docs_without_embeddings:
+                docs_for_faiss = []
+                for doc_id, graph_doc in docs_without_embeddings:
+                    doc = Document(
+                        page_content=graph_doc.text,
+                        metadata={**graph_doc.metadata, "doc_id": doc_id}
+                    )
+                    docs_for_faiss.append(doc)
+                logger.info(f"Adding {len(docs_for_faiss)} documents without pre-computed embeddings")
+                self.vector_store.add_documents(docs_for_faiss)
+        else:
+            # Fallback: no pre-computed embeddings, use original method
+            docs_for_faiss = []
+            for doc_id, graph_doc in self.docs.items():
+                doc = Document(
+                    page_content=graph_doc.text,
+                    metadata={**graph_doc.metadata, "doc_id": doc_id}
+                )
+                docs_for_faiss.append(doc)
+
+            logger.info(f"Building vector store with {len(docs_for_faiss)} documents (generating embeddings)")
+            self.vector_store = FAISS.from_documents(docs_for_faiss, self.embeddings_model)
 
     # Add to GraphDocumentStore class
     def save_document_graph(self, path='document_graph.pkl'):

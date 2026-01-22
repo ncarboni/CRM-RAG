@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/type/764f307f-96b4-4575-a61c-c98f6ce14071
 Label: Monastery
-Generated: 2026-01-22 12:23:35
+Generated: 2026-01-22 13:35:40
 ---
 
 # Monastery
@@ -18,12 +18,12 @@ URI: http://map.cnrs.fr/semantics/type/764f307f-96b4-4575-a61c-c98f6ce14071
 
 ## Relationships
 
-- Panagia ton Phorbion is classified as type: Monastery
 - Q44613 is same as Monastery
-- Monastery is type of Panagia ton Phorbion
-- spatial currently holds Panagia ton Phorbion
-- Monastery is same as 300000641
-- Panagia ton Phorbion has current location spatial
 - 300000641 is same as Monastery
+- spatial currently holds Panagia ton Phorbion
+- Monastery is type of Panagia ton Phorbion
+- Monastery is same as 300000641
+- Panagia ton Phorbion is classified as type: Monastery
 - spatial falls within Nikitari
 - Monastery is same as Q44613
+- Panagia ton Phorbion has current location spatial

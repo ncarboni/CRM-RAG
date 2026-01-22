@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/physical/de49f3db-2863-4c66-8fe3-5cb7c6a7f985
 Label: South lunette
-Generated: 2026-01-22 12:23:21
+Generated: 2026-01-22 13:35:28
 ---
 
 # South lunette
@@ -18,205 +18,205 @@ URI: http://map.cnrs.fr/semantics/physical/de49f3db-2863-4c66-8fe3-5cb7c6a7f985
 
 ## Relationships
 
-- Kneeling youth has attribute hands clasped
-- South lunette bears feature Anastasias
-- Last judgment was produced by Painting cycle of 1332/33
-- Anastasia Saramalina has attribute porphyria
-- place currently holds Narthex
-- Narthex is composed of Donor couple
-- Christ child portray Child Jesus
-- South lunette bears feature Saint Mamas
-- Painting of the Virgin of Mercy is classified as type: Mural Painting
-- Panagia Phorbiottisa bears feature Virgin of Mercy
-- Narthex bears feature Last judgment
-- Painting cycle of 1332/33 has produced Gnashing of the teeth
-- Painting of the Virgin of Mercy has produced Virgin of Mercy
-- Painting of Anastasias took place at Panagia Phorbiottisa
-- Architectural element is same as 300000885
-- Panagia Phorbiottisa bears feature The preparation of the throne
-- South lunette is composed of Virgin of Mercy
-- Virgin of Mercy is found on Panagia Phorbiottisa
-- Panagia Phorbiottisa was modified by Initial painting
-- South arch is composed of Gnashing of the teeth
-- Latin Donor has attribute hands clasped
-- western arch has current location place
-- Saint Anastasia has attribute cross of martydom
-- South lunette forms part of Narthex
-- Anastasia Saramalina has attribute neck rectangular patches
-- Apse is type of South lunette
-- Apse has broader term Architectural element
-- Panagia Phorbiottisa was modified by Painting of the Virgin of Mercy
-- Panagia Phorbiottisa bears feature Last judgment
-- Narthex has current location place
-- Donor couple is found on Saint Nicholas of the Roof
-- Virgin of Mercy is found on Asinou
-- Panagia Phorbiottisa is composed of South lunette
-- Narthex is composed of South lunette
-- Saint George carries inscription
-- Architectural element has narrower term Arch
-- Panagia Phorbiottisa is same as Q30773293
-- Headdress of Anastasia Saramalina has attribute barbette
-- Virgin of Mercy was produced by Painting of the Virgin of Mercy
-- Latin Donor is denoted by Virgin of Mercy
-- Painting cycle of 1332/33 has time-span 1332-01-01
-- Painting of the Virgin of Mercy took place at Panagia Phorbiottisa
-- Saint George was produced by Painting of Saint George
-- South lunette is composed of Saint George
-- Painting cycle of 1332/33 took place at Panagia Phorbiottisa
-- Saint Mamas is found on Panagia Phorbiottisa
-- Headdress of Anastasia Saramalina is composed of Anastasia Saramalina
-- Last judgment is found on Panagia Phorbiottisa
-- Christ child has attribute Blessing hand
-- Saint Mamas is found on Asinou
-- West door forms part of Asinou
-- Last judgment forms part of Narthex
-- western arch bears feature Scroll of heaven
-- Panagia Phorbiottisa bears feature Individual torments
-- Painting of Anastasias is classified as type: Mural Painting
-- Virgin of Mercy forms part of South lunette
-- West door is composed of Mother of god Phorbiotissa
-- South lunette is composed of Anastasias
-- Painting of Anastasias has modified Panagia Phorbiottisa
-- Apse is same as Q170463
-- West door has current location place
-- Anastasia Saramalina is denoted by Anastasias
-- Painting of the Virgin of Mercy occurs during Lusignan
-- Narthex is composed of West door
-- Panagia Phorbiottisa bears feature Gnashing of the teeth
-- Panagia Phorbiottisa was modified by Wall paintings of 1332/33
-- west lunette bears feature The preparation of the throne
-- Painting cycle of 1332/33 has modified Asinou
-- Architectural element has narrower term Naos
-- Narthex forms part of Panagia Phorbiottisa
-- Saint George is found on Narthex
-- Painting cycle of 1332/33 has produced Scroll of heaven
-- Painting of the Virgin of Mercy has time-span 1290-01-01
-- Architectural element is type of North wall of sanctuary
-- Q170463 is same as Conch
-- Panagia Phorbiottisa was modified by Painting of Saint George
-- Panagia Phorbiottisa is identified by Παναγία Φορβιώτισσα / Παναγία της Ασίνου
-- South lunette has current location place
-- Madonna della misericordia has attribute Mapharion
-- Panagia Phorbiottisa was modified by Painting of Anastasias
-- Panagia Phorbiottisa is composed of west lunette
-- Donor couple is denoted by Donor's wife
-- Panagia Phorbiottisa was produced by Construction of Asinou
-- west lunette is composed of The preparation of the throne
-- western arch forms part of Asinou
-- Last judgment is found on Asinou
-- Narthex forms part of Asinou
-- Panagia Phorbiottisa is composed of Bema
-- Anastasia Saramalina is composed of Headdress of Anastasia Saramalina
-- Virgin of Mercy is denoted by Madonna della misericordia
-- South lunette is classified as type: Apse
-- Painting cycle of 1332/33 has produced The preparation of the throne
-- Architectural element has narrower term Bema
-- Panagia Phorbiottisa was modified by Construction of Asinou
-- South arch bears feature Individual torments
-- Panagia Phorbiottisa bears feature Saint Mamas
-- Narthex bears feature Saint George
-- Virgin of Mercy is denoted by Christ child
-- Panagia Phorbiottisa is composed of Naos
-- Anastasias was produced by Painting of Anastasias
-- Christ child has attribute diaphanous robe
-- Anastasias is denoted by Headdress of Anastasia Saramalina
-- Panagia Phorbiottisa is composed of western arch
-- Painting cycle of 1332/33 is classified as type: Mural Painting
-- Painting cycle of 1332/33 has modified Panagia Phorbiottisa
-- Apse is same as 300004607
-- Latin Donor has attribute cotte
-- Painting cycle of 1332/33 has produced Fiery stream
-- Narthex is composed of Last judgment
-- Saint George is denoted by Saint George on a horseback
-- west lunette has current location place
-- Panagia Phorbiottisa is composed of South arch
-- Anastasias carries Prayer of the servant of god Anastasia Saramalina
-- Prayer of the servant of god Anastasia Saramalina is carried by Anastasias
-- Panagia Phorbiottisa bears feature Saint George
-- west lunette bears feature Fiery stream
-- South arch forms part of Narthex
-- Panagia Phorbiottisa is composed of Narthex
-- Panagia Phorbiottisa was modified by Closing of the south door of the Narthex
-- Painting of the Virgin of Mercy has modified Asinou
-- Architectural element is type of West door
-- South arch forms part of Panagia Phorbiottisa
-- Saint Anastasia is classified as type: Saint Anastasia Pharmakolytria
-- Anastasia Saramalina is classified as type: Donor
-- Anastasias forms part of South lunette
-- South arch bears feature Gnashing of the teeth
 - Architectural element has narrower term Narthex
-- Panagia Phorbiottisa was modified by Painting cycle of 1332/33
-- Panagia Phorbiottisa is classified as type: Church
-- western arch forms part of Narthex
-- Kneeling youth is denoted by Virgin of Mercy
-- Headdress of Anastasia Saramalina has attribute crespine
-- Panagia Phorbiottisa is composed of West door
-- South lunette forms part of Panagia Phorbiottisa
-- Anastasias is denoted by Saint Anastasia
-- Christ child is classified as type: Christ-child
-- Donor couple forms part of Narthex
-- Painting cycle of 1332/33 has produced Saint Mamas
-- Saint George is found on Panagia Phorbiottisa
-- Saint Mamas was produced by Painting cycle of 1332/33
-- west lunette forms part of Asinou
-- South arch forms part of Asinou
-- 300004607 is same as Apse
-- South lunette forms part of Asinou
-- Anastasias is found on South lunette
-- Narthex is composed of South arch
-- west lunette is classified as type: Architectural element
-- west lunette forms part of Panagia Phorbiottisa
-- place currently holds South lunette
-- Architectural element is type of west lunette
-- Painting cycle of 1332/33 has produced Individual torments
-- Madonna della misericordia portray Virgin Mary
-- Anastasias is found on Asinou
-- Anastasias is found on Panagia Phorbiottisa
-- Architectural element has narrower term Apse
-- Anastasia Saramalina has attribute headdress
-- Latin Donor is classified as type: Donor
-- Virgin of Mercy is denoted by Kneeling youth
+- Saint Mamas is found on Panagia Phorbiottisa
+- Panagia Phorbiottisa was modified by Painting of Anastasias
+- West door is classified as type: Architectural element
+- Anastasia Saramalina is classified as type: Donor
 - Narthex is composed of west lunette
-- South arch bears feature Collective torments
-- Panagia Phorbiottisa bears feature Mother of god Phorbiotissa
-- South arch is composed of Collective torments
-- Saint Mamas is found on South lunette
-- Painting of Anastasias has produced Anastasias
 - Panagia Phorbiottisa bears feature Anastasias
-- Anastasias is denoted by Anastasia Saramalina
-- Virgin of Mercy is denoted by Latin Donor
+- Headdress of Anastasia Saramalina is denoted by Anastasias
+- South arch bears feature Individual torments
+- Saint Anastasia portray Anastasia of Sirmium
+- Architectural element is type of North wall of sanctuary
 - Christ child is denoted by Virgin of Mercy
-- Saint Anastasia is denoted by Anastasias
-- Panagia Phorbiottisa bears feature Donor
-- Madonna della misericordia is denoted by Virgin of Mercy
-- Panagia Phorbiottisa bears feature Fiery stream
-- West door forms part of Narthex
+- South lunette bears feature Anastasias
+- Saint George forms part of South lunette
+- Anastasias was produced by Painting of Anastasias
+- Panagia Phorbiottisa is composed of west lunette
+- South lunette bears feature Saint Mamas
+- Donor couple forms part of Narthex
+- Anastasia Saramalina has attribute T-shaped garment
+- Virgin of Mercy was produced by Painting of the Virgin of Mercy
+- Painting cycle of 1332/33 took place at Panagia Phorbiottisa
+- Donor couple is found on Saint Nicholas of the Roof
+- Panagia Phorbiottisa bears feature Mother of god Phorbiotissa
+- Last judgment is found on Panagia Phorbiottisa
+- Painting of the Virgin of Mercy took place at Panagia Phorbiottisa
+- Apse is same as 300004607
+- Christ child has attribute diaphanous robe
+- Panagia Phorbiottisa was modified by Painting of Saint George
+- west lunette is composed of Fiery stream
+- Narthex is composed of South lunette
+- Christ child has attribute Blessing hand
+- South lunette forms part of Panagia Phorbiottisa
+- Last judgment forms part of Narthex
+- western arch forms part of Asinou
+- Virgin of Mercy is denoted by Madonna della misericordia
 - Narthex is composed of western arch
 - Saint George is found on Asinou
-- Painting of Anastasias has time-span 1193-01-01
-- Headdress of Anastasia Saramalina is denoted by Anastasias
-- Painting of the Virgin of Mercy has modified Panagia Phorbiottisa
-- Panagia Phorbiottisa was modified by Addition of the narthex
-- Saint Anastasia portray Anastasia of Sirmium
-- Painting cycle of 1332/33 has produced Collective torments
-- Saint Anastasia has attribute bottle of medicine
-- South arch is composed of Individual torments
-- Painting of Anastasias occurs during Lusignan
+- Saint George is found on Narthex
+- Anastasia Saramalina has attribute porphyria
+- Latin Donor has attribute cotte
+- Virgin of Mercy is denoted by Christ child
+- Saint Mamas was produced by Painting cycle of 1332/33
+- Panagia Phorbiottisa bears feature Fiery stream
 - Panagia Phorbiottisa bears feature Scroll of heaven
-- Panagia Phorbiottisa bears feature Collective torments
-- western arch forms part of Panagia Phorbiottisa
-- West door is classified as type: Architectural element
-- western arch is composed of Scroll of heaven
-- west lunette is composed of Fiery stream
+- Saint Anastasia is classified as type: Saint Anastasia Pharmakolytria
+- West door forms part of Asinou
+- Architectural element is type of West door
+- Madonna della misericordia portray Virgin Mary
+- Saint George is found on Panagia Phorbiottisa
+- Kneeling youth has attribute hands clasped
+- South arch is composed of Collective torments
+- Panagia Phorbiottisa bears feature Donor
 - Painting cycle of 1332/33 occurs during Lusignan
-- Anastasia Saramalina has attribute T-shaped garment
-- Q170463 is same as Apse
-- Saint George forms part of South lunette
-- Architectural element has narrower term Soffit
+- South arch forms part of Asinou
+- Anastasia Saramalina is denoted by Anastasias
+- Apse has broader term Architectural element
+- Anastasia Saramalina has attribute headdress
+- Panagia Phorbiottisa was modified by Painting cycle of 1332/33
+- Saint George carries inscription
+- Architectural element has narrower term Bema
+- Q170463 is same as Conch
+- Painting of the Virgin of Mercy has time-span 1290-01-01
+- western arch forms part of Narthex
+- Painting of Anastasias occurs during Lusignan
+- Painting cycle of 1332/33 has produced Gnashing of the teeth
+- Narthex forms part of Asinou
+- western arch is composed of Scroll of heaven
+- Painting of Anastasias has time-span 1193-01-01
+- Panagia Phorbiottisa bears feature Saint George
+- west lunette has current location place
+- Kneeling youth is denoted by Virgin of Mercy
+- Painting cycle of 1332/33 has modified Asinou
+- 300004607 is same as Apse
+- Apse is same as Q170463
+- Painting cycle of 1332/33 has modified Panagia Phorbiottisa
+- Saint George is denoted by Saint George on a horseback
+- Painting of Anastasias has produced Anastasias
+- Painting cycle of 1332/33 has produced The preparation of the throne
+- west lunette is classified as type: Architectural element
+- Saint Anastasia has attribute cross of martydom
 - Painting cycle of 1332/33 has produced Last judgment
-- South arch has current location place
-- West door forms part of Panagia Phorbiottisa
+- Headdress of Anastasia Saramalina has attribute crespine
+- Panagia Phorbiottisa bears feature The preparation of the throne
+- South arch is composed of Gnashing of the teeth
+- Architectural element has narrower term Naos
+- West door has current location place
+- Painting cycle of 1332/33 is classified as type: Mural Painting
+- Architectural element has narrower term Soffit
+- Panagia Phorbiottisa was modified by Construction of Asinou
+- Painting cycle of 1332/33 has produced Collective torments
+- Headdress of Anastasia Saramalina has attribute barbette
+- Anastasias carries Prayer of the servant of god Anastasia Saramalina
+- Architectural element is same as 300000885
+- Anastasias is denoted by Saint Anastasia
+- west lunette forms part of Asinou
+- Panagia Phorbiottisa was modified by Wall paintings of 1332/33
+- Architectural element is type of west lunette
+- Panagia Phorbiottisa bears feature Collective torments
+- west lunette is composed of The preparation of the throne
+- Painting of Anastasias is classified as type: Mural Painting
+- South arch is composed of Individual torments
+- Panagia Phorbiottisa is composed of South lunette
+- Panagia Phorbiottisa was modified by Addition of the narthex
+- Panagia Phorbiottisa bears feature Gnashing of the teeth
+- Narthex forms part of Panagia Phorbiottisa
+- South arch forms part of Panagia Phorbiottisa
+- Saint George was produced by Painting of Saint George
+- place currently holds South lunette
+- Narthex bears feature Last judgment
+- Panagia Phorbiottisa is identified by Παναγία Φορβιώτισσα / Παναγία της Ασίνου
+- Panagia Phorbiottisa bears feature Last judgment
+- Anastasias is denoted by Headdress of Anastasia Saramalina
+- Saint Anastasia has attribute bottle of medicine
+- Panagia Phorbiottisa was modified by Initial painting
+- South arch bears feature Collective torments
+- Panagia Phorbiottisa bears feature Individual torments
+- Christ child is classified as type: Christ-child
+- South lunette is composed of Virgin of Mercy
+- Panagia Phorbiottisa was modified by Closing of the south door of the Narthex
+- Painting cycle of 1332/33 has produced Scroll of heaven
+- Painting of the Virgin of Mercy has produced Virgin of Mercy
+- Madonna della misericordia is denoted by Virgin of Mercy
+- Last judgment is found on Asinou
+- Virgin of Mercy is found on Asinou
+- Anastasias is found on Asinou
+- Panagia Phorbiottisa is composed of Narthex
+- western arch has current location place
+- South lunette is composed of Anastasias
+- South arch forms part of Narthex
+- Panagia Phorbiottisa bears feature Saint Mamas
+- South arch bears feature Gnashing of the teeth
+- Painting of the Virgin of Mercy is classified as type: Mural Painting
+- Apse is type of South lunette
+- Panagia Phorbiottisa was produced by Construction of Asinou
 - Last judgment is found on Narthex
-- west lunette forms part of Narthex
-- Painting of Anastasias has modified Asinou
+- Panagia Phorbiottisa bears feature Virgin of Mercy
+- Narthex is composed of Donor couple
+- Painting cycle of 1332/33 has time-span 1332-01-01
+- Narthex is composed of South arch
+- Panagia Phorbiottisa is same as Q30773293
 - Architectural element has narrower term Conch
+- place currently holds Narthex
+- Painting cycle of 1332/33 has produced Saint Mamas
+- west lunette bears feature The preparation of the throne
+- western arch forms part of Panagia Phorbiottisa
+- Panagia Phorbiottisa was modified by Painting of the Virgin of Mercy
+- Saint Anastasia is denoted by Anastasias
+- West door forms part of Narthex
+- South lunette forms part of Narthex
+- Narthex has current location place
+- west lunette forms part of Panagia Phorbiottisa
+- Virgin of Mercy is denoted by Latin Donor
+- Donor couple is denoted by Donor's wife
+- Anastasias forms part of South lunette
+- Panagia Phorbiottisa is composed of Naos
+- Anastasia Saramalina is composed of Headdress of Anastasia Saramalina
+- Painting cycle of 1332/33 has produced Individual torments
+- Narthex bears feature Saint George
+- Architectural element has narrower term Arch
+- Anastasias is found on Panagia Phorbiottisa
+- Last judgment was produced by Painting cycle of 1332/33
+- Narthex is composed of West door
+- Painting of the Virgin of Mercy occurs during Lusignan
+- Latin Donor has attribute hands clasped
+- Headdress of Anastasia Saramalina is composed of Anastasia Saramalina
+- Painting of the Virgin of Mercy has modified Panagia Phorbiottisa
+- Saint Mamas is found on South lunette
+- Painting cycle of 1332/33 has produced Fiery stream
+- Panagia Phorbiottisa is composed of South arch
+- Virgin of Mercy forms part of South lunette
+- west lunette bears feature Fiery stream
+- Panagia Phorbiottisa is classified as type: Church
+- West door is composed of Mother of god Phorbiotissa
+- Virgin of Mercy is found on Panagia Phorbiottisa
+- Saint Mamas is found on Asinou
+- western arch bears feature Scroll of heaven
+- Latin Donor is classified as type: Donor
+- Narthex is composed of Last judgment
+- Painting of the Virgin of Mercy has modified Asinou
+- Q170463 is same as Apse
+- Painting of Anastasias has modified Asinou
+- Madonna della misericordia has attribute Mapharion
+- Panagia Phorbiottisa is composed of western arch
+- South arch has current location place
+- Christ child portray Child Jesus
+- Panagia Phorbiottisa is composed of Bema
+- Anastasias is denoted by Anastasia Saramalina
+- Virgin of Mercy is denoted by Kneeling youth
+- Painting of Anastasias took place at Panagia Phorbiottisa
+- Painting of Anastasias has modified Panagia Phorbiottisa
+- South lunette is composed of Saint George
+- Prayer of the servant of god Anastasia Saramalina is carried by Anastasias
+- Architectural element has narrower term Apse
+- west lunette forms part of Narthex
+- Anastasias is found on South lunette
+- South lunette forms part of Asinou
+- South lunette is classified as type: Apse
+- Latin Donor is denoted by Virgin of Mercy
+- South lunette has current location place
+- Panagia Phorbiottisa is composed of West door
+- West door forms part of Panagia Phorbiottisa
+- Anastasia Saramalina has attribute neck rectangular patches

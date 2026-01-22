@@ -1,7 +1,7 @@
 ---
 URI: http://www.cidoc-crm.org/cidoc-crm/E79_Part_Addition
 Label: Part Addition
-Generated: 2026-01-22 12:23:47
+Generated: 2026-01-22 13:35:49
 ---
 
 # Part Addition

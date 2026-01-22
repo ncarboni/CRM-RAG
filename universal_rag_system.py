@@ -1806,7 +1806,7 @@ Each file contains:
     def _process_batch_embeddings(self, batch_docs):
         """
         Process embeddings for a batch of documents using batch embedding.
-        This is the fast path for local embeddings (sentence-transformers).
+        Uses concurrent embedding when available (OpenAI) or standard batch (local).
 
         Args:
             batch_docs: List of (entity_uri, doc_text, metadata, cached_embedding)
@@ -1826,7 +1826,21 @@ Each file contains:
             texts = [doc[1] for doc in uncached_docs]
             logger.info(f"Generating embeddings for {len(texts)} documents in batch...")
 
-            embeddings = self.embedding_provider.get_embeddings_batch(texts)
+            # Check if provider supports concurrent embedding (OpenAI with ThreadPoolExecutor)
+            use_concurrent = (
+                hasattr(self.embedding_provider, 'supports_concurrent_embedding') and
+                self.embedding_provider.supports_concurrent_embedding()
+            )
+
+            if use_concurrent:
+                try:
+                    logger.info("Using concurrent batch embedding for faster processing")
+                    embeddings = self.embedding_provider.get_embeddings_batch_concurrent(texts)
+                except Exception as e:
+                    logger.warning(f"Concurrent embedding failed: {e}. Falling back to sequential batch.")
+                    embeddings = self.embedding_provider.get_embeddings_batch(texts)
+            else:
+                embeddings = self.embedding_provider.get_embeddings_batch(texts)
 
             # Add documents and cache embeddings
             new_cached_ids = []
@@ -1901,88 +1915,73 @@ Each file contains:
         return global_token_count, last_reset_time
 
     def build_vector_store_batched(self, batch_size=RetrievalConfig.DEFAULT_BATCH_SIZE):
-        """Build vector store with batched embedding requests to avoid rate limits"""
+        """
+        Build vector store using pre-computed embeddings from GraphDocument objects.
+        This avoids redundant API calls since embeddings were already generated
+        during document graph building.
+        """
+        from langchain_community.vectorstores import FAISS
 
         vector_index_path = self._get_vector_index_dir()
         os.makedirs(vector_index_path, exist_ok=True)
-        
-        # Prepare documents for FAISS
-        docs_for_faiss = []
+
+        # Separate documents with and without pre-computed embeddings
+        docs_with_embeddings = []
+        docs_without_embeddings = []
+
         for doc_id, graph_doc in self.document_store.docs.items():
-            doc = Document(
-                page_content=graph_doc.text,
-                metadata={**graph_doc.metadata, "doc_id": doc_id}
-            )
-            docs_for_faiss.append(doc)
-        
-        # Process in batches
-        total_docs = len(docs_for_faiss)
-        logger.info(f"Building vector store with {total_docs} documents in batches of {batch_size}")
-        
-        # Global rate limit tracking
-        global_token_count = 0
-        tokens_per_min_limit = RetrievalConfig.TOKENS_PER_MINUTE_LIMIT
-        last_reset_time = time.time()
-        
-        # Process batches
-        from langchain_community.vectorstores import FAISS
+            if graph_doc.embedding is not None:
+                docs_with_embeddings.append((doc_id, graph_doc))
+            else:
+                docs_without_embeddings.append((doc_id, graph_doc))
+
+        total_docs = len(self.document_store.docs)
+        logger.info(f"Building vector store with {total_docs} documents")
+        logger.info(f"  - {len(docs_with_embeddings)} with pre-computed embeddings (no API calls)")
+        logger.info(f"  - {len(docs_without_embeddings)} without embeddings (will generate)")
+
         vector_store = None
-        
-        for i in range(0, total_docs, batch_size):
-            batch = docs_for_faiss[i:i+batch_size]
-            logger.info(f"Processing embedding batch {i//batch_size + 1}/{(total_docs + batch_size - 1)//batch_size}")
-            
-            # Rate limit check
-            current_time = time.time()
-            if current_time - last_reset_time >= 60:
-                global_token_count = 0
-                last_reset_time = current_time
-            
-            # Skip if we're approaching the limit
-            if global_token_count > tokens_per_min_limit:
-                wait_time = 60 - (current_time - last_reset_time) + 1
-                if wait_time > 0:
-                    logger.info(f"Approaching rate limit. Waiting {wait_time:.1f} seconds...")
-                    time.sleep(wait_time)
-                    global_token_count = 0
-                    last_reset_time = time.time()
-            
-            try:
-                # Create or update vector store
-                if vector_store is None:
-                    vector_store = FAISS.from_documents(batch, self.embeddings)
-                else:
-                    vector_store.add_documents(batch)
-                
-                # Estimate token count (very rough)
-                batch_text = " ".join([doc.page_content for doc in batch])
-                estimated_tokens = len(batch_text) / 4
-                global_token_count += estimated_tokens
-                
-                # Save progress after each batch
-                vector_store.save_local(vector_index_path)
-                logger.info(f"Saved progress after batch {i//batch_size + 1}")
-                
-                # Pause for 2 seconds after each batch
-                logger.info("Completed batch of documents, pausing for 2 seconds...")
-                time.sleep(2)
-                
-            except Exception as e:
-                logger.error(f"Error processing embedding batch: {str(e)}")
-                
-                if "rate_limit_exceeded" in str(e):
-                    # If we hit a rate limit, wait longer
-                    wait_time = 60
-                    logger.warning(f"Rate limit exceeded. Waiting {wait_time} seconds...")
-                    time.sleep(wait_time)
-                    # Retry this batch
-                    i -= batch_size
-                
-                # Continue with next batch otherwise
-        
-        # Store the final vector store
-        self.document_store.vector_store = vector_store
-        logger.info(f"Vector store built successfully with {total_docs} documents")
+
+        # Build from pre-computed embeddings (fast, no API calls)
+        if docs_with_embeddings:
+            text_embeddings = []
+            metadatas = []
+
+            for doc_id, graph_doc in docs_with_embeddings:
+                text_embeddings.append((graph_doc.text, graph_doc.embedding))
+                metadatas.append({**graph_doc.metadata, "doc_id": doc_id})
+
+            logger.info(f"Creating FAISS index from {len(text_embeddings)} pre-computed embeddings...")
+            vector_store = FAISS.from_embeddings(
+                text_embeddings=text_embeddings,
+                embedding=self.embeddings,
+                metadatas=metadatas
+            )
+            logger.info("FAISS index created from pre-computed embeddings (no API calls)")
+
+        # Add documents without embeddings (will generate via API)
+        if docs_without_embeddings:
+            logger.warning(f"Generating embeddings for {len(docs_without_embeddings)} documents via API...")
+            docs_for_faiss = []
+            for doc_id, graph_doc in docs_without_embeddings:
+                doc = Document(
+                    page_content=graph_doc.text,
+                    metadata={**graph_doc.metadata, "doc_id": doc_id}
+                )
+                docs_for_faiss.append(doc)
+
+            if vector_store is None:
+                vector_store = FAISS.from_documents(docs_for_faiss, self.embeddings)
+            else:
+                vector_store.add_documents(docs_for_faiss)
+
+        # Save and store
+        if vector_store:
+            vector_store.save_local(vector_index_path)
+            self.document_store.vector_store = vector_store
+            logger.info(f"Vector store built and saved with {total_docs} documents")
+        else:
+            logger.error("No documents to build vector store from")
 
 
 

@@ -79,7 +79,12 @@ class ConfigLoader:
                 "api_key": os.environ.get("OPENAI_API_KEY"),
                 "model": os.environ.get("OPENAI_MODEL", "gpt-4o"),
                 "embedding_model": os.environ.get("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"),
-                "max_tokens": int(os.environ.get("OPENAI_MAX_TOKENS", "4096"))
+                "max_tokens": int(os.environ.get("OPENAI_MAX_TOKENS", "4096")),
+                # Concurrent embedding configuration (for parallel API calls)
+                "embedding_max_concurrent": int(os.environ.get("EMBEDDING_MAX_CONCURRENT", "10")),
+                "embedding_retry_attempts": int(os.environ.get("EMBEDDING_RETRY_ATTEMPTS", "3")),
+                "embedding_retry_delay": float(os.environ.get("EMBEDDING_RETRY_DELAY", "1.0")),
+                "embedding_chunk_size": int(os.environ.get("EMBEDDING_CHUNK_SIZE", "100"))
             })
         elif llm_provider == "anthropic":
             config.update({

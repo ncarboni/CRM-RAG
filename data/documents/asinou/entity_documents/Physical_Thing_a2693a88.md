@@ -1,7 +1,7 @@
 ---
 URI: http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing
 Label: Physical Thing
-Generated: 2026-01-22 12:23:47
+Generated: 2026-01-22 13:35:49
 ---
 
 # Physical Thing

@@ -1,7 +1,7 @@
 ---
 URI: http://www.cidoc-crm.org/cidoc-crm/E41_Appellation
 Label: Appellation
-Generated: 2026-01-22 12:23:13
+Generated: 2026-01-22 13:35:22
 ---
 
 # Appellation

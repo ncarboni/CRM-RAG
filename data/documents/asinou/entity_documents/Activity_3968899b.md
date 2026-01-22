@@ -1,7 +1,7 @@
 ---
 URI: http://www.cidoc-crm.org/cidoc-crm/E7_Activity
 Label: Activity
-Generated: 2026-01-22 12:23:46
+Generated: 2026-01-22 13:35:48
 ---
 
 # Activity

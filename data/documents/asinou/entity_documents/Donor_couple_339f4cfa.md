@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/visual/atom/d32fe83d-e3ad-4f92-a044-2f88a7951249
 Label: Donor couple
-Generated: 2026-01-22 12:23:39
+Generated: 2026-01-22 13:35:44
 ---
 
 # Donor couple
@@ -19,154 +19,154 @@ URI: http://map.cnrs.fr/semantics/visual/atom/d32fe83d-e3ad-4f92-a044-2f88a79512
 
 ## Relationships
 
-- South lunette bears feature Anastasias
-- Last judgment was produced by Painting cycle of 1332/33
-- place currently holds Narthex
-- Narthex is composed of Donor couple
-- Church is same as Q16970
-- hands clasped has attribute Donor's wife
-- South lunette bears feature Saint Mamas
-- hands clasped depict things of type Gesture
-- Panagia Phorbiottisa bears feature Virgin of Mercy
-- Narthex bears feature Last judgment
-- cotte depict things of type clothing
-- Church is type of Palaia Enkleistra
-- Panagia Phorbiottisa bears feature The preparation of the throne
-- South lunette is composed of Virgin of Mercy
-- Panagia Phorbiottisa was modified by Initial painting
-- South arch is composed of Gnashing of the teeth
-- western arch has current location place
-- South lunette forms part of Narthex
-- Panagia Phorbiottisa was modified by Painting of the Virgin of Mercy
-- Panagia Phorbiottisa bears feature Last judgment
-- Narthex has current location place
-- Donor couple is found on Saint Nicholas of the Roof
-- Church is type of St Irene
-- Panagia Phorbiottisa is composed of South lunette
-- Narthex is composed of South lunette
-- Saint George carries inscription
-- Church is type of Church of the Transfiguration
-- Panagia Phorbiottisa is same as Q30773293
-- Saint George was produced by Painting of Saint George
-- South lunette is composed of Saint George
-- Last judgment is found on Panagia Phorbiottisa
-- West door forms part of Asinou
-- Saint Nicholas of the Roof is composed of Narthex
-- Last judgment forms part of Narthex
-- western arch bears feature Scroll of heaven
-- Panagia Phorbiottisa bears feature Individual torments
-- West door is composed of Mother of god Phorbiotissa
-- South lunette is composed of Anastasias
-- West door has current location place
-- Donor is type of Anastasia Saramalina
-- Narthex is composed of West door
-- Panagia Phorbiottisa bears feature Gnashing of the teeth
-- Panagia Phorbiottisa was modified by Wall paintings of 1332/33
-- Donor's wife is denoted by Donor couple
-- west lunette bears feature The preparation of the throne
-- Church is type of Church of the Virgin
-- Narthex forms part of Panagia Phorbiottisa
-- Saint George is found on Narthex
-- Donor is type of Irene
-- cotte has attribute Donor's wife
-- Panagia Phorbiottisa was modified by Painting of Saint George
-- Panagia Phorbiottisa is identified by Παναγία Φορβιώτισσα / Παναγία της Ασίνου
-- South lunette has current location place
-- Άγιος Νικόλαος της Στέγης identifies Saint Nicholas of the Roof
 - Panagia Phorbiottisa was modified by Painting of Anastasias
-- Panagia Phorbiottisa is composed of west lunette
-- Donor couple is denoted by Donor's wife
-- Panagia Phorbiottisa was produced by Construction of Asinou
-- west lunette is composed of The preparation of the throne
-- western arch forms part of Asinou
-- Last judgment is found on Asinou
-- Narthex forms part of Asinou
-- Panagia Phorbiottisa is composed of Bema
-- South lunette is classified as type: Apse
-- Saint Nicholas of the Roof bears feature Donor couple
-- Panagia Phorbiottisa was modified by Construction of Asinou
+- West door is classified as type: Architectural element
+- Narthex is composed of west lunette
+- Panagia Phorbiottisa bears feature Anastasias
 - South arch bears feature Individual torments
-- Panagia Phorbiottisa bears feature Saint Mamas
-- Narthex bears feature Saint George
-- Panagia Phorbiottisa is composed of Naos
-- Church is type of Our Lady of Moutoullas
-- Panagia Phorbiottisa is composed of western arch
-- Church is type of Panagia Phorbiottisa
-- Donor is type of Latin Donor
-- Narthex is composed of Last judgment
-- Saint George is denoted by Saint George on a horseback
-- west lunette has current location place
-- Panagia Phorbiottisa is composed of South arch
+- Church is type of Palaia Enkleistra
+- Church is type of Panagia Kera
+- Donor is type of Anna
+- South lunette bears feature Anastasias
+- Saint George forms part of South lunette
+- Panagia Phorbiottisa is composed of west lunette
+- hands clasped has attribute Kneeling youth
+- South lunette bears feature Saint Mamas
+- Donor couple forms part of Narthex
+- cotte has attribute Donor's wife
+- Donor couple is found on Saint Nicholas of the Roof
+- Panagia Phorbiottisa bears feature Mother of god Phorbiotissa
+- Last judgment is found on Panagia Phorbiottisa
+- Panagia Phorbiottisa was modified by Painting of Saint George
+- west lunette is composed of Fiery stream
+- Narthex is composed of South lunette
+- South lunette forms part of Panagia Phorbiottisa
+- Last judgment forms part of Narthex
+- western arch forms part of Asinou
+- Narthex is composed of western arch
+- Saint George is found on Asinou
+- Saint George is found on Narthex
+- Panagia Phorbiottisa bears feature Fiery stream
+- Panagia Phorbiottisa bears feature Scroll of heaven
+- Church is type of Saint Nicholas of the Roof
+- West door forms part of Asinou
+- Saint George is found on Panagia Phorbiottisa
+- South arch is composed of Collective torments
+- Panagia Phorbiottisa bears feature Donor
+- South arch forms part of Asinou
+- Donor's wife is classified as type: Donor
+- Panagia Phorbiottisa was modified by Painting cycle of 1332/33
+- Church is type of Saints Joachim and Anna
+- Saint George carries inscription
+- Church is type of St. Herakleidos
+- Donor is type of Donor's wife
+- western arch forms part of Narthex
+- Narthex forms part of Asinou
+- western arch is composed of Scroll of heaven
 - Panagia Phorbiottisa bears feature Saint George
-- west lunette bears feature Fiery stream
-- South arch forms part of Narthex
-- Panagia Phorbiottisa is composed of Narthex
+- west lunette has current location place
+- Donor is type of Latin Donor
+- Άγιος Νικόλαος της Στέγης identifies Saint Nicholas of the Roof
+- Saint George is denoted by Saint George on a horseback
+- Saint Nicholas of the Roof bears feature Donor couple
+- west lunette is classified as type: Architectural element
+- Church is type of Panagia Phorbiottisa
+- Panagia Phorbiottisa bears feature The preparation of the throne
+- South arch is composed of Gnashing of the teeth
+- West door has current location place
+- Church is type of St Irene
+- Panagia Phorbiottisa was modified by Construction of Asinou
+- hands clasped has attribute Latin Donor
+- cotte depict things of type clothing
+- west lunette forms part of Asinou
+- Panagia Phorbiottisa was modified by Wall paintings of 1332/33
+- Panagia Phorbiottisa bears feature Collective torments
+- west lunette is composed of The preparation of the throne
+- Saint Nicholas of the Roof is identified by Άγιος Νικόλαος της Στέγης
+- South arch is composed of Individual torments
+- Church is type of Church of the Transfiguration
+- Panagia Phorbiottisa is composed of South lunette
+- Panagia Phorbiottisa was modified by Addition of the narthex
+- Panagia Phorbiottisa bears feature Gnashing of the teeth
+- Narthex forms part of Panagia Phorbiottisa
+- South arch forms part of Panagia Phorbiottisa
+- Saint George was produced by Painting of Saint George
+- Last judgment is found on Saint Nicholas of the Roof
+- cotte has attribute Latin Donor
+- Narthex bears feature Last judgment
+- Panagia Phorbiottisa is identified by Παναγία Φορβιώτισσα / Παναγία της Ασίνου
+- Panagia Phorbiottisa bears feature Last judgment
+- Church is type of St. John Lampadistis
+- hands clasped depict things of type Gesture
+- Panagia Phorbiottisa was modified by Initial painting
+- Q31841104 is same as Saint Nicholas of the Roof
+- South arch bears feature Collective torments
+- Panagia Phorbiottisa bears feature Individual torments
+- South lunette is composed of Virgin of Mercy
 - Panagia Phorbiottisa was modified by Closing of the south door of the Narthex
+- Church is type of Saint Dimitrianos
+- Last judgment is found on Asinou
+- Church is type of Panagia Kanakaria
+- Donor is type of Anastasia Saramalina
+- Church is type of Museum of the foundation of archbishop Makarios III
+- Panagia Phorbiottisa is composed of Narthex
+- western arch has current location place
+- South lunette is composed of Anastasias
+- South arch forms part of Narthex
+- Panagia Phorbiottisa bears feature Saint Mamas
+- South arch bears feature Gnashing of the teeth
+- Church is type of Our Lady of Moutoullas
+- Saint Nicholas of the Roof is same as Q31841104
+- Church is type of Church of the Virgin
+- Panagia Phorbiottisa was produced by Construction of Asinou
+- Last judgment is found on Narthex
+- Panagia Phorbiottisa bears feature Virgin of Mercy
+- Narthex is composed of Donor couple
+- Church is type of Asinou
+- Saint Nicholas of the Roof bears feature Last judgment
+- Narthex is composed of South arch
+- Panagia Phorbiottisa is same as Q30773293
+- Church is type of St. Marina
+- place currently holds Narthex
+- west lunette bears feature The preparation of the throne
+- western arch forms part of Panagia Phorbiottisa
+- Panagia Phorbiottisa was modified by Painting of the Virgin of Mercy
+- West door forms part of Narthex
+- Narthex has current location place
+- west lunette forms part of Panagia Phorbiottisa
+- South lunette forms part of Narthex
+- Donor couple is denoted by Donor's wife
+- Panagia Phorbiottisa is composed of Naos
+- Donor's wife has attribute hands clasped
+- Narthex bears feature Saint George
+- Donor is type of Irene
+- Last judgment was produced by Painting cycle of 1332/33
+- Narthex is composed of West door
+- Church is same as 300007466
+- Panagia Phorbiottisa is composed of South arch
+- west lunette bears feature Fiery stream
+- Panagia Phorbiottisa is classified as type: Church
+- West door is composed of Mother of god Phorbiotissa
+- western arch bears feature Scroll of heaven
+- Church is same as Q16970
+- Donor is type of Wife of Michael Katzouroumpos
+- Narthex is composed of Last judgment
+- Church is type of St. George of Ancona
+- Panagia Phorbiottisa is composed of western arch
+- South arch has current location place
+- Saint Nicholas of the Roof is composed of Narthex
+- Church is type of Virgin in Sklaverochori
+- Donor's wife has attribute cotte
+- Saint Nicholas of the Roof is classified as type: Church
+- Donor's wife is denoted by Donor couple
+- Panagia Phorbiottisa is composed of Bema
+- South lunette is composed of Saint George
 - Narthex forms part of Saint Nicholas of the Roof
 - Church is type of Église des Cordeliers de Nancy
-- South arch forms part of Panagia Phorbiottisa
-- South arch bears feature Gnashing of the teeth
-- Panagia Phorbiottisa was modified by Painting cycle of 1332/33
-- Panagia Phorbiottisa is classified as type: Church
-- western arch forms part of Narthex
-- Church is type of Virgin in Sklaverochori
-- Panagia Phorbiottisa is composed of West door
-- South lunette forms part of Panagia Phorbiottisa
-- Donor couple forms part of Narthex
-- Saint George is found on Panagia Phorbiottisa
-- cotte has attribute Latin Donor
-- west lunette forms part of Asinou
-- South arch forms part of Asinou
-- South lunette forms part of Asinou
-- Narthex is composed of South arch
-- west lunette is classified as type: Architectural element
-- west lunette forms part of Panagia Phorbiottisa
-- Church is type of Panagia Kanakaria
-- Saint Nicholas of the Roof is identified by Άγιος Νικόλαος της Στέγης
-- Donor's wife is classified as type: Donor
-- Donor's wife has attribute hands clasped
-- Church is type of St. Herakleidos
-- hands clasped has attribute Kneeling youth
-- Church is type of Saints Joachim and Anna
-- South arch bears feature Collective torments
-- Narthex is composed of west lunette
-- Panagia Phorbiottisa bears feature Mother of god Phorbiotissa
-- South arch is composed of Collective torments
-- Panagia Phorbiottisa bears feature Anastasias
-- Church is type of St. John Lampadistis
-- Saint Nicholas of the Roof is same as Q31841104
-- Saint Nicholas of the Roof is classified as type: Church
-- Panagia Phorbiottisa bears feature Donor
-- Church is type of Saint Nicholas of the Roof
-- Panagia Phorbiottisa bears feature Fiery stream
-- West door forms part of Narthex
-- Saint Nicholas of the Roof bears feature Last judgment
-- Narthex is composed of western arch
-- Donor's wife has attribute cotte
-- Saint George is found on Asinou
-- Church is type of St. George of Ancona
-- Panagia Phorbiottisa was modified by Addition of the narthex
-- Last judgment is found on Saint Nicholas of the Roof
-- Q31841104 is same as Saint Nicholas of the Roof
-- South arch is composed of Individual torments
-- Panagia Phorbiottisa bears feature Scroll of heaven
-- Panagia Phorbiottisa bears feature Collective torments
-- western arch forms part of Panagia Phorbiottisa
-- Church is type of Museum of the foundation of archbishop Makarios III
-- Donor is type of Anna
-- West door is classified as type: Architectural element
-- Donor is type of Donor's wife
-- western arch is composed of Scroll of heaven
-- west lunette is composed of Fiery stream
-- Church is type of Asinou
-- Saint George forms part of South lunette
-- hands clasped has attribute Latin Donor
-- Church is type of Saint Dimitrianos
-- Church is type of Panagia Kera
-- South arch has current location place
-- Church is same as 300007466
-- West door forms part of Panagia Phorbiottisa
-- Last judgment is found on Narthex
 - west lunette forms part of Narthex
-- Church is type of St. Marina
-- Donor is type of Wife of Michael Katzouroumpos
+- hands clasped has attribute Donor's wife
+- South lunette forms part of Asinou
+- South lunette is classified as type: Apse
+- South lunette has current location place
+- Panagia Phorbiottisa is composed of West door
+- West door forms part of Panagia Phorbiottisa

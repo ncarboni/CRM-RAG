@@ -1,7 +1,7 @@
 ---
 URI: http://w3id.org/vir#IC10_Attribute
 Label: Iconographical Attribute
-Generated: 2026-01-22 12:23:13
+Generated: 2026-01-22 13:35:22
 ---
 
 # Iconographical Attribute
@@ -19,7 +19,7 @@ URI: http://w3id.org/vir#IC10_Attribute
 
 ## Relationships
 
+- iconographicAttributes has close match Iconographical Attribute
 - Iconographical Attribute has close match iconographicAttributes
 - Iconographical Attribute has close match Q204231
 - Q204231 has close match Iconographical Attribute
-- iconographicAttributes has close match Iconographical Attribute

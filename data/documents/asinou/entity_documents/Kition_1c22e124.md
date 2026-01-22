@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/location/d4653805-a193-49de-b51f-78a824a6c135/
 Label: Kition
-Generated: 2026-01-22 12:23:32
+Generated: 2026-01-22 13:35:37
 ---
 
 # Kition
@@ -18,8 +18,8 @@ URI: http://map.cnrs.fr/semantics/location/d4653805-a193-49de-b51f-78a824a6c135/
 
 ## Relationships
 
-- spatial falls within Kition
-- St. George of Ancona has current location spatial
 - spatial currently holds St. George of Ancona
+- St. George of Ancona has current location spatial
 - St. George of Ancona is classified as type: Church
+- spatial falls within Kition
 - Kition contains spatial

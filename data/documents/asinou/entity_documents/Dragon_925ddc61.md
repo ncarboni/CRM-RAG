@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/55ad5767-ecce-493b-8a8c-a1960733a1ae/
 Label: Dragon
-Generated: 2026-01-22 12:23:44
+Generated: 2026-01-22 13:35:47
 ---
 
 # Dragon

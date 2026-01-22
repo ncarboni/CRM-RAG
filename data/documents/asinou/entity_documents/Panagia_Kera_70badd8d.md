@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/spatial/9a8dbe03-e40b-40a7-8ac9-351c1e78d131/
 Label: Panagia Kera
-Generated: 2026-01-22 12:23:32
+Generated: 2026-01-22 13:35:38
 ---
 
 # Panagia Kera
@@ -19,8 +19,8 @@ URI: http://map.cnrs.fr/semantics/spatial/9a8dbe03-e40b-40a7-8ac9-351c1e78d131/
 
 ## Relationships
 
-- Pediada contains Panagia Kera
-- spatial falls within Pediada
-- spatial currently holds Virgin in Sklaverochori
-- Panagia Kera falls within Pediada
 - Pediada contains spatial
+- spatial falls within Pediada
+- Pediada contains Panagia Kera
+- Panagia Kera falls within Pediada
+- spatial currently holds Virgin in Sklaverochori

@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/character/7eb6aaa7-78fa-425d-a907-b30d524ada17
 Label: Anastasia Saramalina
-Generated: 2026-01-22 12:23:24
+Generated: 2026-01-22 13:35:31
 ---
 
 # Anastasia Saramalina

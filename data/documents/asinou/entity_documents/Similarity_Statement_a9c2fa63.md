@@ -1,7 +1,7 @@
 ---
 URI: http://w3id.org/vir#IC21_Similarity_Statement
 Label: Similarity Statement
-Generated: 2026-01-22 12:23:47
+Generated: 2026-01-22 13:35:50
 ---
 
 # Similarity Statement

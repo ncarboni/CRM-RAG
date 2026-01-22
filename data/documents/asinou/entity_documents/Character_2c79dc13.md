@@ -1,7 +1,7 @@
 ---
 URI: http://w3id.org/vir#IC16_Character
 Label: Character
-Generated: 2026-01-22 12:23:24
+Generated: 2026-01-22 13:35:31
 ---
 
 # Character

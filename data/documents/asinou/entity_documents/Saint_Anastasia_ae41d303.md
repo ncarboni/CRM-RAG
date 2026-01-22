@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/icon/5aec0237-faa4-49ba-b1e5-a5c06277dd40
 Label: Saint Anastasia
-Generated: 2026-01-22 12:23:39
+Generated: 2026-01-22 13:35:43
 ---
 
 # Saint Anastasia
@@ -19,41 +19,41 @@ URI: http://map.cnrs.fr/semantics/icon/5aec0237-faa4-49ba-b1e5-a5c06277dd40
 
 ## Relationships
 
-- Anastasia was produced by Painting of Anastasia
-- Anastasia of Sirmium is same as http://www.wikidata.org/entity/Q48438
-- Saint has narrower term Saint Anastasia Pharmakolytria
-- healing symbolize bottle of medicine
-- cross of martydom has attribute Saint Anastasia
-- Saint Anastasia is classified as type: Saint Anastasia Pharmakolytria
-- St. Herakleidos was modified by Painting of Anastasia
-- Saint Anastasia is denoted by Anastasias
-- Cross is same as 300010044
 - Saint Anastasia Pharmakolytria is type of Saint Anastasia
-- Flask is same as 300045671
-- Flask depict things of type bottle of medicine
-- cross of martydom depict things of type Cross
-- http://www.wikidata.org/entity/Q48438 is same as Anastasia of Sirmium
-- Painting of Anastasia took place at St. Herakleidos
-- Saint Anastasia is denoted by Anastasia
-- Saint Anastasia Pharmakolytria has broader term Saint
-- St. Herakleidos is classified as type: Church
-- Saint Anastasia has attribute cross of martydom
-- Saint Anastasia portray Anastasia of Sirmium
-- Flask has broader term Bottle
-- Painting of Anastasia has time-span 1375-01-01
-- Saint Anastasia has attribute bottle of medicine
 - Anastasia is found on St. Herakleidos
-- Anastasia is denoted by Saint Anastasia
-- St. Herakleidos bears feature Anastasia
-- Painting of Anastasia has produced Anastasia
-- Painting of Anastasia has modified St. Herakleidos
-- salvation symbolize cross of martydom
-- bottle of medicine symbolize healing
-- Cross depict things of type cross of martydom
-- Anastasia of Sirmium portray Saint Anastasia
+- Saint Anastasia is denoted by Anastasias
 - Painting of Anastasia occurs during Lusignan
-- bottle of medicine depict things of type Flask
-- Painting of Anastasia is classified as type: Mural Painting
-- cross of martydom symbolize salvation
+- cross of martydom has attribute Saint Anastasia
+- Anastasia of Sirmium is same as http://www.wikidata.org/entity/Q48438
+- Saint Anastasia portray Anastasia of Sirmium
+- Saint Anastasia has attribute bottle of medicine
+- cross of martydom depict things of type Cross
 - bottle of medicine has attribute Saint Anastasia
+- St. Herakleidos bears feature Anastasia
+- Painting of Anastasia has modified St. Herakleidos
+- Saint Anastasia has attribute cross of martydom
+- Anastasia was produced by Painting of Anastasia
 - Saint has narrower term Saint George on a horseback
+- salvation symbolize cross of martydom
+- Saint Anastasia is denoted by Anastasia
+- Anastasia of Sirmium portray Saint Anastasia
+- bottle of medicine depict things of type Flask
+- Painting of Anastasia has time-span 1375-01-01
+- Painting of Anastasia is classified as type: Mural Painting
+- Painting of Anastasia took place at St. Herakleidos
+- Cross is same as 300010044
+- Saint Anastasia is classified as type: Saint Anastasia Pharmakolytria
+- Anastasia is denoted by Saint Anastasia
+- http://www.wikidata.org/entity/Q48438 is same as Anastasia of Sirmium
+- healing symbolize bottle of medicine
+- St. Herakleidos was modified by Painting of Anastasia
+- Saint Anastasia Pharmakolytria has broader term Saint
+- bottle of medicine symbolize healing
+- Flask depict things of type bottle of medicine
+- cross of martydom symbolize salvation
+- Saint has narrower term Saint Anastasia Pharmakolytria
+- St. Herakleidos is classified as type: Church
+- Flask has broader term Bottle
+- Flask is same as 300045671
+- Cross depict things of type cross of martydom
+- Painting of Anastasia has produced Anastasia

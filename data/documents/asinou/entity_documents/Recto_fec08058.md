@@ -1,7 +1,7 @@
 ---
 URI: http://w3id.org/vir#IC19_Recto
 Label: Recto
-Generated: 2026-01-22 12:23:47
+Generated: 2026-01-22 13:35:50
 ---
 
 # Recto

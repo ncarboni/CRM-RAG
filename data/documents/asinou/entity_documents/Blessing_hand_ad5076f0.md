@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/0638e021-6cf6-4f90-a369-c834fe396dd6/
 Label: Blessing hand
-Generated: 2026-01-22 12:23:14
+Generated: 2026-01-22 13:35:23
 ---
 
 # Blessing hand

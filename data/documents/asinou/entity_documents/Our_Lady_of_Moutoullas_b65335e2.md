@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/physical/c0b699cb-9415-4667-a0e8-b678dcae8904
 Label: Our Lady of Moutoullas
-Generated: 2026-01-22 12:23:20
+Generated: 2026-01-22 13:35:27
 ---
 
 # Our Lady of Moutoullas
@@ -18,180 +18,180 @@ URI: http://map.cnrs.fr/semantics/physical/c0b699cb-9415-4667-a0e8-b678dcae8904
 
 ## Relationships
 
-- Panagia Kanakaria was modified by Painting of the last judgment
-- Palaia Enkleistra is identified by Παλαιά Εγκλείστρα
-- Church is same as Q16970
-- Mural Painting is type of Painting cycle of 1332/33
-- St. John Lampadistis bears feature Last judgment
-- Panagia Phorbiottisa bears feature Virgin of Mercy
-- Église des Cordeliers de Nancy bears feature Statue of Hugues de Vaudemont
-- Our Lady of Moutoullas is same as Q13548161
-- Church of the Virgin was modified by Painting of Anastasia
-- Church is type of Palaia Enkleistra
-- Architectural element is same as 300000885
-- St. John Lampadistis is classified as type: Church
-- Panagia Phorbiottisa bears feature The preparation of the throne
-- Church of the Transfiguration is classified as type: Church
-- Église des Cordeliers de Nancy is same as Q2315482
-- Panagia Phorbiottisa was modified by Initial painting
-- St. Marina is identified by Αγία Μαρίνα
-- Mural Painting is type of Wall paintings of 1332/33
-- St. John Lampadistis is composed of Narthex
-- Panagia Phorbiottisa was modified by Painting of the Virgin of Mercy
-- Panagia Phorbiottisa bears feature Last judgment
-- Palaia Enkleistra bears feature Anastasia
-- Church is type of St Irene
-- Q16970 is same as Church
-- Panagia Phorbiottisa is composed of South lunette
-- Virgin in Sklaverochori is classified as type: Church
-- Church is type of Church of the Transfiguration
-- Mural Painting is type of Painting of Anastasias
-- Lusignan occurs during Construction of the church of Demetrianos
-- Architectural element has narrower term Arch
-- Panagia Kanakaria is classified as type: Church
-- Panagia Phorbiottisa is same as Q30773293
-- St Irene is classified as type: Church
-- Lusignan occurs during Painting of the last Judgment
-- North wall of sanctuary is composed of Donor Ioannes and Irene
-- Our Lady of Moutoullas is identified by Παναγία του Μουτουλά
-- Mural Painting has broader term Painting
-- Palaia Enkleistra was modified by Painting of Anastasia
-- Church of the Transfiguration was modified by Painting of the last judgment
-- Saints Joachim and Anna is identified by Αγίοι Ιωακείμ και Άννα
-- Lusignan occurs during Painting of the Virgin of Mercy
-- Painting of donors Ioannes and Irene took place at Our Lady of Moutoullas
-- 300007466 is same as Church
-- Saint Nicholas of the Roof is composed of Narthex
-- St Irene is identified by Ἁγία Εἰρήνη
-- Panagia Phorbiottisa bears feature Individual torments
-- Our Lady of Moutoullas is composed of Bema
-- Saint Dimitrianos was produced by Construction of the church of Demetrianos
-- Panagia Phorbiottisa bears feature Gnashing of the teeth
-- Panagia Phorbiottisa was modified by Wall paintings of 1332/33
-- St. Marina has current location spatial
-- Church is type of Church of the Virgin
-- Architectural element has narrower term Naos
-- Mural Painting is type of Painting of Anastasia
-- Architectural element is type of North wall of sanctuary
-- Παναγία του Μουτουλά identifies Our Lady of Moutoullas
-- Panagia Phorbiottisa was modified by Painting of Saint George
-- Panagia Phorbiottisa is identified by Παναγία Φορβιώτισσα / Παναγία της Ασίνου
+- Architectural element has narrower term Narthex
 - Panagia Phorbiottisa was modified by Painting of Anastasias
+- Panagia Phorbiottisa bears feature Anastasias
+- Donor Ioannes and Irene is denoted by Headdress of Irene
+- Mural Painting is type of Painting of Anastasia
+- Church is type of Palaia Enkleistra
+- Church is type of Panagia Kera
+- Mural Painting has broader term Painting
+- Architectural element is type of North wall of sanctuary
+- St. John Lampadistis is classified as type: Church
+- Church of the Transfiguration was modified by Painting of the last judgment
 - Donor Ioannes and Irene is found on Our Lady of Moutoullas
 - Panagia Phorbiottisa is composed of west lunette
-- St. Herakleidos is classified as type: Church
-- Panagia Phorbiottisa was produced by Construction of Asinou
-- Mural Painting is type of Painting of Saint George
-- Panagia Phorbiottisa is composed of Bema
-- Painting of donors Ioannes and Irene has time-span 1280-01-01
-- Saint Nicholas of the Roof bears feature Donor couple
-- Panagia Phorbiottisa was modified by Construction of Asinou
-- Architectural element has narrower term Bema
-- Panagia Phorbiottisa bears feature Saint Mamas
-- Museum of the foundation of archbishop Makarios III is classified as type: Church
-- Panagia Phorbiottisa is composed of Naos
-- Church is type of Our Lady of Moutoullas
-- Church of the Transfiguration bears feature Last judgment
-- Mural Painting is type of Painting of the last judgment
-- Lusignan occurs during Painting of Anastasias
-- Donor Ioannes and Irene is found on North wall of sanctuary
-- Panagia Phorbiottisa is composed of western arch
-- Our Lady of Moutoullas falls within Moutoullas
-- Our Lady of Moutoullas witnessed Painting of donors Ioannes and Irene
-- Our Lady of Moutoullas is composed of North wall of sanctuary
-- Church is type of Panagia Phorbiottisa
-- Donor Ioannes and Irene is denoted by Headdress of Irene
-- St. John Lampadistis is identified by Άγιος Ιωάννης ο Λαμπαδιστής
-- North wall of sanctuary has current location place
-- Panagia Kera is classified as type: Church
-- Panagia Phorbiottisa is composed of South arch
+- 300007466 is same as Church
+- Panagia Phorbiottisa bears feature Mother of god Phorbiotissa
 - Painting of donors Ioannes and Irene is classified as type: Mural Painting
-- Panagia Phorbiottisa bears feature Saint George
-- Lusignan occurs during Painting cycle of 1332/33
-- Lusignan occurs during Painting of the last judgment
-- Panagia Phorbiottisa is composed of Narthex
-- Panagia Phorbiottisa was modified by Closing of the south door of the Narthex
-- Bema forms part of Our Lady of Moutoullas
-- Panagia Kera is same as Q1478037
-- Church is type of Église des Cordeliers de Nancy
-- Mural Painting is type of Initial painting
-- Mural Painting is type of Painting of the last Judgment
-- Architectural element is type of West door
-- Lusignan occurs during Painting of donors Ioannes and Irene
-- Lusignan is same as entity 9758548
+- Palaia Enkleistra bears feature Anastasia
+- St. Herakleidos bears feature Anastasia
+- Lusignan occurs during Painting of Anastasias
+- Our Lady of Moutoullas is composed of North wall of sanctuary
+- Mural Painting is type of Painting cycle of 1332/33
+- Panagia Phorbiottisa was modified by Painting of Saint George
 - Church of the Virgin bears feature Anastasia
-- Architectural element has narrower term Narthex
-- Our Lady of Moutoullas bears feature Donor Ioannes and Irene
+- Lusignan occurs during Construction of the church of Demetrianos
+- Παναγία του Μουτουλά identifies Our Lady of Moutoullas
+- Lusignan occurs during Painting of Anastasia
+- Panagia Phorbiottisa bears feature Fiery stream
+- Panagia Phorbiottisa bears feature Scroll of heaven
+- Lusignan occurs during Painting cycle of 1332/33
+- Church is type of Saint Nicholas of the Roof
+- Lusignan has time-span 1191-01-01
+- St. Herakleidos was modified by Painting of Anastasia
+- St Irene has current location spatial
+- Architectural element is type of West door
+- Donor Ioannes and Irene is denoted by Irene
+- North wall of sanctuary is composed of Donor Ioannes and Irene
+- Panagia Phorbiottisa bears feature Donor
+- Saint Dimitrianos was produced by Construction of the church of Demetrianos
+- Lusignan occurs during Painting of the last judgment
+- Lusignan occurs during Painting of the last Judgment
 - Panagia Phorbiottisa was modified by Painting cycle of 1332/33
-- Panagia Phorbiottisa is classified as type: Church
-- Church is type of Virgin in Sklaverochori
-- Panagia Kanakaria bears feature Last judgment
-- Panagia Phorbiottisa is composed of West door
-- North wall of sanctuary bears feature Donor Ioannes and Irene
-- Our Lady of Moutoullas was modified by Painting of donors Ioannes and Irene
-- Painting of donors Ioannes and Irene has modified Our Lady of Moutoullas
-- Lusignan is same as Q213638
+- Bema forms part of Our Lady of Moutoullas
+- Church is type of Saints Joachim and Anna
+- Mural Painting is type of Wall paintings of 1332/33
+- Saint Dimitrianos is classified as type: Church
+- Architectural element has narrower term Bema
+- Our Lady of Moutoullas is identified by Παναγία του Μουτουλά
+- Panagia Kera is same as Q1478037
+- Lusignan occurs during Wall paintings of 1332/33
+- Our Lady of Moutoullas is classified as type: Church
+- Virgin in Sklaverochori is classified as type: Church
+- St Irene is identified by Ἁγία Εἰρήνη
+- Church is type of St. Herakleidos
+- Mural Painting is type of Painting of the last Judgment
+- St. Marina is classified as type: Church
+- St. Marina has current location spatial
+- Mural Painting is type of Painting of the Virgin of Mercy
+- Our Lady of Moutoullas falls within Moutoullas
+- Our Lady of Moutoullas is composed of Bema
+- Panagia Phorbiottisa bears feature Saint George
+- Virgin in Sklaverochori has current location spatial
+- Palaia Enkleistra is identified by Παλαιά Εγκλείστρα
+- Palaia Enkleistra was modified by Painting of Anastasia
+- Panagia Kanakaria is classified as type: Church
 - 1280-01-01 is time-span of Painting of donors Ioannes and Irene
+- Saint Nicholas of the Roof bears feature Donor couple
+- Our Lady of Moutoullas was modified by Painting of donors Ioannes and Irene
+- Lusignan occurs during Painting of the Virgin of Mercy
+- Church is type of Panagia Phorbiottisa
+- Q13548161 is same as Our Lady of Moutoullas
+- place currently holds North wall of sanctuary
+- Panagia Phorbiottisa bears feature The preparation of the throne
+- Architectural element has narrower term Naos
+- Church is type of St Irene
+- Church of the Transfiguration is classified as type: Church
+- Architectural element has narrower term Soffit
+- Panagia Phorbiottisa was modified by Construction of Asinou
+- Saints Joachim and Anna is identified by Αγίοι Ιωακείμ και Άννα
+- Museum of the foundation of archbishop Makarios III is same as Q42883662
+- Architectural element is same as 300000885
+- Mural Painting is type of Painting of the last judgment
+- Our Lady of Moutoullas bears feature Donor Ioannes and Irene
+- Donor Ioannes and Irene is found on North wall of sanctuary
+- North wall of sanctuary has current location place
+- St. Herakleidos is classified as type: Church
+- Panagia Phorbiottisa was modified by Wall paintings of 1332/33
+- Painting of donors Ioannes and Irene took place at Our Lady of Moutoullas
+- Mural Painting is type of Painting of Saint George
+- Architectural element is type of west lunette
+- Panagia Phorbiottisa bears feature Collective torments
+- Donor Ioannes and Irene forms part of North wall of sanctuary
+- Panagia Kanakaria bears feature Last judgment
+- Saint Nicholas of the Roof is identified by Άγιος Νικόλαος της Στέγης
+- St. John Lampadistis is identified by Άγιος Ιωάννης ο Λαμπαδιστής
+- Saints Joachim and Anna is classified as type: Church
 - Église des Cordeliers de Nancy is classified as type: Church
 - Saint Dimitrianos was modified by Construction of the church of Demetrianos
-- Church is type of Panagia Kanakaria
-- Virgin in Sklaverochori has current location spatial
-- Donor Ioannes and Irene forms part of North wall of sanctuary
-- Architectural element is type of west lunette
-- North wall of sanctuary forms part of Our Lady of Moutoullas
-- Saint Nicholas of the Roof is identified by Άγιος Νικόλαος της Στέγης
-- Saints Joachim and Anna is classified as type: Church
-- St Irene has current location spatial
-- Church is type of St. Herakleidos
-- Saint Dimitrianos is classified as type: Church
-- Church of the Virgin bears feature Saint Mamas
-- Architectural element has narrower term Apse
-- Church is type of Saints Joachim and Anna
-- Palaia Enkleistra is classified as type: Church
-- Panagia Phorbiottisa bears feature Mother of god Phorbiotissa
-- Panagia Phorbiottisa bears feature Anastasias
-- Church is type of St. John Lampadistis
-- Painting of donors Ioannes and Irene occurs during Lusignan
-- Lusignan occurs during Wall paintings of 1332/33
-- Saint Nicholas of the Roof is same as Q31841104
-- Saint Nicholas of the Roof is classified as type: Church
-- St. Herakleidos was modified by Painting of Anastasia
-- Panagia Phorbiottisa bears feature Donor
-- St. Marina is classified as type: Church
-- Lusignan has time-span 1191-01-01
-- Church is type of Saint Nicholas of the Roof
-- Panagia Phorbiottisa bears feature Fiery stream
-- Museum of the foundation of archbishop Makarios III is same as Q42883662
-- Lusignan occurs during Painting of Anastasia
-- North wall of sanctuary is classified as type: Architectural element
-- Saint Nicholas of the Roof bears feature Last judgment
-- Mural Painting is type of Painting of donors Ioannes and Irene
-- Saint Dimitrianos is identified by Ἅγιος Δημητριανός
-- Church is type of St. George of Ancona
-- Saint Dimitrianos bears feature Donor Michael Katzouroumpos and wife
-- Q13548161 is same as Our Lady of Moutoullas
-- Painting of donors Ioannes and Irene has produced Donor Ioannes and Irene
-- St. George of Ancona is classified as type: Church
+- Church is type of Church of the Transfiguration
+- Panagia Phorbiottisa is composed of South lunette
+- Our Lady of Moutoullas witnessed Painting of donors Ioannes and Irene
 - Panagia Phorbiottisa was modified by Addition of the narthex
-- Donor Ioannes and Irene was produced by Painting of donors Ioannes and Irene
-- Mural Painting is type of Painting of the Virgin of Mercy
-- Panagia Kera is identified by Εκκλησία της Παναγίας της Κεράς
-- Donor Ioannes and Irene carries Supplication of the servant of God John son of Moutoullas, the founder, and of his wife Irene
-- Panagia Phorbiottisa bears feature Scroll of heaven
-- St. John Lampadistis was modified by Painting of the last Judgment
-- Panagia Phorbiottisa bears feature Collective torments
-- place currently holds North wall of sanctuary
-- Church is type of Museum of the foundation of archbishop Makarios III
-- St. Herakleidos bears feature Anastasia
-- Church is type of Asinou
-- Our Lady of Moutoullas is classified as type: Church
-- Architectural element has narrower term Soffit
-- St. George of Ancona has current location spatial
+- Panagia Phorbiottisa bears feature Gnashing of the teeth
+- Lusignan occurs during Painting of donors Ioannes and Irene
+- Palaia Enkleistra is classified as type: Church
+- Mural Painting is type of Initial painting
+- Panagia Phorbiottisa is identified by Παναγία Φορβιώτισσα / Παναγία της Ασίνου
+- Panagia Phorbiottisa bears feature Last judgment
+- Church is type of St. John Lampadistis
+- Church of the Virgin was modified by Painting of Anastasia
+- Panagia Phorbiottisa was modified by Initial painting
+- Lusignan is same as entity 9758548
+- Lusignan is same as Q213638
+- Panagia Phorbiottisa bears feature Individual torments
+- Painting of donors Ioannes and Irene has modified Our Lady of Moutoullas
+- Mural Painting is type of Painting of Anastasias
+- Panagia Phorbiottisa was modified by Closing of the south door of the Narthex
 - Church is type of Saint Dimitrianos
-- Church is type of Panagia Kera
-- Mural Painting is same as 300033644
-- Church is same as 300007466
-- Church is type of St. Marina
-- Donor Ioannes and Irene is denoted by Irene
+- St. Marina is identified by Αγία Μαρίνα
+- Church is type of Panagia Kanakaria
+- Church of the Transfiguration bears feature Last judgment
+- Church is type of Museum of the foundation of archbishop Makarios III
+- Panagia Phorbiottisa is composed of Narthex
 - Church of the Virgin is classified as type: Church
+- Church is type of Our Lady of Moutoullas
+- Panagia Phorbiottisa bears feature Saint Mamas
+- Saint Nicholas of the Roof is same as Q31841104
+- Donor Ioannes and Irene carries Supplication of the servant of God John son of Moutoullas, the founder, and of his wife Irene
+- Church is type of Church of the Virgin
+- Panagia Phorbiottisa was produced by Construction of Asinou
+- Panagia Phorbiottisa bears feature Virgin of Mercy
+- Saint Nicholas of the Roof bears feature Last judgment
+- Church is type of Asinou
+- St. George of Ancona has current location spatial
+- Panagia Phorbiottisa is same as Q30773293
+- Church is type of St. Marina
 - Architectural element has narrower term Conch
+- North wall of sanctuary bears feature Donor Ioannes and Irene
+- St. George of Ancona is classified as type: Church
+- Panagia Kanakaria was modified by Painting of the last judgment
+- North wall of sanctuary forms part of Our Lady of Moutoullas
+- Painting of donors Ioannes and Irene has produced Donor Ioannes and Irene
+- St. John Lampadistis is composed of Narthex
+- Panagia Phorbiottisa was modified by Painting of the Virgin of Mercy
+- Our Lady of Moutoullas is same as Q13548161
+- Panagia Phorbiottisa is composed of Naos
+- Museum of the foundation of archbishop Makarios III is classified as type: Church
+- Q16970 is same as Church
+- St. John Lampadistis bears feature Last judgment
+- Saint Dimitrianos bears feature Donor Michael Katzouroumpos and wife
+- North wall of sanctuary is classified as type: Architectural element
+- Architectural element has narrower term Arch
+- St Irene is classified as type: Church
+- Église des Cordeliers de Nancy is same as Q2315482
+- Mural Painting is type of Painting of donors Ioannes and Irene
+- Church is same as 300007466
+- Panagia Phorbiottisa is composed of South arch
+- Mural Painting is same as 300033644
+- Panagia Phorbiottisa is classified as type: Church
+- St. John Lampadistis was modified by Painting of the last Judgment
+- Church is same as Q16970
+- Church of the Virgin bears feature Saint Mamas
+- Church is type of St. George of Ancona
+- Église des Cordeliers de Nancy bears feature Statue of Hugues de Vaudemont
+- Panagia Phorbiottisa is composed of western arch
+- Painting of donors Ioannes and Irene has time-span 1280-01-01
+- Saint Nicholas of the Roof is composed of Narthex
+- Church is type of Virgin in Sklaverochori
+- Panagia Kera is classified as type: Church
+- Saint Nicholas of the Roof is classified as type: Church
+- Panagia Phorbiottisa is composed of Bema
+- Saint Dimitrianos is identified by Ἅγιος Δημητριανός
+- Church is type of Église des Cordeliers de Nancy
+- Architectural element has narrower term Apse
+- Panagia Kera is identified by Εκκλησία της Παναγίας της Κεράς
+- Donor Ioannes and Irene was produced by Painting of donors Ioannes and Irene
+- Panagia Phorbiottisa is composed of West door
+- Painting of donors Ioannes and Irene occurs during Lusignan

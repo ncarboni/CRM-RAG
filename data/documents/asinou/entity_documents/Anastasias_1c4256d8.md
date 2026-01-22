@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/visual/atom/11b9e1a0-ed77-4080-8daa-4aa6d230ebb9
 Label: Anastasias
-Generated: 2026-01-22 12:23:36
+Generated: 2026-01-22 13:35:41
 ---
 
 # Anastasias
@@ -19,182 +19,182 @@ URI: http://map.cnrs.fr/semantics/visual/atom/11b9e1a0-ed77-4080-8daa-4aa6d230eb
 
 ## Relationships
 
-- South lunette bears feature Anastasias
-- Anastasia Saramalina has attribute porphyria
-- Panagia Phorbiottisa falls within Nikitari
-- Narthex is composed of Donor couple
-- Panagia Phorbiottisa witnessed Initial painting
-- cross of martydom has attribute Saint Anastasia
-- Mural Painting is type of Painting cycle of 1332/33
-- neck rectangular patches has attribute Irene
-- Panagia Phorbiottisa contains Naos
-- South lunette bears feature Saint Mamas
-- Narthex bears feature Last judgment
-- Panagia Phorbiottisa bears feature Virgin of Mercy
-- headdress has attribute Irene
-- porphyria depict things of type clothing
-- Painting of Anastasias took place at Panagia Phorbiottisa
-- Panagia Phorbiottisa bears feature The preparation of the throne
-- cross of martydom depict things of type Cross
-- South lunette is composed of Virgin of Mercy
-- Virgin of Mercy is found on Panagia Phorbiottisa
-- Panagia Phorbiottisa was modified by Initial painting
-- Saint Anastasia has attribute cross of martydom
-- South lunette forms part of Narthex
-- Mural Painting is type of Wall paintings of 1332/33
-- Anastasia Saramalina has attribute neck rectangular patches
-- Apse is type of South lunette
-- Panagia Phorbiottisa witnessed Construction of Asinou
-- Apse has broader term Architectural element
-- Narthex has current location place
-- Panagia Phorbiottisa was modified by Painting of the Virgin of Mercy
-- Panagia Phorbiottisa bears feature Last judgment
-- Virgin of Mercy is found on Asinou
-- Panagia Phorbiottisa is composed of South lunette
-- Panagia Phorbiottisa currently holds Asinou
-- Narthex is composed of South lunette
-- Saint George carries inscription
-- Mural Painting is type of Painting of Anastasias
-- Lusignan occurs during Construction of the church of Demetrianos
-- Panagia Phorbiottisa is same as Q30773293
-- bottle of medicine symbolize healing
-- Lusignan occurs during Painting of the last Judgment
-- Headdress of Anastasia Saramalina has attribute barbette
 - Saint Mamas is found on Panagia Phorbiottisa
-- Saint George was produced by Painting of Saint George
-- South lunette is composed of Saint George
-- Mural Painting has broader term Painting
-- Headdress of Anastasia Saramalina is composed of Anastasia Saramalina
-- Lusignan occurs during Painting of the Virgin of Mercy
-- Saint Mamas is found on Asinou
-- Virgin of Mercy forms part of South lunette
-- Anastasia of Sirmium is same as http://www.wikidata.org/entity/Q48438
-- Panagia Phorbiottisa bears feature Individual torments
-- Painting of Anastasias is classified as type: Mural Painting
-- T-shaped garment has attribute Anastasia Saramalina
-- South lunette is composed of Anastasias
-- Painting of Anastasias has modified Panagia Phorbiottisa
-- Apse is same as Q170463
-- headdress has attribute Anastasia Saramalina
-- Anastasia Saramalina is denoted by Anastasias
-- 1193-01-01 is time-span of Painting of Anastasias
-- Donor is type of Anastasia Saramalina
-- Narthex is composed of West door
-- Panagia Phorbiottisa bears feature Gnashing of the teeth
-- Panagia Phorbiottisa contains Bema
-- Panagia Phorbiottisa was modified by Wall paintings of 1332/33
-- Narthex forms part of Panagia Phorbiottisa
-- Saint George is found on Narthex
-- Donor is type of Irene
-- Mural Painting is type of Painting of Anastasia
-- Panagia Phorbiottisa was modified by Painting of Saint George
-- Panagia Phorbiottisa is identified by Παναγία Φορβιώτισσα / Παναγία της Ασίνου
-- South lunette has current location place
 - Panagia Phorbiottisa was modified by Painting of Anastasias
-- Panagia Phorbiottisa is composed of west lunette
-- Mural Painting is type of Painting of Saint George
-- Panagia Phorbiottisa was produced by Construction of Asinou
-- Anastasia Saramalina is composed of Headdress of Anastasia Saramalina
-- Virgin of Mercy is denoted by Madonna della misericordia
-- Narthex forms part of Asinou
-- Panagia Phorbiottisa is composed of Bema
-- South lunette is classified as type: Apse
-- Panagia Phorbiottisa contains Narthex
-- Donor is type of Wife of Michael Katzouroumpos
-- Panagia Phorbiottisa was modified by Construction of Asinou
-- Panagia Phorbiottisa bears feature Saint Mamas
-- Narthex bears feature Saint George
-- Virgin of Mercy is denoted by Christ child
-- Panagia Phorbiottisa is composed of Naos
-- Anastasias was produced by Painting of Anastasias
-- Mural Painting is type of Painting of the last judgment
-- Lusignan occurs during Painting of Anastasias
-- Anastasias is denoted by Headdress of Anastasia Saramalina
-- Panagia Phorbiottisa is composed of western arch
-- Apse is same as 300004607
-- Donor is type of Latin Donor
-- Narthex is composed of Last judgment
-- Saint George is denoted by Saint George on a horseback
-- Panagia Phorbiottisa is composed of South arch
-- Anastasias carries Prayer of the servant of god Anastasia Saramalina
-- Prayer of the servant of god Anastasia Saramalina is carried by Anastasias
-- Panagia Phorbiottisa bears feature Saint George
-- Lusignan occurs during Painting cycle of 1332/33
-- Lusignan occurs during Painting of the last judgment
-- Panagia Phorbiottisa is composed of Narthex
-- Panagia Phorbiottisa was modified by Closing of the south door of the Narthex
-- Panagia Phorbiottisa contains South lunette
-- Mural Painting is type of Initial painting
-- Mural Painting is type of Painting of the last Judgment
-- Saint Anastasia is classified as type: Saint Anastasia Pharmakolytria
-- Lusignan occurs during Painting of donors Ioannes and Irene
-- Anastasia Saramalina is classified as type: Donor
-- Anastasias forms part of South lunette
-- Lusignan is same as entity 9758548
-- Saint Anastasia Pharmakolytria is type of Saint Anastasia
-- Panagia Phorbiottisa was modified by Painting cycle of 1332/33
-- Panagia Phorbiottisa is classified as type: Church
-- Headdress of Anastasia Saramalina has attribute crespine
-- Panagia Phorbiottisa witnessed Addition of the narthex
-- Panagia Phorbiottisa is composed of West door
-- South lunette forms part of Panagia Phorbiottisa
-- Anastasias is denoted by Saint Anastasia
-- neck rectangular patches depict things of type Patches
-- Saint George is found on Panagia Phorbiottisa
-- Saint Mamas was produced by Painting cycle of 1332/33
-- Panagia Phorbiottisa witnessed Painting cycle of 1332/33
-- South lunette forms part of Asinou
-- Lusignan is same as Q213638
-- Anastasias is found on South lunette
-- Narthex is composed of South arch
-- place currently holds South lunette
+- Panagia Phorbiottisa falls within Nikitari
 - neck rectangular patches has attribute Anastasia Saramalina
-- T-shaped garment depict things of type clothing
-- Anastasias is found on Asinou
-- Anastasias is found on Panagia Phorbiottisa
-- Anastasia of Sirmium portray Saint Anastasia
-- Anastasia Saramalina has attribute headdress
-- Virgin of Mercy is denoted by Kneeling youth
-- porphyria has attribute Anastasia Saramalina
-- Panagia Phorbiottisa witnessed Painting of the Virgin of Mercy
+- Anastasia Saramalina is classified as type: Donor
 - Narthex is composed of west lunette
-- Saint Mamas is found on South lunette
-- Panagia Phorbiottisa bears feature Mother of god Phorbiotissa
-- cross of martydom symbolize salvation
-- Painting of Anastasias has produced Anastasias
 - Panagia Phorbiottisa bears feature Anastasias
-- Virgin of Mercy is denoted by Latin Donor
-- Anastasias is denoted by Anastasia Saramalina
-- Lusignan occurs during Wall paintings of 1332/33
-- Lusignan has time-span 1191-01-01
-- Panagia Phorbiottisa bears feature Donor
-- Panagia Phorbiottisa witnessed Wall paintings of 1332/33
-- Saint Anastasia is denoted by Anastasias
-- Panagia Phorbiottisa bears feature Fiery stream
+- Headdress of Anastasia Saramalina is denoted by Anastasias
+- Mural Painting is type of Painting of Anastasia
+- Saint Anastasia portray Anastasia of Sirmium
+- Mural Painting has broader term Painting
+- Donor is type of Anna
+- Panagia Phorbiottisa witnessed Addition of the narthex
+- South lunette bears feature Anastasias
+- Saint George forms part of South lunette
+- headdress has attribute Irene
+- Anastasias was produced by Painting of Anastasias
+- Panagia Phorbiottisa is composed of west lunette
+- South lunette bears feature Saint Mamas
+- Anastasia Saramalina has attribute T-shaped garment
+- Virgin of Mercy was produced by Painting of the Virgin of Mercy
+- cross of martydom depict things of type Cross
+- Panagia Phorbiottisa witnessed Construction of Asinou
+- Panagia Phorbiottisa bears feature Mother of god Phorbiotissa
+- Lusignan occurs during Painting of Anastasias
+- Apse is same as 300004607
+- Mural Painting is type of Painting cycle of 1332/33
+- Panagia Phorbiottisa was modified by Painting of Saint George
+- Narthex is composed of South lunette
+- South lunette forms part of Panagia Phorbiottisa
+- Lusignan occurs during Construction of the church of Demetrianos
+- Virgin of Mercy is denoted by Madonna della misericordia
 - Lusignan occurs during Painting of Anastasia
 - Narthex is composed of western arch
-- Mural Painting is type of Painting of donors Ioannes and Irene
 - Saint George is found on Asinou
-- Painting of Anastasias has time-span 1193-01-01
-- Headdress of Anastasia Saramalina is denoted by Anastasias
-- Panagia Phorbiottisa witnessed Closing of the south door of the Narthex
-- Panagia Phorbiottisa was modified by Addition of the narthex
-- Saint Anastasia Pharmakolytria has broader term Saint
-- Panagia Phorbiottisa witnessed Painting of Saint George
-- Saint Anastasia portray Anastasia of Sirmium
-- Saint Anastasia has attribute bottle of medicine
-- Mural Painting is type of Painting of the Virgin of Mercy
-- Painting of Anastasias occurs during Lusignan
+- Saint George is found on Narthex
+- Saint Mamas was produced by Painting cycle of 1332/33
+- Virgin of Mercy is denoted by Christ child
+- Anastasia Saramalina has attribute porphyria
+- Panagia Phorbiottisa bears feature Fiery stream
 - Panagia Phorbiottisa bears feature Scroll of heaven
-- Panagia Phorbiottisa bears feature Collective torments
+- Saint Anastasia is classified as type: Saint Anastasia Pharmakolytria
+- Lusignan occurs during Painting cycle of 1332/33
+- Panagia Phorbiottisa witnessed Painting of Saint George
+- Panagia Phorbiottisa contains Naos
+- Lusignan has time-span 1191-01-01
+- bottle of medicine symbolize healing
+- T-shaped garment depict things of type clothing
+- Saint George is found on Panagia Phorbiottisa
+- Panagia Phorbiottisa bears feature Donor
+- Anastasia Saramalina is denoted by Anastasias
+- Lusignan occurs during Painting of the last judgment
+- Apse has broader term Architectural element
+- Lusignan occurs during Painting of the last Judgment
 - Panagia Phorbiottisa witnessed Painting of Anastasias
-- Donor is type of Anna
+- Panagia Phorbiottisa was modified by Painting cycle of 1332/33
+- Anastasia Saramalina has attribute headdress
+- porphyria depict things of type clothing
+- Mural Painting is type of Wall paintings of 1332/33
+- Saint George carries inscription
+- Lusignan occurs during Wall paintings of 1332/33
 - Donor is type of Donor's wife
-- Anastasia Saramalina has attribute T-shaped garment
-- Saint George forms part of South lunette
-- Mural Painting is same as 300033644
-- bottle of medicine depict things of type Flask
-- Virgin of Mercy was produced by Painting of the Virgin of Mercy
+- Mural Painting is type of Painting of the last Judgment
+- Painting of Anastasias occurs during Lusignan
+- Anastasia of Sirmium is same as http://www.wikidata.org/entity/Q48438
+- Mural Painting is type of Painting of the Virgin of Mercy
+- Narthex forms part of Asinou
+- Painting of Anastasias has time-span 1193-01-01
+- Panagia Phorbiottisa bears feature Saint George
+- Donor is type of Latin Donor
+- Apse is same as Q170463
+- Saint George is denoted by Saint George on a horseback
+- Painting of Anastasias has produced Anastasias
+- Lusignan occurs during Painting of the Virgin of Mercy
+- headdress has attribute Anastasia Saramalina
+- Saint Anastasia has attribute cross of martydom
+- Panagia Phorbiottisa contains Narthex
+- Anastasia of Sirmium portray Saint Anastasia
+- Headdress of Anastasia Saramalina has attribute crespine
+- Panagia Phorbiottisa bears feature The preparation of the throne
+- neck rectangular patches has attribute Irene
+- Panagia Phorbiottisa was modified by Construction of Asinou
+- Headdress of Anastasia Saramalina has attribute barbette
+- Anastasias carries Prayer of the servant of god Anastasia Saramalina
+- Mural Painting is type of Painting of the last judgment
+- neck rectangular patches depict things of type Patches
+- Anastasias is denoted by Saint Anastasia
+- cross of martydom symbolize salvation
+- Panagia Phorbiottisa was modified by Wall paintings of 1332/33
+- Mural Painting is type of Painting of Saint George
+- Panagia Phorbiottisa bears feature Collective torments
+- porphyria has attribute Anastasia Saramalina
 - neck rectangular patches has attribute Anna
-- Painting of Anastasias has modified Asinou
+- Painting of Anastasias is classified as type: Mural Painting
+- Saint Anastasia Pharmakolytria is type of Saint Anastasia
+- Panagia Phorbiottisa is composed of South lunette
+- Panagia Phorbiottisa was modified by Addition of the narthex
+- Panagia Phorbiottisa bears feature Gnashing of the teeth
+- Narthex forms part of Panagia Phorbiottisa
+- Lusignan occurs during Painting of donors Ioannes and Irene
+- Panagia Phorbiottisa witnessed Painting cycle of 1332/33
+- place currently holds South lunette
+- Saint George was produced by Painting of Saint George
+- Mural Painting is type of Initial painting
+- cross of martydom has attribute Saint Anastasia
+- Narthex bears feature Last judgment
+- Panagia Phorbiottisa is identified by Παναγία Φορβιώτισσα / Παναγία της Ασίνου
+- Panagia Phorbiottisa bears feature Last judgment
+- Anastasias is denoted by Headdress of Anastasia Saramalina
+- Saint Anastasia has attribute bottle of medicine
+- Panagia Phorbiottisa was modified by Initial painting
+- Lusignan is same as entity 9758548
+- Lusignan is same as Q213638
+- Panagia Phorbiottisa bears feature Individual torments
+- South lunette is composed of Virgin of Mercy
 - bottle of medicine has attribute Saint Anastasia
+- Mural Painting is type of Painting of Anastasias
+- Panagia Phorbiottisa was modified by Closing of the south door of the Narthex
+- Virgin of Mercy is found on Asinou
+- Panagia Phorbiottisa witnessed Closing of the south door of the Narthex
+- Donor is type of Anastasia Saramalina
+- Anastasias is found on Asinou
+- Panagia Phorbiottisa is composed of Narthex
+- South lunette is composed of Anastasias
+- Panagia Phorbiottisa bears feature Saint Mamas
+- Panagia Phorbiottisa contains Bema
+- Saint Anastasia Pharmakolytria has broader term Saint
+- Apse is type of South lunette
+- 1193-01-01 is time-span of Painting of Anastasias
+- Panagia Phorbiottisa was produced by Construction of Asinou
+- Narthex is composed of Donor couple
+- Panagia Phorbiottisa bears feature Virgin of Mercy
+- Narthex is composed of South arch
+- Panagia Phorbiottisa is same as Q30773293
+- T-shaped garment has attribute Anastasia Saramalina
+- Panagia Phorbiottisa witnessed Initial painting
+- Panagia Phorbiottisa was modified by Painting of the Virgin of Mercy
+- Saint Anastasia is denoted by Anastasias
+- South lunette forms part of Narthex
+- Narthex has current location place
+- Virgin of Mercy is denoted by Latin Donor
+- Anastasias forms part of South lunette
+- Panagia Phorbiottisa is composed of Naos
+- Anastasia Saramalina is composed of Headdress of Anastasia Saramalina
+- Panagia Phorbiottisa witnessed Wall paintings of 1332/33
+- Narthex bears feature Saint George
+- Anastasias is found on Panagia Phorbiottisa
+- Donor is type of Irene
+- Narthex is composed of West door
+- Headdress of Anastasia Saramalina is composed of Anastasia Saramalina
+- Saint Mamas is found on South lunette
+- Mural Painting is type of Painting of donors Ioannes and Irene
+- Panagia Phorbiottisa is composed of South arch
+- Virgin of Mercy forms part of South lunette
+- Mural Painting is same as 300033644
+- Panagia Phorbiottisa is classified as type: Church
+- Virgin of Mercy is found on Panagia Phorbiottisa
+- Saint Mamas is found on Asinou
+- bottle of medicine depict things of type Flask
+- Donor is type of Wife of Michael Katzouroumpos
+- Narthex is composed of Last judgment
+- Panagia Phorbiottisa witnessed Painting of the Virgin of Mercy
+- Painting of Anastasias has modified Asinou
+- Panagia Phorbiottisa contains South lunette
+- Panagia Phorbiottisa is composed of western arch
+- Panagia Phorbiottisa is composed of Bema
+- Virgin of Mercy is denoted by Kneeling youth
+- South lunette is composed of Saint George
+- Painting of Anastasias took place at Panagia Phorbiottisa
+- Painting of Anastasias has modified Panagia Phorbiottisa
+- Panagia Phorbiottisa currently holds Asinou
+- Anastasias is denoted by Anastasia Saramalina
+- Prayer of the servant of god Anastasia Saramalina is carried by Anastasias
+- Anastasias is found on South lunette
+- South lunette forms part of Asinou
+- South lunette is classified as type: Apse
+- South lunette has current location place
+- Panagia Phorbiottisa is composed of West door
+- Anastasia Saramalina has attribute neck rectangular patches

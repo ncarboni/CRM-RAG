@@ -4,8 +4,11 @@ This module provides a unified interface for different LLM APIs.
 """
 
 import logging
+import time
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, List
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from threading import Semaphore
+from typing import Dict, Any, Optional, List, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -36,10 +39,25 @@ class BaseLLMProvider(ABC):
 
 class OpenAIProvider(BaseLLMProvider):
     """OpenAI API provider"""
-    
-    def __init__(self, api_key: str, model: str = "gpt-4o", embedding_model: str = "text-embedding-3-small", 
-                 temperature: float = 0.7, max_tokens: Optional[int] = None):
-        """Initialize OpenAI provider"""
+
+    def __init__(self, api_key: str, model: str = "gpt-4o", embedding_model: str = "text-embedding-3-small",
+                 temperature: float = 0.7, max_tokens: Optional[int] = None,
+                 embedding_max_concurrent: int = 10, embedding_retry_attempts: int = 3,
+                 embedding_retry_delay: float = 1.0, embedding_chunk_size: int = 100):
+        """
+        Initialize OpenAI provider.
+
+        Args:
+            api_key: OpenAI API key
+            model: LLM model name (default: gpt-4o)
+            embedding_model: Embedding model name (default: text-embedding-3-small)
+            temperature: Temperature for generation (default: 0.7)
+            max_tokens: Max tokens for generation (default: None)
+            embedding_max_concurrent: Max parallel embedding API requests (default: 10)
+            embedding_retry_attempts: Retry attempts per chunk on failure (default: 3)
+            embedding_retry_delay: Base delay for exponential backoff in seconds (default: 1.0)
+            embedding_chunk_size: Number of texts per API request (default: 100)
+        """
         self.api_key = api_key
         self.model = model
         self.embedding_model = embedding_model
@@ -47,6 +65,12 @@ class OpenAIProvider(BaseLLMProvider):
         self.max_tokens = max_tokens
         self._embeddings = None
         self._llm = None
+
+        # Concurrent embedding configuration
+        self.embedding_max_concurrent = embedding_max_concurrent
+        self.embedding_retry_attempts = embedding_retry_attempts
+        self.embedding_retry_delay = embedding_retry_delay
+        self.embedding_chunk_size = embedding_chunk_size
         
     def generate(self, system_prompt: str, user_prompt: str) -> str:
         """Generate a response using OpenAI API"""
@@ -99,6 +123,127 @@ class OpenAIProvider(BaseLLMProvider):
     def supports_batch_embedding(self) -> bool:
         """OpenAI supports efficient batch embedding via embed_documents."""
         return True
+
+    def supports_concurrent_embedding(self) -> bool:
+        """OpenAI supports concurrent batch embedding with ThreadPoolExecutor."""
+        return True
+
+    def get_embeddings_batch_concurrent(self, texts: List[str]) -> List[List[float]]:
+        """
+        Get embeddings for multiple texts using concurrent API calls.
+
+        This method provides ~5-10x speedup over sequential processing by:
+        1. Splitting texts into chunks (default: 100 texts each)
+        2. Processing chunks in parallel using ThreadPoolExecutor
+        3. Using a Semaphore for rate limiting
+        4. Implementing exponential backoff for rate limit errors (429)
+
+        Args:
+            texts: List of texts to embed
+
+        Returns:
+            List of embeddings in the same order as input texts
+        """
+        from langchain_openai import OpenAIEmbeddings
+
+        if not texts:
+            return []
+
+        # For small batches, use sequential processing
+        if len(texts) <= self.embedding_chunk_size:
+            return self.get_embeddings_batch(texts)
+
+        # Initialize embeddings model (lazy initialization for thread safety)
+        if self._embeddings is None:
+            self._embeddings = OpenAIEmbeddings(
+                model=self.embedding_model,
+                openai_api_key=self.api_key
+            )
+
+        # Split texts into chunks
+        chunks = []
+        for i in range(0, len(texts), self.embedding_chunk_size):
+            chunk = texts[i:i + self.embedding_chunk_size]
+            chunks.append((i // self.embedding_chunk_size, chunk))
+
+        logger.info(f"Using concurrent batch embedding: {len(texts)} texts in {len(chunks)} chunks "
+                    f"(chunk_size={self.embedding_chunk_size}, max_concurrent={self.embedding_max_concurrent})")
+
+        # Semaphore for rate limiting
+        semaphore = Semaphore(self.embedding_max_concurrent)
+
+        # Results storage (indexed by chunk position)
+        results: Dict[int, List[List[float]]] = {}
+        errors: List[Tuple[int, Exception]] = []
+
+        def process_chunk(chunk_idx: int, chunk_texts: List[str]) -> Tuple[int, Optional[List[List[float]]]]:
+            """Process a single chunk with retries and exponential backoff."""
+            with semaphore:
+                last_exception = None
+                for attempt in range(self.embedding_retry_attempts):
+                    try:
+                        # Create a new embeddings instance for thread safety
+                        embeddings = OpenAIEmbeddings(
+                            model=self.embedding_model,
+                            openai_api_key=self.api_key
+                        )
+                        result = embeddings.embed_documents(chunk_texts)
+                        return (chunk_idx, result)
+                    except Exception as e:
+                        last_exception = e
+                        error_str = str(e).lower()
+
+                        # Check for rate limit error (429)
+                        is_rate_limit = "429" in error_str or "rate" in error_str or "limit" in error_str
+
+                        if is_rate_limit and attempt < self.embedding_retry_attempts - 1:
+                            # Exponential backoff: delay * 2^attempt
+                            backoff_time = self.embedding_retry_delay * (2 ** attempt)
+                            logger.warning(f"Rate limit hit for chunk {chunk_idx}, "
+                                           f"retrying in {backoff_time:.1f}s (attempt {attempt + 1}/{self.embedding_retry_attempts})")
+                            time.sleep(backoff_time)
+                        elif attempt < self.embedding_retry_attempts - 1:
+                            # Other errors - shorter backoff
+                            backoff_time = self.embedding_retry_delay * (attempt + 1)
+                            logger.warning(f"Error on chunk {chunk_idx}: {e}, "
+                                           f"retrying in {backoff_time:.1f}s (attempt {attempt + 1}/{self.embedding_retry_attempts})")
+                            time.sleep(backoff_time)
+
+                # All retries exhausted
+                logger.error(f"Failed to embed chunk {chunk_idx} after {self.embedding_retry_attempts} attempts: {last_exception}")
+                return (chunk_idx, None)
+
+        # Process chunks concurrently
+        completed_chunks = 0
+        with ThreadPoolExecutor(max_workers=self.embedding_max_concurrent) as executor:
+            futures = {executor.submit(process_chunk, idx, chunk): idx for idx, chunk in chunks}
+
+            for future in as_completed(futures):
+                chunk_idx, embeddings = future.result()
+                completed_chunks += 1
+
+                if embeddings is not None:
+                    results[chunk_idx] = embeddings
+                    if completed_chunks % 5 == 0 or completed_chunks == len(chunks):
+                        logger.info(f"Embedding progress: {completed_chunks}/{len(chunks)} chunks completed")
+                else:
+                    errors.append((chunk_idx, Exception("Failed after retries")))
+
+        # Check for errors
+        if errors:
+            failed_indices = [idx for idx, _ in errors]
+            logger.error(f"Failed to embed chunks: {failed_indices}")
+            raise RuntimeError(f"Failed to embed {len(errors)} chunks: {failed_indices}. "
+                               f"Consider reducing embedding_max_concurrent or increasing retry_attempts.")
+
+        # Reassemble results in order
+        all_embeddings = []
+        for chunk_idx in range(len(chunks)):
+            all_embeddings.extend(results[chunk_idx])
+
+        logger.info(f"Concurrent embedding complete: {len(all_embeddings)} embeddings generated")
+        return all_embeddings
+
 
 class AnthropicProvider(BaseLLMProvider):
     """Anthropic Claude API provider"""
@@ -448,7 +593,11 @@ def get_llm_provider(provider_name: str, config: Dict[str, Any]) -> BaseLLMProvi
             model=config.get("model", "gpt-4o"),
             embedding_model=config.get("embedding_model", "text-embedding-3-small"),
             temperature=float(config.get("temperature", 0.7)),
-            max_tokens=int(config.get("max_tokens")) if "max_tokens" in config else None
+            max_tokens=int(config.get("max_tokens")) if "max_tokens" in config else None,
+            embedding_max_concurrent=int(config.get("embedding_max_concurrent", 10)),
+            embedding_retry_attempts=int(config.get("embedding_retry_attempts", 3)),
+            embedding_retry_delay=float(config.get("embedding_retry_delay", 1.0)),
+            embedding_chunk_size=int(config.get("embedding_chunk_size", 100))
         )
     elif provider_name == "anthropic":
         provider = AnthropicProvider(

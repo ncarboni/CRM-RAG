@@ -1,7 +1,7 @@
 ---
 URI: http://www.cidoc-crm.org/cidoc-crm/E12_Production
 Label: Production
-Generated: 2026-01-22 12:23:25
+Generated: 2026-01-22 13:35:32
 ---
 
 # Production

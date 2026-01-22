@@ -1,7 +1,7 @@
 ---
 URI: http://www.cidoc-crm.org/cidoc-crm/E4_Period
 Label: Period
-Generated: 2026-01-22 12:23:26
+Generated: 2026-01-22 13:35:32
 ---
 
 # Period

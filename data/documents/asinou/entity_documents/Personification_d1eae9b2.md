@@ -1,7 +1,7 @@
 ---
 URI: http://w3id.org/vir#IC11_Personification
 Label: Personification
-Generated: 2026-01-22 12:23:47
+Generated: 2026-01-22 13:35:50
 ---
 
 # Personification
@@ -19,5 +19,5 @@ URI: http://w3id.org/vir#IC11_Personification
 
 ## Relationships
 
-- Personification has close match Q207174
 - Q207174 has close match Personification
+- Personification has close match Q207174

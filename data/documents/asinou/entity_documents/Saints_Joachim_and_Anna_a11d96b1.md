@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/spatial/55163f7c-24d7-477b-b28d-caca072a2b5b/
 Label: Saints Joachim and Anna
-Generated: 2026-01-22 12:23:32
+Generated: 2026-01-22 13:35:38
 ---
 
 # Saints Joachim and Anna
@@ -19,9 +19,9 @@ URI: http://map.cnrs.fr/semantics/spatial/55163f7c-24d7-477b-b28d-caca072a2b5b/
 
 ## Relationships
 
-- Cyprus contains Kaliana
 - Kaliana contains Saints Joachim and Anna
+- Saints Joachim and Anna falls within Kaliana
 - Kaliana falls within Cyprus
 - Q6352500 is same as Kaliana
+- Cyprus contains Kaliana
 - Kaliana is same as Q6352500
-- Saints Joachim and Anna falls within Kaliana

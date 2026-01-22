@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/type/887f2795-042e-4d5f-abc3-b4ba3206bbe5
 Label: Horse
-Generated: 2026-01-22 12:23:13
+Generated: 2026-01-22 13:35:22
 ---
 
 # Horse

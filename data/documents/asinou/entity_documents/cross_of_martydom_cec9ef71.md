@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/9cb3ada3-25b9-4bb1-896e-82257d7e39bd
 Label: cross of martydom
-Generated: 2026-01-22 12:23:24
+Generated: 2026-01-22 13:35:31
 ---
 
 # cross of martydom
@@ -19,37 +19,37 @@ URI: http://map.cnrs.fr/semantics/attribute/9cb3ada3-25b9-4bb1-896e-82257d7e39bd
 
 ## Relationships
 
-- Anastasia was produced by Painting of Anastasia
-- Anastasia of Sirmium is same as http://www.wikidata.org/entity/Q48438
-- Anastasias is denoted by Anastasia Saramalina
-- cross of martydom has attribute Saint Anastasia
-- 300010044 is same as Cross
-- Saint Anastasia is classified as type: Saint Anastasia Pharmakolytria
-- Saint Anastasia is denoted by Anastasias
-- Anastasias forms part of South lunette
-- Cross is same as 300010044
 - Saint Anastasia Pharmakolytria is type of Saint Anastasia
-- Anastasia is found on Church of the Virgin
-- Anastasia is found on Palaia Enkleistra
-- cross of martydom depict things of type Cross
-- Saint Anastasia is denoted by Anastasia
-- Saint Anastasia Pharmakolytria has broader term Saint
-- Saint Anastasia has attribute cross of martydom
-- Anastasias is denoted by Saint Anastasia
-- Saint Anastasia portray Anastasia of Sirmium
-- Saint Anastasia has attribute bottle of medicine
 - Anastasia is found on St. Herakleidos
-- Anastasia is denoted by Saint Anastasia
-- Anastasias is found on South lunette
+- Saint Anastasia is denoted by Anastasias
+- cross of martydom has attribute Saint Anastasia
+- Anastasia of Sirmium is same as http://www.wikidata.org/entity/Q48438
+- Saint Anastasia portray Anastasia of Sirmium
+- Anastasias forms part of South lunette
 - Anastasias was produced by Painting of Anastasias
-- Anastasias is denoted by Headdress of Anastasia Saramalina
-- salvation symbolize cross of martydom
-- bottle of medicine symbolize healing
-- Anastasias is found on Asinou
+- Saint Anastasia has attribute bottle of medicine
+- cross of martydom depict things of type Cross
 - Anastasias is found on Panagia Phorbiottisa
-- Cross depict things of type cross of martydom
+- bottle of medicine has attribute Saint Anastasia
+- Saint Anastasia has attribute cross of martydom
+- Anastasia is found on Palaia Enkleistra
+- Anastasia was produced by Painting of Anastasia
+- salvation symbolize cross of martydom
+- Saint Anastasia is denoted by Anastasia
 - Anastasia of Sirmium portray Saint Anastasia
 - bottle of medicine depict things of type Flask
+- 300010044 is same as Cross
+- Cross is same as 300010044
+- Saint Anastasia is classified as type: Saint Anastasia Pharmakolytria
+- Anastasias is found on Asinou
 - Anastasias carries Prayer of the servant of god Anastasia Saramalina
+- Anastasia is denoted by Saint Anastasia
+- Saint Anastasia Pharmakolytria has broader term Saint
+- bottle of medicine symbolize healing
+- Anastasias is denoted by Anastasia Saramalina
+- Anastasias is denoted by Saint Anastasia
 - cross of martydom symbolize salvation
-- bottle of medicine has attribute Saint Anastasia
+- Anastasia is found on Church of the Virgin
+- Cross depict things of type cross of martydom
+- Anastasias is found on South lunette
+- Anastasias is denoted by Headdress of Anastasia Saramalina

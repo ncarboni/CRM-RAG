@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/production/1181919e-fb2f-4cc5-8098-6e6d5021810c
 Label: Construction of Asinou
-Generated: 2026-01-22 12:23:30
+Generated: 2026-01-22 13:35:36
 ---
 
 # Construction of Asinou
@@ -18,303 +18,303 @@ URI: http://map.cnrs.fr/semantics/production/1181919e-fb2f-4cc5-8098-6e6d5021810
 
 ## Relationships
 
-- Late Byzantine occurs during Initial painting
-- Initial painting took place at Panagia Phorbiottisa
-- The preparation of the throne is found on Panagia Phorbiottisa
-- South lunette bears feature Anastasias
-- Initial painting has time-span 1105-01-01
-- Last judgment was produced by Painting cycle of 1332/33
-- Panagia Phorbiottisa falls within Nikitari
-- Narthex is composed of Donor couple
-- Church is same as Q16970
-- Panagia Phorbiottisa witnessed Initial painting
-- The preparation of the throne forms part of west lunette
-- Panagia Phorbiottisa contains Naos
-- South lunette bears feature Saint Mamas
-- Painting of Saint George has produced Saint George
-- Painting of the Virgin of Mercy is classified as type: Mural Painting
-- Naos has current location place
-- Narthex bears feature Last judgment
-- Panagia Phorbiottisa bears feature Virgin of Mercy
-- Painting cycle of 1332/33 has produced Gnashing of the teeth
-- Fiery stream is found on Panagia Phorbiottisa
-- Painting of the Virgin of Mercy has produced Virgin of Mercy
-- Painting of Anastasias took place at Panagia Phorbiottisa
-- Individual torments is found on Panagia Phorbiottisa
-- Church is type of Palaia Enkleistra
-- Panagia Phorbiottisa bears feature The preparation of the throne
-- Late Byzantine occurs during Construction of Asinou
-- Painting of Saint George has modified Asinou
-- South lunette is composed of Virgin of Mercy
-- Virgin of Mercy is found on Panagia Phorbiottisa
-- Naos falls within Panagia Phorbiottisa
-- Panagia Phorbiottisa was modified by Initial painting
-- South arch is composed of Gnashing of the teeth
-- Construction of the church of Demetrianos has time-span 1317-01-01
-- Fiery stream forms part of west lunette
-- western arch has current location place
-- South lunette forms part of Narthex
-- Construction of the church of Demetrianos has modified Saint Dimitrianos
-- Closing of the south door of the Narthex took place at Panagia Phorbiottisa
-- Wall paintings of 1332/33 took place at Panagia Phorbiottisa
-- 965-01-01 is time-span of Late Byzantine
-- Panagia Phorbiottisa witnessed Construction of Asinou
-- Scroll of heaven is found on western arch
-- Fiery stream was produced by Painting cycle of 1332/33
-- Panagia Phorbiottisa was modified by Painting of the Virgin of Mercy
-- Narthex has current location place
-- Church is type of St Irene
-- Virgin of Mercy is found on Asinou
-- Panagia Phorbiottisa bears feature Last judgment
-- Panagia Phorbiottisa is composed of South lunette
-- Construction of Asinou occurs during Late Byzantine
-- Donor forms part of Naos
-- Panagia Phorbiottisa currently holds Asinou
-- Narthex is composed of South lunette
-- Church is type of Church of the Transfiguration
-- Saint George carries inscription
-- Mother of god Phorbiotissa is found on Asinou
-- Nikitari falls within Cyprus
-- Donor carries inscription
-- Panagia Phorbiottisa is same as Q30773293
-- Creation of the statue of Hugues de Vaudemont has produced Statue of Hugues de Vaudemont
-- Virgin of Mercy was produced by Painting of the Virgin of Mercy
-- Naos witnessed Meatfare sunday rites
-- Q30773293 is same as Asinou
-- Painting cycle of 1332/33 has time-span 1332-01-01
-- Παναγία Φορβιώτισσα / Παναγία της Ασίνου identifies Asinou
-- Painting of the Virgin of Mercy took place at Panagia Phorbiottisa
-- Saint George was produced by Painting of Saint George
-- South lunette is composed of Saint George
-- Painting cycle of 1332/33 took place at Panagia Phorbiottisa
 - Saint Mamas is found on Panagia Phorbiottisa
-- Scroll of heaven is found on Asinou
-- Addition of the narthex took place at Panagia Phorbiottisa
-- Last judgment is found on Panagia Phorbiottisa
-- Collective torments is composed of Gnashing of the teeth
-- Saint Mamas is found on Asinou
-- West door forms part of Asinou
-- Virgin of Mercy forms part of South lunette
-- western arch bears feature Scroll of heaven
-- Bema forms part of Asinou
-- Painting of Anastasias is classified as type: Mural Painting
-- Panagia Phorbiottisa bears feature Individual torments
-- Last judgment forms part of Narthex
-- Construction of the church of Demetrianos took place at Saint Dimitrianos
-- West door is composed of Mother of god Phorbiotissa
-- South lunette is composed of Anastasias
-- Wall paintings of 1332/33 has modified Panagia Phorbiottisa
-- Painting of Anastasias has modified Panagia Phorbiottisa
-- West door has current location place
-- Painting of the Virgin of Mercy occurs during Lusignan
-- Narthex is composed of West door
-- Panagia Phorbiottisa bears feature Gnashing of the teeth
-- Panagia Phorbiottisa contains Bema
-- Panagia Phorbiottisa was modified by Wall paintings of 1332/33
-- The preparation of the throne is found on west lunette
-- Addition of the narthex is classified as type: Architectural addition
-- Church is type of Church of the Virgin
-- west lunette bears feature The preparation of the throne
-- Painting cycle of 1332/33 has modified Asinou
-- Scroll of heaven was produced by Painting cycle of 1332/33
-- Construction of Asinou is classified as type: Construction
-- Narthex forms part of Panagia Phorbiottisa
-- Closing of the south door of the Narthex has modified Panagia Phorbiottisa
-- Painting cycle of 1332/33 has produced Scroll of heaven
-- Saint George is found on Narthex
-- Painting of the Virgin of Mercy has time-span 1290-01-01
-- Construction is type of Creation of the statue of Hugues de Vaudemont
-- Narthex falls within Panagia Phorbiottisa
-- Gnashing of the teeth was produced by Painting cycle of 1332/33
-- The preparation of the throne was produced by Painting cycle of 1332/33
-- South lunette has current location place
-- Panagia Phorbiottisa is identified by Παναγία Φορβιώτισσα / Παναγία της Ασίνου
-- Panagia Phorbiottisa was modified by Painting of Saint George
 - Panagia Phorbiottisa was modified by Painting of Anastasias
-- Panagia Phorbiottisa is composed of west lunette
-- Painting cycle of 1332/33 has produced Fiery stream
-- Panagia Phorbiottisa was produced by Construction of Asinou
-- west lunette is composed of The preparation of the throne
-- western arch forms part of Asinou
-- Virgin of Mercy is denoted by Madonna della misericordia
-- Narthex forms part of Asinou
-- Panagia Phorbiottisa is composed of Bema
-- Painting cycle of 1332/33 has produced The preparation of the throne
-- Construction of the church of Demetrianos has produced Saint Dimitrianos
-- South lunette is classified as type: Apse
-- Construction is type of Construction of Asinou
-- Addition of the narthex has modified Asinou
-- Panagia Phorbiottisa contains Narthex
-- Scroll of heaven forms part of western arch
-- Panagia Phorbiottisa was modified by Construction of Asinou
-- South arch bears feature Individual torments
-- Naos bears feature Donor
-- Panagia Phorbiottisa bears feature Saint Mamas
-- Last judgment is found on Asinou
-- Narthex bears feature Saint George
-- Virgin of Mercy is denoted by Christ child
-- Panagia Phorbiottisa is composed of Naos
-- Church is type of Our Lady of Moutoullas
-- Nikitari contains Panagia Phorbiottisa
-- Anastasias was produced by Painting of Anastasias
-- Anastasias is denoted by Headdress of Anastasia Saramalina
-- Panagia Phorbiottisa is composed of western arch
-- Painting cycle of 1332/33 is classified as type: Mural Painting
-- Painting cycle of 1332/33 has modified Panagia Phorbiottisa
-- Church is type of Panagia Phorbiottisa
-- Naos forms part of Asinou
-- 1099-01-01 is time-span of Construction of Asinou
-- Initial painting is classified as type: Mural Painting
-- Narthex is composed of Last judgment
-- Saint George is denoted by Saint George on a horseback
-- west lunette has current location place
-- Panagia Phorbiottisa is composed of South arch
-- Anastasias carries Prayer of the servant of god Anastasia Saramalina
-- Naos forms part of Panagia Phorbiottisa
-- Panagia Phorbiottisa bears feature Saint George
-- Painting of Saint George has modified Panagia Phorbiottisa
-- Late Byzantine has time-span 965-01-01
-- west lunette bears feature Fiery stream
-- Panagia Phorbiottisa is composed of Narthex
-- South arch forms part of Narthex
-- Panagia Phorbiottisa was modified by Closing of the south door of the Narthex
-- Painting of Saint George has time-span 1164-01-01
-- Wall paintings of 1332/33 occurs during Lusignan
-- Individual torments forms part of South arch
-- Panagia Phorbiottisa contains South lunette
-- Church is type of Église des Cordeliers de Nancy
-- Painting of the Virgin of Mercy has modified Asinou
-- South arch forms part of Panagia Phorbiottisa
-- Initial painting has modified Asinou
-- Closing of the south door of the Narthex has modified Asinou
-- Anastasias forms part of South lunette
-- Addition of the narthex has modified Panagia Phorbiottisa
-- Construction of Asinou has produced Asinou
-- Collective torments forms part of South arch
-- South arch bears feature Gnashing of the teeth
-- Collective torments is found on South arch
-- Individual torments was produced by Painting cycle of 1332/33
-- Panagia Phorbiottisa was modified by Painting cycle of 1332/33
-- Panagia Phorbiottisa is classified as type: Church
-- western arch forms part of Narthex
-- Church is type of Virgin in Sklaverochori
-- Panagia Phorbiottisa witnessed Addition of the narthex
-- Wall paintings of 1332/33 has modified Asinou
-- Panagia Phorbiottisa is composed of West door
-- Construction of Asinou has modified Asinou
-- Addition of the narthex occurs during Late Byzantine
-- Construction of Asinou has modified Panagia Phorbiottisa
-- South lunette forms part of Panagia Phorbiottisa
-- Anastasias is denoted by Saint Anastasia
-- Mother of god Phorbiotissa is found on Panagia Phorbiottisa
-- Bema falls within Panagia Phorbiottisa
-- Painting cycle of 1332/33 has produced Saint Mamas
-- Donor is found on Asinou
-- Mother of god Phorbiotissa forms part of West door
-- Painting of Saint George took place at Panagia Phorbiottisa
-- Saint George is found on Panagia Phorbiottisa
-- Saint Mamas was produced by Painting cycle of 1332/33
-- Construction of Asinou has time-span 1099-01-01
-- west lunette forms part of Asinou
-- Construction is type of Construction of the church of Demetrianos
-- South arch forms part of Asinou
-- South lunette forms part of Asinou
-- Anastasias is found on South lunette
-- Donor is denoted by Nikephoros Ischyrios
-- Panagia Phorbiottisa witnessed Painting cycle of 1332/33
-- Narthex is composed of South arch
-- west lunette is classified as type: Architectural element
-- west lunette forms part of Panagia Phorbiottisa
-- Church is type of Panagia Kanakaria
-- Gnashing of the teeth is found on Asinou
-- Construction of the church of Demetrianos occurs during Lusignan
-- Painting cycle of 1332/33 has produced Individual torments
-- Anastasias is found on Asinou
-- Naos is composed of Donor
-- Anastasias is found on Panagia Phorbiottisa
-- Church is type of St. Herakleidos
-- Initial painting occurs during Late Byzantine
-- Fiery stream is found on west lunette
-- Gnashing of the teeth is found on Panagia Phorbiottisa
-- Virgin of Mercy is denoted by Kneeling youth
-- Q30773293 is same as Panagia Phorbiottisa
-- Church is type of Saints Joachim and Anna
-- Panagia Phorbiottisa witnessed Painting of the Virgin of Mercy
-- Narthex is composed of west lunette
-- South arch bears feature Collective torments
-- South arch is composed of Collective torments
-- Saint Mamas is found on South lunette
-- Panagia Phorbiottisa bears feature Mother of god Phorbiotissa
-- Painting of Anastasias has produced Anastasias
-- Panagia Phorbiottisa bears feature Anastasias
-- Anastasias is denoted by Anastasia Saramalina
-- Virgin of Mercy is denoted by Latin Donor
-- Collective torments is found on Asinou
-- Church is type of St. John Lampadistis
-- The preparation of the throne is found on Asinou
-- Panagia Phorbiottisa bears feature Donor
-- Panagia Phorbiottisa witnessed Wall paintings of 1332/33
-- Church is type of Saint Nicholas of the Roof
-- Panagia Phorbiottisa bears feature Fiery stream
-- Scroll of heaven is found on Panagia Phorbiottisa
-- West door forms part of Narthex
-- Narthex is composed of western arch
-- Construction of Asinou has produced Panagia Phorbiottisa
-- Saint George is found on Asinou
-- Church is type of St. George of Ancona
-- Wall paintings of 1332/33 has time-span 1332-01-01
-- Bema forms part of Panagia Phorbiottisa
-- Painting of Anastasias has time-span 1193-01-01
-- Gnashing of the teeth forms part of Collective torments
-- Panagia Phorbiottisa witnessed Closing of the south door of the Narthex
-- Painting of the Virgin of Mercy has modified Panagia Phorbiottisa
-- Panagia Phorbiottisa was modified by Addition of the narthex
-- Gnashing of the teeth forms part of South arch
-- Panagia Phorbiottisa witnessed Painting of Saint George
-- Painting of Saint George is classified as type: Mural Painting
-- Gnashing of the teeth is found on South arch
-- Collective torments was produced by Painting cycle of 1332/33
-- Painting cycle of 1332/33 has produced Collective torments
-- Nikitari contains spatial
-- Initial painting has modified Panagia Phorbiottisa
-- South arch is composed of Individual torments
-- Painting of Anastasias occurs during Lusignan
-- Late Byzantine occurs during Addition of the narthex
-- South lunette falls within Panagia Phorbiottisa
-- Creation of the statue of Hugues de Vaudemont is classified as type: Construction
-- Wall paintings of 1332/33 is classified as type: Mural Painting
-- western arch forms part of Panagia Phorbiottisa
-- Panagia Phorbiottisa bears feature Scroll of heaven
-- Individual torments is found on Asinou
-- Panagia Phorbiottisa bears feature Collective torments
-- Church is type of Museum of the foundation of archbishop Makarios III
-- Panagia Phorbiottisa witnessed Painting of Anastasias
-- Construction of the church of Demetrianos is classified as type: Construction
 - West door is classified as type: Architectural element
-- western arch is composed of Scroll of heaven
-- west lunette is composed of Fiery stream
+- Panagia Phorbiottisa falls within Nikitari
+- South lunette falls within Panagia Phorbiottisa
+- Narthex is composed of west lunette
+- Panagia Phorbiottisa bears feature Anastasias
 - Collective torments is found on Panagia Phorbiottisa
-- Addition of the narthex has time-span 1115-01-01
-- Donor is found on Panagia Phorbiottisa
-- Individual torments is found on South arch
-- The preparation of the throne is denoted by Preparation of the throne
-- Donor is found on Naos
-- Church is type of Asinou
-- Nikitari is same as Q4319691
-- Painting cycle of 1332/33 occurs during Lusignan
-- Saint George forms part of South lunette
-- Creation of the statue of Hugues de Vaudemont has time-span 1100-01-01
-- Painting cycle of 1332/33 has produced Last judgment
-- Church is type of Saint Dimitrianos
-- Construction of Asinou took place at Panagia Phorbiottisa
-- Construction of the church of Demetrianos has produced Donor Michael Katzouroumpos and wife
-- Παναγία Φορβιώτισσα / Παναγία της Ασίνου identifies Panagia Phorbiottisa
+- South arch bears feature Individual torments
+- Church is type of Palaia Enkleistra
 - Church is type of Panagia Kera
-- Church is same as 300007466
-- South arch has current location place
-- West door forms part of Panagia Phorbiottisa
-- Last judgment is found on Narthex
-- west lunette forms part of Narthex
-- Church is type of St. Marina
-- Painting of Anastasias has modified Asinou
+- Donor is found on Naos
+- Scroll of heaven was produced by Painting cycle of 1332/33
+- Construction of Asinou has time-span 1099-01-01
+- Panagia Phorbiottisa witnessed Addition of the narthex
+- Addition of the narthex is classified as type: Architectural addition
+- Παναγία Φορβιώτισσα / Παναγία της Ασίνου identifies Panagia Phorbiottisa
+- South lunette bears feature Anastasias
+- Saint George forms part of South lunette
+- Anastasias was produced by Painting of Anastasias
+- Panagia Phorbiottisa is composed of west lunette
+- South lunette bears feature Saint Mamas
+- Mother of god Phorbiotissa is found on Panagia Phorbiottisa
+- Painting cycle of 1332/33 took place at Panagia Phorbiottisa
+- Virgin of Mercy was produced by Painting of the Virgin of Mercy
 - Fiery stream is found on Asinou
+- Panagia Phorbiottisa witnessed Construction of Asinou
+- Painting of the Virgin of Mercy took place at Panagia Phorbiottisa
+- Last judgment is found on Panagia Phorbiottisa
+- Panagia Phorbiottisa bears feature Mother of god Phorbiotissa
+- Panagia Phorbiottisa was modified by Painting of Saint George
+- west lunette is composed of Fiery stream
+- Narthex is composed of South lunette
+- Painting of Saint George took place at Panagia Phorbiottisa
+- South lunette forms part of Panagia Phorbiottisa
+- Last judgment forms part of Narthex
+- western arch forms part of Asinou
+- The preparation of the throne is denoted by Preparation of the throne
+- Virgin of Mercy is denoted by Madonna della misericordia
+- Anastasias is found on South lunette
+- Narthex is composed of western arch
+- Saint George is found on Asinou
+- Saint George is found on Narthex
+- Saint Mamas was produced by Painting cycle of 1332/33
+- Virgin of Mercy is denoted by Christ child
+- The preparation of the throne is found on west lunette
+- Wall paintings of 1332/33 has modified Panagia Phorbiottisa
+- Panagia Phorbiottisa bears feature Fiery stream
+- Panagia Phorbiottisa bears feature Scroll of heaven
+- Construction of the church of Demetrianos has produced Donor Michael Katzouroumpos and wife
+- Panagia Phorbiottisa witnessed Painting of Saint George
+- Church is type of Saint Nicholas of the Roof
+- West door forms part of Asinou
+- Panagia Phorbiottisa contains Naos
+- Scroll of heaven forms part of western arch
+- Construction of Asinou took place at Panagia Phorbiottisa
+- Saint George is found on Panagia Phorbiottisa
+- South arch is composed of Collective torments
+- Painting cycle of 1332/33 occurs during Lusignan
+- Panagia Phorbiottisa bears feature Donor
+- Initial painting is classified as type: Mural Painting
+- South arch forms part of Asinou
+- Bema forms part of Panagia Phorbiottisa
+- Panagia Phorbiottisa witnessed Painting of Anastasias
+- Panagia Phorbiottisa was modified by Painting cycle of 1332/33
+- Individual torments is found on Asinou
+- Construction of the church of Demetrianos occurs during Lusignan
+- Church is type of Saints Joachim and Anna
+- Painting of Saint George has time-span 1164-01-01
+- Construction of the church of Demetrianos took place at Saint Dimitrianos
+- Saint George carries inscription
+- Donor is denoted by Nikephoros Ischyrios
+- Bema forms part of Asinou
+- Nikitari contains Panagia Phorbiottisa
+- Wall paintings of 1332/33 is classified as type: Mural Painting
+- Painting of the Virgin of Mercy has time-span 1290-01-01
+- Church is type of St. Herakleidos
+- western arch forms part of Narthex
+- Gnashing of the teeth was produced by Painting cycle of 1332/33
+- Painting of Anastasias occurs during Lusignan
+- Painting cycle of 1332/33 has produced Gnashing of the teeth
+- South lunette is classified as type: Apse
+- Narthex forms part of Asinou
+- western arch is composed of Scroll of heaven
+- Painting of Saint George has modified Panagia Phorbiottisa
+- Painting of Anastasias has time-span 1193-01-01
+- Painting cycle of 1332/33 has modified Asinou
+- Q30773293 is same as Panagia Phorbiottisa
+- west lunette has current location place
+- Collective torments is composed of Gnashing of the teeth
+- Panagia Phorbiottisa bears feature Saint George
+- Addition of the narthex occurs during Late Byzantine
+- Painting cycle of 1332/33 has modified Panagia Phorbiottisa
+- Saint George is denoted by Saint George on a horseback
+- Painting of Anastasias has produced Anastasias
+- Late Byzantine occurs during Addition of the narthex
+- west lunette is classified as type: Architectural element
+- Painting of Saint George has produced Saint George
+- Painting cycle of 1332/33 has produced Last judgment
+- Church is type of Panagia Phorbiottisa
+- Painting cycle of 1332/33 has produced The preparation of the throne
+- Collective torments is found on Asinou
+- 1099-01-01 is time-span of Construction of Asinou
+- Construction of Asinou has modified Asinou
+- Naos witnessed Meatfare sunday rites
+- Panagia Phorbiottisa contains Narthex
+- Fiery stream is found on west lunette
+- Bema falls within Panagia Phorbiottisa
+- Gnashing of the teeth is found on South arch
+- Fiery stream is found on Panagia Phorbiottisa
+- Panagia Phorbiottisa bears feature The preparation of the throne
+- South arch is composed of Gnashing of the teeth
+- Panagia Phorbiottisa contains Bema
+- Church is type of St Irene
+- West door has current location place
+- Painting cycle of 1332/33 is classified as type: Mural Painting
+- Initial painting occurs during Late Byzantine
+- Construction of Asinou has modified Panagia Phorbiottisa
+- Construction of Asinou has produced Asinou
+- Panagia Phorbiottisa was modified by Construction of Asinou
+- Painting cycle of 1332/33 has produced Collective torments
+- 965-01-01 is time-span of Late Byzantine
+- Q30773293 is same as Asinou
+- Anastasias carries Prayer of the servant of god Anastasia Saramalina
+- Collective torments forms part of South arch
+- Gnashing of the teeth is found on Asinou
+- Wall paintings of 1332/33 has modified Asinou
+- Naos forms part of Asinou
+- Anastasias is denoted by Saint Anastasia
+- Scroll of heaven is found on western arch
+- west lunette forms part of Asinou
+- Panagia Phorbiottisa was modified by Wall paintings of 1332/33
+- Construction of Asinou has produced Panagia Phorbiottisa
+- Creation of the statue of Hugues de Vaudemont is classified as type: Construction
+- Wall paintings of 1332/33 has time-span 1332-01-01
+- Panagia Phorbiottisa bears feature Collective torments
+- west lunette is composed of The preparation of the throne
+- Addition of the narthex took place at Panagia Phorbiottisa
+- The preparation of the throne was produced by Painting cycle of 1332/33
+- Creation of the statue of Hugues de Vaudemont has time-span 1100-01-01
+- Painting of Anastasias is classified as type: Mural Painting
+- South arch is composed of Individual torments
+- Church is type of Church of the Transfiguration
+- Panagia Phorbiottisa is composed of South lunette
+- Scroll of heaven is found on Asinou
+- Panagia Phorbiottisa was modified by Addition of the narthex
+- South arch forms part of Panagia Phorbiottisa
+- Narthex forms part of Panagia Phorbiottisa
+- Panagia Phorbiottisa bears feature Gnashing of the teeth
+- Panagia Phorbiottisa witnessed Painting cycle of 1332/33
+- Saint George was produced by Painting of Saint George
+- Narthex bears feature Last judgment
+- Panagia Phorbiottisa is identified by Παναγία Φορβιώτισσα / Παναγία της Ασίνου
+- Individual torments is found on South arch
+- Panagia Phorbiottisa bears feature Last judgment
+- Painting of Saint George is classified as type: Mural Painting
+- Church is type of St. John Lampadistis
+- Anastasias is denoted by Headdress of Anastasia Saramalina
+- Panagia Phorbiottisa was modified by Initial painting
+- Construction of the church of Demetrianos has produced Saint Dimitrianos
+- South arch bears feature Collective torments
+- Closing of the south door of the Narthex has modified Asinou
+- Panagia Phorbiottisa bears feature Individual torments
+- Scroll of heaven is found on Panagia Phorbiottisa
+- South lunette is composed of Virgin of Mercy
+- Mother of god Phorbiotissa is found on Asinou
+- Panagia Phorbiottisa was modified by Closing of the south door of the Narthex
+- Church is type of Saint Dimitrianos
+- Wall paintings of 1332/33 occurs during Lusignan
+- Painting cycle of 1332/33 has produced Scroll of heaven
+- Gnashing of the teeth forms part of South arch
+- Painting of the Virgin of Mercy has produced Virgin of Mercy
+- Mother of god Phorbiotissa forms part of West door
+- The preparation of the throne is found on Asinou
+- Construction is type of Construction of Asinou
+- Last judgment is found on Asinou
+- Church is type of Panagia Kanakaria
+- Virgin of Mercy is found on Asinou
+- Panagia Phorbiottisa witnessed Closing of the south door of the Narthex
+- Narthex falls within Panagia Phorbiottisa
+- Construction of the church of Demetrianos has time-span 1317-01-01
+- Anastasias is found on Asinou
+- Naos has current location place
+- Church is type of Museum of the foundation of archbishop Makarios III
+- Panagia Phorbiottisa is composed of Narthex
+- western arch has current location place
+- Gnashing of the teeth forms part of Collective torments
+- Panagia Phorbiottisa bears feature Saint Mamas
+- Church is type of Our Lady of Moutoullas
+- South arch forms part of Narthex
+- South lunette is composed of Anastasias
+- Painting of the Virgin of Mercy is classified as type: Mural Painting
+- Construction of Asinou occurs during Late Byzantine
+- Late Byzantine has time-span 965-01-01
+- Church is type of Church of the Virgin
+- Donor forms part of Naos
+- Donor carries inscription
+- Panagia Phorbiottisa was produced by Construction of Asinou
+- Last judgment is found on Narthex
+- Narthex is composed of Donor couple
+- Painting cycle of 1332/33 has time-span 1332-01-01
+- Church is type of Asinou
+- Panagia Phorbiottisa bears feature Virgin of Mercy
+- Construction of Asinou is classified as type: Construction
+- The preparation of the throne is found on Panagia Phorbiottisa
+- Narthex is composed of South arch
+- Church is type of St. Marina
+- Panagia Phorbiottisa is same as Q30773293
+- Initial painting has modified Asinou
+- Addition of the narthex has modified Panagia Phorbiottisa
+- Collective torments was produced by Painting cycle of 1332/33
+- Παναγία Φορβιώτισσα / Παναγία της Ασίνου identifies Asinou
+- Painting cycle of 1332/33 has produced Saint Mamas
+- west lunette bears feature The preparation of the throne
+- western arch forms part of Panagia Phorbiottisa
+- The preparation of the throne forms part of west lunette
+- Construction of the church of Demetrianos has modified Saint Dimitrianos
+- Panagia Phorbiottisa currently holds Asinou
+- Panagia Phorbiottisa witnessed Initial painting
+- Panagia Phorbiottisa was modified by Painting of the Virgin of Mercy
+- Naos bears feature Donor
+- West door forms part of Narthex
+- Narthex has current location place
+- west lunette forms part of Panagia Phorbiottisa
+- Creation of the statue of Hugues de Vaudemont has produced Statue of Hugues de Vaudemont
+- South lunette forms part of Narthex
+- Anastasias forms part of South lunette
+- Closing of the south door of the Narthex took place at Panagia Phorbiottisa
+- Panagia Phorbiottisa is composed of Naos
+- Fiery stream was produced by Painting cycle of 1332/33
+- Virgin of Mercy is denoted by Latin Donor
+- Initial painting has modified Panagia Phorbiottisa
+- Individual torments was produced by Painting cycle of 1332/33
+- Collective torments is found on South arch
+- Painting cycle of 1332/33 has produced Individual torments
+- Narthex bears feature Saint George
+- Panagia Phorbiottisa witnessed Wall paintings of 1332/33
+- Late Byzantine occurs during Construction of Asinou
+- Wall paintings of 1332/33 took place at Panagia Phorbiottisa
+- Anastasias is found on Panagia Phorbiottisa
+- Individual torments forms part of South arch
+- Narthex is composed of West door
+- Painting of Saint George has modified Asinou
+- Painting of the Virgin of Mercy occurs during Lusignan
+- Painting of the Virgin of Mercy has modified Panagia Phorbiottisa
+- Last judgment was produced by Painting cycle of 1332/33
+- Naos falls within Panagia Phorbiottisa
+- Saint Mamas is found on South lunette
+- Painting cycle of 1332/33 has produced Fiery stream
+- Church is same as 300007466
+- Panagia Phorbiottisa is composed of South arch
+- Virgin of Mercy forms part of South lunette
+- west lunette bears feature Fiery stream
+- Panagia Phorbiottisa is classified as type: Church
+- West door is composed of Mother of god Phorbiotissa
+- Naos is composed of Donor
+- Addition of the narthex has time-span 1115-01-01
+- western arch bears feature Scroll of heaven
+- Church is same as Q16970
+- Donor is found on Asinou
+- Virgin of Mercy is found on Panagia Phorbiottisa
+- Individual torments is found on Panagia Phorbiottisa
+- Narthex is composed of Last judgment
+- Saint Mamas is found on Asinou
+- Panagia Phorbiottisa witnessed Painting of the Virgin of Mercy
+- Late Byzantine occurs during Initial painting
+- Painting of the Virgin of Mercy has modified Asinou
+- Initial painting took place at Panagia Phorbiottisa
+- Painting of Anastasias has modified Asinou
+- Church is type of St. George of Ancona
+- Naos forms part of Panagia Phorbiottisa
+- Virgin of Mercy is denoted by Kneeling youth
+- Panagia Phorbiottisa contains South lunette
+- Construction is type of Construction of the church of Demetrianos
+- Panagia Phorbiottisa is composed of western arch
+- South arch has current location place
+- Nikitari is same as Q4319691
+- Church is type of Virgin in Sklaverochori
+- Nikitari contains spatial
+- Nikitari falls within Cyprus
+- Panagia Phorbiottisa is composed of Bema
+- South lunette is composed of Saint George
+- Anastasias is denoted by Anastasia Saramalina
+- Construction of the church of Demetrianos is classified as type: Construction
+- Painting of Anastasias has modified Panagia Phorbiottisa
+- Construction is type of Creation of the statue of Hugues de Vaudemont
+- Painting of Anastasias took place at Panagia Phorbiottisa
+- Gnashing of the teeth is found on Panagia Phorbiottisa
+- Initial painting has time-span 1105-01-01
+- Closing of the south door of the Narthex has modified Panagia Phorbiottisa
+- Church is type of Église des Cordeliers de Nancy
+- Fiery stream forms part of west lunette
+- Donor is found on Panagia Phorbiottisa
+- Addition of the narthex has modified Asinou
+- west lunette forms part of Narthex
+- South lunette forms part of Asinou
+- South arch bears feature Gnashing of the teeth
+- South lunette has current location place
+- Panagia Phorbiottisa is composed of West door
+- West door forms part of Panagia Phorbiottisa

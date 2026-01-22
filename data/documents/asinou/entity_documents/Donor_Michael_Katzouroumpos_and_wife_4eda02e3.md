@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/d05036ba-b70c-4fc4-b525-95bee14ab953/
 Label: Donor Michael Katzouroumpos and wife
-Generated: 2026-01-22 12:23:41
+Generated: 2026-01-22 13:35:46
 ---
 
 # Donor Michael Katzouroumpos and wife

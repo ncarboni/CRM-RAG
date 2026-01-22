@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/f5380ecc-11f0-4bb6-a54b-86aa73aeb4dc/
 Label: Saint Mamas
-Generated: 2026-01-22 12:23:41
+Generated: 2026-01-22 13:35:46
 ---
 
 # Saint Mamas

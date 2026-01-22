@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/physical/da147ccc-fad7-43dd-9b25-6331df841d08
 Label: Saint Nicholas of the Roof
-Generated: 2026-01-22 12:23:20
+Generated: 2026-01-22 13:35:27
 ---
 
 # Saint Nicholas of the Roof
@@ -18,145 +18,145 @@ URI: http://map.cnrs.fr/semantics/physical/da147ccc-fad7-43dd-9b25-6331df841d08
 
 ## Relationships
 
-- Panagia Kanakaria was modified by Painting of the last judgment
-- Palaia Enkleistra is identified by Παλαιά Εγκλείστρα
-- place currently holds Narthex
-- Narthex is composed of Donor couple
-- Church is same as Q16970
-- St. John Lampadistis bears feature Last judgment
-- Panagia Phorbiottisa bears feature Virgin of Mercy
-- Église des Cordeliers de Nancy bears feature Statue of Hugues de Vaudemont
-- Our Lady of Moutoullas is same as Q13548161
-- Narthex bears feature Last judgment
-- Church of the Virgin was modified by Painting of Anastasia
-- Church is type of Palaia Enkleistra
-- St. John Lampadistis is classified as type: Church
-- Panagia Phorbiottisa bears feature The preparation of the throne
-- Church of the Transfiguration is classified as type: Church
-- Église des Cordeliers de Nancy is same as Q2315482
-- Panagia Phorbiottisa was modified by Initial painting
-- St. Marina is identified by Αγία Μαρίνα
-- St. John Lampadistis is composed of Narthex
-- Panagia Phorbiottisa was modified by Painting of the Virgin of Mercy
-- Panagia Phorbiottisa bears feature Last judgment
-- Palaia Enkleistra bears feature Anastasia
-- Church is type of St Irene
-- Q16970 is same as Church
-- Narthex has current location place
-- Panagia Phorbiottisa is composed of South lunette
-- Donor couple is found on Saint Nicholas of the Roof
-- Virgin in Sklaverochori is classified as type: Church
-- Narthex is composed of South lunette
-- Church is type of Church of the Transfiguration
-- Panagia Kanakaria is classified as type: Church
-- Panagia Phorbiottisa is same as Q30773293
-- St Irene is classified as type: Church
-- Our Lady of Moutoullas is identified by Παναγία του Μουτουλά
-- Palaia Enkleistra was modified by Painting of Anastasia
-- Church of the Transfiguration was modified by Painting of the last judgment
-- Saints Joachim and Anna is identified by Αγίοι Ιωακείμ και Άννα
-- 300007466 is same as Church
-- St Irene is identified by Ἁγία Εἰρήνη
-- Saint Nicholas of the Roof is composed of Narthex
-- Last judgment forms part of Narthex
-- Panagia Phorbiottisa bears feature Individual torments
-- Our Lady of Moutoullas is composed of Bema
-- Saint Dimitrianos was produced by Construction of the church of Demetrianos
-- Narthex is composed of West door
-- Panagia Phorbiottisa bears feature Gnashing of the teeth
-- Panagia Phorbiottisa was modified by Wall paintings of 1332/33
-- St. Marina has current location spatial
-- Donor's wife is denoted by Donor couple
-- Church is type of Church of the Virgin
-- Narthex forms part of Panagia Phorbiottisa
-- Panagia Phorbiottisa was modified by Painting of Saint George
-- Panagia Phorbiottisa is identified by Παναγία Φορβιώτισσα / Παναγία της Ασίνου
-- Άγιος Νικόλαος της Στέγης identifies Saint Nicholas of the Roof
 - Panagia Phorbiottisa was modified by Painting of Anastasias
+- Narthex is composed of west lunette
+- Panagia Phorbiottisa bears feature Anastasias
+- Church is type of Palaia Enkleistra
+- Church is type of Panagia Kera
+- St. John Lampadistis is classified as type: Church
+- Church of the Transfiguration was modified by Painting of the last judgment
 - Panagia Phorbiottisa is composed of west lunette
-- St. Herakleidos is classified as type: Church
-- Panagia Phorbiottisa was produced by Construction of Asinou
-- Donor couple is denoted by Donor's wife
-- Narthex forms part of Asinou
-- Panagia Phorbiottisa is composed of Bema
-- Saint Nicholas of the Roof bears feature Donor couple
-- Panagia Phorbiottisa was modified by Construction of Asinou
-- Panagia Phorbiottisa bears feature Saint Mamas
-- Museum of the foundation of archbishop Makarios III is classified as type: Church
-- Narthex bears feature Saint George
-- Panagia Phorbiottisa is composed of Naos
-- Church is type of Our Lady of Moutoullas
-- Church of the Transfiguration bears feature Last judgment
-- Panagia Phorbiottisa is composed of western arch
-- Our Lady of Moutoullas is composed of North wall of sanctuary
-- Church is type of Panagia Phorbiottisa
-- St. John Lampadistis is identified by Άγιος Ιωάννης ο Λαμπαδιστής
-- Narthex is composed of Last judgment
-- Panagia Kera is classified as type: Church
-- Panagia Phorbiottisa is composed of South arch
-- Panagia Phorbiottisa bears feature Saint George
-- Panagia Phorbiottisa is composed of Narthex
-- Panagia Phorbiottisa was modified by Closing of the south door of the Narthex
-- Narthex forms part of Saint Nicholas of the Roof
-- Panagia Kera is same as Q1478037
-- Church is type of Église des Cordeliers de Nancy
-- Our Lady of Moutoullas bears feature Donor Ioannes and Irene
-- Church of the Virgin bears feature Anastasia
-- Panagia Phorbiottisa was modified by Painting cycle of 1332/33
-- Panagia Phorbiottisa is classified as type: Church
-- Church is type of Virgin in Sklaverochori
-- Panagia Kanakaria bears feature Last judgment
-- Panagia Phorbiottisa is composed of West door
 - Donor couple forms part of Narthex
+- 300007466 is same as Church
+- Donor couple is found on Saint Nicholas of the Roof
+- Panagia Phorbiottisa bears feature Mother of god Phorbiotissa
+- Palaia Enkleistra bears feature Anastasia
+- St. Herakleidos bears feature Anastasia
+- Our Lady of Moutoullas is composed of North wall of sanctuary
+- Panagia Phorbiottisa was modified by Painting of Saint George
+- Church of the Virgin bears feature Anastasia
+- Narthex is composed of South lunette
+- Last judgment forms part of Narthex
+- Narthex is composed of western arch
+- Panagia Phorbiottisa bears feature Fiery stream
+- Panagia Phorbiottisa bears feature Scroll of heaven
+- Church is type of Saint Nicholas of the Roof
+- St. Herakleidos was modified by Painting of Anastasia
+- St Irene has current location spatial
+- Panagia Phorbiottisa bears feature Donor
+- Saint Dimitrianos was produced by Construction of the church of Demetrianos
+- Donor's wife is classified as type: Donor
+- Panagia Phorbiottisa was modified by Painting cycle of 1332/33
+- Church is type of Saints Joachim and Anna
+- Saint Dimitrianos is classified as type: Church
+- Our Lady of Moutoullas is identified by Παναγία του Μουτουλά
+- Panagia Kera is same as Q1478037
+- Our Lady of Moutoullas is classified as type: Church
+- Virgin in Sklaverochori is classified as type: Church
+- St Irene is identified by Ἁγία Εἰρήνη
+- Church is type of St. Herakleidos
+- St. Marina is classified as type: Church
+- St. Marina has current location spatial
+- Our Lady of Moutoullas is composed of Bema
+- Narthex forms part of Asinou
+- Panagia Phorbiottisa bears feature Saint George
+- Virgin in Sklaverochori has current location spatial
+- Palaia Enkleistra is identified by Παλαιά Εγκλείστρα
+- Palaia Enkleistra was modified by Painting of Anastasia
+- Άγιος Νικόλαος της Στέγης identifies Saint Nicholas of the Roof
+- Panagia Kanakaria is classified as type: Church
+- Saint Nicholas of the Roof bears feature Donor couple
 - Our Lady of Moutoullas was modified by Painting of donors Ioannes and Irene
-- Narthex is composed of South arch
+- Church is type of Panagia Phorbiottisa
+- Panagia Phorbiottisa bears feature The preparation of the throne
+- Church is type of St Irene
+- Church of the Transfiguration is classified as type: Church
+- Panagia Phorbiottisa was modified by Construction of Asinou
+- Saints Joachim and Anna is identified by Αγίοι Ιωακείμ και Άννα
+- Museum of the foundation of archbishop Makarios III is same as Q42883662
+- Our Lady of Moutoullas bears feature Donor Ioannes and Irene
+- St. Herakleidos is classified as type: Church
+- Panagia Phorbiottisa was modified by Wall paintings of 1332/33
+- Panagia Phorbiottisa bears feature Collective torments
+- Panagia Kanakaria bears feature Last judgment
+- Saint Nicholas of the Roof is identified by Άγιος Νικόλαος της Στέγης
+- St. John Lampadistis is identified by Άγιος Ιωάννης ο Λαμπαδιστής
+- Saints Joachim and Anna is classified as type: Church
 - Église des Cordeliers de Nancy is classified as type: Church
 - Saint Dimitrianos was modified by Construction of the church of Demetrianos
-- Church is type of Panagia Kanakaria
-- Virgin in Sklaverochori has current location spatial
-- Saint Nicholas of the Roof is identified by Άγιος Νικόλαος της Στέγης
-- Saints Joachim and Anna is classified as type: Church
-- Donor's wife is classified as type: Donor
-- St Irene has current location spatial
-- Donor's wife has attribute hands clasped
-- Church is type of St. Herakleidos
-- Saint Dimitrianos is classified as type: Church
-- Church of the Virgin bears feature Saint Mamas
-- Church is type of Saints Joachim and Anna
-- Palaia Enkleistra is classified as type: Church
-- Narthex is composed of west lunette
-- Panagia Phorbiottisa bears feature Mother of god Phorbiotissa
-- Panagia Phorbiottisa bears feature Anastasias
-- Church is type of St. John Lampadistis
-- St. Marina is classified as type: Church
-- Saint Nicholas of the Roof is classified as type: Church
-- St. Herakleidos was modified by Painting of Anastasia
-- Panagia Phorbiottisa bears feature Donor
-- Saint Nicholas of the Roof is same as Q31841104
-- Church is type of Saint Nicholas of the Roof
-- Panagia Phorbiottisa bears feature Fiery stream
-- Museum of the foundation of archbishop Makarios III is same as Q42883662
-- Saint Nicholas of the Roof bears feature Last judgment
-- Narthex is composed of western arch
-- Donor's wife has attribute cotte
-- Saint Dimitrianos is identified by Ἅγιος Δημητριανός
-- Church is type of St. George of Ancona
-- Saint Dimitrianos bears feature Donor Michael Katzouroumpos and wife
-- St. George of Ancona is classified as type: Church
+- Church is type of Church of the Transfiguration
+- Panagia Phorbiottisa is composed of South lunette
 - Panagia Phorbiottisa was modified by Addition of the narthex
+- Panagia Phorbiottisa bears feature Gnashing of the teeth
+- Narthex forms part of Panagia Phorbiottisa
+- Palaia Enkleistra is classified as type: Church
 - Last judgment is found on Saint Nicholas of the Roof
+- Narthex bears feature Last judgment
+- Panagia Phorbiottisa is identified by Παναγία Φορβιώτισσα / Παναγία της Ασίνου
+- Panagia Phorbiottisa bears feature Last judgment
+- Church is type of St. John Lampadistis
+- Church of the Virgin was modified by Painting of Anastasia
+- Panagia Phorbiottisa was modified by Initial painting
 - Q31841104 is same as Saint Nicholas of the Roof
-- Panagia Kera is identified by Εκκλησία της Παναγίας της Κεράς
-- Panagia Phorbiottisa bears feature Scroll of heaven
-- St. John Lampadistis was modified by Painting of the last Judgment
-- Panagia Phorbiottisa bears feature Collective torments
-- Church is type of Museum of the foundation of archbishop Makarios III
-- St. Herakleidos bears feature Anastasia
-- Church is type of Asinou
-- Our Lady of Moutoullas is classified as type: Church
-- St. George of Ancona has current location spatial
+- Panagia Phorbiottisa bears feature Individual torments
+- Panagia Phorbiottisa was modified by Closing of the south door of the Narthex
 - Church is type of Saint Dimitrianos
-- Church is type of Panagia Kera
-- Church is same as 300007466
-- Church is type of St. Marina
+- St. Marina is identified by Αγία Μαρίνα
+- Church is type of Panagia Kanakaria
+- Church of the Transfiguration bears feature Last judgment
+- Church is type of Museum of the foundation of archbishop Makarios III
+- Panagia Phorbiottisa is composed of Narthex
 - Church of the Virgin is classified as type: Church
+- Church is type of Our Lady of Moutoullas
+- Panagia Phorbiottisa bears feature Saint Mamas
+- Saint Nicholas of the Roof is same as Q31841104
+- Church is type of Church of the Virgin
+- Panagia Phorbiottisa was produced by Construction of Asinou
+- Panagia Phorbiottisa bears feature Virgin of Mercy
+- Saint Nicholas of the Roof bears feature Last judgment
+- Church is type of Asinou
+- Narthex is composed of Donor couple
+- Narthex is composed of South arch
+- St. George of Ancona has current location spatial
+- Panagia Phorbiottisa is same as Q30773293
+- Church is type of St. Marina
+- St. George of Ancona is classified as type: Church
+- Panagia Kanakaria was modified by Painting of the last judgment
+- place currently holds Narthex
+- St. John Lampadistis is composed of Narthex
+- Panagia Phorbiottisa was modified by Painting of the Virgin of Mercy
+- Our Lady of Moutoullas is same as Q13548161
+- Narthex has current location place
+- Donor couple is denoted by Donor's wife
+- Panagia Phorbiottisa is composed of Naos
+- Museum of the foundation of archbishop Makarios III is classified as type: Church
+- Q16970 is same as Church
+- St. John Lampadistis bears feature Last judgment
+- Donor's wife has attribute hands clasped
+- Saint Dimitrianos bears feature Donor Michael Katzouroumpos and wife
+- Narthex bears feature Saint George
+- Narthex is composed of West door
+- St Irene is classified as type: Church
+- Église des Cordeliers de Nancy is same as Q2315482
+- Church is same as 300007466
+- Panagia Phorbiottisa is composed of South arch
+- Panagia Phorbiottisa is classified as type: Church
+- St. John Lampadistis was modified by Painting of the last Judgment
+- Church is same as Q16970
+- Church of the Virgin bears feature Saint Mamas
+- Narthex is composed of Last judgment
+- Church is type of St. George of Ancona
+- Église des Cordeliers de Nancy bears feature Statue of Hugues de Vaudemont
+- Panagia Phorbiottisa is composed of western arch
+- Saint Nicholas of the Roof is composed of Narthex
+- Church is type of Virgin in Sklaverochori
+- Panagia Kera is classified as type: Church
+- Saint Nicholas of the Roof is classified as type: Church
+- Donor's wife has attribute cotte
+- Panagia Phorbiottisa is composed of Bema
+- Donor's wife is denoted by Donor couple
+- Narthex forms part of Saint Nicholas of the Roof
+- Saint Dimitrianos is identified by Ἅγιος Δημητριανός
+- Church is type of Église des Cordeliers de Nancy
+- Panagia Kera is identified by Εκκλησία της Παναγίας της Κεράς
+- Panagia Phorbiottisa is composed of West door

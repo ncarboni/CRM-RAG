@@ -1,0 +1,169 @@
+---
+URI: http://map.cnrs.fr/semantics/type/0b8df400-a957-4183-9fb6-9d69e392de94
+Label: Architectural element
+Generated: 2026-01-22 12:23:19
+---
+
+# Architectural element
+
+URI: http://map.cnrs.fr/semantics/type/0b8df400-a957-4183-9fb6-9d69e392de94
+
+## Types
+
+- Type
+
+## Properties
+
+- **Label**: Architectural element
+
+## Relationships
+
+- The preparation of the throne is found on Panagia Phorbiottisa
+- South lunette bears feature Anastasias
+- Narthex is composed of Donor couple
+- The preparation of the throne forms part of west lunette
+- South lunette bears feature Saint Mamas
+- Narthex bears feature Last judgment
+- Panagia Phorbiottisa bears feature Virgin of Mercy
+- Our Lady of Moutoullas is same as Q13548161
+- Fiery stream is found on Panagia Phorbiottisa
+- Architectural element is same as 300000885
+- Panagia Phorbiottisa bears feature The preparation of the throne
+- South lunette is composed of Virgin of Mercy
+- 300004624 is same as Narthex
+- Panagia Phorbiottisa was modified by Initial painting
+- Fiery stream forms part of west lunette
+- Naos has broader term Architectural element
+- South lunette forms part of Narthex
+- Soffit is same as 300003614
+- Apse is type of South lunette
+- Fiery stream was produced by Painting cycle of 1332/33
+- Panagia Phorbiottisa was modified by Painting of the Virgin of Mercy
+- Narthex has current location place
+- Panagia Phorbiottisa bears feature Last judgment
+- Apse has broader term Architectural element
+- place currently holds West door
+- Conch is same as 300133015
+- Panagia Phorbiottisa is composed of South lunette
+- Narthex is composed of South lunette
+- Mother of god Phorbiotissa is found on Asinou
+- Architectural element has narrower term Arch
+- Panagia Phorbiottisa is same as Q30773293
+- North wall of sanctuary is composed of Donor Ioannes and Irene
+- Our Lady of Moutoullas is identified by Παναγία του Μουτουλά
+- South lunette is composed of Saint George
+- West door forms part of Asinou
+- Panagia Phorbiottisa bears feature Individual torments
+- Narthex is same as 300004624
+- South lunette is composed of Anastasias
+- West door is composed of Mother of god Phorbiotissa
+- Our Lady of Moutoullas is composed of Bema
+- Apse is same as Q170463
+- Soffit has broader term Architectural element
+- West door has current location place
+- Architectural element has narrower term Conch
+- Narthex is composed of West door
+- Panagia Phorbiottisa bears feature Gnashing of the teeth
+- Panagia Phorbiottisa was modified by Wall paintings of 1332/33
+- The preparation of the throne is found on west lunette
+- west lunette bears feature The preparation of the throne
+- Narthex forms part of Panagia Phorbiottisa
+- Architectural element has narrower term Naos
+- Architectural element is type of North wall of sanctuary
+- The preparation of the throne was produced by Painting cycle of 1332/33
+- Q170463 is same as Conch
+- Panagia Phorbiottisa was modified by Painting of Saint George
+- Panagia Phorbiottisa is identified by Παναγία Φορβιώτισσα / Παναγία της Ασίνου
+- South lunette has current location place
+- Panagia Phorbiottisa was modified by Painting of Anastasias
+- Donor Ioannes and Irene is found on Our Lady of Moutoullas
+- Panagia Phorbiottisa is composed of west lunette
+- Panagia Phorbiottisa was produced by Construction of Asinou
+- west lunette is composed of The preparation of the throne
+- Narthex forms part of Asinou
+- Panagia Phorbiottisa is composed of Bema
+- South lunette is classified as type: Apse
+- Naos is same as 300185263
+- Panagia Phorbiottisa was modified by Construction of Asinou
+- Architectural element has narrower term Bema
+- Panagia Phorbiottisa bears feature Saint Mamas
+- Narthex bears feature Saint George
+- Panagia Phorbiottisa is composed of Naos
+- Naos is same as Q827125
+- Bema has broader term Architectural element
+- Donor Ioannes and Irene is found on North wall of sanctuary
+- Panagia Phorbiottisa is composed of western arch
+- Our Lady of Moutoullas is composed of North wall of sanctuary
+- Conch is same as Q170463
+- Apse is same as 300004607
+- Donor Ioannes and Irene is denoted by Headdress of Irene
+- Narthex is composed of Last judgment
+- North wall of sanctuary has current location place
+- west lunette has current location place
+- Panagia Phorbiottisa is composed of South arch
+- Bema is same as Q2029217
+- 300266806 is same as Bema
+- Panagia Phorbiottisa bears feature Saint George
+- west lunette bears feature Fiery stream
+- Panagia Phorbiottisa is composed of Narthex
+- Panagia Phorbiottisa was modified by Closing of the south door of the Narthex
+- Architectural element is type of West door
+- 300003614 is same as Soffit
+- Our Lady of Moutoullas bears feature Donor Ioannes and Irene
+- Architectural element has narrower term Narthex
+- 300133015 is same as Conch
+- Panagia Phorbiottisa was modified by Painting cycle of 1332/33
+- Panagia Phorbiottisa is classified as type: Church
+- Conch has broader term Architectural element
+- Panagia Phorbiottisa is composed of West door
+- South lunette forms part of Panagia Phorbiottisa
+- Mother of god Phorbiotissa is found on Panagia Phorbiottisa
+- Mother of god Phorbiotissa forms part of West door
+- North wall of sanctuary bears feature Donor Ioannes and Irene
+- Our Lady of Moutoullas was modified by Painting of donors Ioannes and Irene
+- west lunette forms part of Asinou
+- 300004607 is same as Apse
+- South lunette forms part of Asinou
+- Narthex is composed of South arch
+- west lunette is classified as type: Architectural element
+- west lunette forms part of Panagia Phorbiottisa
+- place currently holds west lunette
+- Donor Ioannes and Irene forms part of North wall of sanctuary
+- Architectural element is type of west lunette
+- Narthex has broader term Architectural element
+- North wall of sanctuary forms part of Our Lady of Moutoullas
+- Architectural element has narrower term Apse
+- Fiery stream is found on west lunette
+- Narthex is composed of west lunette
+- Panagia Phorbiottisa bears feature Mother of god Phorbiotissa
+- Panagia Phorbiottisa bears feature Anastasias
+- The preparation of the throne is found on Asinou
+- Panagia Phorbiottisa bears feature Donor
+- Bema is same as 300266806
+- Panagia Phorbiottisa bears feature Fiery stream
+- North wall of sanctuary is classified as type: Architectural element
+- West door forms part of Narthex
+- Narthex is composed of western arch
+- Panagia Phorbiottisa was modified by Addition of the narthex
+- Q208576 is same as Narthex
+- Q827125 is same as Naos
+- Donor Ioannes and Irene was produced by Painting of donors Ioannes and Irene
+- Donor Ioannes and Irene carries Supplication of the servant of God John son of Moutoullas, the founder, and of his wife Irene
+- Panagia Phorbiottisa bears feature Scroll of heaven
+- Panagia Phorbiottisa bears feature Collective torments
+- place currently holds North wall of sanctuary
+- West door is classified as type: Architectural element
+- 300185263 is same as Naos
+- west lunette is composed of Fiery stream
+- The preparation of the throne is denoted by Preparation of the throne
+- Q2029217 is same as Bema
+- Arch has broader term Architectural element
+- Q170463 is same as Apse
+- Our Lady of Moutoullas is classified as type: Church
+- Architectural element has narrower term Soffit
+- West door forms part of Panagia Phorbiottisa
+- west lunette forms part of Narthex
+- 300000885 is same as Architectural element
+- Donor Ioannes and Irene is denoted by Irene
+- Fiery stream is found on Asinou
+- Narthex is same as Q208576

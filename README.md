@@ -1,6 +1,14 @@
 # RAG Architecture for CIDOC-CRM
 
-Graph-based RAG (Retrieval-Augmented Generation) system for querying CIDOC-CRM RDF data.
+Graph-based RAG (Retrieval-Augmented Generation) system for querying CIDOC-CRM RDF data. Supports multiple datasets with lazy loading and per-dataset caching.
+
+## Key Features
+
+- **Multi-Dataset Support**: Switch between different SPARQL datasets via UI dropdown
+- **Lazy Loading**: Datasets are loaded only when first accessed
+- **Per-Dataset Caching**: Separate embeddings and document graphs for each dataset
+- **Local Embeddings**: 10-100x faster processing with sentence-transformers (no API rate limits)
+- **Embedding Cache**: Stop and resume processing for large datasets
 
 ## Repository Structure
 
@@ -11,23 +19,43 @@ CRM_RAG/
 │   ├── .env.claude.example
 │   ├── .env.r1.example
 │   ├── .env.ollama.example
+│   ├── .env.local.example    # Local embeddings (fast, no API)
 │   ├── .env.secrets.example
+│   ├── datasets.yaml         # Multi-dataset configuration
 │   ├── interface.yaml        # Chat interface customization
 │   └── README.md             # Configuration guide
 ├── data/                All data files
 │   ├── ontologies/      CIDOC-CRM, VIR, CRMdig ontology files
-│   ├── labels/          Extracted labels (auto-generated)
-│   ├── cache/           Document graph and vector index (auto-generated)
-│   └── documents/       Entity documents (auto-generated)
+│   ├── labels/          Extracted labels (shared across datasets)
+│   ├── cache/           Per-dataset caches (auto-generated)
+│   │   ├── asinou/          # Dataset-specific cache
+│   │   │   ├── document_graph.pkl
+│   │   │   ├── vector_index/
+│   │   │   └── embeddings/  # Embedding cache for resumability
+│   │   └── museum/          # Another dataset cache
+│   │       ├── document_graph.pkl
+│   │       ├── vector_index/
+│   │       └── embeddings/
+│   └── documents/       Per-dataset entity documents (auto-generated)
+│       ├── asinou/entity_documents/
+│       └── museum/entity_documents/
 ├── docs/                Documentation
 │   ├── ARCHITECTURE.md
+│   ├── LOCAL_EMBEDDINGS.md   # Local embeddings guide
+│   ├── CLUSTER_EMBEDDINGS.md # GPU cluster processing guide
 │   └── REORGANIZATION_PLAN.md
 ├── scripts/             Utility scripts
 │   └── extract_ontology_labels.py
 ├── logs/                Application logs
 ├── static/              Web interface CSS and JavaScript
 ├── templates/           Web interface HTML templates
-└── *.py                 Python application files
+├── main.py              Flask application entry point
+├── universal_rag_system.py  Core RAG logic
+├── graph_document_store.py  Graph-based document storage
+├── llm_providers.py     LLM abstraction (OpenAI, Claude, local embeddings)
+├── embedding_cache.py   Embedding cache for resumability
+├── dataset_manager.py   Multi-dataset management
+└── config_loader.py     Configuration loading
 ```
 
 ## Setup
@@ -61,16 +89,73 @@ cp config/.env.r1.example config/.env.r1
 cp config/.env.ollama.example config/.env.ollama
 ```
 
-### 3. Configure SPARQL Endpoint
+### 3. Configure Datasets
 
-The default SPARQL endpoint is `http://localhost:3030/asinou/sparql`.
+Create `config/datasets.yaml` to define your SPARQL datasets:
 
-**To change the endpoint**: Edit the `FUSEKI_ENDPOINT` variable in your `config/.env.*` files:
+```yaml
+# config/datasets.yaml
+default_dataset: asinou  # Which dataset to load by default
 
-```bash
-# Example: config/.env.openai, config/.env.claude, etc.
-FUSEKI_ENDPOINT=http://your-server:3030/your-dataset/sparql
+datasets:
+  asinou:
+    name: asinou
+    display_name: "Asinou Church"
+    description: "Asinou church dataset with frescoes and iconography"
+    endpoint: "http://localhost:3030/asinou/sparql"
+    # Optional: use local embeddings for this small dataset
+    embedding:
+      provider: local
+      model: BAAI/bge-m3
+    interface:  # Optional: override interface.yaml settings
+      page_title: "Asinou Dataset Chat"
+      welcome_message: "Ask me about Asinou church..."
+      example_questions:
+        - "Where is Panagia Phorbiottisa located?"
+        - "What frescoes are in the church?"
+
+  museum:
+    name: museum
+    display_name: "Museum Collection"
+    description: "Museum artworks, artists, and exhibitions"
+    endpoint: "http://localhost:3030/museum/sparql"
+    # Optional: use OpenAI embeddings for this dataset (inherits from .env if not specified)
+    embedding:
+      provider: openai
+    interface:
+      page_title: "Museum Collection Chat"
+      example_questions:
+        - "Which pieces from Swiss Artists are in the museum?"
 ```
+
+Each dataset gets its own cache directory under `data/cache/<dataset_id>/`.
+
+**Per-dataset embedding configuration:**
+
+You can configure different embedding providers for each dataset:
+
+```yaml
+datasets:
+  small_dataset:
+    endpoint: "http://localhost:3030/small/sparql"
+    embedding:
+      provider: local              # Use local embeddings (fast)
+      model: BAAI/bge-m3
+      batch_size: 64
+
+  large_dataset:
+    endpoint: "http://localhost:3030/large/sparql"
+    embedding:
+      provider: openai             # Use OpenAI embeddings
+      # model inherited from .env config
+```
+
+Available embedding options per dataset:
+- `provider`: `local`, `sentence-transformers`, `openai`, `ollama`
+- `model`: Embedding model name
+- `batch_size`: Batch size for local embeddings (default: 64)
+- `device`: `auto`, `cuda`, `mps`, `cpu`
+- `use_cache`: `true` or `false`
 
 ### 4. Extract Ontology Labels
 
@@ -103,6 +188,8 @@ Ensure your SPARQL server is running with your CIDOC-CRM dataset loaded at the c
 
 ## Usage
 
+### Basic Usage
+
 ```bash
 # Run with OpenAI
 python main.py --env .env.openai
@@ -121,3 +208,124 @@ python main.py --env .env.openai --rebuild
 ```
 
 Access the chat interface at `http://localhost:5001`
+
+### Local Embeddings (Recommended for Large Datasets)
+
+For datasets with 5,000+ entities, use local embeddings to avoid API rate limits and reduce processing time from days to minutes.
+
+```bash
+# Set up local embeddings config
+cp config/.env.local.example config/.env.local
+
+# Process a dataset with local embeddings
+python main.py --env .env.local --dataset asinou --rebuild --process-only
+```
+
+| Method | 50,000 entities | Cost |
+|--------|-----------------|------|
+| OpenAI API | 2-4 days | ~$10-20 |
+| Local (CPU) | 1-2 hours | Free |
+| Local (GPU) | 10-20 minutes | Free |
+
+**See [docs/LOCAL_EMBEDDINGS.md](docs/LOCAL_EMBEDDINGS.md) for complete documentation** including:
+- Configuration options
+- Per-dataset embedding providers
+- Model recommendations
+- Hardware acceleration (GPU/CPU)
+- Troubleshooting
+
+### Multi-Dataset Mode
+
+When `config/datasets.yaml` is configured, the chat interface displays a dataset selector dropdown. Select a dataset to:
+- Load its cached embeddings (or build them on first access)
+- Update the interface with dataset-specific titles and example questions
+- Query only that dataset's knowledge graph
+
+Datasets are lazily loaded - they initialize only when first selected, saving memory and startup time.
+
+### Clearing Cache
+
+To rebuild a specific dataset's cache:
+
+```bash
+# Clear cache for a specific dataset and rebuild
+rm -rf data/cache/asinou/
+rm -rf data/documents/asinou/
+python main.py --env .env.openai --rebuild
+```
+
+For single-dataset mode (legacy):
+```bash
+rm -rf data/cache/document_graph.pkl data/cache/vector_index/
+rm -rf data/documents/entity_documents/
+python main.py --env .env.openai --rebuild
+```
+
+### CLI Reference
+
+| Flag | Description |
+|------|-------------|
+| `--env <file>` | Path to environment config file (e.g., `.env.openai`) |
+| `--dataset <id>` | Dataset ID to process (from datasets.yaml) |
+| `--process-only` | Process dataset and exit without starting web server |
+| `--rebuild` | Force rebuild of document graph and vector store |
+| `--embedding-provider <name>` | Embedding provider: `openai`, `local`, `sentence-transformers`, `ollama` |
+| `--embedding-model <model>` | Embedding model name (e.g., `BAAI/bge-m3`) |
+| `--no-embedding-cache` | Disable embedding cache (force re-embedding) |
+| `--generate-docs-only` | Generate documents from SPARQL without embedding (for cluster workflow) |
+| `--embed-from-docs` | Generate embeddings from existing documents (no SPARQL needed) |
+
+### Processing Specific Datasets
+
+Process a single dataset from the command line:
+
+```bash
+# Process dataset with local embeddings (recommended)
+python main.py --env .env.local --dataset asinou --rebuild --process-only
+
+# Process dataset with OpenAI embeddings
+python main.py --env .env.openai --dataset museum --rebuild --process-only
+
+# Process and start web server
+python main.py --env .env.local --dataset asinou --rebuild
+```
+
+See [docs/LOCAL_EMBEDDINGS.md](docs/LOCAL_EMBEDDINGS.md) for detailed examples of processing multiple datasets with different embedding providers.
+
+## API Endpoints
+
+### Dataset Management
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/datasets` | GET | List all available datasets with their status |
+| `/api/datasets/<id>/select` | POST | Initialize and select a dataset, returns interface config |
+
+### Chat
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/chat` | POST | Send a question. Body: `{"question": "...", "dataset_id": "..."}` |
+| `/api/info` | GET | Get system information (LLM provider, model, etc.) |
+| `/api/entity/<uri>/wikidata` | GET | Get Wikidata info for an entity |
+
+**Note:** In multi-dataset mode, `dataset_id` is required for `/api/chat`.
+
+## Architecture
+
+For detailed architecture documentation, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+### Key Components
+
+- **DatasetManager** (`dataset_manager.py`): Manages multiple RAG system instances with lazy loading
+- **UniversalRagSystem** (`universal_rag_system.py`): Core RAG logic with CIDOC-CRM aware retrieval
+- **GraphDocumentStore** (`graph_document_store.py`): Graph-based document storage with FAISS vectors
+- **LLM Providers** (`llm_providers.py`): Abstraction layer for OpenAI, Anthropic, R1, Ollama, and local embeddings (sentence-transformers)
+- **EmbeddingCache** (`embedding_cache.py`): Disk-based embedding cache for resumable processing
+
+### Retrieval Pipeline
+
+1. **Vector Search**: FAISS similarity search for initial candidates
+2. **CIDOC-CRM Scoring**: Relationship-aware scoring based on ontology semantics
+3. **PageRank**: Graph-based importance scoring
+4. **Coherent Subgraph Extraction**: Selects connected documents balancing relevance and connectivity

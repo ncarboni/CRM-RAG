@@ -1,0 +1,36 @@
+# Multi-Dataset Configuration
+# This file defines the available SPARQL datasets and their configurations.
+# Each dataset can have its own endpoint and interface customizations.
+
+# Optional: specify which dataset to load by default
+default_dataset: asinou
+
+datasets:
+  asinou:
+    name: asinou
+    display_name: "Asinou Church"
+    description: "Asinou church dataset with frescoes, iconography, and cultural heritage"
+    endpoint: "http://localhost:3030/asinou/sparql"
+    # Optional interface overrides (merges with config/interface.yaml defaults)
+    interface:
+      page_title: "Asinou Dataset Chat"
+      header_title: "Asinou Dataset Chatbot"
+      welcome_message: "Hello! I'm your Asinou Dataset assistant. I can answer questions about the Asinou church, its frescoes, iconography, and cultural heritage. How can I help you today?"
+      input_placeholder: "Ask about Asinou church, frescoes, iconography..."
+      example_questions:
+        - "Where is Panagia Phorbiottisa located?"
+        - "What churches in Cyprus have Last Judgment iconography?"
+
+  mah:
+    name: mah
+    display_name: "Museum Collection"
+    description: "Museum artworks, artists, and exhibitions"
+    endpoint: "http://localhost:3030/MAH/sparql"
+    interface:
+      page_title: "Museum Collection Chat"
+      header_title: "Museum Collection Chatbot"
+      welcome_message: "Hello! I'm your Collection assistant. I can answer questions about the Museum Collection, its artworks, artists, and exhibitions. How can I help you today?"
+      input_placeholder: "Ask about Museum Collection, its artworks, artists..."
+      example_questions:
+        - "Which pieces from Swiss Artists are in the museum?"
+        - "Which exhibitions contain artworks from French Artists?"

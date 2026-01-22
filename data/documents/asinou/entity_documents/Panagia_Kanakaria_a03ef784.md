@@ -1,0 +1,63 @@
+---
+URI: http://map.cnrs.fr/semantics/spatial/81d14a17-2e3e-48e0-b943-e7d88d83098e/
+Label: Panagia Kanakaria
+Generated: 2026-01-22 12:23:27
+---
+
+# Panagia Kanakaria
+
+URI: http://map.cnrs.fr/semantics/spatial/81d14a17-2e3e-48e0-b943-e7d88d83098e/
+
+## Types
+
+- Place
+
+## Properties
+
+- **Label**: Panagia Kanakaria
+
+## Relationships
+
+- Lusignan occurs during Painting of the last judgment
+- Panagia Kanakaria was modified by Painting of the last judgment
+- Mural Painting is type of Initial painting
+- Mural Painting is type of Painting cycle of 1332/33
+- Mural Painting is type of Painting of the last Judgment
+- Lusignan occurs during Wall paintings of 1332/33
+- Lusignan occurs during Painting of donors Ioannes and Irene
+- Lusignan has time-span 1191-01-01
+- Last judgment is found on Panagia Kanakaria
+- Lusignan is same as entity 9758548
+- Lusignan occurs during Painting of Anastasia
+- Lythragkomi falls within Turkish Republic of Northern Cyprus
+- Panagia Kanakaria witnessed Painting of the last judgment
+- Mural Painting is type of Painting of donors Ioannes and Irene
+- Mural Painting is type of Painting of Anastasia
+- Panagia Kanakaria bears feature Last judgment
+- Painting of the last judgment has modified Panagia Kanakaria
+- Lythragkomi is same as Q891613
+- Mural Painting is type of Painting of Saint George
+- Q891613 is same as Lythragkomi
+- 1300-01-01 is time-span of Painting of the last judgment
+- Mural Painting is type of Wall paintings of 1332/33
+- Last judgment was produced by Painting of the last judgment
+- Mural Painting is type of Painting of the Virgin of Mercy
+- Lythragkomi contains Panagia Kanakaria
+- Lusignan is same as Q213638
+- Turkish Republic of Northern Cyprus contains Lythragkomi
+- Painting of the last judgment took place at Panagia Kanakaria
+- Panagia Kanakaria falls within Lythragkomi
+- Painting of the last judgment is classified as type: Mural Painting
+- Mural Painting is type of Painting of Anastasias
+- Mural Painting is type of Painting of the last judgment
+- Lusignan occurs during Construction of the church of Demetrianos
+- Lusignan occurs during Painting of Anastasias
+- Panagia Kanakaria is classified as type: Church
+- Painting of the last judgment has time-span 1300-01-01
+- Painting of the last judgment has produced Last judgment
+- Lusignan occurs during Painting of the last Judgment
+- Mural Painting is same as 300033644
+- Mural Painting has broader term Painting
+- Lusignan occurs during Painting of the Virgin of Mercy
+- Painting of the last judgment occurs during Lusignan
+- Lusignan occurs during Painting cycle of 1332/33

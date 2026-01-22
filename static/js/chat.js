@@ -2,18 +2,182 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatContainer = document.getElementById('chat-container');
     const questionInput = document.getElementById('question-input');
     const sendButton = document.getElementById('send-button');
-    const exampleQuestions = document.querySelectorAll('.example-question');
+    let exampleQuestions = document.querySelectorAll('.example-question');
 
-    // Fetch system info and update greeting
+    // Dataset management state
+    let currentDatasetId = null;
+    const datasetSelect = document.getElementById('dataset-select');
+    const datasetStatus = document.getElementById('dataset-status');
+
+    // Load available datasets on page load
+    async function loadDatasets() {
+        try {
+            const response = await fetch('/api/datasets');
+            if (response.ok) {
+                const data = await response.json();
+
+                // Clear existing options except the placeholder
+                datasetSelect.innerHTML = '<option value="" disabled selected>Select Dataset...</option>';
+
+                // Add datasets to dropdown
+                data.datasets.forEach(ds => {
+                    const option = document.createElement('option');
+                    option.value = ds.id;
+                    let displayText = ds.display_name;
+                    if (!ds.has_cache) {
+                        displayText += ' (not built)';
+                    } else if (!ds.initialized) {
+                        displayText += ' (not loaded)';
+                    }
+                    option.textContent = displayText;
+                    datasetSelect.appendChild(option);
+                });
+
+                // Auto-select default dataset if set
+                if (data.default) {
+                    datasetSelect.value = data.default;
+                    await switchDataset(data.default);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading datasets:', error);
+            datasetStatus.textContent = 'Error';
+            datasetStatus.className = 'ms-2 badge bg-danger';
+        }
+    }
+
+    // Switch to a different dataset
+    async function switchDataset(datasetId) {
+        if (!datasetId) return;
+
+        // Update status to loading
+        datasetStatus.textContent = 'Loading...';
+        datasetStatus.className = 'ms-2 badge bg-warning';
+        sendButton.disabled = true;
+
+        try {
+            const response = await fetch(`/api/datasets/${datasetId}/select`, {
+                method: 'POST'
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                currentDatasetId = datasetId;
+
+                // Update interface elements
+                updateInterface(data.interface);
+
+                // Clear chat and show welcome message
+                clearChat();
+                addWelcomeMessage(data.interface.welcome_message);
+
+                // Update status
+                datasetStatus.textContent = 'Active';
+                datasetStatus.className = 'ms-2 badge bg-success';
+            } else {
+                const errorData = await response.json();
+                console.error('Error selecting dataset:', errorData.error);
+                datasetStatus.textContent = 'Error';
+                datasetStatus.className = 'ms-2 badge bg-danger';
+            }
+        } catch (error) {
+            console.error('Error switching dataset:', error);
+            datasetStatus.textContent = 'Error';
+            datasetStatus.className = 'ms-2 badge bg-danger';
+        } finally {
+            sendButton.disabled = false;
+        }
+    }
+
+    // Update interface elements based on dataset config
+    function updateInterface(config) {
+        // Update page title
+        if (config.page_title) {
+            document.title = config.page_title;
+        }
+
+        // Update header title
+        const headerTitle = document.getElementById('header-title');
+        if (headerTitle && config.header_title) {
+            headerTitle.innerHTML = `<i class="fas fa-comments me-2"></i>${config.header_title}`;
+        }
+
+        // Update input placeholder
+        if (config.input_placeholder) {
+            questionInput.placeholder = config.input_placeholder;
+        }
+
+        // Update example questions
+        updateExampleQuestions(config.example_questions);
+    }
+
+    // Update the example questions section
+    function updateExampleQuestions(questions) {
+        if (!questions || questions.length === 0) return;
+
+        const container = document.getElementById('example-questions-row');
+        if (!container) return;
+
+        // Split questions into two columns
+        const leftQuestions = questions.slice(0, 2);
+        const rightQuestions = questions.slice(2);
+
+        let html = '<div class="col-md-6"><ul>';
+        leftQuestions.forEach(q => {
+            html += `<li><a href="#" class="example-question">${q}</a></li>`;
+        });
+        html += '</ul></div><div class="col-md-6"><ul>';
+        rightQuestions.forEach(q => {
+            html += `<li><a href="#" class="example-question">${q}</a></li>`;
+        });
+        html += '</ul></div>';
+
+        container.innerHTML = html;
+
+        // Re-bind example question click handlers
+        exampleQuestions = document.querySelectorAll('.example-question');
+        exampleQuestions.forEach(question => {
+            question.addEventListener('click', (e) => {
+                e.preventDefault();
+                questionInput.value = question.textContent;
+                sendQuestion(question.textContent);
+            });
+        });
+    }
+
+    // Clear the chat container
+    function clearChat() {
+        chatContainer.innerHTML = '';
+    }
+
+    // Add welcome message
+    function addWelcomeMessage(message) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message assistant-message';
+        messageDiv.innerHTML = `<p>${message}</p>`;
+        chatContainer.appendChild(messageDiv);
+    }
+
+    // Handle dataset selection change
+    datasetSelect.addEventListener('change', (e) => {
+        switchDataset(e.target.value);
+    });
+
+    // Load datasets on page load
+    loadDatasets();
+
+    // Fetch system info and update greeting (fallback for single-dataset mode)
     async function loadSystemInfo() {
         try {
             const response = await fetch('/api/info');
             if (response.ok) {
                 const data = await response.json();
-                // Update the initial greeting with dataset description
-                const initialMessage = chatContainer.querySelector('.assistant-message p');
-                if (initialMessage && data.dataset_description) {
-                    initialMessage.textContent = `Hello! I'm a chatbot assistant. I can answer questions about ${data.dataset_description}. How can I help you today?`;
+                // Only update if no dataset is selected (single-dataset mode)
+                if (!currentDatasetId) {
+                    const initialMessage = chatContainer.querySelector('.assistant-message p');
+                    if (initialMessage && data.dataset_description) {
+                        initialMessage.textContent = `Hello! I'm a chatbot assistant. I can answer questions about ${data.dataset_description}. How can I help you today?`;
+                    }
                 }
             }
         } catch (error) {
@@ -21,7 +185,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Load system info on page load
+    // Load system info on page load (for single-dataset mode fallback)
     loadSystemInfo();
     
     // Function to add user message
@@ -219,8 +383,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     parentLi.appendChild(loadingDiv);
                     
                     try {
-                        // Fetch Wikidata information
-                        const response = await fetch(`/api/entity/${encodeURIComponent(entityUri)}/wikidata`);
+                        // Fetch Wikidata information (include dataset_id if available)
+                        let wikidataUrl = `/api/entity/${encodeURIComponent(entityUri)}/wikidata`;
+                        if (currentDatasetId) {
+                            wikidataUrl += `?dataset_id=${encodeURIComponent(currentDatasetId)}`;
+                        }
+                        const response = await fetch(wikidataUrl);
                         
                         if (!response.ok) {
                             throw new Error('Failed to fetch Wikidata information');
@@ -378,35 +546,48 @@ document.addEventListener('DOMContentLoaded', function() {
     async function sendQuestion(question) {
         // Don't send empty questions
         if (!question.trim()) return;
-        
+
+        // Check if a dataset is selected (in multi-dataset mode)
+        if (!currentDatasetId && datasetSelect.options.length > 1) {
+            addAssistantMessage('Please select a dataset from the dropdown before asking questions.');
+            return;
+        }
+
         // Add user message to chat
         addUserMessage(question);
-        
+
         // Clear input and disable send button
         questionInput.value = '';
         sendButton.disabled = true;
-        
+
         try {
+            // Build request body with dataset_id if available
+            const requestBody = { question };
+            if (currentDatasetId) {
+                requestBody.dataset_id = currentDatasetId;
+            }
+
             // Send request to server
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ question }),
+                body: JSON.stringify(requestBody),
             });
-            
+
             if (!response.ok) {
-                throw new Error(`Server responded with status: ${response.status}`);
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Server responded with status: ${response.status}`);
             }
-            
+
             const data = await response.json();
-            
+
             // Add assistant response to chat
             addAssistantMessage(data.answer, data.sources);
         } catch (error) {
             console.error('Error:', error);
-            addAssistantMessage('Sorry, I encountered an error while processing your question. Please try again later.');
+            addAssistantMessage(`Sorry, I encountered an error: ${error.message}`);
         } finally {
             // Re-enable send button
             sendButton.disabled = false;

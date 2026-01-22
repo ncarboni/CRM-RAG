@@ -42,13 +42,79 @@ class GraphDocumentStore:
         """Add a document to the store"""
         embedding = self.embeddings_model.embed_query(text)
         doc = GraphDocument(
-            id=doc_id, 
-            text=text, 
-            metadata=metadata or {}, 
+            id=doc_id,
+            text=text,
+            metadata=metadata or {},
             embedding=embedding
         )
         self.docs[doc_id] = doc
         return doc
+
+    def add_document_with_embedding(self, doc_id, text, embedding, metadata=None):
+        """
+        Add a document with a pre-computed embedding.
+        Use this for batch processing where embeddings are generated separately.
+
+        Args:
+            doc_id: Unique document identifier
+            text: Document text content
+            embedding: Pre-computed embedding vector
+            metadata: Optional metadata dictionary
+        """
+        doc = GraphDocument(
+            id=doc_id,
+            text=text,
+            metadata=metadata or {},
+            embedding=embedding
+        )
+        self.docs[doc_id] = doc
+        return doc
+
+    def add_documents_batch(self, documents: list, embedding_provider=None):
+        """
+        Add multiple documents with batch embedding for efficiency.
+
+        Args:
+            documents: List of tuples (doc_id, text, metadata)
+            embedding_provider: Optional provider with get_embeddings_batch method.
+                               If None, uses self.embeddings_model
+
+        Returns:
+            Number of documents added
+        """
+        if not documents:
+            return 0
+
+        doc_ids = [d[0] for d in documents]
+        texts = [d[1] for d in documents]
+        metadata_list = [d[2] if len(d) > 2 else {} for d in documents]
+
+        # Use batch embedding if available
+        provider = embedding_provider or self.embeddings_model
+
+        if hasattr(provider, 'get_embeddings_batch'):
+            logger.info(f"Using batch embedding for {len(texts)} documents")
+            embeddings = provider.get_embeddings_batch(texts)
+        elif hasattr(provider, 'embed_documents'):
+            logger.info(f"Using embed_documents for {len(texts)} documents")
+            embeddings = provider.embed_documents(texts)
+        else:
+            # Fall back to individual embedding
+            logger.info(f"Falling back to individual embedding for {len(texts)} documents")
+            embeddings = [provider.embed_query(text) for text in texts]
+
+        # Create GraphDocument objects
+        for doc_id, text, metadata, embedding in zip(doc_ids, texts, metadata_list, embeddings):
+            doc = GraphDocument(
+                id=doc_id,
+                text=text,
+                metadata=metadata,
+                embedding=embedding
+            )
+            self.docs[doc_id] = doc
+
+        logger.info(f"Added {len(documents)} documents to store")
+        return len(documents)
         
     def add_edge(self, doc_id1, doc_id2, edge_type, weight=1.0):
         """Add an edge between two documents with weight"""

@@ -26,14 +26,14 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 # Langchain imports
 from langchain.docstore.document import Document
 from langchain_community.vectorstores import FAISS
-from langchain_openai import ChatOpenAI
 
 # Third-party data fetching
 import requests
 
 # Local imports
 from graph_document_store import GraphDocumentStore
-from llm_providers import get_llm_provider, BaseLLMProvider
+from llm_providers import get_llm_provider, get_embedding_provider, BaseLLMProvider
+from embedding_cache import EmbeddingCache
 from scripts.extract_ontology_labels import run_extraction
 
 logger = logging.getLogger(__name__)
@@ -75,28 +75,61 @@ class UniversalRagSystem:
     _missing_properties = set()  # Track properties that couldn't be found
     _missing_classes = set()  # Track classes that couldn't be found in ontology files
 
-    def __init__(self, endpoint_url, config=None):
+    def __init__(self, endpoint_url, config=None, dataset_id=None):
         """
         Initialize the universal RAG system.
 
         Args:
             endpoint_url: SPARQL endpoint URL
             config: Configuration dictionary for LLM provider
+            dataset_id: Optional dataset identifier for multi-dataset support.
+                        Used to create dataset-specific cache directories.
         """
         self.endpoint_url = endpoint_url
+        self.dataset_id = dataset_id or "default"
         self.sparql = SPARQLWrapper(endpoint_url)
         self.sparql.setReturnFormat(JSON)
 
         # Initialize configuration
         self.config = config or {}
 
-        # Initialize LLM provider
+        # Initialize LLM provider (for text generation)
         provider_name = self.config.get("llm_provider", "openai")
         try:
             self.llm_provider = get_llm_provider(provider_name, self.config)
         except Exception as e:
             logger.error(f"Error initializing LLM provider: {str(e)}")
             raise
+
+        # Initialize embedding provider (can be different from LLM provider)
+        embedding_provider_name = self.config.get("embedding_provider", provider_name)
+        if embedding_provider_name != provider_name:
+            logger.info(f"Using separate embedding provider: {embedding_provider_name}")
+            try:
+                self.embedding_provider = get_embedding_provider(embedding_provider_name, self.config)
+            except Exception as e:
+                logger.warning(f"Error initializing embedding provider: {str(e)}, falling back to LLM provider")
+                self.embedding_provider = self.llm_provider
+        else:
+            self.embedding_provider = self.llm_provider
+
+        # Check if batch embedding is supported
+        self.use_batch_embedding = (
+            hasattr(self.embedding_provider, 'supports_batch_embedding') and
+            self.embedding_provider.supports_batch_embedding()
+        )
+        if self.use_batch_embedding:
+            logger.info("Batch embedding is supported and enabled")
+
+        # Initialize embedding cache for resumability
+        self.use_embedding_cache = self.config.get("use_embedding_cache", True)
+        if self.use_embedding_cache:
+            cache_dir = os.path.join(self._get_cache_dir(), "embeddings")
+            self.embedding_cache = EmbeddingCache(cache_dir)
+            logger.info(f"Embedding cache enabled at {cache_dir}")
+        else:
+            self.embedding_cache = None
+            logger.info("Embedding cache disabled")
 
         # Initialize document store
         self.document_store = None
@@ -118,6 +151,35 @@ class UniversalRagSystem:
 
         if UniversalRagSystem._inverse_properties is None:
             UniversalRagSystem._inverse_properties = self._load_inverse_properties()
+
+    # ==================== Path Helper Methods ====================
+    # These methods return dataset-specific paths for multi-dataset support
+
+    def _get_cache_dir(self) -> str:
+        """Return the cache directory for this dataset."""
+        return f'data/cache/{self.dataset_id}'
+
+    def _get_document_graph_path(self) -> str:
+        """Return the document graph pickle file path for this dataset."""
+        return f'{self._get_cache_dir()}/document_graph.pkl'
+
+    def _get_document_graph_temp_path(self) -> str:
+        """Return the temporary document graph pickle file path for this dataset."""
+        return f'{self._get_cache_dir()}/document_graph_temp.pkl'
+
+    def _get_vector_index_dir(self) -> str:
+        """Return the vector index directory for this dataset."""
+        return f'{self._get_cache_dir()}/vector_index'
+
+    def _get_vector_index_path(self) -> str:
+        """Return the vector index file path for this dataset."""
+        return f'{self._get_vector_index_dir()}/index.faiss'
+
+    def _get_documents_dir(self) -> str:
+        """Return the entity documents directory for this dataset."""
+        return f'data/documents/{self.dataset_id}/entity_documents'
+
+    # ==================== End Path Helper Methods ====================
 
     def _load_inverse_properties(self):
         """
@@ -330,24 +392,33 @@ class UniversalRagSystem:
         """
         Return an embedding object compatible with FAISS and the rest of the code.
         This property maintains backward compatibility with existing code.
+        Uses the embedding_provider (which may be different from llm_provider).
         """
         class EmbeddingFunction:
             def __init__(self, provider):
                 self.provider = provider
-            
+
             def __call__(self, text):
                 """Make the object callable for FAISS"""
                 return self.provider.get_embeddings(text)
-            
+
             def embed_query(self, text):
                 """For code that explicitly calls embed_query"""
                 return self.provider.get_embeddings(text)
-            
+
             def embed_documents(self, texts):
                 """For code that needs to embed multiple documents"""
+                if hasattr(self.provider, 'get_embeddings_batch'):
+                    return self.provider.get_embeddings_batch(texts)
                 return [self.provider.get_embeddings(text) for text in texts]
-        
-        return EmbeddingFunction(self.llm_provider)
+
+            def get_embeddings_batch(self, texts):
+                """Batch embedding for efficiency"""
+                if hasattr(self.provider, 'get_embeddings_batch'):
+                    return self.provider.get_embeddings_batch(texts)
+                return [self.provider.get_embeddings(text) for text in texts]
+
+        return EmbeddingFunction(self.embedding_provider)
     
     def test_connection(self):
         """Test connection to SPARQL endpoint"""
@@ -368,7 +439,14 @@ class UniversalRagSystem:
     def initialize(self):
         """Initialize the system"""
 
-        # Test connection
+        # Check for special modes that don't need full initialization
+        if self.config.get('generate_docs_only'):
+            return self.generate_documents_only()
+
+        if self.config.get('embed_from_docs'):
+            return self.embed_from_documents()
+
+        # Test connection (not needed for embed_from_docs mode)
         if not self.test_connection():
             logger.error("Failed to connect to SPARQL endpoint")
             return False
@@ -376,20 +454,11 @@ class UniversalRagSystem:
         # Initialize document store
         self.document_store = GraphDocumentStore(self.embeddings)
 
-        # Check for extend-sample mode (add entities to existing graph)
-        extend_size = self.config.get('extend_sample_size')
-        if extend_size:
-            sample_classes = self.config.get('sample_classes')
-            class_uris = None
-            if sample_classes:
-                class_uris = [self._resolve_class_uri(c) for c in sample_classes]
-            logger.info(f"Extend-sample mode: adding {extend_size} entities to existing graph")
-            return self.extend_sample(extend_size, class_uris)
+        # Check if saved data exists (using dataset-specific paths)
+        doc_graph_path = self._get_document_graph_path()
+        vector_index_path = self._get_vector_index_path()
+        vector_index_dir = self._get_vector_index_dir()
 
-        # Check if saved data exists
-        doc_graph_path = 'data/cache/document_graph.pkl'
-        vector_index_path = 'data/cache/vector_index/index.faiss'
-        
         logger.info(f"Checking for saved data at {doc_graph_path} and {vector_index_path}")
         
         if os.path.exists(doc_graph_path):
@@ -408,7 +477,7 @@ class UniversalRagSystem:
             # Add graph document load method
             if not hasattr(self.document_store, 'load_document_graph'):
                 # Define the method if it doesn't exist
-                def load_document_graph(self, path='data/cache/document_graph.pkl'):
+                def load_document_graph(self, path):
                     """Load document graph from disk"""
                     if os.path.exists(path):
                         try:
@@ -420,7 +489,7 @@ class UniversalRagSystem:
                             logger.error(f"Error loading document graph: {str(e)}")
                             return False
                     return False
-                    
+
                 # Add method to class
                 self.document_store.load_document_graph = types.MethodType(load_document_graph, self.document_store)
             
@@ -431,7 +500,7 @@ class UniversalRagSystem:
             vector_loaded = False
             try:
                 self.document_store.vector_store = FAISS.load_local(
-                    'data/cache/vector_index', 
+                    vector_index_dir,
                     self.embeddings,
                     allow_dangerous_deserialization=True
                 )
@@ -456,9 +525,11 @@ class UniversalRagSystem:
         # Save the document graph
         if not hasattr(self.document_store, 'save_document_graph'):
             # Define the method if it doesn't exist
-            def save_document_graph(self, path='data/cache/document_graph.pkl'):
+            def save_document_graph(self, path):
                 """Save document graph to disk"""
                 try:
+                    # Ensure directory exists
+                    os.makedirs(os.path.dirname(path), exist_ok=True)
                     with open(path, 'wb') as f:
                         pickle.dump(self.docs, f)
                     logger.info(f"Document graph saved to {path}")
@@ -469,188 +540,291 @@ class UniversalRagSystem:
 
             # Add method to class
             self.document_store.save_document_graph = types.MethodType(save_document_graph, self.document_store)
-        
+
         # Save document graph
         self.document_store.save_document_graph(doc_graph_path)
-        vector_index_path = 'data/cache/vector_index'
-        os.makedirs(vector_index_path, exist_ok=True)
+        os.makedirs(vector_index_dir, exist_ok=True)
 
         # Save the vector store
         if self.document_store.vector_store:
-            self.document_store.vector_store.save_local(vector_index_path)
-            logger.info(f"Vector store saved to {vector_index_path}")
+            self.document_store.vector_store.save_local(vector_index_dir)
+            logger.info(f"Vector store saved to {vector_index_dir}")
         return True
 
-    def extend_sample(self, num_new_entities, class_uris=None):
+    def generate_documents_only(self):
         """
-        Extend existing sample by adding more entities without rebuilding from scratch.
+        Generate entity documents from SPARQL without computing embeddings.
+        Use this locally when you have SPARQL access but want to compute
+        embeddings on a remote GPU cluster.
 
-        Args:
-            num_new_entities: Number of new entities to add
-            class_uris: Optional list of class URIs to filter by
+        Documents are saved to: data/documents/<dataset_id>/entity_documents/
+        Metadata is saved to: data/documents/<dataset_id>/documents_metadata.json
 
-        Returns:
-            True if successful, False otherwise
+        Transfer these files to the cluster, then run with --embed-from-docs.
         """
-        doc_graph_path = 'data/cache/document_graph.pkl'
-        vector_index_path = 'data/cache/vector_index'
+        logger.info("=" * 60)
+        logger.info("GENERATE DOCUMENTS ONLY MODE")
+        logger.info("=" * 60)
+        logger.info("Will create documents from SPARQL without computing embeddings.")
+        logger.info("Transfer documents to cluster, then run with --embed-from-docs")
+        logger.info("=" * 60)
 
-        # First, load existing graph
-        if not os.path.exists(doc_graph_path):
-            logger.error("No existing document graph found. Use --sample first to create initial sample.")
+        # Test SPARQL connection
+        if not self.test_connection():
+            logger.error("Failed to connect to SPARQL endpoint")
             return False
 
-        # Initialize document store if needed
-        if not self.document_store:
-            self.document_store = GraphDocumentStore(self.embeddings)
+        # Get all entities
+        entities = self.get_all_entities()
+        total_entities = len(entities)
+        logger.info(f"Found {total_entities} entities")
 
-        # Load existing graph
-        if not hasattr(self.document_store, 'load_document_graph'):
-            def load_document_graph(self, path='data/cache/document_graph.pkl'):
-                if os.path.exists(path):
-                    try:
-                        with open(path, 'rb') as f:
-                            self.docs = pickle.load(f)
-                        logger.info(f"Document graph loaded from {path} with {len(self.docs)} documents")
-                        return True
-                    except Exception as e:
-                        logger.error(f"Error loading document graph: {str(e)}")
-                        return False
-                return False
-            self.document_store.load_document_graph = types.MethodType(load_document_graph, self.document_store)
-
-        if not self.document_store.load_document_graph(doc_graph_path):
-            logger.error("Failed to load existing document graph")
-            return False
-
-        # Get existing entity URIs
-        existing_uris = set(self.document_store.docs.keys())
-        logger.info(f"Existing sample has {len(existing_uris)} entities")
-
-        # Sample new entities excluding existing ones
-        logger.info(f"Sampling {num_new_entities} additional entities...")
-
-        # Get more candidates than needed (some will be filtered out)
-        target_total = len(existing_uris) + num_new_entities
-        sampled = self.sample_connected_entities_sparql(target_total, class_uris)
-
-        if not sampled:
-            logger.error("SPARQL sampling returned no entities")
-            return False
-
-        # Filter out entities already in the graph
-        new_entities = [s for s in sampled if s["entity"] not in existing_uris]
-        new_entities = new_entities[:num_new_entities]  # Limit to requested count
-
-        if not new_entities:
-            logger.warning("No new entities found to add (all sampled entities already in graph)")
-            return True
-
-        logger.info(f"Found {len(new_entities)} new entities to add")
-
-        # Get full entity data for new entities
-        new_entity_uris = {e["entity"] for e in new_entities}
-        all_entities = self.get_all_entities()
-        entities_to_add = [e for e in all_entities if e["entity"] in new_entity_uris]
-
-        logger.info(f"Processing {len(entities_to_add)} new entities...")
-
-        # Process new entities (similar to process_rdf_data but incremental)
-        output_dir = "data/documents/entity_documents"
+        # Prepare output directory
+        output_dir = self._get_documents_dir()
+        if os.path.exists(output_dir):
+            shutil.rmtree(output_dir)
         os.makedirs(output_dir, exist_ok=True)
+        logger.info(f"Saving documents to: {output_dir}")
 
-        # Rate limit tracking
-        global_token_count = 0
-        tokens_per_min_limit = RetrievalConfig.TOKENS_PER_MINUTE_LIMIT
-        last_reset_time = time.time()
-        batch_size = RetrievalConfig.DEFAULT_BATCH_SIZE
+        # Track document metadata for later embedding
+        documents_metadata = []
 
-        for i in range(0, len(entities_to_add), batch_size):
-            batch = entities_to_add[i:i+batch_size]
-            logger.info(f"Processing batch {i//batch_size + 1}/{(len(entities_to_add) + batch_size - 1)//batch_size}")
-
-            for entity in tqdm(batch, desc=f"Adding entities", unit="entity"):
-                entity_uri = entity["entity"]
-
-                # Rate limit check
-                current_time = time.time()
-                if current_time - last_reset_time >= 60:
-                    global_token_count = 0
-                    last_reset_time = current_time
-
-                if global_token_count > tokens_per_min_limit:
-                    wait_time = 60 - (current_time - last_reset_time) + 1
-                    if wait_time > 0:
-                        logger.info(f"Rate limit pause: {wait_time:.1f}s...")
-                        time.sleep(wait_time)
-                        global_token_count = 0
-                        last_reset_time = time.time()
-
-                try:
-                    doc_text, entity_label, entity_types, raw_triples = self.create_enhanced_document(entity_uri)
-                    self.save_entity_document(entity_uri, doc_text, entity_label)
-
-                    estimated_tokens = len(doc_text) / 4
-                    global_token_count += estimated_tokens
-
-                    # Add document to store
-                    self.document_store.add_document(
-                        entity_uri,
-                        doc_text,
-                        {
-                            "uri": entity_uri,
-                            "label": entity_label,
-                            "types": entity_types
-                        }
-                    )
-                except Exception as e:
-                    logger.error(f"Error processing entity {entity_uri}: {str(e)}")
-                    continue
-
-        logger.info(f"Added {len(entities_to_add)} new entities. Total: {len(self.document_store.docs)}")
-
-        # Add edges for new entities
-        logger.info("Adding edges for new entities...")
-        for entity in tqdm(entities_to_add, desc="Adding edges", unit="entity"):
+        # Process entities and create documents
+        for entity in tqdm(entities, desc="Generating documents", unit="entity"):
             entity_uri = entity["entity"]
-            relationships = self.get_outgoing_relationships(entity_uri)
 
-            for rel in relationships:
-                object_uri = rel["object"]
-                predicate = rel["predicate"]
+            try:
+                doc_text, entity_label, entity_types, raw_triples = self.create_enhanced_document(entity_uri)
 
-                # Only add edge if target exists in graph
-                if object_uri in self.document_store.docs:
-                    weight = self.get_relationship_weight(predicate)
-                    self.document_store.add_edge(entity_uri, object_uri, predicate, weight)
+                # Save document to disk
+                filepath = self.save_entity_document(entity_uri, doc_text, entity_label)
 
-        # Rebuild vector store (FAISS doesn't support incremental well)
-        logger.info("Rebuilding vector store with all entities...")
+                # Determine primary type
+                primary_type = "Unknown"
+                if entity_types:
+                    human_readable_types = [
+                        t for t in entity_types
+                        if not self.is_technical_class_name(t)
+                    ]
+                    primary_type = human_readable_types[0] if human_readable_types else "Entity"
+
+                # Store metadata for embedding phase
+                documents_metadata.append({
+                    "uri": entity_uri,
+                    "label": entity_label,
+                    "type": primary_type,
+                    "all_types": entity_types,
+                    "filepath": os.path.basename(filepath) if filepath else None
+                })
+
+            except Exception as e:
+                logger.error(f"Error processing entity {entity_uri}: {str(e)}")
+                continue
+
+        # Save metadata file
+        metadata_path = os.path.join(os.path.dirname(output_dir), "documents_metadata.json")
+        with open(metadata_path, 'w', encoding='utf-8') as f:
+            json.dump({
+                "dataset_id": self.dataset_id,
+                "total_documents": len(documents_metadata),
+                "generated_at": datetime.now().isoformat(),
+                "documents": documents_metadata
+            }, f, indent=2)
+
+        logger.info("=" * 60)
+        logger.info("DOCUMENT GENERATION COMPLETE")
+        logger.info("=" * 60)
+        logger.info(f"Generated {len(documents_metadata)} documents")
+        logger.info(f"Documents saved to: {output_dir}")
+        logger.info(f"Metadata saved to: {metadata_path}")
+        logger.info("")
+        logger.info("Next steps:")
+        logger.info(f"  1. Transfer to cluster:")
+        logger.info(f"     scp -r data/documents/{self.dataset_id}/ user@cluster:CRM_RAG/data/documents/{self.dataset_id}/")
+        logger.info(f"  2. On cluster, run:")
+        logger.info(f"     python main.py --env .env.cluster --dataset {self.dataset_id} --embed-from-docs --process-only")
+        logger.info("=" * 60)
+
+        return True
+
+    def embed_from_documents(self):
+        """
+        Generate embeddings from existing document files (no SPARQL needed).
+        Use this on a GPU cluster after transferring documents from local machine.
+
+        Reads documents from: data/documents/<dataset_id>/entity_documents/
+        Reads metadata from: data/documents/<dataset_id>/documents_metadata.json
+
+        Creates: data/cache/<dataset_id>/document_graph.pkl
+                 data/cache/<dataset_id>/vector_index/
+        """
+        logger.info("=" * 60)
+        logger.info("EMBED FROM DOCUMENTS MODE")
+        logger.info("=" * 60)
+        logger.info("Will generate embeddings from existing document files.")
+        logger.info("No SPARQL connection needed.")
+        logger.info("=" * 60)
+
+        # Check for documents directory
+        docs_dir = self._get_documents_dir()
+        metadata_path = os.path.join(os.path.dirname(docs_dir), "documents_metadata.json")
+
+        if not os.path.exists(metadata_path):
+            logger.error(f"Metadata file not found: {metadata_path}")
+            logger.error("Run --generate-docs-only first, then transfer documents to this machine.")
+            return False
+
+        if not os.path.exists(docs_dir):
+            logger.error(f"Documents directory not found: {docs_dir}")
+            return False
+
+        # Load metadata
+        with open(metadata_path, 'r', encoding='utf-8') as f:
+            metadata = json.load(f)
+
+        documents_metadata = metadata.get("documents", [])
+        logger.info(f"Found metadata for {len(documents_metadata)} documents")
+
+        # Initialize document store
+        self.document_store = GraphDocumentStore(self.embeddings)
+
+        # Read documents and prepare for batch embedding
+        batch_docs = []  # List of (uri, text, metadata, cached_embedding)
+
+        for doc_meta in tqdm(documents_metadata, desc="Reading documents", unit="doc"):
+            filepath = doc_meta.get("filepath")
+            if not filepath:
+                continue
+
+            full_path = os.path.join(docs_dir, filepath)
+            if not os.path.exists(full_path):
+                logger.warning(f"Document file not found: {full_path}")
+                continue
+
+            # Read document content
+            try:
+                with open(full_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+
+                # Skip YAML frontmatter to get actual document text
+                if content.startswith('---'):
+                    parts = content.split('---', 2)
+                    if len(parts) >= 3:
+                        doc_text = parts[2].strip()
+                    else:
+                        doc_text = content
+                else:
+                    doc_text = content
+
+                # Check embedding cache
+                cached_embedding = None
+                if self.embedding_cache:
+                    cached_embedding = self.embedding_cache.get(doc_meta["uri"])
+
+                batch_docs.append((
+                    doc_meta["uri"],
+                    doc_text,
+                    {
+                        "uri": doc_meta["uri"],
+                        "label": doc_meta["label"],
+                        "type": doc_meta["type"],
+                        "all_types": doc_meta.get("all_types", [])
+                    },
+                    cached_embedding
+                ))
+
+            except Exception as e:
+                logger.error(f"Error reading document {filepath}: {str(e)}")
+                continue
+
+        logger.info(f"Loaded {len(batch_docs)} documents")
+
+        # Process embeddings in batches
+        batch_size = int(self.config.get("embedding_batch_size", 64))
+
+        for i in range(0, len(batch_docs), batch_size):
+            batch = batch_docs[i:i + batch_size]
+            batch_num = i // batch_size + 1
+            total_batches = (len(batch_docs) + batch_size - 1) // batch_size
+            logger.info(f"Processing embedding batch {batch_num}/{total_batches}")
+
+            if self.use_batch_embedding:
+                self._process_batch_embeddings(batch)
+            else:
+                self._process_sequential_embeddings(batch, 0, time.time(), float('inf'))
+
+        # Build edges from document relationships
+        # Note: Without SPARQL, we can't query relationships directly
+        # Edges will be built from the raw_triples stored in documents if available
+        logger.info("Building document graph edges from stored relationships...")
+        self._build_edges_from_documents(documents_metadata, docs_dir)
+
+        # Build vector store
+        logger.info("Building vector store...")
         self.document_store.rebuild_vector_store()
 
-        # Save updated graph
-        if not hasattr(self.document_store, 'save_document_graph'):
-            def save_document_graph(self, path='data/cache/document_graph.pkl'):
-                try:
-                    with open(path, 'wb') as f:
-                        pickle.dump(self.docs, f)
-                    logger.info(f"Document graph saved to {path}")
-                    return True
-                except Exception as e:
-                    logger.error(f"Error saving document graph: {str(e)}")
-                    return False
-            self.document_store.save_document_graph = types.MethodType(save_document_graph, self.document_store)
+        # Save document graph
+        doc_graph_path = self._get_document_graph_path()
+        vector_index_dir = self._get_vector_index_dir()
 
+        os.makedirs(os.path.dirname(doc_graph_path), exist_ok=True)
         self.document_store.save_document_graph(doc_graph_path)
 
-        # Save vector store
-        os.makedirs(vector_index_path, exist_ok=True)
+        os.makedirs(vector_index_dir, exist_ok=True)
         if self.document_store.vector_store:
-            self.document_store.vector_store.save_local(vector_index_path)
-            logger.info(f"Vector store saved to {vector_index_path}")
+            self.document_store.vector_store.save_local(vector_index_dir)
+            logger.info(f"Vector store saved to {vector_index_dir}")
 
-        logger.info(f"Successfully extended sample to {len(self.document_store.docs)} entities")
+        logger.info("=" * 60)
+        logger.info("EMBEDDING COMPLETE")
+        logger.info("=" * 60)
+        logger.info(f"Processed {len(self.document_store.docs)} documents")
+        logger.info(f"Document graph saved to: {doc_graph_path}")
+        logger.info(f"Vector index saved to: {vector_index_dir}")
+        logger.info("")
+        logger.info("Next steps:")
+        logger.info(f"  1. Transfer cache to local machine:")
+        logger.info(f"     scp -r data/cache/{self.dataset_id}/ user@local:CRM_RAG/data/cache/{self.dataset_id}/")
+        logger.info(f"  2. On local machine, run:")
+        logger.info(f"     python main.py --env .env.local")
+        logger.info("=" * 60)
+
         return True
+
+    def _build_edges_from_documents(self, documents_metadata, docs_dir):
+        """
+        Build edges between documents by extracting relationships from document content.
+        This is used when SPARQL is not available (embed-from-docs mode).
+        """
+        # Create a mapping of URIs to doc_ids for quick lookup
+        uri_to_doc = {meta["uri"]: meta["uri"] for meta in documents_metadata}
+
+        # For each document, try to find relationships in the content
+        edges_added = 0
+        for doc_meta in documents_metadata:
+            uri = doc_meta["uri"]
+            if uri not in self.document_store.docs:
+                continue
+
+            # Check if other document URIs are mentioned in this document's text
+            doc = self.document_store.docs[uri]
+            doc_text = doc.text.lower()
+
+            for other_meta in documents_metadata:
+                other_uri = other_meta["uri"]
+                if other_uri == uri:
+                    continue
+                if other_uri not in self.document_store.docs:
+                    continue
+
+                # Check if other entity's label appears in this document
+                other_label = other_meta.get("label", "").lower()
+                if other_label and len(other_label) > 3 and other_label in doc_text:
+                    # Add edge with default weight
+                    self.document_store.add_edge(uri, other_uri, "mentioned", weight=0.5)
+                    edges_added += 1
+
+        logger.info(f"Added {edges_added} edges based on document content relationships")
 
     def _get_inverse_predicate(self, predicate_uri):
         """
@@ -1153,10 +1327,14 @@ class UniversalRagSystem:
             # Return minimal document to prevent complete failure
             return f"Entity: {entity_uri}", entity_uri, [], []
 
-    def save_entity_document(self, entity_uri, document_text, entity_label, output_dir="data/documents/entity_documents"):
+    def save_entity_document(self, entity_uri, document_text, entity_label, output_dir=None):
         """Save entity document to disk for transparency and reuse"""
 
         try:
+            # Use dataset-specific output directory if not specified
+            if output_dir is None:
+                output_dir = self._get_documents_dir()
+
             # Create output directory if it doesn't exist
             os.makedirs(output_dir, exist_ok=True)
 
@@ -1412,33 +1590,8 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         total_entities = len(entities)
         logger.info(f"Found {total_entities} entities")
 
-        # Apply SPARQL-based connected sampling if enabled
-        sample_size = self.config.get('entity_sample_size')
-        if sample_size:
-            sample_classes = self.config.get('sample_classes')
-
-            # Convert class names to URIs if needed
-            class_uris = None
-            if sample_classes:
-                class_uris = [self._resolve_class_uri(c) for c in sample_classes]
-                logger.info(f"Resolved class URIs: {class_uris}")
-
-            logger.info(f"SPARQL sampling: target={sample_size}, classes={sample_classes or 'auto'}")
-
-            # Use SPARQL property paths for connected sampling
-            sampled = self.sample_connected_entities_sparql(sample_size, class_uris)
-
-            if sampled:
-                # Filter all_entities to only include sampled URIs
-                sampled_uris = {s["entity"] for s in sampled}
-                entities = [e for e in entities if e["entity"] in sampled_uris]
-                total_entities = len(entities)
-                logger.info(f"Sampled {total_entities} connected entities via SPARQL")
-            else:
-                logger.warning("SPARQL sampling returned empty, using all entities")
-
-        # Clear entity_documents directory if it exists
-        output_dir = "data/documents/entity_documents"
+        # Clear entity_documents directory if it exists (using dataset-specific path)
+        output_dir = self._get_documents_dir()
         if os.path.exists(output_dir):
             shutil.rmtree(output_dir)
             logger.info(f"Cleared existing {output_dir} directory")
@@ -1476,84 +1629,100 @@ Each file contains:
         with open(readme_path, 'w', encoding='utf-8') as f:
             f.write(readme_content)
         
-        # Global rate limit tracking
-        global_token_count = 0
-        tokens_per_min_limit = RetrievalConfig.TOKENS_PER_MINUTE_LIMIT  # Set slightly below the actual limit of 1M
-        last_reset_time = time.time()
-        
         # First pass: create document nodes with enhanced content
         logger.info("Creating enhanced document nodes...")
-        batch_size = RetrievalConfig.DEFAULT_BATCH_SIZE  # Process in reasonable batches for progress tracking
-        
+
+        # Determine batch size based on embedding provider
+        if self.use_batch_embedding:
+            # For local embeddings, use larger batches (no rate limits)
+            batch_size = int(self.config.get("embedding_batch_size", 64))
+            logger.info(f"Using batch embedding with batch_size={batch_size}")
+        else:
+            # For API-based embeddings, use smaller batches with rate limiting
+            batch_size = RetrievalConfig.DEFAULT_BATCH_SIZE
+            logger.info(f"Using sequential embedding with batch_size={batch_size}")
+
+        # Global rate limit tracking (only used for API-based embeddings)
+        global_token_count = 0
+        tokens_per_min_limit = RetrievalConfig.TOKENS_PER_MINUTE_LIMIT
+        last_reset_time = time.time()
+
+        # Check embedding cache for already processed entities
+        cached_count = 0
+        if self.embedding_cache:
+            cache_stats = self.embedding_cache.get_stats()
+            logger.info(f"Embedding cache: {cache_stats['count']} cached embeddings ({cache_stats['size_mb']} MB)")
+
+        # Process entities in batches
         for i in range(0, total_entities, batch_size):
             batch = entities[i:i+batch_size]
-            logger.info(f"Processing batch {i//batch_size + 1}/{(total_entities + batch_size - 1)//batch_size}")
-            
-            # Process batch
-            for entity in tqdm(batch, desc=f"Batch {i//batch_size + 1}", unit="entity"):
+            batch_num = i // batch_size + 1
+            total_batches = (total_entities + batch_size - 1) // batch_size
+            logger.info(f"Processing batch {batch_num}/{total_batches}")
+
+            # Collect document data for batch processing
+            batch_docs = []  # List of (entity_uri, doc_text, metadata, cached_embedding)
+
+            for entity in tqdm(batch, desc=f"Batch {batch_num}", unit="entity"):
                 entity_uri = entity["entity"]
-                
-                # Rate limit check - reset counter if a minute has passed
-                current_time = time.time()
-                if current_time - last_reset_time >= 60:
-                    global_token_count = 0
-                    last_reset_time = current_time
-                
-                # Skip if we're approaching the limit - wait just enough time
-                if global_token_count > tokens_per_min_limit:
-                    wait_time = 60 - (current_time - last_reset_time) + 1
-                    if wait_time > 0:
-                        logger.info(f"Approaching rate limit. Waiting {wait_time:.1f} seconds...")
-                        time.sleep(wait_time)
-                        global_token_count = 0
-                        last_reset_time = time.time()
-                
-                # Create enhanced document with CIDOC-CRM aware natural language
+
                 try:
+                    # Create enhanced document with CIDOC-CRM aware natural language
                     doc_text, entity_label, entity_types, raw_triples = self.create_enhanced_document(entity_uri)
 
                     # Save document to disk for transparency and reuse
                     self.save_entity_document(entity_uri, doc_text, entity_label)
 
-                    # Estimate token count - very rough estimate
-                    # (1 token ≈ 4 chars in English on average)
-                    estimated_tokens = len(doc_text) / 4
-                    global_token_count += estimated_tokens
-
-                    # Determine primary entity type (filter out technical CIDOC-CRM class names)
+                    # Determine primary entity type
                     primary_type = "Unknown"
                     if entity_types:
-                        # Get human-readable types only
                         human_readable_types = [
                             t for t in entity_types
                             if not self.is_technical_class_name(t)
                         ]
-                        # Use first human-readable type, or fall back to "Unknown"
                         primary_type = human_readable_types[0] if human_readable_types else "Entity"
 
-                    # Add to document store
-                    self.document_store.add_document(
-                        entity_uri,
-                        doc_text,
-                        {
-                            "label": entity_label,
-                            "type": primary_type,
-                            "uri": entity_uri,
-                            "all_types": entity_types,  # Keep all types for debugging if needed
-                            "raw_triples": raw_triples  # Store raw RDF triples for source attribution
-                        }
-                    )
+                    metadata = {
+                        "label": entity_label,
+                        "type": primary_type,
+                        "uri": entity_uri,
+                        "all_types": entity_types,
+                        "raw_triples": raw_triples
+                    }
+
+                    # Check embedding cache
+                    cached_embedding = None
+                    if self.embedding_cache:
+                        cached_embedding = self.embedding_cache.get(entity_uri)
+                        if cached_embedding:
+                            cached_count += 1
+
+                    batch_docs.append((entity_uri, doc_text, metadata, cached_embedding))
+
                 except Exception as e:
                     logger.error(f"Error processing entity {entity_uri}: {str(e)}")
-                    # Continue with next entity
                     continue
-            
+
+            # Process embeddings for the batch
+            if self.use_batch_embedding:
+                # Batch embedding (local embeddings - fast)
+                self._process_batch_embeddings(batch_docs)
+            else:
+                # Sequential embedding with rate limiting (API-based)
+                global_token_count, last_reset_time = self._process_sequential_embeddings(
+                    batch_docs, global_token_count, last_reset_time, tokens_per_min_limit
+                )
+
             # Save progress after each batch
-            self.document_store.save_document_graph('data/cache/document_graph_temp.pkl')
-            
-            # Pause for 2 seconds after each batch of 50
-            logger.info("Completed batch of 50 documents, pausing for 2 seconds...")
-            time.sleep(2)
+            self.document_store.save_document_graph(self._get_document_graph_temp_path())
+
+            # For API-based embeddings, pause between batches
+            if not self.use_batch_embedding:
+                logger.info(f"Completed batch of {len(batch)} documents, pausing for 2 seconds...")
+                time.sleep(2)
+
+        if cached_count > 0:
+            logger.info(f"Used {cached_count} cached embeddings")
         
         # Second pass: create edges between documents
         logger.info("Creating document graph edges...")
@@ -1620,8 +1789,10 @@ Each file contains:
                     )
         
         # Rename temp file to final
-        if os.path.exists('data/cache/document_graph_temp.pkl'):
-            os.replace('data/cache/document_graph_temp.pkl', 'data/cache/document_graph.pkl')
+        temp_path = self._get_document_graph_temp_path()
+        final_path = self._get_document_graph_path()
+        if os.path.exists(temp_path):
+            os.replace(temp_path, final_path)
         
         # Build vector store with batched embedding requests
         logger.info("Building vector store...")
@@ -1632,10 +1803,107 @@ Each file contains:
 
         logger.info("RDF data processing complete with enhanced CIDOC-CRM understanding")
 
+    def _process_batch_embeddings(self, batch_docs):
+        """
+        Process embeddings for a batch of documents using batch embedding.
+        This is the fast path for local embeddings (sentence-transformers).
+
+        Args:
+            batch_docs: List of (entity_uri, doc_text, metadata, cached_embedding)
+        """
+        # Separate cached and uncached documents
+        cached_docs = [(uri, text, meta, emb) for uri, text, meta, emb in batch_docs if emb is not None]
+        uncached_docs = [(uri, text, meta, emb) for uri, text, meta, emb in batch_docs if emb is None]
+
+        # Add cached documents directly to store
+        for entity_uri, doc_text, metadata, embedding in cached_docs:
+            self.document_store.add_document_with_embedding(
+                entity_uri, doc_text, embedding, metadata
+            )
+
+        # Generate embeddings for uncached documents in batch
+        if uncached_docs:
+            texts = [doc[1] for doc in uncached_docs]
+            logger.info(f"Generating embeddings for {len(texts)} documents in batch...")
+
+            embeddings = self.embedding_provider.get_embeddings_batch(texts)
+
+            # Add documents and cache embeddings
+            new_cached_ids = []
+            for (entity_uri, doc_text, metadata, _), embedding in zip(uncached_docs, embeddings):
+                self.document_store.add_document_with_embedding(
+                    entity_uri, doc_text, embedding, metadata
+                )
+
+                # Cache the embedding for resumability
+                if self.embedding_cache:
+                    self.embedding_cache.set(entity_uri, embedding)
+                    new_cached_ids.append(entity_uri)
+
+            # Update cache metadata
+            if self.embedding_cache and new_cached_ids:
+                self.embedding_cache.update_metadata(new_cached_ids)
+
+            logger.info(f"Added {len(uncached_docs)} documents with new embeddings")
+
+        if cached_docs:
+            logger.info(f"Added {len(cached_docs)} documents with cached embeddings")
+
+    def _process_sequential_embeddings(self, batch_docs, global_token_count, last_reset_time, tokens_per_min_limit):
+        """
+        Process embeddings sequentially with rate limiting.
+        This is the path for API-based embeddings (OpenAI, etc.).
+
+        Args:
+            batch_docs: List of (entity_uri, doc_text, metadata, cached_embedding)
+            global_token_count: Current token count for rate limiting
+            last_reset_time: Last time the token count was reset
+            tokens_per_min_limit: Maximum tokens per minute
+
+        Returns:
+            Tuple of (updated_token_count, updated_reset_time)
+        """
+        for entity_uri, doc_text, metadata, cached_embedding in batch_docs:
+            # Rate limit check - reset counter if a minute has passed
+            current_time = time.time()
+            if current_time - last_reset_time >= 60:
+                global_token_count = 0
+                last_reset_time = current_time
+
+            # Skip if we're approaching the limit - wait just enough time
+            if global_token_count > tokens_per_min_limit:
+                wait_time = 60 - (current_time - last_reset_time) + 1
+                if wait_time > 0:
+                    logger.info(f"Approaching rate limit. Waiting {wait_time:.1f} seconds...")
+                    time.sleep(wait_time)
+                    global_token_count = 0
+                    last_reset_time = time.time()
+
+            # Use cached embedding if available
+            if cached_embedding is not None:
+                self.document_store.add_document_with_embedding(
+                    entity_uri, doc_text, cached_embedding, metadata
+                )
+            else:
+                # Generate embedding and add to store
+                self.document_store.add_document(entity_uri, doc_text, metadata)
+
+                # Cache the embedding for resumability
+                if self.embedding_cache and entity_uri in self.document_store.docs:
+                    embedding = self.document_store.docs[entity_uri].embedding
+                    if embedding:
+                        self.embedding_cache.set(entity_uri, embedding)
+
+            # Estimate token count for rate limiting
+            estimated_tokens = len(doc_text) / 4
+            global_token_count += estimated_tokens
+
+        return global_token_count, last_reset_time
+
     def build_vector_store_batched(self, batch_size=RetrievalConfig.DEFAULT_BATCH_SIZE):
         """Build vector store with batched embedding requests to avoid rate limits"""
-        
-        vector_index_path = 'data/cache/vector_index'
+
+        vector_index_path = self._get_vector_index_dir()
         os.makedirs(vector_index_path, exist_ok=True)
         
         # Prepare documents for FAISS
@@ -1932,165 +2200,6 @@ Remember: Your audience wants to learn about cultural heritage, not database sch
         except Exception as e:
             logger.error(f"Error fetching entities: {str(e)}")
             return []
-
-    def sample_connected_entities_sparql(self, target_size, class_uris=None):
-        """
-        Sample connected entities using SPARQL property paths.
-        Guarantees connectivity by expanding from seed entities via property paths.
-
-        Args:
-            target_size: Number of entities to sample
-            class_uris: Optional list of class URIs to filter by
-
-        Returns:
-            List of entity dicts with 'entity' and 'degree' keys
-        """
-        # Number of seeds (more seeds = better coverage, less connectivity)
-        num_seeds = max(3, target_size // 50)
-
-        # Build class filter if specified
-        class_filter_clause = ""
-        seed_class_filter = ""
-        if class_uris:
-            class_values = " ".join(f"<{uri}>" for uri in class_uris)
-            class_filter_clause = f"?entity rdf:type ?class . VALUES ?class {{ {class_values} }}"
-            seed_class_filter = f"?seed rdf:type ?seedClass . VALUES ?seedClass {{ {class_values} }}"
-
-        query = f"""
-        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-
-        SELECT DISTINCT ?entity (COUNT(DISTINCT ?rel) AS ?degree) WHERE {{
-          # Step 1: Find seed entities (most connected)
-          {{
-            SELECT ?seed WHERE {{
-              ?seed ?p ?connected .
-              FILTER(isURI(?connected))
-              {seed_class_filter}
-            }}
-            GROUP BY ?seed
-            ORDER BY DESC(COUNT(?connected))
-            LIMIT {num_seeds}
-          }}
-
-          # Step 2: Expand from seeds via property paths (0-2 hops)
-          # Using alternation for both directions: outgoing (?p) and incoming (^?p)
-          ?seed (^<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>|<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>|!<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>){{0,2}} ?entity .
-          FILTER(isURI(?entity))
-
-          # Step 3: Filter by class if specified
-          {class_filter_clause}
-
-          # Step 4: Entity must have literals (to match get_all_entities behavior)
-          ?entity ?litPred ?litVal . FILTER(isLiteral(?litVal))
-
-          # Count connections for ordering (prefer well-connected entities)
-          ?entity ?rel ?other . FILTER(isURI(?other))
-        }}
-        GROUP BY ?entity
-        ORDER BY DESC(?degree)
-        LIMIT {target_size}
-        """
-
-        try:
-            logger.info(f"SPARQL sampling: target={target_size}, seeds={num_seeds}, classes={class_uris or 'auto'}")
-            self.sparql.setQuery(query)
-            results = self.sparql.query().convert()
-
-            sampled = []
-            for result in results["results"]["bindings"]:
-                entity_uri = result["entity"]["value"]
-                degree = int(result["degree"]["value"])
-                sampled.append({
-                    "entity": entity_uri,
-                    "degree": degree
-                })
-
-            logger.info(f"SPARQL sampling returned {len(sampled)} connected entities")
-
-            # If SPARQL property paths didn't return enough, try simpler fallback
-            if len(sampled) < target_size * 0.5:
-                logger.warning(f"SPARQL property path sampling returned only {len(sampled)} entities, trying simpler approach")
-                sampled = self._sample_entities_simple(target_size, class_uris)
-
-            return sampled
-
-        except Exception as e:
-            logger.error(f"SPARQL sampling failed: {str(e)}")
-            logger.info("Falling back to simple sampling")
-            return self._sample_entities_simple(target_size, class_uris)
-
-    def _sample_entities_simple(self, target_size, class_uris=None):
-        """
-        Fallback sampling method: get most connected entities.
-        Less sophisticated but more reliable across different SPARQL endpoints.
-        """
-        class_filter = ""
-        if class_uris:
-            class_values = " ".join(f"<{uri}>" for uri in class_uris)
-            class_filter = f"?entity rdf:type ?class . VALUES ?class {{ {class_values} }}"
-
-        query = f"""
-        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-
-        SELECT ?entity (COUNT(DISTINCT ?related) AS ?degree) WHERE {{
-            ?entity ?p ?related .
-            FILTER(isURI(?related))
-
-            # Must have literals (to match get_all_entities)
-            ?entity ?litPred ?litVal . FILTER(isLiteral(?litVal))
-
-            {class_filter}
-        }}
-        GROUP BY ?entity
-        ORDER BY DESC(?degree)
-        LIMIT {target_size}
-        """
-
-        try:
-            self.sparql.setQuery(query)
-            results = self.sparql.query().convert()
-
-            sampled = []
-            for result in results["results"]["bindings"]:
-                entity_uri = result["entity"]["value"]
-                degree = int(result["degree"]["value"])
-                sampled.append({
-                    "entity": entity_uri,
-                    "degree": degree
-                })
-
-            logger.info(f"Simple sampling returned {len(sampled)} entities (ordered by connectivity)")
-            return sampled
-
-        except Exception as e:
-            logger.error(f"Simple sampling also failed: {str(e)}")
-            return []
-
-    def _resolve_class_uri(self, class_name):
-        """
-        Resolve a class name (e.g., 'E22_Human-Made_Object' or 'crm:E22_Human-Made_Object') to full URI.
-        """
-        # If already a full URI, return as-is
-        if class_name.startswith("http://") or class_name.startswith("https://"):
-            return class_name
-
-        # Handle prefixed names like 'crm:E22_Human-Made_Object'
-        if ":" in class_name:
-            prefix, local = class_name.split(":", 1)
-            prefix_map = {
-                "crm": "http://www.cidoc-crm.org/cidoc-crm/",
-                "vir": "http://w3id.org/vir#",
-                "crmdig": "http://www.ics.forth.gr/isl/CRMdig/",
-                "frbroo": "http://iflastandards.info/ns/fr/frbr/frbroo/",
-            }
-            if prefix.lower() in prefix_map:
-                return prefix_map[prefix.lower()] + local
-            else:
-                logger.warning(f"Unknown prefix '{prefix}' in class name '{class_name}'")
-                return class_name
-
-        # Assume CIDOC-CRM namespace for bare class names like 'E22_Human-Made_Object'
-        return f"http://www.cidoc-crm.org/cidoc-crm/{class_name}"
 
     def get_relationship_weight(self, predicate_uri):
         """

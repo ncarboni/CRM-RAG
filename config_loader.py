@@ -1,5 +1,5 @@
 """
-Configuration loader for the Asinou Dataset Chatbot.
+Configuration loader for the CIDOC-CRM RAG system.
 This module handles loading configuration from environment files.
 """
 
@@ -7,11 +7,12 @@ import os
 import logging
 from typing import Dict, Any
 from dotenv import load_dotenv
+import yaml
 
 logger = logging.getLogger(__name__)
 
 class ConfigLoader:
-    """Configuration loader for the Asinou Dataset Chatbot"""
+    """Configuration loader for the CIDOC-CRM RAG system"""
     
     @staticmethod
     def load_config(env_file: str = None) -> Dict[str, Any]:
@@ -54,13 +55,23 @@ class ConfigLoader:
 
         # Load LLM provider configuration
         llm_provider = os.environ.get("LLM_PROVIDER", "openai").lower()
-        
+
+        # Load embedding provider (can be different from LLM provider)
+        # Options: openai, sentence-transformers (or "local"), ollama
+        embedding_provider = os.environ.get("EMBEDDING_PROVIDER", "").lower()
+        if not embedding_provider:
+            embedding_provider = llm_provider  # Default to same as LLM provider
+
         config = {
             "llm_provider": llm_provider,
-            "fuseki_endpoint": os.environ.get("FUSEKI_ENDPOINT", "http://localhost:3030/asinou/sparql"),
+            "embedding_provider": embedding_provider,
             "temperature": float(os.environ.get("TEMPERATURE", "0.7")),
-            "port": int(os.environ.get("PORT", "5001"))
+            "port": int(os.environ.get("PORT", "5001")),
+            # Embedding cache (default enabled)
+            "use_embedding_cache": os.environ.get("USE_EMBEDDING_CACHE", "true").lower() == "true",
         }
+
+        # Note: SPARQL endpoints are configured in config/datasets.yaml, not here
         
         # Add provider-specific configuration
         if llm_provider == "openai":
@@ -91,9 +102,61 @@ class ConfigLoader:
                 "embedding_model": os.environ.get("OLLAMA_EMBEDDING_MODEL", "nomic-embed-text"),
                 "host": os.environ.get("OLLAMA_HOST", "http://localhost:11434")
             })
-        
+
+        # Add embedding-specific configuration (for separate embedding provider)
+        if embedding_provider in ("sentence-transformers", "local"):
+            # For local embeddings, always use sentence-transformers compatible model
+            # Override any OpenAI model that might have been set
+            local_embedding_model = os.environ.get("EMBEDDING_MODEL", "BAAI/bge-m3")
+            # Don't use OpenAI model names with sentence-transformers
+            if local_embedding_model.startswith("text-embedding"):
+                local_embedding_model = "BAAI/bge-m3"
+
+            config.update({
+                "embedding_model": local_embedding_model,
+                "embedding_batch_size": int(os.environ.get("EMBEDDING_BATCH_SIZE", "64")),
+                "embedding_device": os.environ.get("EMBEDDING_DEVICE", "auto"),
+            })
+
         # Validate required configuration
         if llm_provider != "ollama" and not config.get("api_key"):
             logger.warning(f"{llm_provider.upper()}_API_KEY environment variable is not set! The application may not function correctly.")
-        
+
         return config
+
+    @staticmethod
+    def load_datasets_config() -> Dict[str, Any]:
+        """
+        Load datasets configuration from config/datasets.yaml.
+
+        Returns:
+            dict: Datasets configuration with 'datasets' dict and optional 'default_dataset'
+        """
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(base_dir, "config", "datasets.yaml")
+
+        # Default configuration if file doesn't exist (backward compatibility)
+        default_config = {
+            "datasets": {},
+            "default_dataset": None
+        }
+
+        if not os.path.exists(config_path):
+            logger.warning(f"Datasets config not found at {config_path}")
+            logger.info("Running in single-dataset mode (backward compatibility)")
+            return default_config
+
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = yaml.safe_load(f)
+
+            if not config or "datasets" not in config:
+                logger.warning("Invalid datasets.yaml: missing 'datasets' key")
+                return default_config
+
+            logger.info(f"Loaded {len(config['datasets'])} datasets from {config_path}")
+            return config
+
+        except Exception as e:
+            logger.error(f"Error loading datasets config: {str(e)}")
+            return default_config

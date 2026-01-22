@@ -1,0 +1,69 @@
+---
+URI: http://map.cnrs.fr/semantics/physical/0b861822-2c13-4ada-8773-5f14a9087c31
+Label: Bema
+Generated: 2026-01-22 12:23:21
+---
+
+# Bema
+
+URI: http://map.cnrs.fr/semantics/physical/0b861822-2c13-4ada-8773-5f14a9087c31
+
+## Types
+
+- Human-Made Object
+
+## Properties
+
+- **Label**: Bema
+
+## Relationships
+
+- Bema forms part of Our Lady of Moutoullas
+- Church is type of St. John Lampadistis
+- Church is same as Q16970
+- Church is type of Église des Cordeliers de Nancy
+- Our Lady of Moutoullas is composed of Bema
+- Painting of donors Ioannes and Irene occurs during Lusignan
+- Church is type of Saint Nicholas of the Roof
+- Our Lady of Moutoullas is same as Q13548161
+- Church is type of Church of the Virgin
+- Church is type of Palaia Enkleistra
+- North wall of sanctuary is classified as type: Architectural element
+- Our Lady of Moutoullas bears feature Donor Ioannes and Irene
+- Church is type of St. George of Ancona
+- Church is type of Virgin in Sklaverochori
+- Παναγία του Μουτουλά identifies Our Lady of Moutoullas
+- Q13548161 is same as Our Lady of Moutoullas
+- Painting of donors Ioannes and Irene has produced Donor Ioannes and Irene
+- Donor Ioannes and Irene is found on Our Lady of Moutoullas
+- Donor Ioannes and Irene was produced by Painting of donors Ioannes and Irene
+- North wall of sanctuary bears feature Donor Ioannes and Irene
+- Painting of donors Ioannes and Irene has time-span 1280-01-01
+- Donor Ioannes and Irene carries Supplication of the servant of God John son of Moutoullas, the founder, and of his wife Irene
+- Our Lady of Moutoullas was modified by Painting of donors Ioannes and Irene
+- Painting of donors Ioannes and Irene has modified Our Lady of Moutoullas
+- Church is type of St Irene
+- Church is type of Museum of the foundation of archbishop Makarios III
+- Church is type of Panagia Kanakaria
+- Church is type of Our Lady of Moutoullas
+- Donor Ioannes and Irene forms part of North wall of sanctuary
+- Church is type of Church of the Transfiguration
+- Donor Ioannes and Irene is found on North wall of sanctuary
+- Church is type of Asinou
+- Our Lady of Moutoullas is composed of North wall of sanctuary
+- Our Lady of Moutoullas is classified as type: Church
+- Church is type of Panagia Phorbiottisa
+- North wall of sanctuary forms part of Our Lady of Moutoullas
+- Donor Ioannes and Irene is denoted by Headdress of Irene
+- North wall of sanctuary is composed of Donor Ioannes and Irene
+- Church is type of Saint Dimitrianos
+- Church is type of Panagia Kera
+- Our Lady of Moutoullas is identified by Παναγία του Μουτουλά
+- North wall of sanctuary has current location place
+- Church is same as 300007466
+- Painting of donors Ioannes and Irene took place at Our Lady of Moutoullas
+- Painting of donors Ioannes and Irene is classified as type: Mural Painting
+- Church is type of St. Herakleidos
+- Church is type of St. Marina
+- Donor Ioannes and Irene is denoted by Irene
+- Church is type of Saints Joachim and Anna

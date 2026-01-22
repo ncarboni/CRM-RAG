@@ -1,0 +1,438 @@
+---
+URI: http://map.cnrs.fr/semantics/type/e932fb91-8333-47f3-9862-db213163f0d4
+Label: Church
+Generated: 2026-01-22 12:23:32
+---
+
+# Church
+
+URI: http://map.cnrs.fr/semantics/type/e932fb91-8333-47f3-9862-db213163f0d4
+
+## Types
+
+- Type
+
+## Properties
+
+- **Label**: Church
+
+## Relationships
+
+- Saint Mamas is found on Church of the Virgin
+- Painting of Anastasia has time-span 1175-01-01
+- Painting of the Virgin of Mercy has produced Virgin of Mercy
+- Church of the Transfiguration is classified as type: Church
+- St. Marina is identified by Αγία Μαρίνα
+- western arch has current location place
+- Wall paintings of 1332/33 took place at Panagia Phorbiottisa
+- Closing of the south door of the Narthex took place at Panagia Phorbiottisa
+- Scroll of heaven is found on western arch
+- Panagia Phorbiottisa bears feature Last judgment
+- Last judgment is found on St. John Lampadistis
+- Construction of Asinou occurs during Late Byzantine
+- Narthex is composed of South lunette
+- Saint George carries inscription
+- Mother of god Phorbiotissa is found on Asinou
+- Painting of the last judgment has time-span 1300-01-01
+- South lunette is composed of Saint George
+- Saints Joachim and Anna is identified by Αγίοι Ιωακείμ και Άννα
+- Last judgment is found on Panagia Phorbiottisa
+- Saint Mamas is found on Asinou
+- spatial currently holds Virgin in Sklaverochori
+- Painting of donors Ioannes and Irene took place at Our Lady of Moutoullas
+- Saint Nicholas of the Roof is composed of Narthex
+- Last judgment forms part of Narthex
+- western arch bears feature Scroll of heaven
+- Bema forms part of Asinou
+- Wall paintings of 1332/33 has modified Panagia Phorbiottisa
+- Our Lady of Moutoullas is composed of Bema
+- St. Marina has current location spatial
+- west lunette bears feature The preparation of the throne
+- Painting cycle of 1332/33 has produced Scroll of heaven
+- Gnashing of the teeth was produced by Painting cycle of 1332/33
+- Άγιος Νικόλαος της Στέγης identifies Saint Nicholas of the Roof
+- Panagia Phorbiottisa is composed of west lunette
+- St. Herakleidos is classified as type: Church
+- Panagia Phorbiottisa was produced by Construction of Asinou
+- western arch forms part of Asinou
+- Virgin of Mercy is denoted by Madonna della misericordia
+- Painting cycle of 1332/33 has produced The preparation of the throne
+- Painting of Anastasia has time-span 1375-01-01
+- Anastasias is denoted by Headdress of Anastasia Saramalina
+- Donor Ioannes and Irene is found on North wall of sanctuary
+- Panagia Phorbiottisa is composed of western arch
+- Our Lady of Moutoullas is composed of North wall of sanctuary
+- Donor Ioannes and Irene is denoted by Headdress of Irene
+- St. John Lampadistis is identified by Άγιος Ιωάννης ο Λαμπαδιστής
+- west lunette has current location place
+- Anastasias carries Prayer of the servant of god Anastasia Saramalina
+- Naos forms part of Panagia Phorbiottisa
+- Donor Michael Katzouroumpos and wife is denoted by Wife of Michael Katzouroumpos
+- Panagia Phorbiottisa is composed of Narthex
+- Panagia Phorbiottisa was modified by Closing of the south door of the Narthex
+- Statue of Hugues de Vaudemont was produced by Creation of the statue of Hugues de Vaudemont
+- Construction of Asinou has produced Asinou
+- Addition of the narthex has modified Panagia Phorbiottisa
+- Church of the Virgin bears feature Anastasia
+- Anastasia is found on Palaia Enkleistra
+- Panagia Phorbiottisa is classified as type: Church
+- Church is type of Virgin in Sklaverochori
+- Panagia Phorbiottisa is composed of West door
+- Construction of Asinou has modified Asinou
+- Painting of Anastasia took place at Palaia Enkleistra
+- South lunette forms part of Panagia Phorbiottisa
+- Anastasias is denoted by Saint Anastasia
+- Painting cycle of 1332/33 has produced Saint Mamas
+- spatial falls within Kition
+- South arch forms part of Asinou
+- west lunette is classified as type: Architectural element
+- Église des Cordeliers de Nancy is classified as type: Church
+- Painting of the last judgment took place at Panagia Kanakaria
+- Donor Ioannes and Irene forms part of North wall of sanctuary
+- Painting of the last judgment is classified as type: Mural Painting
+- Virgin in Sklaverochori has current location spatial
+- Last judgment was produced by Painting of the last Judgment
+- Naos is composed of Donor
+- Saint Dimitrianos is classified as type: Church
+- Saint Mamas is found on South lunette
+- Palaia Enkleistra is classified as type: Church
+- Panagia Phorbiottisa bears feature Mother of god Phorbiotissa
+- Saint Nicholas of the Roof is same as Q31841104
+- The preparation of the throne is found on Asinou
+- Saint Nicholas of the Roof is classified as type: Church
+- St. Herakleidos was modified by Painting of Anastasia
+- St. Marina is classified as type: Church
+- Museum of the foundation of archbishop Makarios III is same as Q42883662
+- North wall of sanctuary is classified as type: Architectural element
+- Εκκλησία της Παναγίας της Κεράς identifies Panagia Kera
+- Saint Nicholas of the Roof bears feature Last judgment
+- Wall paintings of 1332/33 has time-span 1332-01-01
+- Painting of Anastasias has time-span 1193-01-01
+- Painting of donors Ioannes and Irene has produced Donor Ioannes and Irene
+- Painting of the Virgin of Mercy has modified Panagia Phorbiottisa
+- Gnashing of the teeth is found on South arch
+- Collective torments was produced by Painting cycle of 1332/33
+- Painting cycle of 1332/33 has produced Collective torments
+- Painting of Anastasia has modified Church of the Virgin
+- Panagia Kera is identified by Εκκλησία της Παναγίας της Κεράς
+- St. John Lampadistis was modified by Painting of the last Judgment
+- Individual torments is found on Asinou
+- West door is classified as type: Architectural element
+- St. Herakleidos bears feature Anastasia
+- Statue of Hugues de Vaudemont is denoted by Hugues et Aigeline
+- Church is type of Asinou
+- Painting cycle of 1332/33 occurs during Lusignan
+- Saint George forms part of South lunette
+- Church is type of Saint Dimitrianos
+- Παναγία Φορβιώτισσα / Παναγία της Ασίνου identifies Panagia Phorbiottisa
+- Virgin of Mercy was produced by Painting of the Virgin of Mercy
+- Church of the Virgin is classified as type: Church
+- Palaia Enkleistra is identified by Παλαιά Εγκλείστρα
+- Naos has current location place
+- Panagia Phorbiottisa bears feature Virgin of Mercy
+- Painting cycle of 1332/33 has produced Gnashing of the teeth
+- Q2315482 is same as Église des Cordeliers de Nancy
+- Painting of Anastasias took place at Panagia Phorbiottisa
+- Individual torments is found on Panagia Phorbiottisa
+- Church is type of Palaia Enkleistra
+- Église des Cordeliers de Nancy is same as Q2315482
+- Panagia Phorbiottisa was modified by Initial painting
+- Fiery stream forms part of west lunette
+- Narthex has current location place
+- Q16970 is same as Church
+- Panagia Phorbiottisa is composed of South lunette
+- Donor forms part of Naos
+- Virgin in Sklaverochori is classified as type: Church
+- Panagia Kanakaria is classified as type: Church
+- Panagia Phorbiottisa is same as Q30773293
+- St Irene is classified as type: Church
+- Q30773293 is same as Asinou
+- Painting cycle of 1332/33 has time-span 1332-01-01
+- Παναγία Φορβιώτισσα / Παναγία της Ασίνου identifies Asinou
+- Painting of the Virgin of Mercy took place at Panagia Phorbiottisa
+- Saint George was produced by Painting of Saint George
+- Saint Mamas is found on Panagia Phorbiottisa
+- Palaia Enkleistra was modified by Painting of Anastasia
+- Collective torments is composed of Gnashing of the teeth
+- St Irene is identified by Ἁγία Εἰρήνη
+- West door forms part of Asinou
+- Painting of Anastasias is classified as type: Mural Painting
+- Painting of the last judgment has time-span 1280-01-01
+- South lunette is composed of Anastasias
+- Painting of the last judgment took place at Church of the Transfiguration
+- spatial currently holds St. George of Ancona
+- Painting of the Virgin of Mercy occurs during Lusignan
+- Panagia Phorbiottisa was modified by Wall paintings of 1332/33
+- The preparation of the throne is found on west lunette
+- Scroll of heaven was produced by Painting cycle of 1332/33
+- Construction of Asinou is classified as type: Construction
+- Saint George is found on Narthex
+- Painting of the Virgin of Mercy has time-span 1290-01-01
+- Παναγία του Μουτουλά identifies Our Lady of Moutoullas
+- Painting of the last judgment has modified Panagia Kanakaria
+- South lunette has current location place
+- Donor Ioannes and Irene is found on Our Lady of Moutoullas
+- Donor couple is denoted by Donor's wife
+- Painting cycle of 1332/33 has produced Fiery stream
+- Last judgment is found on Church of the Transfiguration
+- Narthex forms part of Asinou
+- Panagia Phorbiottisa is composed of Bema
+- Construction of the church of Demetrianos has produced Saint Dimitrianos
+- Addition of the narthex has modified Asinou
+- Scroll of heaven forms part of western arch
+- Panagia Phorbiottisa was modified by Construction of Asinou
+- South arch bears feature Individual torments
+- Museum of the foundation of archbishop Makarios III is classified as type: Church
+- Narthex bears feature Saint George
+- Panagia Phorbiottisa is composed of Naos
+- Anastasias was produced by Painting of Anastasias
+- Painting cycle of 1332/33 is classified as type: Mural Painting
+- Painting cycle of 1332/33 has modified Panagia Phorbiottisa
+- Naos forms part of Asinou
+- Wall paintings of 1332/33 occurs during Lusignan
+- spatial falls within Pediada
+- Individual torments forms part of South arch
+- Panagia Kera is same as Q1478037
+- Church is type of Église des Cordeliers de Nancy
+- Painting of the Virgin of Mercy has modified Asinou
+- Q42883662 is same as Museum of the foundation of archbishop Makarios III
+- Closing of the south door of the Narthex has modified Asinou
+- Statue of Hugues de Vaudemont is denoted by Headdress of Aigeline de Bourgogne
+- Anastasias forms part of South lunette
+- Collective torments forms part of South arch
+- South arch bears feature Gnashing of the teeth
+- Construction of Asinou has modified Panagia Phorbiottisa
+- Donor couple forms part of Narthex
+- Our Lady of Moutoullas was modified by Painting of donors Ioannes and Irene
+- west lunette forms part of Asinou
+- Painting of donors Ioannes and Irene has modified Our Lady of Moutoullas
+- South lunette forms part of Asinou
+- Anastasias is found on South lunette
+- west lunette forms part of Panagia Phorbiottisa
+- Saint Dimitrianos was modified by Construction of the church of Demetrianos
+- Church is type of Panagia Kanakaria
+- Painting of Anastasia has produced Anastasia
+- Construction of the church of Demetrianos occurs during Lusignan
+- Painting of Anastasia has modified St. Herakleidos
+- Saint Nicholas of the Roof is identified by Άγιος Νικόλαος της Στέγης
+- Anastasias is found on Asinou
+- spatial currently holds St Irene
+- Initial painting occurs during Late Byzantine
+- Virgin of Mercy is denoted by Kneeling youth
+- Gnashing of the teeth is found on Panagia Phorbiottisa
+- Church of the Virgin bears feature Saint Mamas
+- Q30773293 is same as Panagia Phorbiottisa
+- Narthex is composed of west lunette
+- South arch bears feature Collective torments
+- South arch is composed of Collective torments
+- Painting of Anastasias has produced Anastasias
+- Virgin of Mercy is denoted by Latin Donor
+- Collective torments is found on Asinou
+- Church is type of St. John Lampadistis
+- Painting of Anastasia has modified Palaia Enkleistra
+- Panagia Phorbiottisa bears feature Donor
+- Church is type of Saint Nicholas of the Roof
+- Narthex is composed of western arch
+- Saint George is found on Asinou
+- Saint Dimitrianos is identified by Ἅγιος Δημητριανός
+- Αγία Μαρίνα identifies St. Marina
+- Bema forms part of Panagia Phorbiottisa
+- Q13548161 is same as Our Lady of Moutoullas
+- Panagia Phorbiottisa was modified by Addition of the narthex
+- Painting of Anastasias occurs during Lusignan
+- Anastasia is denoted by Saint Anastasia
+- Painting of the last Judgment has produced Last judgment
+- west lunette is composed of Fiery stream
+- Donor is found on Panagia Phorbiottisa
+- Individual torments is found on South arch
+- Painting of the last judgment has modified Church of the Transfiguration
+- South arch has current location place
+- Donor Michael Katzouroumpos and wife was produced by Construction of the church of Demetrianos
+- South lunette bears feature Anastasias
+- Last judgment was produced by Painting cycle of 1332/33
+- Panagia Kanakaria was modified by Painting of the last judgment
+- The preparation of the throne forms part of west lunette
+- Église des Cordeliers de Nancy bears feature Statue of Hugues de Vaudemont
+- Our Lady of Moutoullas is same as Q13548161
+- Q1478037 is same as Panagia Kera
+- Church of the Virgin was modified by Painting of Anastasia
+- St. John Lampadistis is classified as type: Church
+- Panagia Phorbiottisa was modified by Painting of the Virgin of Mercy
+- Virgin of Mercy is found on Asinou
+- Palaia Enkleistra bears feature Anastasia
+- Church is type of St Irene
+- Church is type of Church of the Transfiguration
+- Painting of Anastasia has time-span 1443-01-01
+- spatial falls within Malatheros/Kisamos
+- Painting of the last judgment has produced Last judgment
+- North wall of sanctuary is composed of Donor Ioannes and Irene
+- Our Lady of Moutoullas is identified by Παναγία του Μουτουλά
+- Scroll of heaven is found on Asinou
+- 300007466 is same as Church
+- Virgin of Mercy forms part of South lunette
+- Painting of Anastasia took place at Church of the Virgin
+- Panagia Phorbiottisa bears feature Individual torments
+- Construction of the church of Demetrianos took place at Saint Dimitrianos
+- Addition of the narthex is classified as type: Architectural addition
+- Painting cycle of 1332/33 has modified Asinou
+- Closing of the south door of the Narthex has modified Panagia Phorbiottisa
+- The preparation of the throne was produced by Painting cycle of 1332/33
+- Panagia Phorbiottisa was modified by Painting of Saint George
+- Panagia Phorbiottisa is identified by Παναγία Φορβιώτισσα / Παναγία της Ασίνου
+- South lunette is classified as type: Apse
+- Painting of donors Ioannes and Irene has time-span 1280-01-01
+- Saint Nicholas of the Roof bears feature Donor couple
+- Narthex forms part of St. John Lampadistis
+- spatial falls within Pedoulas
+- Virgin of Mercy is denoted by Christ child
+- Church is type of Panagia Phorbiottisa
+- Painting of the last Judgment is classified as type: Mural Painting
+- Initial painting is classified as type: Mural Painting
+- Saint George is denoted by Saint George on a horseback
+- Painting of Saint George has modified Panagia Phorbiottisa
+- Painting of Saint George has time-span 1164-01-01
+- Narthex forms part of Saint Nicholas of the Roof
+- Bema forms part of Our Lady of Moutoullas
+- Initial painting has modified Asinou
+- Collective torments is found on South arch
+- Individual torments was produced by Painting cycle of 1332/33
+- western arch forms part of Narthex
+- Panagia Kanakaria bears feature Last judgment
+- Wall paintings of 1332/33 has modified Asinou
+- Painting of the last Judgment has modified St. John Lampadistis
+- Addition of the narthex occurs during Late Byzantine
+- Ἅγιος Δημητριανός identifies Saint Dimitrianos
+- Mother of god Phorbiotissa is found on Panagia Phorbiottisa
+- North wall of sanctuary bears feature Donor Ioannes and Irene
+- Saint Mamas was produced by Painting cycle of 1332/33
+- Narthex is composed of South arch
+- Painting cycle of 1332/33 has produced Individual torments
+- Anastasias is found on Panagia Phorbiottisa
+- Church is type of Saints Joachim and Anna
+- Painting of the last judgment occurs during Lusignan
+- Painting of the last Judgment occurs during Lusignan
+- Scroll of heaven is found on Panagia Phorbiottisa
+- West door forms part of Narthex
+- Anastasia is found on Church of the Virgin
+- Saint Dimitrianos bears feature Donor Michael Katzouroumpos and wife
+- St. George of Ancona is classified as type: Church
+- Gnashing of the teeth forms part of South arch
+- Last judgment is found on Saint Nicholas of the Roof
+- Q31841104 is same as Saint Nicholas of the Roof
+- Initial painting has modified Panagia Phorbiottisa
+- South arch is composed of Individual torments
+- Wall paintings of 1332/33 is classified as type: Mural Painting
+- western arch forms part of Panagia Phorbiottisa
+- Παλαιά Εγκλείστρα identifies Palaia Enkleistra
+- St. George of Ancona has current location spatial
+- Construction of Asinou took place at Panagia Phorbiottisa
+- Church is type of Panagia Kera
+- spatial currently holds St. Marina
+- Painting of Anastasias has modified Asinou
+- Initial painting took place at Panagia Phorbiottisa
+- The preparation of the throne is found on Panagia Phorbiottisa
+- Initial painting has time-span 1105-01-01
+- Narthex is composed of Donor couple
+- Church is same as Q16970
+- St. John Lampadistis bears feature Last judgment
+- South lunette bears feature Saint Mamas
+- Painting of Saint George has produced Saint George
+- Painting of the Virgin of Mercy is classified as type: Mural Painting
+- Narthex bears feature Last judgment
+- Fiery stream is found on Panagia Phorbiottisa
+- Panagia Phorbiottisa bears feature The preparation of the throne
+- Painting of Saint George has modified Asinou
+- South lunette is composed of Virgin of Mercy
+- Virgin of Mercy is found on Panagia Phorbiottisa
+- South arch is composed of Gnashing of the teeth
+- Construction of the church of Demetrianos has time-span 1317-01-01
+- South lunette forms part of Narthex
+- Construction of the church of Demetrianos has modified Saint Dimitrianos
+- Anastasia is found on St. Herakleidos
+- St. John Lampadistis is composed of Narthex
+- Fiery stream was produced by Painting cycle of 1332/33
+- Donor couple is found on Saint Nicholas of the Roof
+- Donor carries inscription
+- Church of the Transfiguration was modified by Painting of the last judgment
+- Painting cycle of 1332/33 took place at Panagia Phorbiottisa
+- Addition of the narthex took place at Panagia Phorbiottisa
+- Anastasia was produced by Painting of Anastasia
+- Αγίοι Ιωακείμ και Άννα identifies Saints Joachim and Anna
+- West door is composed of Mother of god Phorbiotissa
+- Painting of Anastasias has modified Panagia Phorbiottisa
+- Saint Dimitrianos was produced by Construction of the church of Demetrianos
+- West door has current location place
+- Narthex is composed of West door
+- Panagia Phorbiottisa bears feature Gnashing of the teeth
+- Church is type of Church of the Virgin
+- Narthex forms part of Panagia Phorbiottisa
+- Painting of Anastasia took place at St. Herakleidos
+- Panagia Phorbiottisa was modified by Painting of Anastasias
+- west lunette is composed of The preparation of the throne
+- Last judgment is found on Asinou
+- Last judgment was produced by Painting of the last judgment
+- Naos bears feature Donor
+- Panagia Phorbiottisa bears feature Saint Mamas
+- Church is type of Our Lady of Moutoullas
+- Church of the Transfiguration bears feature Last judgment
+- Άγιος Ιωάννης ο Λαμπαδιστής identifies St. John Lampadistis
+- Narthex is composed of Last judgment
+- North wall of sanctuary has current location place
+- Panagia Kera is classified as type: Church
+- Panagia Phorbiottisa is composed of South arch
+- Painting of donors Ioannes and Irene is classified as type: Mural Painting
+- Painting of Anastasia is classified as type: Mural Painting
+- Panagia Phorbiottisa bears feature Saint George
+- west lunette bears feature Fiery stream
+- South arch forms part of Narthex
+- South arch forms part of Panagia Phorbiottisa
+- Our Lady of Moutoullas bears feature Donor Ioannes and Irene
+- Panagia Phorbiottisa was modified by Painting cycle of 1332/33
+- Donor is found on Asinou
+- Mother of god Phorbiotissa forms part of West door
+- Painting of Saint George took place at Panagia Phorbiottisa
+- Saint George is found on Panagia Phorbiottisa
+- Statue of Hugues de Vaudemont is found on Église des Cordeliers de Nancy
+- Construction of Asinou has time-span 1099-01-01
+- Donor is denoted by Nikephoros Ischyrios
+- Gnashing of the teeth is found on Asinou
+- North wall of sanctuary forms part of Our Lady of Moutoullas
+- Saints Joachim and Anna is classified as type: Church
+- Painting of Anastasia occurs during Lusignan
+- St Irene has current location spatial
+- Church is type of St. Herakleidos
+- Fiery stream is found on west lunette
+- Panagia Phorbiottisa bears feature Anastasias
+- Painting of the last Judgment has time-span 1453-01-01
+- Anastasias is denoted by Anastasia Saramalina
+- Donor Michael Katzouroumpos and wife is found on Saint Dimitrianos
+- Painting of donors Ioannes and Irene occurs during Lusignan
+- Panagia Phorbiottisa bears feature Fiery stream
+- Last judgment is found on Panagia Kanakaria
+- Construction of Asinou has produced Panagia Phorbiottisa
+- Church is type of St. George of Ancona
+- Gnashing of the teeth forms part of Collective torments
+- Painting of Saint George is classified as type: Mural Painting
+- Donor Ioannes and Irene was produced by Painting of donors Ioannes and Irene
+- Painting of the last Judgment took place at St. John Lampadistis
+- Donor Ioannes and Irene carries Supplication of the servant of God John son of Moutoullas, the founder, and of his wife Irene
+- Panagia Phorbiottisa bears feature Scroll of heaven
+- Panagia Phorbiottisa bears feature Collective torments
+- Church is type of Museum of the foundation of archbishop Makarios III
+- Construction of the church of Demetrianos is classified as type: Construction
+- western arch is composed of Scroll of heaven
+- Collective torments is found on Panagia Phorbiottisa
+- The preparation of the throne is denoted by Preparation of the throne
+- Addition of the narthex has time-span 1115-01-01
+- Donor is found on Naos
+- Our Lady of Moutoullas is classified as type: Church
+- Painting cycle of 1332/33 has produced Last judgment
+- Construction of the church of Demetrianos has produced Donor Michael Katzouroumpos and wife
+- Church is same as 300007466
+- Ἁγία Εἰρήνη identifies St Irene
+- West door forms part of Panagia Phorbiottisa
+- Last judgment is found on Narthex
+- west lunette forms part of Narthex
+- Church is type of St. Marina
+- Donor Ioannes and Irene is denoted by Irene
+- Fiery stream is found on Asinou

@@ -1,0 +1,323 @@
+---
+URI: http://map.cnrs.fr/semantics/type/772a5b43-edcc-4003-a2d8-58f8624ff227
+Label: Mural Painting
+Generated: 2026-01-22 12:23:26
+---
+
+# Mural Painting
+
+URI: http://map.cnrs.fr/semantics/type/772a5b43-edcc-4003-a2d8-58f8624ff227
+
+## Types
+
+- Type
+
+## Properties
+
+- **Label**: Mural Painting
+
+## Relationships
+
+- Late Byzantine occurs during Initial painting
+- Initial painting took place at Panagia Phorbiottisa
+- The preparation of the throne is found on Panagia Phorbiottisa
+- Initial painting has time-span 1105-01-01
+- Panagia Kanakaria was modified by Painting of the last judgment
+- Last judgment was produced by Painting cycle of 1332/33
+- Palaia Enkleistra is identified by Παλαιά Εγκλείστρα
+- Panagia Phorbiottisa falls within Nikitari
+- Panagia Phorbiottisa witnessed Initial painting
+- Mural Painting is type of Painting cycle of 1332/33
+- The preparation of the throne forms part of west lunette
+- Panagia Phorbiottisa contains Naos
+- Painting of Madonna dei Francescani has produced Madonna dei Francescani
+- St. John Lampadistis bears feature Last judgment
+- Painting of Saint George has produced Saint George
+- 1375-01-01 is time-span of Painting of Anastasia
+- Painting of the Virgin of Mercy is classified as type: Mural Painting
+- 1175-01-01 is time-span of Painting of Anastasia
+- Painting of Anastasia has time-span 1175-01-01
+- Panagia Phorbiottisa bears feature Virgin of Mercy
+- Painting cycle of 1332/33 has produced Gnashing of the teeth
+- Fiery stream is found on Panagia Phorbiottisa
+- Our Lady of Moutoullas is same as Q13548161
+- Painting of the Virgin of Mercy has produced Virgin of Mercy
+- Individual torments is found on Panagia Phorbiottisa
+- Church of the Virgin was modified by Painting of Anastasia
+- Painting of Anastasias took place at Panagia Phorbiottisa
+- Panagia Phorbiottisa bears feature The preparation of the throne
+- Late Byzantine occurs during Construction of Asinou
+- Painting of Saint George has modified Asinou
+- St. John Lampadistis is classified as type: Church
+- Church of the Transfiguration is classified as type: Church
+- Virgin of Mercy is found on Panagia Phorbiottisa
+- 300033618 is same as Painting
+- Painting of Madonna dei Francescani has time-span 1280-01-01
+- Panagia Phorbiottisa was modified by Initial painting
+- Fiery stream forms part of west lunette
+- 1300-01-01 is time-span of Painting of the last judgment
+- Mural Painting is type of Wall paintings of 1332/33
+- Church of the Virgin falls within Kophinou
+- Wall paintings of 1332/33 took place at Panagia Phorbiottisa
+- Painting is same as 300033618
+- Anastasia is found on St. Herakleidos
+- 1443-01-01 is time-span of Painting of Anastasia
+- Panagia Phorbiottisa witnessed Construction of Asinou
+- St. John Lampadistis is composed of Narthex
+- Scroll of heaven is found on western arch
+- Fiery stream was produced by Painting cycle of 1332/33
+- Panagia Phorbiottisa was modified by Painting of the Virgin of Mercy
+- Panagia Phorbiottisa bears feature Last judgment
+- Palaia Enkleistra bears feature Anastasia
+- Virgin of Mercy is found on Asinou
+- Last judgment is found on St. John Lampadistis
+- Panagia Phorbiottisa is composed of South lunette
+- Panagia Phorbiottisa currently holds Asinou
+- Painting of Anastasias has modified Asinou
+- 1332-01-01 is time-span of Painting cycle of 1332/33
+- Saint George carries inscription
+- Lusignan occurs during Construction of the church of Demetrianos
+- Mural Painting is type of Painting of Anastasias
+- Painting of Anastasia has time-span 1443-01-01
+- Panagia Kanakaria is classified as type: Church
+- Painting of the last judgment has time-span 1300-01-01
+- 1290-01-01 is time-span of Painting of the Virgin of Mercy
+- Panagia Phorbiottisa is same as Q30773293
+- Painting of the last judgment has produced Last judgment
+- Lusignan occurs during Painting of the last Judgment
+- Palaia Enkleistra falls within Kouklia
+- Painting cycle of 1332/33 has time-span 1332-01-01
+- Our Lady of Moutoullas is identified by Παναγία του Μουτουλά
+- Saint Mamas is found on Panagia Phorbiottisa
+- Mural Painting has broader term Painting
+- Saint George was produced by Painting of Saint George
+- Church of the Transfiguration was modified by Painting of the last judgment
+- Painting cycle of 1332/33 took place at Panagia Phorbiottisa
+- Palaia Enkleistra was modified by Painting of Anastasia
+- Painting of the Virgin of Mercy took place at Panagia Phorbiottisa
+- Lusignan occurs during Painting of the Virgin of Mercy
+- Scroll of heaven is found on Asinou
+- Last judgment is found on Panagia Phorbiottisa
+- Painting of Madonna dei Francescani is classified as type: Painting
+- Collective torments is composed of Gnashing of the teeth
+- Saint Mamas is found on Asinou
+- Painting of donors Ioannes and Irene took place at Our Lady of Moutoullas
+- Anastasia was produced by Painting of Anastasia
+- Last judgment forms part of Narthex
+- Virgin of Mercy forms part of South lunette
+- Panagia Phorbiottisa bears feature Individual torments
+- Painting of Anastasia took place at Church of the Virgin
+- Painting of Anastasias is classified as type: Mural Painting
+- Painting of the last judgment has time-span 1280-01-01
+- Painting of the last judgment took place at Church of the Transfiguration
+- Wall paintings of 1332/33 has modified Panagia Phorbiottisa
+- Our Lady of Moutoullas is composed of Bema
+- Painting of Anastasias has modified Panagia Phorbiottisa
+- Painting of the Virgin of Mercy occurs during Lusignan
+- Painting is type of Painting of Madonna dei Francescani
+- 1193-01-01 is time-span of Painting of Anastasias
+- Panagia Phorbiottisa bears feature Gnashing of the teeth
+- Panagia Phorbiottisa contains Bema
+- Panagia Phorbiottisa was modified by Wall paintings of 1332/33
+- Church of the Transfiguration witnessed Painting of the last judgment
+- The preparation of the throne is found on west lunette
+- Painting cycle of 1332/33 has modified Asinou
+- Scroll of heaven was produced by Painting cycle of 1332/33
+- Saint George is found on Narthex
+- Painting cycle of 1332/33 has produced Scroll of heaven
+- Mural Painting is type of Painting of Anastasia
+- Painting of the Virgin of Mercy has time-span 1290-01-01
+- Painting of Anastasia took place at St. Herakleidos
+- Gnashing of the teeth was produced by Painting cycle of 1332/33
+- Painting of the last judgment has modified Panagia Kanakaria
+- Panagia Phorbiottisa was modified by Painting of Saint George
+- Panagia Phorbiottisa is identified by Παναγία Φορβιώτισσα / Παναγία της Ασίνου
+- The preparation of the throne was produced by Painting cycle of 1332/33
+- Panagia Phorbiottisa was modified by Painting of Anastasias
+- Donor Ioannes and Irene is found on Our Lady of Moutoullas
+- Panagia Phorbiottisa is composed of west lunette
+- Mural Painting is type of Painting of Saint George
+- Panagia Phorbiottisa was produced by Construction of Asinou
+- Last judgment is found on Church of the Transfiguration
+- Painting cycle of 1332/33 has produced Fiery stream
+- Last judgment is found on Asinou
+- Virgin of Mercy is denoted by Madonna della misericordia
+- Panagia Phorbiottisa is composed of Bema
+- Last judgment was produced by Painting of the last judgment
+- Painting cycle of 1332/33 has produced The preparation of the throne
+- Painting of Anastasia has time-span 1375-01-01
+- Panagia Phorbiottisa contains Narthex
+- Painting of donors Ioannes and Irene has time-span 1280-01-01
+- Scroll of heaven forms part of western arch
+- Panagia Phorbiottisa was modified by Construction of Asinou
+- Panagia Phorbiottisa bears feature Saint Mamas
+- 1105-01-01 is time-span of Initial painting
+- Palaia Enkleistra witnessed Painting of Anastasia
+- Virgin of Mercy is denoted by Christ child
+- Panagia Phorbiottisa is composed of Naos
+- Church of the Transfiguration bears feature Last judgment
+- St. John Lampadistis falls within Kalopanayiotis
+- Mural Painting is type of Painting of the last judgment
+- Anastasias was produced by Painting of Anastasias
+- Lusignan occurs during Painting of Anastasias
+- Donor Ioannes and Irene is found on North wall of sanctuary
+- Anastasias is denoted by Headdress of Anastasia Saramalina
+- Panagia Phorbiottisa is composed of western arch
+- Painting cycle of 1332/33 is classified as type: Mural Painting
+- Our Lady of Moutoullas falls within Moutoullas
+- Painting cycle of 1332/33 has modified Panagia Phorbiottisa
+- Our Lady of Moutoullas is composed of North wall of sanctuary
+- Our Lady of Moutoullas witnessed Painting of donors Ioannes and Irene
+- Donor Ioannes and Irene is denoted by Headdress of Irene
+- Painting of the last Judgment is classified as type: Mural Painting
+- Initial painting is classified as type: Mural Painting
+- Saint George is denoted by Saint George on a horseback
+- Church of the Transfiguration falls within Sotíra
+- St. John Lampadistis is identified by Άγιος Ιωάννης ο Λαμπαδιστής
+- Panagia Phorbiottisa is composed of South arch
+- Painting of donors Ioannes and Irene is classified as type: Mural Painting
+- Anastasias carries Prayer of the servant of god Anastasia Saramalina
+- Painting of Anastasia is classified as type: Mural Painting
+- Panagia Phorbiottisa bears feature Saint George
+- Lusignan occurs during Painting cycle of 1332/33
+- Painting of Saint George has modified Panagia Phorbiottisa
+- Late Byzantine has time-span 965-01-01
+- Lusignan occurs during Painting of the last judgment
+- Panagia Phorbiottisa is composed of Narthex
+- Individual torments forms part of South arch
+- Panagia Phorbiottisa was modified by Closing of the south door of the Narthex
+- Painting of Saint George has time-span 1164-01-01
+- Wall paintings of 1332/33 occurs during Lusignan
+- Panagia Phorbiottisa contains South lunette
+- Mural Painting is type of Initial painting
+- Painting of the Virgin of Mercy has modified Asinou
+- Mural Painting is type of Painting of the last Judgment
+- St. Herakleidos witnessed Painting of Anastasia
+- Initial painting has modified Asinou
+- Lusignan occurs during Painting of donors Ioannes and Irene
+- St. Herakleidos is classified as type: Church
+- Anastasias forms part of South lunette
+- Collective torments forms part of South arch
+- 1332-01-01 is time-span of Wall paintings of 1332/33
+- Lusignan is same as entity 9758548
+- Our Lady of Moutoullas bears feature Donor Ioannes and Irene
+- Panagia Kanakaria witnessed Painting of the last judgment
+- Individual torments was produced by Painting cycle of 1332/33
+- Panagia Phorbiottisa was modified by Painting cycle of 1332/33
+- Panagia Phorbiottisa is classified as type: Church
+- Collective torments is found on South arch
+- Anastasia is found on Palaia Enkleistra
+- Church of the Virgin bears feature Anastasia
+- Church of the Virgin witnessed Painting of Anastasia
+- Panagia Kanakaria bears feature Last judgment
+- Panagia Phorbiottisa witnessed Addition of the narthex
+- Wall paintings of 1332/33 has modified Asinou
+- Panagia Phorbiottisa is composed of West door
+- Painting of the last Judgment has modified St. John Lampadistis
+- Painting of Anastasia took place at Palaia Enkleistra
+- Anastasias is denoted by Saint Anastasia
+- Painting has narrower term Mural Painting
+- Painting cycle of 1332/33 has produced Saint Mamas
+- Painting of Saint George took place at Panagia Phorbiottisa
+- Saint George is found on Panagia Phorbiottisa
+- Saint Mamas was produced by Painting cycle of 1332/33
+- Our Lady of Moutoullas was modified by Painting of donors Ioannes and Irene
+- Panagia Phorbiottisa witnessed Painting cycle of 1332/33
+- Painting of donors Ioannes and Irene has modified Our Lady of Moutoullas
+- Lusignan is same as Q213638
+- 1280-01-01 is time-span of Painting of donors Ioannes and Irene
+- Anastasias is found on South lunette
+- Painting of the last judgment took place at Panagia Kanakaria
+- Panagia Kanakaria falls within Lythragkomi
+- Painting of the last judgment is classified as type: Mural Painting
+- Gnashing of the teeth is found on Asinou
+- Donor Ioannes and Irene forms part of North wall of sanctuary
+- Painting of Anastasia has produced Anastasia
+- Painting of Anastasia has modified St. Herakleidos
+- Last judgment was produced by Painting of the last Judgment
+- Painting cycle of 1332/33 has produced Individual torments
+- Anastasias is found on Asinou
+- Anastasias is found on Panagia Phorbiottisa
+- Painting of Anastasia occurs during Lusignan
+- Initial painting occurs during Late Byzantine
+- Fiery stream is found on west lunette
+- Gnashing of the teeth is found on Panagia Phorbiottisa
+- Virgin of Mercy is denoted by Kneeling youth
+- Church of the Virgin bears feature Saint Mamas
+- Panagia Phorbiottisa witnessed Painting of the Virgin of Mercy
+- Painting of the last judgment occurs during Lusignan
+- Saint Mamas is found on South lunette
+- Panagia Phorbiottisa bears feature Mother of god Phorbiotissa
+- Palaia Enkleistra is classified as type: Church
+- Painting of the last Judgment occurs during Lusignan
+- Painting of Anastasias has produced Anastasias
+- Panagia Phorbiottisa bears feature Anastasias
+- Virgin of Mercy is denoted by Latin Donor
+- Anastasias is denoted by Anastasia Saramalina
+- Painting of the last Judgment has time-span 1453-01-01
+- Collective torments is found on Asinou
+- Lusignan occurs during Wall paintings of 1332/33
+- Painting of donors Ioannes and Irene occurs during Lusignan
+- Painting of Anastasia has modified Palaia Enkleistra
+- The preparation of the throne is found on Asinou
+- Lusignan has time-span 1191-01-01
+- Panagia Phorbiottisa bears feature Donor
+- Panagia Phorbiottisa witnessed Wall paintings of 1332/33
+- St. Herakleidos was modified by Painting of Anastasia
+- Panagia Phorbiottisa bears feature Fiery stream
+- Last judgment is found on Panagia Kanakaria
+- Lusignan occurs during Painting of Anastasia
+- Scroll of heaven is found on Panagia Phorbiottisa
+- Anastasia is found on Church of the Virgin
+- Mural Painting is type of Painting of donors Ioannes and Irene
+- Saint George is found on Asinou
+- Wall paintings of 1332/33 has time-span 1332-01-01
+- St. John Lampadistis witnessed Painting of the last Judgment
+- St. Herakleidos falls within Kalopanayiotis
+- Painting of Anastasias has time-span 1193-01-01
+- Gnashing of the teeth forms part of Collective torments
+- Panagia Phorbiottisa witnessed Closing of the south door of the Narthex
+- Painting of donors Ioannes and Irene has produced Donor Ioannes and Irene
+- Panagia Phorbiottisa was modified by Addition of the narthex
+- Gnashing of the teeth forms part of South arch
+- Panagia Phorbiottisa witnessed Painting of Saint George
+- Painting of the Virgin of Mercy has modified Panagia Phorbiottisa
+- Painting of Saint George is classified as type: Mural Painting
+- Gnashing of the teeth is found on South arch
+- Collective torments was produced by Painting cycle of 1332/33
+- Painting cycle of 1332/33 has produced Collective torments
+- Donor Ioannes and Irene was produced by Painting of donors Ioannes and Irene
+- Painting of Anastasia has modified Church of the Virgin
+- Initial painting has modified Panagia Phorbiottisa
+- Mural Painting is type of Painting of the Virgin of Mercy
+- Painting of Anastasias occurs during Lusignan
+- Donor Ioannes and Irene carries Supplication of the servant of God John son of Moutoullas, the founder, and of his wife Irene
+- Painting of the last Judgment took place at St. John Lampadistis
+- Late Byzantine occurs during Addition of the narthex
+- Panagia Phorbiottisa bears feature Scroll of heaven
+- Panagia Phorbiottisa bears feature Collective torments
+- Anastasia is denoted by Saint Anastasia
+- Panagia Phorbiottisa witnessed Painting of Anastasias
+- Individual torments is found on Asinou
+- 1164-01-01 is time-span of Painting of Saint George
+- Wall paintings of 1332/33 is classified as type: Mural Painting
+- St. John Lampadistis was modified by Painting of the last Judgment
+- St. Herakleidos bears feature Anastasia
+- Collective torments is found on Panagia Phorbiottisa
+- The preparation of the throne is denoted by Preparation of the throne
+- Painting of the last Judgment has produced Last judgment
+- Individual torments is found on South arch
+- 1453-01-01 is time-span of Painting of the last Judgment
+- Painting cycle of 1332/33 occurs during Lusignan
+- Saint George forms part of South lunette
+- Our Lady of Moutoullas is classified as type: Church
+- Painting of the last judgment has modified Church of the Transfiguration
+- Painting cycle of 1332/33 has produced Last judgment
+- Mural Painting is same as 300033644
+- 300033644 is same as Mural Painting
+- 1280-01-01 is time-span of Painting of the last judgment
+- Last judgment is found on Narthex
+- Virgin of Mercy was produced by Painting of the Virgin of Mercy
+- Donor Ioannes and Irene is denoted by Irene
+- Church of the Virgin is classified as type: Church
+- Fiery stream is found on Asinou

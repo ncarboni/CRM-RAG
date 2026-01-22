@@ -1,0 +1,163 @@
+---
+URI: http://map.cnrs.fr/semantics/physical/1a22e725-7eeb-4865-b40f-879b9965062d
+Label: West door
+Generated: 2026-01-22 12:23:20
+---
+
+# West door
+
+URI: http://map.cnrs.fr/semantics/physical/1a22e725-7eeb-4865-b40f-879b9965062d
+
+## Types
+
+- Human-Made Object
+
+## Properties
+
+- **Label**: West door
+
+## Relationships
+
+- South lunette bears feature Anastasias
+- Last judgment was produced by Painting cycle of 1332/33
+- place currently holds Narthex
+- Narthex is composed of Donor couple
+- South lunette bears feature Saint Mamas
+- Panagia Phorbiottisa bears feature Virgin of Mercy
+- Narthex bears feature Last judgment
+- Architectural element is same as 300000885
+- Panagia Phorbiottisa bears feature The preparation of the throne
+- South lunette is composed of Virgin of Mercy
+- Panagia Phorbiottisa was modified by Initial painting
+- South arch is composed of Gnashing of the teeth
+- Naos has broader term Architectural element
+- western arch has current location place
+- South lunette forms part of Narthex
+- Soffit is same as 300003614
+- Apse is type of South lunette
+- Apse has broader term Architectural element
+- Conch is same as 300133015
+- Panagia Phorbiottisa was modified by Painting of the Virgin of Mercy
+- Panagia Phorbiottisa bears feature Last judgment
+- Narthex has current location place
+- Donor couple is found on Saint Nicholas of the Roof
+- Panagia Phorbiottisa is composed of South lunette
+- place currently holds West door
+- Narthex is composed of South lunette
+- Saint George carries inscription
+- Mother of god Phorbiotissa is found on Asinou
+- Architectural element has narrower term Arch
+- Panagia Phorbiottisa is same as Q30773293
+- North wall of sanctuary is composed of Donor Ioannes and Irene
+- Saint George was produced by Painting of Saint George
+- South lunette is composed of Saint George
+- Last judgment is found on Panagia Phorbiottisa
+- West door forms part of Asinou
+- Last judgment forms part of Narthex
+- western arch bears feature Scroll of heaven
+- Panagia Phorbiottisa bears feature Individual torments
+- Narthex is same as 300004624
+- South lunette is composed of Anastasias
+- West door is composed of Mother of god Phorbiotissa
+- Apse is same as Q170463
+- Soffit has broader term Architectural element
+- West door has current location place
+- Narthex is composed of West door
+- Panagia Phorbiottisa bears feature Gnashing of the teeth
+- Panagia Phorbiottisa was modified by Wall paintings of 1332/33
+- west lunette bears feature The preparation of the throne
+- Architectural element has narrower term Naos
+- Narthex forms part of Panagia Phorbiottisa
+- Saint George is found on Narthex
+- Architectural element is type of North wall of sanctuary
+- Panagia Phorbiottisa was modified by Painting of Saint George
+- Panagia Phorbiottisa is identified by Παναγία Φορβιώτισσα / Παναγία της Ασίνου
+- South lunette has current location place
+- Panagia Phorbiottisa was modified by Painting of Anastasias
+- Panagia Phorbiottisa is composed of west lunette
+- Donor couple is denoted by Donor's wife
+- west lunette is composed of The preparation of the throne
+- Panagia Phorbiottisa was produced by Construction of Asinou
+- western arch forms part of Asinou
+- Last judgment is found on Asinou
+- Narthex forms part of Asinou
+- Panagia Phorbiottisa is composed of Bema
+- South lunette is classified as type: Apse
+- Naos is same as 300185263
+- Architectural element has narrower term Bema
+- Panagia Phorbiottisa was modified by Construction of Asinou
+- South arch bears feature Individual torments
+- Panagia Phorbiottisa bears feature Saint Mamas
+- Narthex bears feature Saint George
+- Panagia Phorbiottisa is composed of Naos
+- Naos is same as Q827125
+- Bema has broader term Architectural element
+- Panagia Phorbiottisa is composed of western arch
+- Conch is same as Q170463
+- Apse is same as 300004607
+- North wall of sanctuary has current location place
+- Narthex is composed of Last judgment
+- Saint George is denoted by Saint George on a horseback
+- west lunette has current location place
+- Bema is same as Q2029217
+- Panagia Phorbiottisa is composed of South arch
+- Panagia Phorbiottisa bears feature Saint George
+- west lunette bears feature Fiery stream
+- South arch forms part of Narthex
+- Panagia Phorbiottisa is composed of Narthex
+- Panagia Phorbiottisa was modified by Closing of the south door of the Narthex
+- Architectural element is type of West door
+- South arch forms part of Panagia Phorbiottisa
+- South arch bears feature Gnashing of the teeth
+- Architectural element has narrower term Narthex
+- Conch has broader term Architectural element
+- Panagia Phorbiottisa was modified by Painting cycle of 1332/33
+- Panagia Phorbiottisa is classified as type: Church
+- western arch forms part of Narthex
+- Panagia Phorbiottisa is composed of West door
+- South lunette forms part of Panagia Phorbiottisa
+- Mother of god Phorbiotissa is found on Panagia Phorbiottisa
+- Donor couple forms part of Narthex
+- North wall of sanctuary bears feature Donor Ioannes and Irene
+- Saint George is found on Panagia Phorbiottisa
+- Mother of god Phorbiotissa forms part of West door
+- west lunette forms part of Asinou
+- South arch forms part of Asinou
+- South lunette forms part of Asinou
+- Narthex is composed of South arch
+- west lunette is classified as type: Architectural element
+- west lunette forms part of Panagia Phorbiottisa
+- Architectural element is type of west lunette
+- Narthex has broader term Architectural element
+- North wall of sanctuary forms part of Our Lady of Moutoullas
+- Architectural element has narrower term Apse
+- Narthex is composed of west lunette
+- South arch bears feature Collective torments
+- Panagia Phorbiottisa bears feature Mother of god Phorbiotissa
+- South arch is composed of Collective torments
+- Panagia Phorbiottisa bears feature Anastasias
+- Bema is same as 300266806
+- Panagia Phorbiottisa bears feature Donor
+- Panagia Phorbiottisa bears feature Fiery stream
+- North wall of sanctuary is classified as type: Architectural element
+- West door forms part of Narthex
+- Narthex is composed of western arch
+- Saint George is found on Asinou
+- Panagia Phorbiottisa was modified by Addition of the narthex
+- South arch is composed of Individual torments
+- Panagia Phorbiottisa bears feature Scroll of heaven
+- Panagia Phorbiottisa bears feature Collective torments
+- western arch forms part of Panagia Phorbiottisa
+- West door is classified as type: Architectural element
+- western arch is composed of Scroll of heaven
+- west lunette is composed of Fiery stream
+- Arch has broader term Architectural element
+- Saint George forms part of South lunette
+- Architectural element has narrower term Soffit
+- South arch has current location place
+- Last judgment is found on Narthex
+- West door forms part of Panagia Phorbiottisa
+- west lunette forms part of Narthex
+- 300000885 is same as Architectural element
+- Architectural element has narrower term Conch
+- Narthex is same as Q208576

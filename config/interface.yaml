@@ -1,27 +1,30 @@
-# Chat Interface Customization
-# This file controls the text and appearance of the chat interface
-# Edit these values to customize the chatbot for your dataset
+# Default Interface Configuration
+# These are system-level defaults used when a dataset doesn't specify its own interface config.
+# For dataset-specific customization, add an 'interface' section to your dataset in datasets.yaml.
 
-# Page and header titles
-page_title: "Museum Collection Chat"
-header_title: "Museum Collection Chatbot"
+# Page and header titles (generic defaults)
+page_title: "CIDOC-CRM RAG Chat"
+header_title: "CIDOC-CRM RAG System"
 
 # Welcome message (shown when chat loads)
-welcome_message: "Hello! I'm your Collection assistant. I can answer questions about the Museum Collection, its artworks, artists, and exhibitions. How can I help you today?"
+welcome_message: "Hello! I'm your cultural heritage assistant. Select a dataset from the dropdown above, then ask me questions about the knowledge graph."
 
 # Input placeholder text
-input_placeholder: "Ask about Museum Collection, its artworks, artists..."
+input_placeholder: "Ask a question about the dataset..."
 
-# Example questions (shown below the input box)
-# You can add/remove/modify these questions
+# Footer (shown in base template)
+footer_title: "CIDOC-CRM Knowledge Graph Explorer"
+footer_subtitle: "Powered by graph-based RAG with CIDOC-CRM ontology"
+
+# Example questions (generic - datasets should override these)
 example_questions:
-  - "Which pieces from Swiss Artists are in the museum?"
-  - "Which exhibitions contain artwork from France?"
+  - "What entities are in this dataset?"
+  - "Tell me about the main objects"
 
-# About section
+# About section - describes the RAG system (not dataset-specific)
 about:
-  title: "About This Chat"
-  description: "This chat interface uses an advanced graph-based Retrieval-Augmented Generation (RAG) system with the following features:"
+  title: "About This System"
+  description: "This chat interface uses an advanced graph-based Retrieval-Augmented Generation (RAG) system designed for CIDOC-CRM cultural heritage data."
   features:
     - title: "Graph-Based Document Retrieval"
       description: "Documents are organized as a graph with weighted edges based on CIDOC-CRM relationship semantics"

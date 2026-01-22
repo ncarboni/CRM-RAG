@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Main application file for the Asinou Dataset Chatbot.
+Main application file for the CIDOC-CRM RAG system.
 This file contains all the Flask routes and application initialization.
 """
 
@@ -15,8 +15,8 @@ import yaml
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_from_directory, abort
 from logging.handlers import RotatingFileHandler
-from universal_rag_system import UniversalRagSystem
 from config_loader import ConfigLoader
+from dataset_manager import DatasetManager
 
 # Configure logging
 logging.basicConfig(
@@ -30,29 +30,56 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Parse command-line arguments
-parser = argparse.ArgumentParser(description='Asinou Dataset Chatbot')
+parser = argparse.ArgumentParser(description='CIDOC-CRM RAG System')
 parser.add_argument('--env', type=str, help='Path to environment file')
 parser.add_argument('--rebuild', action='store_true', help='Force rebuild of document graph and vector store')
-parser.add_argument('--sample', type=int, default=None,
-                    help='Sample N entities using connected subgraph sampling for testing (e.g., --sample 100)')
-parser.add_argument('--extend-sample', type=int, default=None,
-                    help='Extend existing sample by N additional entities (e.g., --extend-sample 5000). Builds on existing graph without deleting.')
-parser.add_argument('--sample-classes', type=str, default=None,
-                    help='Comma-separated CIDOC-CRM classes to prioritize for sampling seeds (e.g., "E22_Human-Made_Object,E53_Place"). If not specified, auto-detects most connected classes.')
+parser.add_argument('--embedding-provider', type=str, default=None,
+                    choices=['openai', 'sentence-transformers', 'local', 'ollama'],
+                    help='Embedding provider to use. "local" or "sentence-transformers" uses local embeddings (fast, no API). Default: same as LLM provider.')
+parser.add_argument('--embedding-model', type=str, default=None,
+                    help='Embedding model name. For sentence-transformers: "BAAI/bge-m3" (default), "all-MiniLM-L6-v2" (fast), etc.')
+parser.add_argument('--no-embedding-cache', action='store_true',
+                    help='Disable embedding cache (force re-embedding all documents)')
+parser.add_argument('--dataset', type=str, default=None,
+                    help='Dataset ID to process (from datasets.yaml). Use with --rebuild to process a specific dataset.')
+parser.add_argument('--process-only', action='store_true',
+                    help='Process the dataset and exit without starting the web server. Use with --dataset.')
+parser.add_argument('--generate-docs-only', action='store_true',
+                    help='Generate entity documents from SPARQL without computing embeddings. Use this locally, then transfer docs to cluster for embedding.')
+parser.add_argument('--embed-from-docs', action='store_true',
+                    help='Generate embeddings from existing document files (no SPARQL needed). Use on cluster after transferring docs.')
 args = parser.parse_args()
 
 # Load configuration
 config = ConfigLoader.load_config(args.env)
 
-# Pass sampling config if specified
-if args.sample:
-    config['entity_sample_size'] = args.sample
-    config['sample_classes'] = [c.strip() for c in args.sample_classes.split(',')] if args.sample_classes else None
+# Pass embedding provider config if specified via CLI
+if args.embedding_provider:
+    config['embedding_provider'] = args.embedding_provider
+    logger.info(f"Using embedding provider from CLI: {args.embedding_provider}")
 
-# Pass extend-sample config if specified
-if args.extend_sample:
-    config['extend_sample_size'] = args.extend_sample
-    config['sample_classes'] = [c.strip() for c in args.sample_classes.split(',')] if args.sample_classes else None
+    # Set default embedding model for local provider if not explicitly specified
+    if args.embedding_provider in ('local', 'sentence-transformers') and not args.embedding_model:
+        # Don't use OpenAI model names with sentence-transformers
+        current_model = config.get('embedding_model', '')
+        if current_model.startswith('text-embedding') or 'openai' in current_model.lower():
+            config['embedding_model'] = 'BAAI/bge-m3'
+            logger.info(f"Using default sentence-transformers model: BAAI/bge-m3")
+
+if args.embedding_model:
+    config['embedding_model'] = args.embedding_model
+    logger.info(f"Using embedding model from CLI: {args.embedding_model}")
+if args.no_embedding_cache:
+    config['use_embedding_cache'] = False
+    logger.info("Embedding cache disabled via CLI")
+
+# Document generation / embedding modes
+if args.generate_docs_only:
+    config['generate_docs_only'] = True
+    logger.info("Generate docs only mode: will create documents without embeddings")
+if args.embed_from_docs:
+    config['embed_from_docs'] = True
+    logger.info("Embed from docs mode: will generate embeddings from existing documents")
 
 # Load interface customization from YAML
 def load_interface_config():
@@ -110,11 +137,20 @@ if not secret_key:
     logger.warning("Sessions will not persist across server restarts. Set FLASK_SECRET_KEY in .env for production")
 app.config['SECRET_KEY'] = secret_key
 
-# Initialize the RAG system with configuration
-rag_system = UniversalRagSystem(
-    endpoint_url=config.get("fuseki_endpoint"),
-    config=config
-)
+# Load datasets configuration
+datasets_config = ConfigLoader.load_datasets_config()
+
+# Require datasets.yaml configuration
+if not datasets_config.get('datasets'):
+    logger.error("No datasets configured. Please create config/datasets.yaml with at least one dataset.")
+    print("ERROR: No datasets configured.")
+    print("Please create config/datasets.yaml with your SPARQL endpoints.")
+    print("See config/datasets.yaml.example or README.md for configuration instructions.")
+    sys.exit(1)
+
+# Use DatasetManager for lazy loading of datasets
+logger.info(f"Found {len(datasets_config['datasets'])} datasets in configuration")
+dataset_manager = DatasetManager(datasets_config, config)
 
 # Windows device names that should be blocked (case-insensitive)
 WINDOWS_DEVICE_NAMES = {
@@ -209,102 +245,164 @@ def chat():
 @app.route('/api/entity/<path:entity_uri>/wikidata')
 def get_entity_wikidata(entity_uri):
     """API endpoint to get Wikidata information for a specific entity"""
-    wikidata_id = rag_system.get_wikidata_for_entity(entity_uri)
-    
+    # Get dataset_id from query parameter (use default if not specified)
+    dataset_id = request.args.get('dataset_id') or datasets_config.get('default_dataset')
+
+    if not dataset_id:
+        return jsonify({"error": "dataset_id is required"}), 400
+
+    try:
+        current_rag = dataset_manager.get_dataset(dataset_id)
+    except (ValueError, RuntimeError):
+        return jsonify({"error": "Dataset not available"}), 500
+
+    wikidata_id = current_rag.get_wikidata_for_entity(entity_uri)
+
     if not wikidata_id:
         return jsonify({"error": "No Wikidata ID found for this entity"}), 404
-    
-    wikidata_info = rag_system.fetch_wikidata_info(wikidata_id)
-    
+
+    wikidata_info = current_rag.fetch_wikidata_info(wikidata_id)
+
     if not wikidata_info:
         return jsonify({"error": f"Could not fetch Wikidata info for ID: {wikidata_id}"}), 404
-    
+
     return jsonify(wikidata_info)
+
+@app.route('/api/datasets', methods=['GET'])
+def list_datasets():
+    """API endpoint to list available datasets"""
+    return jsonify({
+        "datasets": dataset_manager.list_datasets(),
+        "default": datasets_config.get('default_dataset')
+    })
+
+
+@app.route('/api/datasets/<dataset_id>/select', methods=['POST'])
+def select_dataset(dataset_id):
+    """API endpoint to initialize and select a dataset, returns interface config"""
+    try:
+        # This will lazy-load the dataset if not already loaded
+        dataset_manager.get_dataset(dataset_id)
+        # Get merged interface config
+        merged_interface = dataset_manager.get_interface_config(dataset_id, interface_config)
+        return jsonify({
+            "success": True,
+            "interface": merged_interface,
+            "initialized": True
+        })
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+    except RuntimeError as e:
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route('/api/chat', methods=['POST'])
 def chat_api():
     """API endpoint for chat functionality"""
     question = request.json.get('question', '')
-    logger.info(f"Chat request: '{question}'")
-    
-    # Use the direct approach to answer the question
-    result = rag_system.answer_question(question)
+    dataset_id = request.json.get('dataset_id')
+    logger.info(f"Chat request: '{question}' (dataset: {dataset_id})")
+
+    if not dataset_id:
+        return jsonify({"error": "dataset_id is required"}), 400
+
+    try:
+        current_rag = dataset_manager.get_dataset(dataset_id)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 404
+    except RuntimeError as e:
+        return jsonify({"error": str(e)}), 500
+
+    # Use the RAG system to answer the question
+    result = current_rag.answer_question(question)
     return jsonify(result)
 
 @app.route('/api/info', methods=['GET'])
 def info_api():
     """API endpoint to get system information"""
-    # Get dataset description from config or use default
-    dataset_description = config.get(
-        "dataset_description",
-        "Asinou church dataset including frescoes, iconography, and cultural heritage objects"
-    )
-
     return jsonify({
         "llm_provider": config.get("llm_provider", "unknown"),
         "llm_model": config.get("model", "unknown"),
         "embedding_model": config.get("embedding_model", "unknown"),
-        "dataset_description": dataset_description,
+        "datasets_count": len(datasets_config.get('datasets', {})),
+        "default_dataset": datasets_config.get('default_dataset'),
     })
 
 if __name__ == '__main__':
     # Get port from environment or use default 5001
     port = config.get("port", 5001)
 
-    # Force rebuild if requested
+    # Determine which dataset to process
+    target_dataset = args.dataset
+    if target_dataset:
+        # Validate dataset exists
+        available_datasets = list(datasets_config.get('datasets', {}).keys())
+        if target_dataset not in available_datasets:
+            print(f"ERROR: Dataset '{target_dataset}' not found.")
+            print(f"Available datasets: {', '.join(available_datasets)}")
+            sys.exit(1)
+        logger.info(f"Target dataset specified: {target_dataset}")
+
+    # Handle rebuild mode
     if args.rebuild:
         logger.info("Rebuilding document graph and vector store...")
-        # Delete existing files
-        if os.path.exists('data/cache/document_graph.pkl'):
-            os.remove('data/cache/document_graph.pkl')
-        if os.path.exists('data/cache/vector_index'):
-            shutil.rmtree('data/cache/vector_index')
+        rebuild_ds = target_dataset or datasets_config.get('default_dataset')
+        if rebuild_ds:
+            cache_paths = dataset_manager.get_cache_paths(rebuild_ds)
+            if os.path.exists(cache_paths['document_graph']):
+                os.remove(cache_paths['document_graph'])
+            if os.path.exists(cache_paths['vector_index_dir']):
+                shutil.rmtree(cache_paths['vector_index_dir'])
+            # Also clear embedding cache if it exists
+            embedding_cache_dir = os.path.join(cache_paths['cache_dir'], 'embeddings')
+            if os.path.exists(embedding_cache_dir):
+                shutil.rmtree(embedding_cache_dir)
+            logger.info(f"Cleared cache for dataset: {rebuild_ds}")
+        else:
+            logger.warning("No dataset specified and no default_dataset configured")
 
     # Initialize the system
     try:
-        # First, check if saved data exists
-        if (os.path.exists('data/cache/document_graph.pkl') and os.path.exists('data/cache/vector_index/index.faiss')):
-            logger.info("Found existing data, loading...")
-            if rag_system.initialize():
-                logger.info("Successfully loaded existing data")
-            else:
-                raise Exception("Failed to load existing data")
+        if target_dataset:
+            # Process specific dataset
+            logger.info(f"Processing dataset: {target_dataset}")
+            dataset_manager.get_dataset(target_dataset)
+            logger.info(f"Successfully processed dataset: {target_dataset}")
+
+            # If --process-only, exit without starting server
+            if args.process_only:
+                print(f"Dataset '{target_dataset}' processed successfully.")
+                print("Exiting (--process-only mode).")
+                sys.exit(0)
         else:
-            # If we need to create new data, check whether it would exceed rate limits
-            entities = rag_system.get_all_entities()
-            total_entities = len(entities)
-            logger.info(f"Need to process {total_entities} entities")
-            
-            if total_entities > 500:  # Threshold that might cause rate limiting
-                logger.warning(f"Large dataset with {total_entities} entities may exceed rate limits")
-                logger.warning("Consider running initialization with a higher batch size and longer sleep times")
-                
-                if not args.rebuild:  # Only ask for confirmation if not explicitly rebuilding
-                    response = input("Do you want to continue with initialization? (y/n): ")
-                    if response.lower() != 'y':
-                        logger.info("Initialization cancelled. Starting with limited functionality")
-                        print("Application starting with limited functionality")
-                        app.run(debug=False, host='127.0.0.1', port=port)
-                        sys.exit()
-            
-            logger.info("Initializing system with new data...")
-            if rag_system.initialize():
-                logger.info("Successfully initialized with new data")
-            else:
-                raise Exception("Failed to initialize with new data")
+            # Lazy loading, no initialization needed at startup
+            logger.info("Datasets will be loaded on first access")
+            # Optionally pre-load the default dataset if it has cache
+            default_ds = datasets_config.get('default_dataset')
+            if default_ds and not args.rebuild:
+                cache_paths = dataset_manager.get_cache_paths(default_ds)
+                if os.path.exists(cache_paths['document_graph']) and os.path.exists(cache_paths['vector_index']):
+                    logger.info(f"Pre-loading default dataset: {default_ds}")
+                    try:
+                        dataset_manager.get_dataset(default_ds)
+                        logger.info(f"Successfully loaded default dataset: {default_ds}")
+                    except Exception as e:
+                        logger.warning(f"Could not pre-load default dataset: {str(e)}")
+                        logger.info("Dataset will be loaded on first access")
     except Exception as e:
         logger.error(f"Error initializing the system: {str(e)}")
         logger.error("Application cannot start without proper initialization")
         print(f"ERROR: {str(e)}")
         print("Application cannot start without proper initialization. Please fix the issues and try again.")
         sys.exit(1)
-    
+
     # Print explicit startup information
     print(f"Starting Flask application...")
     print(f"Running on http://localhost:{port}")
     print(f"Using LLM provider: {config.get('llm_provider')}")
     print(f"Using model: {config.get('model')}")
+    print(f"Available datasets: {len(datasets_config.get('datasets', {}))}")
     print(f"Press CTRL+C to stop the server")
-    
+
     # Run the Flask application
     app.run(debug=False, host='127.0.0.1', port=port)

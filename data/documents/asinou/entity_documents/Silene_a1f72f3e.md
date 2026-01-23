@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/c064d87d-4cc1-4e59-805a-f4361ac03e19
 Label: Silene
-Generated: 2026-01-22 19:11:52
+Generated: 2026-01-22 19:14:02
 ---
 
 # Silene
@@ -21,5 +21,5 @@ URI: http://map.cnrs.fr/semantics/attribute/c064d87d-4cc1-4e59-805a-f4361ac03e19
 
 ## Relationships
 
-- Silene depict things of type City
 - Silene is attribute of Saint George and the Dragon
+- Silene depict things of type City

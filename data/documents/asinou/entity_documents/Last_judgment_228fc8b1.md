@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/21639642-185a-4b43-83d8-f2ffb1b094b4/
 Label: Last judgment
-Generated: 2026-01-22 19:11:58
+Generated: 2026-01-22 19:14:13
 ---
 
 # Last judgment

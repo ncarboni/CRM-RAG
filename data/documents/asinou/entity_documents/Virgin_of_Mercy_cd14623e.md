@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/a91fc27d-1793-457c-b0ba-14abd048eb12/
 Label: Virgin of Mercy
-Generated: 2026-01-22 19:11:58
+Generated: 2026-01-22 19:14:13
 ---
 
 # Virgin of Mercy

@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/visual/atom/8a00e6a5-5328-4142-89ad-2cf4b77f6152
 Label: Madonna dei Francescani
-Generated: 2026-01-22 19:11:56
+Generated: 2026-01-22 19:14:10
 ---
 
 # Madonna dei Francescani
@@ -19,7 +19,7 @@ URI: http://map.cnrs.fr/semantics/visual/atom/8a00e6a5-5328-4142-89ad-2cf4b77f61
 
 ## Relationships
 
+- Painting of Madonna dei Francescani is classified as type: Painting
+- Painting of Madonna dei Francescani has time-span 1280-01-01
 - Madonna dei Francescani was produced by Painting of Madonna dei Francescani
 - Painting of Madonna dei Francescani has produced Madonna dei Francescani
-- Painting of Madonna dei Francescani has time-span 1280-01-01
-- Painting of Madonna dei Francescani is classified as type: Painting

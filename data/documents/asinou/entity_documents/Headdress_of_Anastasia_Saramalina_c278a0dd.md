@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/5f9d7a0d-4918-462e-8192-9e5980697f7d/
 Label: Headdress of Anastasia Saramalina
-Generated: 2026-01-22 19:11:57
+Generated: 2026-01-22 19:14:12
 ---
 
 # Headdress of Anastasia Saramalina

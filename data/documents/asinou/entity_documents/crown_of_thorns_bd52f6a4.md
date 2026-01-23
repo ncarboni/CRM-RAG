@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/fda43205-10c4-4d7b-87c3-cece9e97d814
 Label: crown of thorns
-Generated: 2026-01-22 19:11:52
+Generated: 2026-01-22 19:14:03
 ---
 
 # crown of thorns

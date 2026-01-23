@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/gr/0062f461-2dc8-4830-b53a-c3ad0f8d65a4/
 Label: Παναγία Φορβιώτισσα / Παναγία της Ασίνου
-Generated: 2026-01-22 19:11:55
+Generated: 2026-01-22 19:14:07
 ---
 
 # Παναγία Φορβιώτισσα / Παναγία της Ασίνου
@@ -18,5 +18,5 @@ URI: http://map.cnrs.fr/semantics/appellation/gr/0062f461-2dc8-4830-b53a-c3ad0f8
 
 ## Relationships
 
-- Παναγία Φορβιώτισσα / Παναγία της Ασίνου identifies Asinou
 - Παναγία Φορβιώτισσα / Παναγία της Ασίνου identifies Panagia Phorbiottisa
+- Παναγία Φορβιώτισσα / Παναγία της Ασίνου identifies Asinou

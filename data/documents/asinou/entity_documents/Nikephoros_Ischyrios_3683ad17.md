@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/82ed2224-1e26-4758-ae9e-443fd9618e62/
 Label: Nikephoros Ischyrios
-Generated: 2026-01-22 19:11:56
+Generated: 2026-01-22 19:14:10
 ---
 
 # Nikephoros Ischyrios

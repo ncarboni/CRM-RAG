@@ -1,7 +1,7 @@
 ---
 URI: http://w3id.org/vir#
 Label: VIR - Visual Representation ontology
-Generated: 2026-01-22 19:11:59
+Generated: 2026-01-22 19:14:16
 ---
 
 # VIR - Visual Representation ontology

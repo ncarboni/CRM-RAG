@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/icon/b6248830-ea02-4708-9987-ca7dceadb10e
 Label: Headdress of Irene
-Generated: 2026-01-22 19:11:56
+Generated: 2026-01-22 19:14:10
 ---
 
 # Headdress of Irene
@@ -20,6 +20,6 @@ URI: http://map.cnrs.fr/semantics/icon/b6248830-ea02-4708-9987-ca7dceadb10e
 ## Relationships
 
 - Headdress of Irene is denoted by Donor Ioannes and Irene
-- Headdress of Irene is composed of Irene
-- Headdress of Irene has attribute barbette
 - Headdress of Irene has attribute crespine
+- Headdress of Irene has attribute barbette
+- Headdress of Irene is composed of Irene

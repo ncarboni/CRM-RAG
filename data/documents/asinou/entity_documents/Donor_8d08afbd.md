@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/type/dea1b7d0-4f64-493f-a9ad-98ef7a925828
 Label: Donor
-Generated: 2026-01-22 19:11:55
+Generated: 2026-01-22 19:14:09
 ---
 
 # Donor
@@ -20,7 +20,7 @@ URI: http://map.cnrs.fr/semantics/type/dea1b7d0-4f64-493f-a9ad-98ef7a925828
 
 - Donor is type of Anna
 - Donor is type of Donor's wife
-- Donor is type of Irene
 - Donor is type of Anastasia Saramalina
 - Donor is type of Wife of Michael Katzouroumpos
+- Donor is type of Irene
 - Donor is type of Latin Donor

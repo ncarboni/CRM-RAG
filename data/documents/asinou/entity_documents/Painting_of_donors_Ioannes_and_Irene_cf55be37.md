@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/7236f21f-3b96-49c2-b603-a5e58890cf41/
 Label: Painting of donors Ioannes and Irene
-Generated: 2026-01-22 19:11:54
+Generated: 2026-01-22 19:14:05
 ---
 
 # Painting of donors Ioannes and Irene

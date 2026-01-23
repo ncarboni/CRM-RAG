@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/fdb0a716-904e-40b8-9460-696db46c4185/
 Label: Painting
-Generated: 2026-01-22 19:11:59
+Generated: 2026-01-22 19:14:16
 ---
 
 # Painting

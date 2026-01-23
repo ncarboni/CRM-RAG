@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/0776d830-2df2-46b5-a15a-5cfec4fe2f94/
 Label: Painting of Madonna dei Francescani
-Generated: 2026-01-22 19:11:54
+Generated: 2026-01-22 19:14:05
 ---
 
 # Painting of Madonna dei Francescani

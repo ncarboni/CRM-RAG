@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/c90ebe45-9e2e-464d-b16f-abab5017bd42/
 Label: Lion
-Generated: 2026-01-22 19:11:52
+Generated: 2026-01-22 19:14:02
 ---
 
 # Lion

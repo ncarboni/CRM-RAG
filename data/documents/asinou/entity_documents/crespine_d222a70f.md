@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/6045e520-7a05-45ca-ba24-a09d8dbf5e1a
 Label: crespine
-Generated: 2026-01-22 19:11:52
+Generated: 2026-01-22 19:14:03
 ---
 
 # crespine
@@ -19,6 +19,6 @@ URI: http://map.cnrs.fr/semantics/attribute/6045e520-7a05-45ca-ba24-a09d8dbf5e1a
 
 ## Relationships
 
-- crespine is attribute of Headdress of Aigeline de Bourgogne
 - crespine is attribute of Headdress of Anastasia Saramalina
+- crespine is attribute of Headdress of Aigeline de Bourgogne
 - crespine is attribute of Headdress of Irene

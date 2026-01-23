@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/type/81f80f5a-6635-4a98-a62a-66715a6f83c1
 Label: Mantle
-Generated: 2026-01-22 19:11:50
+Generated: 2026-01-22 19:13:55
 ---
 
 # Mantle
@@ -18,6 +18,6 @@ URI: http://map.cnrs.fr/semantics/type/81f80f5a-6635-4a98-a62a-66715a6f83c1
 
 ## Relationships
 
-- Mantle depict things of type Mapharion
-- Mantle is same as 300212298
 - Mantle is same as 41D2122
+- Mantle is same as 300212298
+- Mantle depict things of type Mapharion

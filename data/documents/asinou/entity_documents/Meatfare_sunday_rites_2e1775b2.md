@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/423d47f3-9d7b-4d60-9230-47c51016a7d9/
 Label: Meatfare sunday rites
-Generated: 2026-01-22 19:11:58
+Generated: 2026-01-22 19:14:13
 ---
 
 # Meatfare sunday rites

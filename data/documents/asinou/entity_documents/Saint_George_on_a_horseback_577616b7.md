@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/a1e034f3-555f-446b-a19f-050ab86077a0/
 Label: Saint George on a horseback
-Generated: 2026-01-22 19:11:57
+Generated: 2026-01-22 19:14:12
 ---
 
 # Saint George on a horseback

@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/96eaa076-78e3-4530-b3ad-77ac7ba2efc8
 Label: diaphanous robe
-Generated: 2026-01-22 19:11:52
+Generated: 2026-01-22 19:14:03
 ---
 
 # diaphanous robe

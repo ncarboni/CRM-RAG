@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/type/61eeb198-fd6c-4737-a7c1-8b38cda290c8
 Label: City
-Generated: 2026-01-22 19:11:52
+Generated: 2026-01-22 19:14:02
 ---
 
 # City

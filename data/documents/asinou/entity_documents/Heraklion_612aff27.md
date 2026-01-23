@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/e8c1b159-7c54-412a-9f0c-c9d40bba3b86/
 Label: Heraklion
-Generated: 2026-01-22 19:11:58
+Generated: 2026-01-22 19:14:14
 ---
 
 # Heraklion

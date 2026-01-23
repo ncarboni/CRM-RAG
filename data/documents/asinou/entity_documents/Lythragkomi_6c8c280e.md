@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/location/1456170a-df9f-4300-8cef-3279d32754a7/
 Label: Lythragkomi
-Generated: 2026-01-22 19:11:55
+Generated: 2026-01-22 19:14:09
 ---
 
 # Lythragkomi
@@ -19,6 +19,6 @@ URI: http://map.cnrs.fr/semantics/location/1456170a-df9f-4300-8cef-3279d32754a7/
 
 ## Relationships
 
+- Lythragkomi falls within Turkish Republic of Northern Cyprus
 - Lythragkomi is same as Q891613
 - Lythragkomi contains Panagia Kanakaria
-- Lythragkomi falls within Turkish Republic of Northern Cyprus

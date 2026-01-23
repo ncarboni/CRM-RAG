@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/fcc34cdb-f1b4-422e-bca3-f3844acf4ba6
 Label: horse
-Generated: 2026-01-22 19:11:52
+Generated: 2026-01-22 19:14:03
 ---
 
 # horse
@@ -19,6 +19,6 @@ URI: http://map.cnrs.fr/semantics/attribute/fcc34cdb-f1b4-422e-bca3-f3844acf4ba6
 
 ## Relationships
 
-- horse is attribute of Saint George and the Dragon
 - horse is attribute of Saint George on a horseback
+- horse is attribute of Saint George and the Dragon
 - horse is attribute of Sunset

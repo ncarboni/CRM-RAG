@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/81f80f5a-6635-4a98-a62a-66715a6f83c1/
 Label: Mantle
-Generated: 2026-01-22 19:11:59
+Generated: 2026-01-22 19:14:15
 ---
 
 # Mantle

@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/f618f1e0-6291-4a8e-a186-f3a863f8ad25/
 Label: Conch
-Generated: 2026-01-22 19:11:59
+Generated: 2026-01-22 19:14:16
 ---
 
 # Conch

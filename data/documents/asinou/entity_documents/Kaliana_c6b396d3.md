@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/location/27c5e9f8-1a38-424c-9f85-cc06ac849726/
 Label: Kaliana
-Generated: 2026-01-22 19:11:55
+Generated: 2026-01-22 19:14:07
 ---
 
 # Kaliana
@@ -19,6 +19,6 @@ URI: http://map.cnrs.fr/semantics/location/27c5e9f8-1a38-424c-9f85-cc06ac849726/
 
 ## Relationships
 
+- Kaliana contains Saints Joachim and Anna
 - Kaliana is same as Q6352500
 - Kaliana falls within Cyprus
-- Kaliana contains Saints Joachim and Anna

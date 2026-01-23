@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/production/db214583-9e3e-4935-be5f-159697761450
 Label: Painting of Anastasia
-Generated: 2026-01-22 13:35:37
+Generated: 2026-01-22 19:11:54
 ---
 
 # Painting of Anastasia
@@ -18,153 +18,69 @@ URI: http://map.cnrs.fr/semantics/production/db214583-9e3e-4935-be5f-15969776145
 
 ## Relationships
 
-- Mural Painting is type of Painting of Anastasia
-- Church is type of Palaia Enkleistra
-- Church is type of Panagia Kera
-- Painting of the last Judgment took place at St. John Lampadistis
-- Mural Painting has broader term Painting
-- Painting cycle of 1332/33 took place at Panagia Phorbiottisa
-- Painting of Anastasia took place at Palaia Enkleistra
-- Painting of the Virgin of Mercy took place at Panagia Phorbiottisa
-- Painting of donors Ioannes and Irene is classified as type: Mural Painting
-- Lusignan occurs during Painting of Anastasias
-- Mural Painting is type of Painting cycle of 1332/33
-- Painting of Saint George took place at Panagia Phorbiottisa
-- Church of the Virgin bears feature Anastasia
-- Lusignan occurs during Construction of the church of Demetrianos
-- entity 9758548 is same as Lusignan
-- Lusignan occurs during Painting of Anastasia
-- 1191-01-01 is time-span of Lusignan
-- Wall paintings of 1332/33 has modified Panagia Phorbiottisa
-- Construction of the church of Demetrianos has produced Donor Michael Katzouroumpos and wife
-- Lusignan occurs during Painting cycle of 1332/33
-- Anastasia is denoted by Saint Anastasia
-- Church is type of Saint Nicholas of the Roof
-- Lusignan has time-span 1191-01-01
-- Painting cycle of 1332/33 occurs during Lusignan
-- Initial painting is classified as type: Mural Painting
-- Lusignan occurs during Painting of the last judgment
-- Lusignan occurs during Painting of the last Judgment
-- Painting of the last Judgment is classified as type: Mural Painting
-- Construction of the church of Demetrianos occurs during Lusignan
-- Anastasia is found on Church of the Virgin
-- Painting of Saint George has time-span 1164-01-01
-- Church is type of Saints Joachim and Anna
-- Mural Painting is type of Wall paintings of 1332/33
-- Construction of the church of Demetrianos took place at Saint Dimitrianos
-- Painting of Anastasia has produced Anastasia
-- Painting of Anastasia has modified Church of the Virgin
-- Painting of the last Judgment has produced Last judgment
-- Lusignan occurs during Wall paintings of 1332/33
-- Wall paintings of 1332/33 is classified as type: Mural Painting
-- Kophinou contains Church of the Virgin
-- Painting of the Virgin of Mercy has time-span 1290-01-01
-- Church is type of St. Herakleidos
-- Painting of Anastasia occurs during Lusignan
-- Painting of Anastasia has modified Palaia Enkleistra
-- Painting of Anastasias occurs during Lusignan
-- Mural Painting is type of Painting of the last Judgment
-- Q213638 is same as Lusignan
-- Painting cycle of 1332/33 has produced Gnashing of the teeth
-- Mural Painting is type of Painting of the Virgin of Mercy
-- Painting of Anastasias has time-span 1193-01-01
-- Painting of Saint George has modified Panagia Phorbiottisa
-- Painting cycle of 1332/33 has modified Asinou
-- Painting of Anastasia took place at Church of the Virgin
-- Painting cycle of 1332/33 has modified Panagia Phorbiottisa
-- Painting of Anastasias has produced Anastasias
-- Lusignan occurs during Painting of the Virgin of Mercy
-- Painting of Saint George has produced Saint George
-- Painting cycle of 1332/33 has produced Last judgment
-- Painting cycle of 1332/33 has produced The preparation of the throne
-- Church is type of Panagia Phorbiottisa
-- Anastasia was produced by Painting of Anastasia
-- Painting of the last Judgment has time-span 1453-01-01
-- Church of the Virgin falls within Kophinou
-- Painting cycle of 1332/33 is classified as type: Mural Painting
-- Church is type of St Irene
-- Painting of the last judgment has time-span 1300-01-01
-- Initial painting occurs during Late Byzantine
-- Painting of Anastasia took place at St. Herakleidos
-- Painting cycle of 1332/33 has produced Collective torments
-- Wall paintings of 1332/33 has modified Asinou
-- Painting of donors Ioannes and Irene took place at Our Lady of Moutoullas
-- Mural Painting is type of Painting of Saint George
-- Wall paintings of 1332/33 has time-span 1332-01-01
-- Painting of Anastasias is classified as type: Mural Painting
-- Painting of the last judgment has time-span 1280-01-01
-- Painting is type of Painting of Madonna dei Francescani
-- Church is type of Church of the Transfiguration
-- Saint Mamas is found on Church of the Virgin
-- Lusignan occurs during Painting of donors Ioannes and Irene
-- Mural Painting is type of Initial painting
-- Painting is same as 300033618
-- Painting of Saint George is classified as type: Mural Painting
-- Church is type of St. John Lampadistis
-- Church of the Virgin was modified by Painting of Anastasia
-- Construction of the church of Demetrianos has produced Saint Dimitrianos
-- Lusignan is same as entity 9758548
-- Lusignan is same as Q213638
-- Painting of donors Ioannes and Irene has modified Our Lady of Moutoullas
-- Mural Painting is type of Painting of Anastasias
-- Church is type of Saint Dimitrianos
-- Painting of Anastasia has modified St. Herakleidos
-- Painting cycle of 1332/33 has produced Scroll of heaven
-- Wall paintings of 1332/33 occurs during Lusignan
-- Painting of the last judgment is classified as type: Mural Painting
-- Painting of the Virgin of Mercy has produced Virgin of Mercy
-- Painting of the last judgment took place at Church of the Transfiguration
-- 1175-01-01 is time-span of Painting of Anastasia
-- Church is type of Panagia Kanakaria
-- Painting of Anastasia has time-span 1175-01-01
-- Painting of Anastasia has time-span 1375-01-01
-- Painting of Anastasia has time-span 1443-01-01
-- 300033644 is same as Mural Painting
-- Painting of the last judgment occurs during Lusignan
-- Construction of the church of Demetrianos has time-span 1317-01-01
-- Painting of the last judgment has produced Last judgment
-- Church is type of Museum of the foundation of archbishop Makarios III
-- Church of the Virgin witnessed Painting of Anastasia
-- Church of the Virgin is classified as type: Church
-- Church is type of Our Lady of Moutoullas
-- Painting of the Virgin of Mercy is classified as type: Mural Painting
-- Church is type of Church of the Virgin
-- Painting cycle of 1332/33 has time-span 1332-01-01
-- Church is type of Asinou
-- Church is type of St. Marina
-- Initial painting has modified Asinou
-- Painting has narrower term Mural Painting
-- Painting of the last judgment has modified Panagia Kanakaria
-- Painting of the last judgment took place at Panagia Kanakaria
-- Painting cycle of 1332/33 has produced Saint Mamas
-- Painting of donors Ioannes and Irene has produced Donor Ioannes and Irene
-- Construction of the church of Demetrianos has modified Saint Dimitrianos
-- Initial painting has modified Panagia Phorbiottisa
-- Painting cycle of 1332/33 has produced Individual torments
-- Wall paintings of 1332/33 took place at Panagia Phorbiottisa
-- Painting of Saint George has modified Asinou
-- Painting of the last judgment has modified Church of the Transfiguration
-- Painting of the Virgin of Mercy occurs during Lusignan
-- Painting of the Virgin of Mercy has modified Panagia Phorbiottisa
-- Painting cycle of 1332/33 has produced Fiery stream
-- Mural Painting is type of Painting of donors Ioannes and Irene
-- Church is same as 300007466
-- Mural Painting is same as 300033644
-- Church is same as Q16970
-- Church of the Virgin bears feature Saint Mamas
-- Painting of Anastasia is classified as type: Mural Painting
-- Painting of the Virgin of Mercy has modified Asinou
-- Initial painting took place at Panagia Phorbiottisa
-- Painting of Anastasias has modified Asinou
-- Church is type of St. George of Ancona
-- Painting of donors Ioannes and Irene has time-span 1280-01-01
-- Church is type of Virgin in Sklaverochori
-- Painting of Anastasias took place at Panagia Phorbiottisa
-- Painting of Anastasias has modified Panagia Phorbiottisa
-- Painting of the last Judgment has modified St. John Lampadistis
-- Construction of the church of Demetrianos is classified as type: Construction
-- Initial painting has time-span 1105-01-01
-- Church is type of Église des Cordeliers de Nancy
 - Mural Painting is type of Painting of the last judgment
-- Painting of the last Judgment occurs during Lusignan
-- Painting of donors Ioannes and Irene occurs during Lusignan
+- Lusignan occurs during Painting of the Virgin of Mercy
+- Lusignan is same as Q213638
+- Lusignan occurs during Painting of the last Judgment
+- Mural Painting is type of Initial painting
+- Mural Painting is type of Wall paintings of 1332/33
+- Q213638 is same as Lusignan
+- Lusignan occurs during Painting of donors Ioannes and Irene
+- Church is type of Panagia Kera
+- Church of the Virgin witnessed Painting of Anastasia
+- Painting of Anastasia is classified as type: Mural Painting
+- Painting of Anastasia occurs during Lusignan
+- Church of the Virgin bears feature Saint Mamas
+- Mural Painting is type of Painting of Anastasias
+- Painting has narrower term Mural Painting
+- Lusignan occurs during Painting cycle of 1332/33
+- Church is type of Asinou
+- Church is type of Church of the Virgin
+- Lusignan occurs during Painting of Anastasia
+- Lusignan occurs during Painting of Anastasias
+- Church is type of Virgin in Sklaverochori
+- Church of the Virgin falls within Kophinou
+- Mural Painting is type of Painting of the Virgin of Mercy
+- Church is type of Panagia Kanakaria
+- Mural Painting is type of Painting of the last Judgment
+- Church is type of Museum of the foundation of archbishop Makarios III
+- Church is same as 300007466
+- Church is type of St. Marina
+- Painting is type of Painting of Madonna dei Francescani
+- Painting of Anastasia took place at Church of the Virgin
+- Lusignan is same as entity 9758548
+- Church of the Virgin is classified as type: Church
+- Church is type of St. John Lampadistis
+- Church is type of Église des Cordeliers de Nancy
+- 1175-01-01 is time-span of Painting of Anastasia
+- Church is type of Saint Dimitrianos
+- Kophinou contains Church of the Virgin
+- Church is type of St Irene
+- Mural Painting has broader term Painting
+- Painting is same as 300033618
+- Lusignan occurs during Wall paintings of 1332/33
+- Lusignan has time-span 1191-01-01
+- Church is type of Our Lady of Moutoullas
+- Church of the Virgin was modified by Painting of Anastasia
+- Mural Painting is type of Painting of Anastasia
+- Painting of Anastasia has produced Anastasia
+- Mural Painting is type of Painting cycle of 1332/33
+- Church is type of St. Herakleidos
+- Church of the Virgin bears feature Anastasia
+- Painting of Anastasia has modified Church of the Virgin
+- entity 9758548 is same as Lusignan
+- Mural Painting is same as 300033644
+- Mural Painting is type of Painting of Saint George
+- Church is type of Palaia Enkleistra
+- Church is type of Saint Nicholas of the Roof
+- Church is same as Q16970
+- Church is type of St. George of Ancona
+- Church is type of Panagia Phorbiottisa
+- Church is type of Saints Joachim and Anna
+- Church is type of Church of the Transfiguration
+- Mural Painting is type of Painting of donors Ioannes and Irene
+- Lusignan occurs during Painting of the last judgment
+- Painting of Anastasia has time-span 1175-01-01
+- 300033644 is same as Mural Painting
+- Lusignan occurs during Construction of the church of Demetrianos
+- 1191-01-01 is time-span of Lusignan

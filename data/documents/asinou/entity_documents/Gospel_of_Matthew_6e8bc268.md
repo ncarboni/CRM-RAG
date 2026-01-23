@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/text/dbb8dafb-4d92-4b61-83dc-c9f13255d29a
 Label: Gospel of Matthew
-Generated: 2026-01-22 13:35:47
+Generated: 2026-01-22 19:11:59
 ---
 
 # Gospel of Matthew
@@ -19,4 +19,3 @@ URI: http://map.cnrs.fr/semantics/text/dbb8dafb-4d92-4b61-83dc-c9f13255d29a
 ## Relationships
 
 - Gospel of Matthew forms part of Bible
-- Bible is composed of Gospel of Matthew

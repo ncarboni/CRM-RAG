@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/location/8e446113-8c0a-4e21-a203-a1526a9cb786/
 Label: Kakopetria
-Generated: 2026-01-22 13:35:37
+Generated: 2026-01-22 19:11:55
 ---
 
 # Kakopetria
@@ -20,8 +20,5 @@ URI: http://map.cnrs.fr/semantics/location/8e446113-8c0a-4e21-a203-a1526a9cb786/
 ## Relationships
 
 - Kakopetria falls within Cyprus
-- Cyprus contains Kakopetria
 - Kakopetria contains Saint Nicholas of the Roof
 - Kakopetria is same as Q1308220
-- Q1308220 is same as Kakopetria
-- Saint Nicholas of the Roof falls within Kakopetria

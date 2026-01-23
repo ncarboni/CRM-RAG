@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/text/dc890b34-194f-421b-8b72-d3c73dd68779
 Label: Saturday of the Soul
-Generated: 2026-01-22 13:35:47
+Generated: 2026-01-22 19:11:58
 ---
 
 # Saturday of the Soul
@@ -19,6 +19,3 @@ URI: http://map.cnrs.fr/semantics/text/dc890b34-194f-421b-8b72-d3c73dd68779
 ## Relationships
 
 - Saturday of the Soul forms part of The Lenten Triodion
-- The Lenten Triodion is composed of Saturday of the Soul
-- Sunday of the Last Judgment forms part of The Lenten Triodion
-- The Lenten Triodion is composed of Sunday of the Last Judgment

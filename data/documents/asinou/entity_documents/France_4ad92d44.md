@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/location/ec598ee9-a216-4dd3-a695-e77fe3630767/
 Label: France
-Generated: 2026-01-22 13:35:46
+Generated: 2026-01-22 19:11:58
 ---
 
 # France
@@ -20,4 +20,3 @@ URI: http://map.cnrs.fr/semantics/location/ec598ee9-a216-4dd3-a695-e77fe3630767/
 ## Relationships
 
 - France is same as Q142
-- Q142 is same as France

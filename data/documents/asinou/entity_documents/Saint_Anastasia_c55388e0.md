@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/icon/40142634-bebe-4f33-ada2-6ad277a39cc5
 Label: Saint Anastasia
-Generated: 2026-01-22 13:35:41
+Generated: 2026-01-22 19:11:56
 ---
 
 # Saint Anastasia
@@ -19,101 +19,8 @@ URI: http://map.cnrs.fr/semantics/icon/40142634-bebe-4f33-ada2-6ad277a39cc5
 
 ## Relationships
 
-- Panagia Phorbiottisa was modified by Painting of Anastasias
-- Anastasia Saramalina is classified as type: Donor
-- Panagia Phorbiottisa bears feature Anastasias
-- Headdress of Anastasia Saramalina is denoted by Anastasias
-- Saint Anastasia portray Anastasia of Sirmium
-- South lunette bears feature Anastasias
-- Anastasias was produced by Painting of Anastasias
-- Panagia Phorbiottisa is composed of west lunette
-- South lunette bears feature Saint Mamas
-- Anastasia Saramalina has attribute T-shaped garment
-- cross of martydom depict things of type Cross
-- Panagia Phorbiottisa bears feature Mother of god Phorbiotissa
-- Panagia Phorbiottisa was modified by Painting of Saint George
-- salvation symbolize cross of martydom
-- South lunette forms part of Panagia Phorbiottisa
-- Anastasia Saramalina has attribute porphyria
-- Panagia Phorbiottisa bears feature Fiery stream
-- Panagia Phorbiottisa bears feature Scroll of heaven
-- Saint Anastasia is classified as type: Saint Anastasia Pharmakolytria
-- bottle of medicine symbolize healing
-- Panagia Phorbiottisa bears feature Donor
-- Flask depict things of type bottle of medicine
-- Anastasia Saramalina is denoted by Anastasias
-- Anastasia Saramalina has attribute headdress
-- Panagia Phorbiottisa was modified by Painting cycle of 1332/33
-- Painting of Anastasias occurs during Lusignan
-- Anastasia of Sirmium is same as http://www.wikidata.org/entity/Q48438
-- Painting of Anastasias has time-span 1193-01-01
-- Panagia Phorbiottisa bears feature Saint George
-- Painting of Anastasias has produced Anastasias
-- Saint Anastasia has attribute cross of martydom
-- Anastasia of Sirmium portray Saint Anastasia
-- Headdress of Anastasia Saramalina has attribute crespine
-- Panagia Phorbiottisa bears feature The preparation of the throne
-- Panagia Phorbiottisa was modified by Construction of Asinou
-- Headdress of Anastasia Saramalina has attribute barbette
-- Anastasias carries Prayer of the servant of god Anastasia Saramalina
-- Anastasias is denoted by Saint Anastasia
-- cross of martydom symbolize salvation
-- Panagia Phorbiottisa was modified by Wall paintings of 1332/33
-- Panagia Phorbiottisa bears feature Collective torments
-- Flask is same as 300045671
-- Painting of Anastasias is classified as type: Mural Painting
-- Saint Anastasia Pharmakolytria is type of Saint Anastasia
-- Panagia Phorbiottisa is composed of South lunette
-- Panagia Phorbiottisa was modified by Addition of the narthex
-- Panagia Phorbiottisa bears feature Gnashing of the teeth
-- cross of martydom has attribute Saint Anastasia
-- Panagia Phorbiottisa is identified by Παναγία Φορβιώτισσα / Παναγία της Ασίνου
-- Panagia Phorbiottisa bears feature Last judgment
-- Anastasias is denoted by Headdress of Anastasia Saramalina
-- Saint Anastasia has attribute bottle of medicine
-- Panagia Phorbiottisa was modified by Initial painting
-- Panagia Phorbiottisa bears feature Individual torments
-- bottle of medicine has attribute Saint Anastasia
-- South lunette is composed of Virgin of Mercy
-- Panagia Phorbiottisa was modified by Closing of the south door of the Narthex
-- Anastasias is found on Asinou
-- Panagia Phorbiottisa is composed of Narthex
-- http://www.wikidata.org/entity/Q48438 is same as Anastasia of Sirmium
-- South lunette is composed of Anastasias
-- healing symbolize bottle of medicine
-- Panagia Phorbiottisa bears feature Saint Mamas
-- Saint Anastasia Pharmakolytria has broader term Saint
-- Panagia Phorbiottisa was produced by Construction of Asinou
-- Panagia Phorbiottisa bears feature Virgin of Mercy
-- Flask has broader term Bottle
-- Panagia Phorbiottisa is same as Q30773293
-- Cross depict things of type cross of martydom
-- Panagia Phorbiottisa was modified by Painting of the Virgin of Mercy
 - Saint Anastasia is denoted by Anastasias
-- South lunette forms part of Narthex
-- Anastasias forms part of South lunette
-- Panagia Phorbiottisa is composed of Naos
-- Anastasia Saramalina is composed of Headdress of Anastasia Saramalina
-- Anastasias is found on Panagia Phorbiottisa
-- Headdress of Anastasia Saramalina is composed of Anastasia Saramalina
-- Panagia Phorbiottisa is composed of South arch
-- Saint has narrower term Saint George on a horseback
-- Saint Anastasia is denoted by Anastasia
-- Panagia Phorbiottisa is classified as type: Church
-- bottle of medicine depict things of type Flask
-- Cross is same as 300010044
-- Painting of Anastasias has modified Asinou
-- Panagia Phorbiottisa is composed of western arch
-- South lunette is composed of Saint George
-- Panagia Phorbiottisa is composed of Bema
-- Anastasias is denoted by Anastasia Saramalina
-- Painting of Anastasias took place at Panagia Phorbiottisa
-- Saint has narrower term Saint Anastasia Pharmakolytria
-- Painting of Anastasias has modified Panagia Phorbiottisa
-- Prayer of the servant of god Anastasia Saramalina is carried by Anastasias
-- Anastasias is found on South lunette
-- South lunette forms part of Asinou
-- South lunette is classified as type: Apse
-- South lunette has current location place
-- Panagia Phorbiottisa is composed of West door
-- Anastasia Saramalina has attribute neck rectangular patches
+- Saint Anastasia portray Anastasia of Sirmium
+- Saint Anastasia has attribute bottle of medicine
+- Saint Anastasia is classified as type: Saint Anastasia Pharmakolytria
+- Saint Anastasia has attribute cross of martydom

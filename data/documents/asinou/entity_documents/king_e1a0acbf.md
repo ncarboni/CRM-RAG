@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/41140900-ead7-4f3f-ac1c-a84496e58288/
 Label: king
-Generated: 2026-01-22 13:35:31
+Generated: 2026-01-22 19:11:52
 ---
 
 # king

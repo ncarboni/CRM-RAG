@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/location/1456170a-df9f-4300-8cef-3279d32754a7/
 Label: Lythragkomi
-Generated: 2026-01-22 13:35:40
+Generated: 2026-01-22 19:11:55
 ---
 
 # Lythragkomi
@@ -19,16 +19,6 @@ URI: http://map.cnrs.fr/semantics/location/1456170a-df9f-4300-8cef-3279d32754a7/
 
 ## Relationships
 
-- Panagia Kanakaria witnessed Painting of the last judgment
 - Lythragkomi is same as Q891613
-- Painting of the last judgment has time-span 1300-01-01
-- Q891613 is same as Lythragkomi
-- Painting of the last judgment occurs during Lusignan
 - Lythragkomi contains Panagia Kanakaria
 - Lythragkomi falls within Turkish Republic of Northern Cyprus
-- Painting of the last judgment is classified as type: Mural Painting
-- Painting of the last judgment has produced Last judgment
-- Painting of the last judgment has modified Panagia Kanakaria
-- Painting of the last judgment took place at Panagia Kanakaria
-- Panagia Kanakaria falls within Lythragkomi
-- Turkish Republic of Northern Cyprus contains Lythragkomi

@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/08062672-fe62-4141-b69e-6a2ef5a00682/
 Label: Donor's wife
-Generated: 2026-01-22 13:35:44
+Generated: 2026-01-22 19:11:57
 ---
 
 # Donor's wife

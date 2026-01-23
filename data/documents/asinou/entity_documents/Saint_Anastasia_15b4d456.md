@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/298e72d2-f150-433d-a072-a1f9785cce88/
 Label: Saint Anastasia
-Generated: 2026-01-22 13:35:41
+Generated: 2026-01-22 19:11:56
 ---
 
 # Saint Anastasia

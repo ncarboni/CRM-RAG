@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/b6248830-ea02-4708-9987-ca7dceadb10e/
 Label: Headdress of Irene
-Generated: 2026-01-22 13:35:43
+Generated: 2026-01-22 19:11:56
 ---
 
 # Headdress of Irene

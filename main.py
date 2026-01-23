@@ -48,7 +48,15 @@ parser.add_argument('--generate-docs-only', action='store_true',
                     help='Generate entity documents from SPARQL without computing embeddings. Use this locally, then transfer docs to cluster for embedding.')
 parser.add_argument('--embed-from-docs', action='store_true',
                     help='Generate embeddings from existing document files (no SPARQL needed). Use on cluster after transferring docs.')
+parser.add_argument('--debug', action='store_true',
+                    help='Enable debug logging for detailed traversal tracing.')
 args = parser.parse_args()
+
+# Enable debug logging if requested
+if args.debug:
+    logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger('universal_rag_system').setLevel(logging.DEBUG)
+    logger.info("Debug logging enabled - will trace event-aware traversal decisions")
 
 # Load configuration
 config = ConfigLoader.load_config(args.env)

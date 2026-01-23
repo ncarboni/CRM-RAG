@@ -1,0 +1,65 @@
+{
+  "_comment": "CIDOC-CRM and extension event classes for event-aware graph traversal. Events are the 'glue' connecting things, actors, places, and times. Multi-hop traversal goes THROUGH events, not between non-events directly. Add or remove URIs as needed for your data models.",
+
+  "cidoc_crm": [
+    "http://www.cidoc-crm.org/cidoc-crm/E5_Event",
+    "http://www.cidoc-crm.org/cidoc-crm/E7_Activity",
+    "http://www.cidoc-crm.org/cidoc-crm/E63_Beginning_of_Existence",
+    "http://www.cidoc-crm.org/cidoc-crm/E64_End_of_Existence",
+    "http://www.cidoc-crm.org/cidoc-crm/E8_Acquisition",
+    "http://www.cidoc-crm.org/cidoc-crm/E9_Move",
+    "http://www.cidoc-crm.org/cidoc-crm/E10_Transfer_of_Custody",
+    "http://www.cidoc-crm.org/cidoc-crm/E11_Modification",
+    "http://www.cidoc-crm.org/cidoc-crm/E13_Attribute_Assignment",
+    "http://www.cidoc-crm.org/cidoc-crm/E65_Creation",
+    "http://www.cidoc-crm.org/cidoc-crm/E66_Formation",
+    "http://www.cidoc-crm.org/cidoc-crm/E85_Joining",
+    "http://www.cidoc-crm.org/cidoc-crm/E86_Leaving",
+    "http://www.cidoc-crm.org/cidoc-crm/E87_Curation_Activity",
+    "http://www.cidoc-crm.org/cidoc-crm/E14_Condition_Assessment",
+    "http://www.cidoc-crm.org/cidoc-crm/E15_Identifier_Assignment",
+    "http://www.cidoc-crm.org/cidoc-crm/E16_Measurement",
+    "http://www.cidoc-crm.org/cidoc-crm/E17_Type_Assignment",
+    "http://www.cidoc-crm.org/cidoc-crm/E83_Type_Creation",
+    "http://www.cidoc-crm.org/cidoc-crm/E12_Production",
+    "http://www.cidoc-crm.org/cidoc-crm/E79_Part_Addition",
+    "http://www.cidoc-crm.org/cidoc-crm/E80_Part_Removal",
+    "http://www.cidoc-crm.org/cidoc-crm/E67_Birth",
+    "http://www.cidoc-crm.org/cidoc-crm/E81_Transformation",
+    "http://www.cidoc-crm.org/cidoc-crm/E96_Purchase",
+    "http://www.cidoc-crm.org/cidoc-crm/E6_Destruction",
+    "http://www.cidoc-crm.org/cidoc-crm/E68_Dissolution",
+    "http://www.cidoc-crm.org/cidoc-crm/E69_Death"
+  ],
+
+  "crmdig": [
+    "http://www.ics.forth.gr/isl/CRMdig/D7_Digital_Machine_Event",
+    "http://www.ics.forth.gr/isl/CRMdig/D10_Software_Execution",
+    "http://www.ics.forth.gr/isl/CRMdig/D3_Formal_Derivation",
+    "http://www.ics.forth.gr/isl/CRMdig/D11_Digital_Measurement_Event",
+    "http://www.ics.forth.gr/isl/CRMdig/D2_Digitization_Process",
+    "http://www.ics.forth.gr/isl/CRMdig/D12_Data_Transfer_Event",
+    "http://www.ics.forth.gr/isl/CRMdig/D30_Annotation_Event"
+  ],
+
+  "crmsci": [
+    "http://www.cidoc-crm.org/extensions/crmsci/S2_Sample_Taking",
+    "http://www.cidoc-crm.org/extensions/crmsci/S3_Measurement_by_Sampling",
+    "http://www.cidoc-crm.org/extensions/crmsci/S4_Observation",
+    "http://www.cidoc-crm.org/extensions/crmsci/S19_Encounter_Event",
+    "http://www.cidoc-crm.org/extensions/crmsci/S21_Measurement",
+    "http://www.cidoc-crm.org/extensions/crmsci/S23_Position_Determination"
+  ],
+
+  "vir": [
+    "http://w3id.org/vir#IC12_Visual_Recognition"
+  ],
+
+  "crminf": [
+    "http://www.cidoc-crm.org/extensions/crminf/I1_Argumentation",
+    "http://www.cidoc-crm.org/extensions/crminf/I5_Inference_Making",
+    "http://www.cidoc-crm.org/extensions/crminf/I7_Belief_Adoption",
+    "http://www.cidoc-crm.org/extensions/crminf/I15_Provenance_Assessment",
+    "http://www.cidoc-crm.org/extensions/crminf/I16_Meaning_Comprehension"
+  ]
+}

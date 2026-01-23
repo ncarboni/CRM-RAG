@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/visual/atom/a91fc27d-1793-457c-b0ba-14abd048eb12
 Label: Virgin of Mercy
-Generated: 2026-01-22 13:35:41
+Generated: 2026-01-22 19:11:56
 ---
 
 # Virgin of Mercy
@@ -19,183 +19,18 @@ URI: http://map.cnrs.fr/semantics/visual/atom/a91fc27d-1793-457c-b0ba-14abd048eb
 
 ## Relationships
 
-- Blessing hand depict things of type hand
-- Saint Mamas is found on Panagia Phorbiottisa
-- Panagia Phorbiottisa was modified by Painting of Anastasias
-- Panagia Phorbiottisa falls within Nikitari
-- Narthex is composed of west lunette
-- Panagia Phorbiottisa bears feature Anastasias
-- Mural Painting is type of Painting of Anastasia
-- Mural Painting has broader term Painting
-- Donor is type of Anna
-- Panagia Phorbiottisa witnessed Addition of the narthex
-- Christ child is denoted by Virgin of Mercy
-- South lunette bears feature Anastasias
-- Saint George forms part of South lunette
-- Anastasias was produced by Painting of Anastasias
-- Panagia Phorbiottisa is composed of west lunette
-- hands clasped has attribute Kneeling youth
-- South lunette bears feature Saint Mamas
-- cotte has attribute Donor's wife
-- Blessing hand has attribute Christ child
-- Virgin of Mercy was produced by Painting of the Virgin of Mercy
-- Panagia Phorbiottisa witnessed Construction of Asinou
-- Panagia Phorbiottisa bears feature Mother of god Phorbiotissa
-- Painting of the Virgin of Mercy took place at Panagia Phorbiottisa
-- Lusignan occurs during Painting of Anastasias
-- Apse is same as 300004607
-- Christ child has attribute diaphanous robe
-- Mural Painting is type of Painting cycle of 1332/33
-- Panagia Phorbiottisa was modified by Painting of Saint George
-- Christ child has attribute Blessing hand
-- Narthex is composed of South lunette
-- South lunette forms part of Panagia Phorbiottisa
-- Lusignan occurs during Construction of the church of Demetrianos
-- Virgin of Mercy is denoted by Madonna della misericordia
-- Lusignan occurs during Painting of Anastasia
-- Narthex is composed of western arch
-- Saint George is found on Asinou
-- Saint George is found on Narthex
-- Saint Mamas was produced by Painting cycle of 1332/33
-- Latin Donor has attribute cotte
-- Virgin of Mercy is denoted by Christ child
-- Panagia Phorbiottisa bears feature Fiery stream
-- Panagia Phorbiottisa bears feature Scroll of heaven
-- Child Jesus is same as http://www.wikidata.org/entity/Q942467
-- Lusignan occurs during Painting cycle of 1332/33
-- Panagia Phorbiottisa witnessed Painting of Saint George
-- diaphanous robe has attribute Christ child
-- Panagia Phorbiottisa contains Naos
-- Lusignan has time-span 1191-01-01
-- Madonna della misericordia portray Virgin Mary
-- Saint George is found on Panagia Phorbiottisa
-- Kneeling youth has attribute hands clasped
-- Panagia Phorbiottisa bears feature Donor
-- Lusignan occurs during Painting of the last judgment
-- Apse has broader term Architectural element
-- Lusignan occurs during Painting of the last Judgment
-- Panagia Phorbiottisa witnessed Painting of Anastasias
-- Panagia Phorbiottisa was modified by Painting cycle of 1332/33
-- Blessing hand symbolize blessing
-- Virgin Mary is same as http://www.wikidata.org/entity/Q345
-- Christ-child is same as 11D21
-- Mural Painting is type of Wall paintings of 1332/33
-- Saint George carries inscription
-- Lusignan occurs during Wall paintings of 1332/33
-- Painting of the Virgin of Mercy has time-span 1290-01-01
-- Donor is type of Donor's wife
-- Mural Painting is type of Painting of the last Judgment
-- Mural Painting is type of Painting of the Virgin of Mercy
-- South lunette is classified as type: Apse
-- Narthex forms part of Asinou
-- Panagia Phorbiottisa bears feature Saint George
-- Donor is type of Latin Donor
-- Kneeling youth is denoted by Virgin of Mercy
-- Apse is same as Q170463
-- Saint George is denoted by Saint George on a horseback
-- Lusignan occurs during Painting of the Virgin of Mercy
-- Panagia Phorbiottisa contains Narthex
-- Panagia Phorbiottisa bears feature The preparation of the throne
-- Panagia Phorbiottisa was modified by Construction of Asinou
-- hands clasped has attribute Latin Donor
-- Anastasias carries Prayer of the servant of god Anastasia Saramalina
-- cotte depict things of type clothing
-- Mural Painting is type of Painting of the last judgment
-- Anastasias is denoted by Saint Anastasia
-- Virgin Mary portray Madonna della misericordia
-- Panagia Phorbiottisa was modified by Wall paintings of 1332/33
-- Mural Painting is type of Painting of Saint George
-- Panagia Phorbiottisa bears feature Collective torments
-- Mapharion depict things of type Mantle
-- Panagia Phorbiottisa is composed of South lunette
-- Panagia Phorbiottisa was modified by Addition of the narthex
-- Panagia Phorbiottisa bears feature Gnashing of the teeth
-- Narthex forms part of Panagia Phorbiottisa
-- Lusignan occurs during Painting of donors Ioannes and Irene
-- Panagia Phorbiottisa witnessed Painting cycle of 1332/33
-- place currently holds South lunette
-- Saint George was produced by Painting of Saint George
-- Mural Painting is type of Initial painting
-- cotte has attribute Latin Donor
-- Narthex bears feature Last judgment
-- Panagia Phorbiottisa is identified by Παναγία Φορβιώτισσα / Παναγία της Ασίνου
-- Panagia Phorbiottisa bears feature Last judgment
-- hands clasped depict things of type Gesture
-- Panagia Phorbiottisa was modified by Initial painting
-- Lusignan is same as entity 9758548
-- Lusignan is same as Q213638
-- Panagia Phorbiottisa bears feature Individual torments
-- Christ child is classified as type: Christ-child
-- South lunette is composed of Virgin of Mercy
-- Mural Painting is type of Painting of Anastasias
-- Panagia Phorbiottisa was modified by Closing of the south door of the Narthex
-- Painting of the Virgin of Mercy has produced Virgin of Mercy
-- Madonna della misericordia is denoted by Virgin of Mercy
-- Virgin Mary portray Madonna dei Francescani
 - Virgin of Mercy is found on Asinou
-- Panagia Phorbiottisa witnessed Closing of the south door of the Narthex
-- Donor is type of Anastasia Saramalina
-- Anastasias is found on Asinou
-- Panagia Phorbiottisa is composed of Narthex
-- South lunette is composed of Anastasias
-- Painting of the Virgin of Mercy is classified as type: Mural Painting
-- Panagia Phorbiottisa bears feature Saint Mamas
-- Panagia Phorbiottisa contains Bema
-- Christ-child is type of Christ child
-- Apse is type of South lunette
-- Panagia Phorbiottisa was produced by Construction of Asinou
-- Narthex is composed of Donor couple
-- Panagia Phorbiottisa bears feature Virgin of Mercy
-- Narthex is composed of South arch
-- Panagia Phorbiottisa is same as Q30773293
-- 1290-01-01 is time-span of Painting of the Virgin of Mercy
-- Panagia Phorbiottisa witnessed Initial painting
-- Panagia Phorbiottisa was modified by Painting of the Virgin of Mercy
-- South lunette forms part of Narthex
-- Narthex has current location place
-- Virgin of Mercy is denoted by Latin Donor
-- Anastasias forms part of South lunette
-- Panagia Phorbiottisa is composed of Naos
-- Mapharion symbolize protection
-- Panagia Phorbiottisa witnessed Wall paintings of 1332/33
-- Narthex bears feature Saint George
-- Anastasias is found on Panagia Phorbiottisa
-- Donor is type of Irene
-- Christ-child is same as http://www.wikidata.org/entity/Q942467
-- Narthex is composed of West door
 - Painting of the Virgin of Mercy occurs during Lusignan
-- Latin Donor has attribute hands clasped
-- Painting of the Virgin of Mercy has modified Panagia Phorbiottisa
-- Mapharion has attribute Madonna dei Francescani
-- Saint Mamas is found on South lunette
-- Mural Painting is type of Painting of donors Ioannes and Irene
-- Panagia Phorbiottisa is composed of South arch
-- Virgin of Mercy forms part of South lunette
-- Mural Painting is same as 300033644
-- Panagia Phorbiottisa is classified as type: Church
-- Virgin of Mercy is found on Panagia Phorbiottisa
-- Saint Mamas is found on Asinou
-- Donor is type of Wife of Michael Katzouroumpos
-- Latin Donor is classified as type: Donor
-- Narthex is composed of Last judgment
-- Panagia Phorbiottisa witnessed Painting of the Virgin of Mercy
+- Virgin of Mercy Denote Madonna della misericordia
+- Painting of the Virgin of Mercy took place at Panagia Phorbiottisa
+- Virgin of Mercy Denote Kneeling youth
 - Painting of the Virgin of Mercy has modified Asinou
-- diaphanous robe depict things of type clothing
-- Panagia Phorbiottisa contains South lunette
-- Madonna della misericordia has attribute Mapharion
-- Panagia Phorbiottisa is composed of western arch
-- Christ child portray Child Jesus
-- Panagia Phorbiottisa is composed of Bema
-- Anastasias is denoted by Anastasia Saramalina
-- South lunette is composed of Saint George
-- Panagia Phorbiottisa currently holds Asinou
-- Virgin of Mercy is denoted by Kneeling youth
-- Mapharion has attribute Madonna della misericordia
-- Child Jesus portray Christ child
-- hands clasped has attribute Donor's wife
-- Anastasias is found on South lunette
-- South lunette forms part of Asinou
-- Anastasias is denoted by Headdress of Anastasia Saramalina
-- Latin Donor is denoted by Virgin of Mercy
-- South lunette has current location place
-- Panagia Phorbiottisa is composed of West door
+- Virgin of Mercy is found on Panagia Phorbiottisa
+- Painting of the Virgin of Mercy has modified Panagia Phorbiottisa
+- Painting of the Virgin of Mercy is classified as type: Mural Painting
+- Virgin of Mercy Denote Latin Donor
+- Virgin of Mercy forms part of South lunette
+- Painting of the Virgin of Mercy has time-span 1290-01-01
+- Virgin of Mercy Denote Christ child
+- Painting of the Virgin of Mercy has produced Virgin of Mercy
+- Virgin of Mercy was produced by Painting of the Virgin of Mercy

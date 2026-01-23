@@ -1,7 +1,7 @@
 ---
 URI: http://www.wikidata.org/entity/Q532019
 Label: http://www.wikidata.org/entity/Q532019
-Generated: 2026-01-22 13:35:31
+Generated: 2026-01-22 19:11:52
 ---
 
 # http://www.wikidata.org/entity/Q532019
@@ -19,4 +19,3 @@ URI: http://www.wikidata.org/entity/Q532019
 ## Relationships
 
 - http://www.wikidata.org/entity/Q532019 is same as Saint Mamas
-- Saint Mamas is same as http://www.wikidata.org/entity/Q532019

@@ -22,6 +22,7 @@ CRM_RAG/
 │   ├── .env.local.example    # Local embeddings (fast, no API)
 │   ├── .env.secrets.example
 │   ├── datasets.yaml         # Multi-dataset configuration
+│   ├── event_classes.json    # CIDOC-CRM event classes for graph traversal
 │   ├── interface.yaml        # Chat interface customization
 │   └── README.md             # Configuration guide
 ├── data/                All data files
@@ -167,7 +168,34 @@ python scripts/extract_ontology_labels.py
 
 This creates label files in `data/labels/` used by the RAG system.
 
-### 5. Customize Chat Interface (Optional)
+### 5. Configure Event Classes (Optional)
+
+The system uses event-aware graph traversal to build entity documents. In CIDOC-CRM, events (activities, productions, etc.) are the "glue" connecting things, actors, places, and times. Multi-hop context only traverses THROUGH events, preventing unrelated entities from polluting documents.
+
+Event classes are configured in [`config/event_classes.json`](config/event_classes.json):
+
+```json
+{
+  "_comment": "Add or remove event class URIs as needed",
+
+  "cidoc_crm": [
+    "http://www.cidoc-crm.org/cidoc-crm/E5_Event",
+    "http://www.cidoc-crm.org/cidoc-crm/E12_Production",
+    ...
+  ],
+  "crmdig": [...],
+  "crmsci": [...],
+  "vir": [...],
+  "crminf": [...]
+}
+```
+
+To customize:
+- Add URIs to existing categories or create new ones
+- Keys starting with `_` are ignored (use for comments)
+- Changes take effect on next restart
+
+### 6. Customize Chat Interface (Optional)
 
 Customize the chatbot title, welcome message, and example questions by editing `config/interface.yaml`:
 
@@ -182,7 +210,7 @@ example_questions:
 
 See `config/README.md` for detailed customization options.
 
-### 6. Start Your SPARQL Endpoint
+### 7. Start Your SPARQL Endpoint
 
 Ensure your SPARQL server is running with your CIDOC-CRM dataset loaded at the configured endpoint.
 

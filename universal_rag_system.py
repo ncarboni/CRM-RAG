@@ -62,6 +62,10 @@ class RetrievalConfig:
     ENTITY_CONTEXT_DEPTH = 2  # Depth for entity context traversal
     MAX_ADJACENCY_HOPS = 2  # Maximum hops for adjacency matrix construction
 
+    # Event classes are loaded from config/event_classes.json at runtime
+    # This allows users to modify event classes without changing code.
+    # See UniversalRagSystem._load_event_classes() for loading logic.
+
 
 class UniversalRagSystem:
     """Universal RAG system with graph-based document retrieval"""
@@ -71,6 +75,7 @@ class UniversalRagSystem:
     _ontology_classes = None
     _class_labels = None  # Cache for class URI -> English label mapping
     _inverse_properties = None  # Cache for property URI -> inverse property URI mapping
+    _event_classes = None  # Cache for event class URIs (loaded from config/event_classes.json)
     _extraction_attempted = False  # Track if we've tried extraction to avoid infinite loops
     _missing_properties = set()  # Track properties that couldn't be found
     _missing_classes = set()  # Track classes that couldn't be found in ontology files
@@ -386,6 +391,58 @@ class UniversalRagSystem:
         else:
             logger.error(f"Class labels file not found at {labels_file}")
             return {}
+
+    def _load_event_classes(self):
+        """
+        Load event classes from config/event_classes.json.
+
+        Event classes are CIDOC-CRM and extension classes that represent events
+        (activities, processes, etc.). These are used for event-aware graph traversal
+        where multi-hop context only goes THROUGH events.
+
+        Returns:
+            set: Set of event class URIs
+        """
+        config_file = os.path.join(os.path.dirname(__file__), 'config', 'event_classes.json')
+
+        if not os.path.exists(config_file):
+            logger.warning(f"Event classes config not found at {config_file}")
+            logger.warning("Event-aware traversal will be disabled (all entities treated equally)")
+            return set()
+
+        try:
+            with open(config_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+
+            # Combine all event class lists (ignore _comment key)
+            event_classes = set()
+            for key, value in data.items():
+                if key.startswith('_'):  # Skip comment fields
+                    continue
+                if isinstance(value, list):
+                    event_classes.update(value)
+
+            logger.info(f"Loaded {len(event_classes)} event classes from {config_file}")
+            return event_classes
+
+        except Exception as e:
+            logger.error(f"Error loading event classes from {config_file}: {str(e)}")
+            return set()
+
+    @classmethod
+    def get_event_classes(cls):
+        """
+        Get the cached event classes, loading from JSON if needed.
+
+        Returns:
+            set: Set of event class URIs
+        """
+        if cls._event_classes is None:
+            # Create a temporary instance just to load event classes
+            # This is a bit awkward but maintains consistency with other label loading
+            instance = object.__new__(cls)
+            cls._event_classes = instance._load_event_classes()
+        return cls._event_classes
 
     @property
     def embeddings(self):
@@ -981,6 +1038,79 @@ class UniversalRagSystem:
 
         return False
 
+    def is_event_entity(self, entity_uri):
+        """
+        Check if an entity is an instance of a CIDOC-CRM Event class.
+
+        In CIDOC-CRM, events are the "glue" that connect physical things, actors,
+        places, and times. This method is used for event-aware graph traversal
+        where multi-hop context only goes THROUGH events.
+
+        Args:
+            entity_uri: The URI of the entity to check
+
+        Returns:
+            bool: True if the entity is an event, False otherwise
+        """
+        type_query = f"""
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        SELECT ?type WHERE {{
+            <{entity_uri}> rdf:type ?type .
+            FILTER(STRSTARTS(STR(?type), "http://"))
+        }}
+        """
+
+        try:
+            self.sparql.setQuery(type_query)
+            results = self.sparql.query().convert()
+
+            event_classes = UniversalRagSystem.get_event_classes()
+            for result in results["results"]["bindings"]:
+                type_uri = result["type"]["value"]
+                if type_uri in event_classes:
+                    return True
+
+            return False
+        except Exception as e:
+            logger.warning(f"Error checking if entity is event: {entity_uri}: {str(e)}")
+            return False
+
+    def get_entity_types_cached(self, entity_uri, cache=None):
+        """
+        Get entity types with optional caching to avoid repeated SPARQL queries.
+
+        Args:
+            entity_uri: The URI of the entity
+            cache: Optional dict to cache results (entity_uri -> set of type URIs)
+
+        Returns:
+            set: Set of type URIs for this entity
+        """
+        if cache is not None and entity_uri in cache:
+            return cache[entity_uri]
+
+        type_query = f"""
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        SELECT ?type WHERE {{
+            <{entity_uri}> rdf:type ?type .
+            FILTER(STRSTARTS(STR(?type), "http://"))
+        }}
+        """
+
+        types = set()
+        try:
+            self.sparql.setQuery(type_query)
+            results = self.sparql.query().convert()
+            for result in results["results"]["bindings"]:
+                types.add(result["type"]["value"])
+        except Exception as e:
+            logger.warning(f"Error getting types for {entity_uri}: {str(e)}")
+
+        if cache is not None:
+            cache[entity_uri] = types
+
+        return types
+
     def get_entity_label(self, entity_uri):
         """
         Get a human-readable label for an entity.
@@ -1021,7 +1151,15 @@ class UniversalRagSystem:
         return entity_uri.rstrip('/').split('/')[-1] if entity_uri else "Unknown"
 
     def get_entity_context(self, entity_uri, depth=RetrievalConfig.ENTITY_CONTEXT_DEPTH, return_triples=False):
-        """Get entity context by traversing the graph bidirectionally
+        """Get entity context by traversing the graph bidirectionally with event-aware logic.
+
+        In CIDOC-CRM, events are the "glue" connecting things, actors, places, and times.
+        This method uses event-aware traversal:
+        - For EVENT entities: full multi-hop traversal (events connect everything)
+        - For NON-EVENT entities: only traverse deeper through events
+
+        This prevents the "global pollution" problem where unrelated entities get
+        included in documents just because they share a distant connection.
 
         Args:
             entity_uri: The URI of the entity to get context for
@@ -1037,7 +1175,29 @@ class UniversalRagSystem:
         raw_triples = []
         visited = set()
 
-        def traverse(uri, current_depth=0, direction="both"):
+        # Cache for entity types to avoid repeated SPARQL queries
+        type_cache = {}
+
+        # Load event classes once for this traversal
+        event_classes = UniversalRagSystem.get_event_classes()
+
+        # Debug flag - set to True to trace filtering decisions
+        DEBUG_TRAVERSAL = logger.isEnabledFor(logging.DEBUG)
+
+        def is_event(uri):
+            """Check if URI is an event class instance (using cache)"""
+            types = self.get_entity_types_cached(uri, type_cache)
+            is_evt = bool(types & event_classes)
+            if DEBUG_TRAVERSAL:
+                logger.debug(f"  is_event({uri.split('/')[-1]}): types={[t.split('/')[-1].split('#')[-1] for t in types]}, is_event={is_evt}")
+            return is_evt
+
+        # Check if the starting entity is an event
+        start_is_event = is_event(entity_uri)
+        if DEBUG_TRAVERSAL:
+            logger.debug(f"Starting entity {entity_uri.split('/')[-1]}: is_event={start_is_event}")
+
+        def traverse(uri, current_depth=0, direction="both", came_from_event=False):
             if uri in visited or current_depth > depth:
                 return
 
@@ -1045,6 +1205,9 @@ class UniversalRagSystem:
 
             # Get entity label using the improved label retrieval method
             entity_label = self.get_entity_label(uri)
+
+            if DEBUG_TRAVERSAL:
+                logger.debug(f"==> Traversing {entity_label} (depth={current_depth}, uri={uri.split('/')[-1]})")
 
             # Get outgoing relationships if direction is "both" or "outgoing"
             if direction in ["both", "outgoing"]:
@@ -1085,6 +1248,40 @@ class UniversalRagSystem:
                         if uri == obj or (entity_label and obj_label and entity_label.lower() == obj_label.lower()):
                             continue
 
+                        # Event-aware filtering:
+                        # For non-event starting entities at depth > 0, only include:
+                        # - Paths TO events (target is event)
+                        # - Connections FROM events to non-events (completing the chain)
+                        # This prevents pollution from unrelated event connections.
+                        current_is_event = is_event(uri)
+                        target_is_event = is_event(obj)
+
+                        if start_is_event:
+                            # Starting entity is an event - include all connections
+                            should_include = True
+                            reason = "start_is_event"
+                        elif current_depth == 0:
+                            # Always include direct connections from starting entity
+                            should_include = True
+                            reason = "depth_0"
+                        elif current_is_event:
+                            # At depth > 0: only include if traversing FROM an event
+                            # Events are the "glue" - we traverse THROUGH them, not TO them
+                            # A non-event's production/creation events are about that entity,
+                            # not relevant to the starting entity's document
+                            should_include = True
+                            reason = "from_event"
+                        else:
+                            # Non-event at depth > 0: don't pull in connected events
+                            should_include = False
+                            reason = "non_event_skip"
+
+                        if DEBUG_TRAVERSAL:
+                            logger.debug(f"  [OUT d={current_depth}] {entity_label} --{pred_label}--> {obj_label}: {reason} -> include={should_include}")
+
+                        if not should_include:
+                            continue  # Skip this statement - not relevant to starting entity
+
                         # Store raw triple if requested
                         if return_triples:
                             raw_triples.append({
@@ -1103,10 +1300,10 @@ class UniversalRagSystem:
 
                         context_statements.append(statement)
 
-                        # Recursively traverse both directions to follow CIDOC-CRM patterns
-                        # (e.g., Painting ← P108 ← Production → P14 → Artist)
-                        if current_depth < depth:
-                            traverse(obj, current_depth + 1, "both")
+                        # Event-aware recursive traversal:
+                        # Only continue deeper if this connection involves events
+                        if current_depth < depth and should_include:
+                            traverse(obj, current_depth + 1, "both", came_from_event=current_is_event)
                 except Exception as e:
                     logger.error(f"Error traversing outgoing relationships: {str(e)}")
 
@@ -1149,6 +1346,32 @@ class UniversalRagSystem:
                         if subj == uri or (subj_label and entity_label and subj_label.lower() == entity_label.lower()):
                             continue
 
+                        # Event-aware filtering (same logic as outgoing)
+                        current_is_event = is_event(uri)
+                        target_is_event = is_event(subj)
+
+                        if start_is_event:
+                            should_include = True
+                            reason = "start_is_event"
+                        elif current_depth == 0:
+                            should_include = True
+                            reason = "depth_0"
+                        elif current_is_event:
+                            # At depth > 0: only include if traversing FROM an event
+                            # Events are the "glue" - we traverse THROUGH them, not TO them
+                            should_include = True
+                            reason = "from_event"
+                        else:
+                            # Non-event at depth > 0: don't pull in connected events
+                            should_include = False
+                            reason = "non_event_skip"
+
+                        if DEBUG_TRAVERSAL:
+                            logger.debug(f"  [IN d={current_depth}] {subj_label} --{pred_label}--> {entity_label}: {reason} -> include={should_include}")
+
+                        if not should_include:
+                            continue  # Skip this statement - not relevant to starting entity
+
                         # Store raw triple if requested
                         if return_triples:
                             raw_triples.append({
@@ -1164,16 +1387,22 @@ class UniversalRagSystem:
                         # For incoming: Production P108 Painting → Painting P108i Production
                         # This expresses the relationship from the current entity's perspective
                         inverse_pred = self._get_inverse_predicate(pred)
+                        if DEBUG_TRAVERSAL:
+                            logger.debug(f"    Inverse: {pred.split('#')[-1]} -> {inverse_pred.split('#')[-1]}")
                         statement = self.process_cidoc_relationship(
                             uri, inverse_pred, subj, entity_label, subj_label
                         )
+                        if DEBUG_TRAVERSAL:
+                            logger.debug(f"    Statement: {statement}")
 
                         context_statements.append(statement)
 
-                        # Recursively traverse both directions to follow CIDOC-CRM patterns
-                        # (e.g., Painting ← P108 ← Production → P14 → Artist)
-                        if current_depth < depth:
-                            traverse(subj, current_depth + 1, "both")
+                        # NOTE: We do NOT traverse from incoming relationships.
+                        # Incoming relationships are "about" this entity from another entity's perspective.
+                        # Information flows FROM subject TO object, so we only traverse outgoing.
+                        # Example: "Atom carries Inscription" is the Atom's property, not the Inscription's.
+                        # The Inscription's document should not inherit the Atom's production info.
+
                 except Exception as e:
                     logger.error(f"Error traversing incoming relationships: {str(e)}")
 
@@ -2141,10 +2370,12 @@ Remember: Your audience wants to learn about cultural heritage, not database sch
             ?entity ?property ?value .
             FILTER(isLiteral(?value))
 
-            # Exclude predicates/properties from the ontology
+            # Exclude ontology schema elements (classes and properties)
             FILTER NOT EXISTS {
                 ?entity rdf:type ?type .
                 VALUES ?type {
+                    rdfs:Class
+                    owl:Class
                     rdf:Property
                     owl:ObjectProperty
                     owl:DatatypeProperty
@@ -2178,9 +2409,30 @@ Remember: Your audience wants to learn about cultural heritage, not database sch
                     entity_map[entity_uri][prop_name] = []
                 entity_map[entity_uri][prop_name].append(value)
 
-            # Convert to list format with labels
+            # Convert to list format with labels, filtering out ontology classes
             entities = []
+            ontology_classes = UniversalRagSystem._ontology_classes or set()
+            skipped_classes = 0
+
             for entity_uri, literals in entity_map.items():
+                # Skip ontology class URIs (e.g., E41_Appellation, IC10_Attribute)
+                if entity_uri in ontology_classes:
+                    skipped_classes += 1
+                    continue
+
+                # Also skip URIs that look like ontology definitions
+                # (cidoc-crm namespace, vir namespace with class patterns)
+                if any(pattern in entity_uri for pattern in [
+                    'cidoc-crm.org/cidoc-crm/E',
+                    'cidoc-crm.org/cidoc-crm/P',
+                    'w3id.org/vir#IC',
+                    'w3id.org/vir#K',
+                    'ics.forth.gr/isl/CRMdig/',
+                    'cidoc-crm.org/extensions/'
+                ]):
+                    skipped_classes += 1
+                    continue
+
                 # Try to find a label from various common properties
                 label = entity_uri.split('/')[-1]  # Default to URI fragment
                 for label_prop in ['label', 'prefLabel', 'name', 'title']:
@@ -2194,6 +2446,8 @@ Remember: Your audience wants to learn about cultural heritage, not database sch
                     "literals": literals
                 })
 
+            if skipped_classes > 0:
+                logger.info(f"Skipped {skipped_classes} ontology class URIs")
             logger.info(f"Retrieved {len(entities)} entities with literals")
             return entities
         except Exception as e:

@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/81d14a17-2e3e-48e0-b943-e7d88d83098e/
 Label: Panagia Kanakaria
-Generated: 2026-01-22 13:35:40
+Generated: 2026-01-22 19:11:55
 ---
 
 # Panagia Kanakaria

@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/icon/b15a726b-a0af-4a4f-9257-fa264b95e268
 Label: gospel book
-Generated: 2026-01-22 13:35:23
+Generated: 2026-01-22 19:11:50
 ---
 
 # gospel book
@@ -18,6 +18,4 @@ URI: http://map.cnrs.fr/semantics/icon/b15a726b-a0af-4a4f-9257-fa264b95e268
 
 ## Relationships
 
-- gospel book has attribute Preparation of the throne
-- Holy trinity symbolize gospel book
 - gospel book symbolize Holy trinity

@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/dea1b7d0-4f64-493f-a9ad-98ef7a925828/
 Label: Donor
-Generated: 2026-01-22 13:35:48
+Generated: 2026-01-22 19:11:59
 ---
 
 # Donor

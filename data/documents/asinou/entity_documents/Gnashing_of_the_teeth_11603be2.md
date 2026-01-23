@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/visual/atom/b103bfb9-8b37-4e76-bb19-ec9af40f9a43
 Label: Gnashing of the teeth
-Generated: 2026-01-22 13:35:41
+Generated: 2026-01-22 19:11:56
 ---
 
 # Gnashing of the teeth
@@ -19,156 +19,23 @@ URI: http://map.cnrs.fr/semantics/visual/atom/b103bfb9-8b37-4e76-bb19-ec9af40f9a
 
 ## Relationships
 
-- Saint Mamas is found on Panagia Phorbiottisa
-- Panagia Phorbiottisa was modified by Painting of Anastasias
-- Panagia Phorbiottisa falls within Nikitari
-- Narthex is composed of west lunette
-- Panagia Phorbiottisa bears feature Anastasias
-- Collective torments is found on Panagia Phorbiottisa
-- South arch bears feature Individual torments
-- Mural Painting is type of Painting of Anastasia
-- Scroll of heaven was produced by Painting cycle of 1332/33
-- Mural Painting has broader term Painting
-- Panagia Phorbiottisa witnessed Addition of the narthex
-- Panagia Phorbiottisa is composed of west lunette
-- Painting cycle of 1332/33 took place at Panagia Phorbiottisa
-- Fiery stream is found on Asinou
-- Panagia Phorbiottisa witnessed Construction of Asinou
-- Panagia Phorbiottisa bears feature Mother of god Phorbiotissa
-- Last judgment is found on Panagia Phorbiottisa
-- Lusignan occurs during Painting of Anastasias
-- Mural Painting is type of Painting cycle of 1332/33
-- Panagia Phorbiottisa was modified by Painting of Saint George
-- Narthex is composed of South lunette
-- Last judgment forms part of Narthex
-- Lusignan occurs during Construction of the church of Demetrianos
-- The preparation of the throne is denoted by Preparation of the throne
-- Lusignan occurs during Painting of Anastasia
-- Narthex is composed of western arch
-- Saint Mamas was produced by Painting cycle of 1332/33
-- The preparation of the throne is found on west lunette
-- Panagia Phorbiottisa bears feature Fiery stream
-- Panagia Phorbiottisa bears feature Scroll of heaven
-- Lusignan occurs during Painting cycle of 1332/33
-- Panagia Phorbiottisa witnessed Painting of Saint George
-- Panagia Phorbiottisa contains Naos
-- Lusignan has time-span 1191-01-01
-- Scroll of heaven forms part of western arch
-- South arch is composed of Collective torments
-- Panagia Phorbiottisa bears feature Donor
-- Painting cycle of 1332/33 occurs during Lusignan
-- South arch forms part of Asinou
-- 1332-01-01 is time-span of Painting cycle of 1332/33
-- Lusignan occurs during Painting of the last judgment
-- Lusignan occurs during Painting of the last Judgment
-- Panagia Phorbiottisa witnessed Painting of Anastasias
-- Panagia Phorbiottisa was modified by Painting cycle of 1332/33
-- Individual torments is found on Asinou
-- Mural Painting is type of Wall paintings of 1332/33
-- Lusignan occurs during Wall paintings of 1332/33
-- Gnashing of the teeth was produced by Painting cycle of 1332/33
-- Mural Painting is type of Painting of the last Judgment
-- Painting cycle of 1332/33 has produced Gnashing of the teeth
-- Mural Painting is type of Painting of the Virgin of Mercy
-- Narthex forms part of Asinou
-- Collective torments is composed of Gnashing of the teeth
-- Panagia Phorbiottisa bears feature Saint George
-- Painting cycle of 1332/33 has modified Asinou
-- Painting cycle of 1332/33 has modified Panagia Phorbiottisa
-- Lusignan occurs during Painting of the Virgin of Mercy
-- Painting cycle of 1332/33 has produced The preparation of the throne
-- Painting cycle of 1332/33 has produced Last judgment
-- Collective torments is found on Asinou
-- Panagia Phorbiottisa is composed of West door
-- Panagia Phorbiottisa contains Narthex
-- Fiery stream is found on west lunette
-- Gnashing of the teeth is found on South arch
-- Fiery stream is found on Panagia Phorbiottisa
-- Panagia Phorbiottisa bears feature The preparation of the throne
-- South arch is composed of Gnashing of the teeth
-- Painting cycle of 1332/33 is classified as type: Mural Painting
-- Panagia Phorbiottisa was modified by Construction of Asinou
 - Painting cycle of 1332/33 has produced Collective torments
-- Collective torments forms part of South arch
-- Gnashing of the teeth is found on Asinou
-- Scroll of heaven is found on western arch
-- Panagia Phorbiottisa was modified by Wall paintings of 1332/33
-- Mural Painting is type of Painting of Saint George
-- Panagia Phorbiottisa bears feature Collective torments
-- The preparation of the throne was produced by Painting cycle of 1332/33
-- South arch is composed of Individual torments
-- Panagia Phorbiottisa is composed of South lunette
-- Scroll of heaven is found on Asinou
-- Panagia Phorbiottisa was modified by Addition of the narthex
-- South arch forms part of Panagia Phorbiottisa
-- Narthex forms part of Panagia Phorbiottisa
-- Panagia Phorbiottisa bears feature Gnashing of the teeth
-- Lusignan occurs during Painting of donors Ioannes and Irene
-- Panagia Phorbiottisa witnessed Painting cycle of 1332/33
-- Mural Painting is type of Initial painting
-- Narthex bears feature Last judgment
-- Panagia Phorbiottisa is identified by Παναγία Φορβιώτισσα / Παναγία της Ασίνου
-- Panagia Phorbiottisa bears feature Last judgment
-- Individual torments is found on South arch
-- Panagia Phorbiottisa was modified by Initial painting
-- Lusignan is same as entity 9758548
-- Lusignan is same as Q213638
-- South arch bears feature Collective torments
-- Panagia Phorbiottisa bears feature Individual torments
-- Scroll of heaven is found on Panagia Phorbiottisa
-- Mural Painting is type of Painting of Anastasias
-- Panagia Phorbiottisa was modified by Closing of the south door of the Narthex
-- Gnashing of the teeth forms part of South arch
-- Painting cycle of 1332/33 has produced Scroll of heaven
-- The preparation of the throne is found on Asinou
-- Last judgment is found on Asinou
-- place currently holds South arch
-- Panagia Phorbiottisa witnessed Closing of the south door of the Narthex
-- Panagia Phorbiottisa is composed of Narthex
-- Gnashing of the teeth forms part of Collective torments
-- South arch forms part of Narthex
-- Panagia Phorbiottisa bears feature Saint Mamas
-- Panagia Phorbiottisa contains Bema
-- Panagia Phorbiottisa was produced by Construction of Asinou
-- Last judgment is found on Narthex
-- Narthex is composed of Donor couple
-- Panagia Phorbiottisa bears feature Virgin of Mercy
-- Painting cycle of 1332/33 has time-span 1332-01-01
-- The preparation of the throne is found on Panagia Phorbiottisa
-- Narthex is composed of South arch
-- Panagia Phorbiottisa is same as Q30773293
-- Collective torments was produced by Painting cycle of 1332/33
-- Painting cycle of 1332/33 has produced Saint Mamas
-- The preparation of the throne forms part of west lunette
-- Panagia Phorbiottisa witnessed Initial painting
-- Panagia Phorbiottisa was modified by Painting of the Virgin of Mercy
-- Narthex has current location place
-- Fiery stream was produced by Painting cycle of 1332/33
-- Panagia Phorbiottisa is composed of Naos
-- Collective torments is found on South arch
-- Individual torments was produced by Painting cycle of 1332/33
-- Panagia Phorbiottisa witnessed Wall paintings of 1332/33
-- Narthex bears feature Saint George
-- Painting cycle of 1332/33 has produced Individual torments
-- Individual torments forms part of South arch
-- Last judgment was produced by Painting cycle of 1332/33
-- Narthex is composed of West door
-- Saint Mamas is found on South lunette
 - Painting cycle of 1332/33 has produced Fiery stream
-- Mural Painting is type of Painting of donors Ioannes and Irene
-- Panagia Phorbiottisa is composed of South arch
-- Mural Painting is same as 300033644
-- Panagia Phorbiottisa is classified as type: Church
-- Saint Mamas is found on Asinou
-- Individual torments is found on Panagia Phorbiottisa
-- Narthex is composed of Last judgment
-- Panagia Phorbiottisa witnessed Painting of the Virgin of Mercy
-- Panagia Phorbiottisa contains South lunette
-- Panagia Phorbiottisa is composed of western arch
-- South arch has current location place
-- Panagia Phorbiottisa is composed of Bema
-- Panagia Phorbiottisa currently holds Asinou
+- Painting cycle of 1332/33 has modified Panagia Phorbiottisa
 - Gnashing of the teeth is found on Panagia Phorbiottisa
-- Fiery stream forms part of west lunette
-- South arch bears feature Gnashing of the teeth
-- Mural Painting is type of Painting of the last judgment
+- Gnashing of the teeth forms part of South arch
+- Painting cycle of 1332/33 has modified Asinou
+- Painting cycle of 1332/33 has produced Individual torments
+- Painting cycle of 1332/33 occurs during Lusignan
+- Painting cycle of 1332/33 has produced Gnashing of the teeth
+- Painting cycle of 1332/33 has produced Saint Mamas
+- Painting cycle of 1332/33 has produced Scroll of heaven
+- Painting cycle of 1332/33 has time-span 1332-01-01
+- Gnashing of the teeth was produced by Painting cycle of 1332/33
+- Gnashing of the teeth is found on Asinou
+- Painting cycle of 1332/33 has produced Last judgment
+- Painting cycle of 1332/33 took place at Panagia Phorbiottisa
+- Painting cycle of 1332/33 is classified as type: Mural Painting
+- Gnashing of the teeth is found on South arch
+- Gnashing of the teeth forms part of Collective torments
+- Painting cycle of 1332/33 has produced The preparation of the throne

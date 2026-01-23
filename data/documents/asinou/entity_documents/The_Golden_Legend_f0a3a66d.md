@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/4ebafcc4-1a0c-4068-87ee-e08f6990af3c/
 Label: The Golden Legend
-Generated: 2026-01-22 13:35:47
+Generated: 2026-01-22 19:11:58
 ---
 
 # The Golden Legend

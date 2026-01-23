@@ -156,27 +156,31 @@ VIR expands on key entities and properties from CIDOC-CRM, introducing new class
         rdfs:comment "This property associates an attribute with the iconographical object where it is depicted" ;
         rdfs:label "has attribute" ;
         rdfs:range vir:IC10_Attribute ;
-        rdfs:subPropertyOf crm:P106_is_composed_of .
+        rdfs:subPropertyOf crm:P106_is_composed_of ;
+        owl:inverseOf vir:K17i_is_attribute_of .
     
     vir:K17i_is_attribute_of a rdf:Property ;
         rdfs:domain vir:IC10_Attribute ;
         rdfs:comment "This property associates an attribute with the iconographical object where it is depicted" ;
         rdfs:label "is attribute of" ;
         rdfs:range vir:IC9_Representation ;
-        rdfs:subPropertyOf crm:P106i_forms_part_of .
+        rdfs:subPropertyOf crm:P106i_forms_part_of ;
+        owl:inverseOf vir:K17_has_attribute .
     
     vir:K1_denotes a rdf:Property ;
         rdfs:domain crm:E18_Physical_Thing ;
         rdfs:comment "The property documents the assignment of an iconographical object to a specific physical man-made object. It is a shortcut for the more fully developed path IC12 Visual Recognition assign (K9) to a E18 Physical Thing the status of (K11) IC9 Representation" ;
         rdfs:label "Denote" ;
         rdfs:range crm:E36_Visual_Item ;
-        rdfs:subPropertyOf crm:P65_shows_visual_item .
+        rdfs:subPropertyOf crm:P65_shows_visual_item ;
+        owl:inverseOf vir:K1i_is_denoted_by .
     
     vir:K1i_is_denoted_by a rdf:Property ;
         rdfs:comment "The property documents the assignment of an iconographical object to a specific physical man-made object. It is a shortcut for the more fully developed path IC12 Visual Recognition assign (K9) to a E18 Physical Thing the status of (K11) IC9 Representation." ;
         rdfs:label "is denoted by" ;
         rdfs:range crm:E18_Physical_Thing ;
-        rdfs:subPropertyOf crm:P65i_is_shown_by .
+        rdfs:subPropertyOf crm:P65i_is_shown_by ;
+        owl:inverseOf vir:K1_denotes .
     
     vir:K20_forms_part_of a rdf:Property ;
         rdfs:domain vir:IC9_Representation ;

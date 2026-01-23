@@ -2,13 +2,9 @@
 
 Graph-based RAG (Retrieval-Augmented Generation) system for querying CIDOC-CRM RDF data. Supports multiple datasets with lazy loading and per-dataset caching.
 
-## Key Features
+## Demo
 
-- **Multi-Dataset Support**: Switch between different SPARQL datasets via UI dropdown
-- **Lazy Loading**: Datasets are loaded only when first accessed
-- **Per-Dataset Caching**: Separate embeddings and document graphs for each dataset
-- **Local Embeddings**: 10-100x faster processing with sentence-transformers (no API rate limits)
-- **Embedding Cache**: Stop and resume processing for large datasets
+<video src="docs/demo.mp4" width="320" height="240" controls></video>
 
 ## Repository Structure
 

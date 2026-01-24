@@ -2144,74 +2144,67 @@ Each file contains:
 
 
     def cidoc_aware_retrieval(self, query, k=20):
-        """Enhanced retrieval using CIDOC-CRM aware scoring"""
-        
+        """Enhanced retrieval using CIDOC-CRM aware scoring.
+
+        Uses pre-computed graph edges from document_store instead of
+        querying SPARQL at runtime. Edges are built during initialization
+        with relationship weights based on CIDOC-CRM semantics.
+        """
+
         # Initial vector search
         vector_results = self.document_store.retrieve(query, k=k*2)
-        
+
         if not vector_results:
             return []
-        
-        # Get entity URIs from results
-        entity_uris = [doc.id for doc in vector_results]
-        
-        # Properly escape URIs for SPARQL query
-        escaped_uris = ['<' + uri.replace('>', '\\>').replace('<', '\\<') + '>' for uri in entity_uris]
 
-        # Create a graph representation
+        # Get entity URIs from results for filtering
+        entity_uris = set(doc.id for doc in vector_results)
+
+        # Create a graph representation from pre-computed edges (no SPARQL needed)
         G = nx.DiGraph()
-        
-        # Add nodes (entities) to the graph
+
+        # Add nodes and edges from document store
         for doc in vector_results:
-            G.add_node(doc.id, score=0.0, label=doc.metadata.get("label", ""))
-        
-        # Get relationships between entities - fix the VALUES clause
-        relationships_query = f"""
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-        
-        SELECT ?subject ?predicate ?object WHERE {{
-            ?subject ?predicate ?object .
-            VALUES ?subject {{ {' '.join(escaped_uris)} }}
-            VALUES ?object {{ {' '.join(escaped_uris)} }}
-        }}
-        """
-        
-        try:
-            self.sparql.setQuery(relationships_query)
-            results = self.sparql.query().convert()
-            
-            # Add edges with weights based on relationship type
-            for result in results["results"]["bindings"]:
-                subject = result["subject"]["value"]
-                predicate = result["predicate"]["value"]
-                object_uri = result["object"]["value"]
-                
-                # Get weight for this relationship type
-                weight = self.get_relationship_weight(predicate)
-                
-                G.add_edge(subject, object_uri, weight=weight, predicate=predicate)
-        except Exception as e:
-            logger.error(f"Error getting relationships: {str(e)}")
-            logger.error(f"Problematic query: {relationships_query}")
-                
+            G.add_node(doc.id, label=doc.metadata.get("label", ""))
+
+            # Add edges from pre-computed neighbors
+            for neighbor in doc.neighbors:
+                neighbor_id = neighbor["doc_id"]
+                # Only add edges to other retrieved documents
+                if neighbor_id in entity_uris:
+                    weight = neighbor.get("weight", 0.5)
+                    G.add_edge(doc.id, neighbor_id, weight=weight, predicate=neighbor.get("edge_type", ""))
+
+        # Compute PageRank if graph has edges
+        pagerank_scores = {}
+        if G.number_of_edges() > 0:
+            try:
+                pagerank_scores = nx.pagerank(
+                    G,
+                    alpha=RetrievalConfig.PAGERANK_DAMPING,
+                    max_iter=RetrievalConfig.PAGERANK_ITERATIONS
+                )
+            except Exception as e:
+                logger.warning(f"PageRank computation failed: {str(e)}")
+
         # Re-rank documents by combined vector similarity and graph centrality
         ranked_docs = []
-        
+
         for i, doc in enumerate(vector_results):
             # Vector score (inversely proportional to rank)
             vector_score = (len(vector_results) - i) / len(vector_results)
-            
+
             # Graph score (from PageRank)
-            graph_score = G.nodes.get(doc.id, {}).get("score", 0.0)
-            
+            graph_score = pagerank_scores.get(doc.id, 0.0)
+
             # Combined score
             combined_score = RetrievalConfig.VECTOR_PAGERANK_ALPHA * vector_score + (1 - RetrievalConfig.VECTOR_PAGERANK_ALPHA) * graph_score
-            
+
             ranked_docs.append((doc, combined_score))
-        
+
         # Sort by combined score
         ranked_docs.sort(key=lambda x: x[1], reverse=True)
-        
+
         # Return top k documents
         return [doc for doc, _ in ranked_docs[:k]]
 

@@ -389,7 +389,7 @@ if __name__ == '__main__':
             default_ds = datasets_config.get('default_dataset')
             if default_ds and not args.rebuild:
                 cache_paths = dataset_manager.get_cache_paths(default_ds)
-                if os.path.exists(cache_paths['document_graph']) and os.path.exists(cache_paths['vector_index']):
+                if os.path.exists(cache_paths['document_graph']) and os.path.exists(cache_paths['vector_index_dir']):
                     logger.info(f"Pre-loading default dataset: {default_ds}")
                     try:
                         dataset_manager.get_dataset(default_ds)

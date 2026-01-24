@@ -11,7 +11,8 @@ config/.env.*
 # Generated data files
 data/labels/*.json
 data/cache/
-data/documents/entity_documents/
+data/documents/**/entity_documents/
+data/exports/
 
 # Cache and temporary pickle files
 *.pkl

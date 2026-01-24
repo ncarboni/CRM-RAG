@@ -46,7 +46,8 @@ CRM_RAG/
 │   ├── CLUSTER_EMBEDDINGS.md # GPU cluster processing guide
 │   └── REORGANIZATION_PLAN.md
 ├── scripts/             Utility scripts
-│   └── extract_ontology_labels.py
+│   ├── extract_ontology_labels.py
+│   └── bulk_generate_documents.py  # Fast bulk export for large datasets
 ├── logs/                Application logs
 ├── static/              Web interface CSS and JavaScript
 ├── templates/           Web interface HTML templates
@@ -262,6 +263,150 @@ python main.py --env .env.local --dataset asinou --rebuild --process-only
 - Hardware acceleration (GPU/CPU)
 - Troubleshooting
 
+### Bulk Document Generation (Very Large Datasets)
+
+For datasets with 100,000+ entities, the standard per-entity SPARQL queries become a bottleneck. The bulk export script exports all triples in one query and processes locally, reducing processing time from days to minutes.
+
+```bash
+# Generate documents using bulk export (reads endpoint from datasets.yaml)
+python scripts/bulk_generate_documents.py --dataset mah
+```
+
+**Performance comparison for 867,000 entities:**
+
+| Method | Time | Bottleneck |
+|--------|------|------------|
+| Standard (per-entity SPARQL) | ~113 days | Network round-trips |
+| Bulk export + local processing | ~30-45 min | Disk I/O |
+
+**Options:**
+
+```bash
+# Export only (creates data/exports/<dataset>_dump.ttl)
+python scripts/bulk_generate_documents.py --dataset mah --export-only
+
+# Process from existing export file
+python scripts/bulk_generate_documents.py --dataset mah --from-file data/exports/mah_dump.ttl
+
+# Override endpoint from datasets.yaml
+python scripts/bulk_generate_documents.py --dataset mah --endpoint http://localhost:3030/other/sparql
+```
+
+**Workflow for GPU cluster embedding:**
+
+```bash
+# 1. Generate documents locally (fast bulk export)
+python scripts/bulk_generate_documents.py --dataset mah
+
+# 2. Transfer to cluster
+rsync -avz data/documents/mah/ user@cluster:~/CRM_RAG/data/documents/mah/
+
+# 3. On cluster: generate embeddings (no SPARQL needed)
+python main.py --env .env.cluster --dataset mah --embed-from-docs --process-only
+
+# 4. Transfer cache back
+rsync -avz user@cluster:~/CRM_RAG/data/cache/mah/ ./data/cache/mah/
+
+# 5. Run locally
+python main.py --env .env.local
+```
+
+**Parallel document generation on cluster:**
+
+For very large datasets (500K+ entities), use multiprocessing:
+
+```bash
+# Single machine (e.g., laptop)
+python scripts/bulk_generate_documents.py --dataset mah
+
+# Cluster node with 32 cores
+python scripts/bulk_generate_documents.py --dataset mah --workers 32
+
+# Memory usage: ~4-8 GB per worker for 867K entities
+# With 512 GB RAM, you can safely use 32-64 workers
+```
+
+Example SLURM job script (`bulk_docs.sbatch`):
+```bash
+#!/bin/bash
+#SBATCH --job-name=bulk_docs
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=32
+#SBATCH --mem=128G
+#SBATCH --time=02:00:00
+
+module load python/3.11
+source ~/venv/bin/activate
+cd ~/CRM_RAG
+
+python scripts/bulk_generate_documents.py \
+    --dataset mah \
+    --from-file data/exports/mah_dump.ttl \
+    --workers 32
+```
+
+See [docs/CLUSTER_PIPELINE.md](docs/CLUSTER_PIPELINE.md) for the complete cluster workflow guide.
+
+### Cluster Pipeline (Unified Workflow)
+
+The cluster pipeline script (`scripts/cluster_pipeline.py`) unifies all processing steps into a single command for easier cluster deployment.
+
+**Full pipeline (all steps):**
+
+```bash
+python scripts/cluster_pipeline.py --dataset mah --all
+```
+
+**Individual steps:**
+
+```bash
+# Step 1: Export RDF from SPARQL
+python scripts/cluster_pipeline.py --dataset mah --export
+
+# Step 2: Generate entity documents
+python scripts/cluster_pipeline.py --dataset mah --generate-docs --workers 8
+
+# Step 3: Compute embeddings
+python scripts/cluster_pipeline.py --dataset mah --embed --env .env.cluster
+```
+
+**Typical cluster workflow:**
+
+```bash
+# LOCAL (has SPARQL access)
+python scripts/cluster_pipeline.py --dataset mah --export --generate-docs --workers 8
+
+# Transfer documents to cluster
+rsync -avz data/documents/mah/ user@cluster:CRM_RAG/data/documents/mah/
+
+# CLUSTER (has GPU, no SPARQL)
+python scripts/cluster_pipeline.py --dataset mah --embed --env .env.cluster
+
+# Transfer embeddings back
+rsync -avz user@cluster:CRM_RAG/data/cache/mah/ data/cache/mah/
+
+# Run locally
+python main.py --env .env.local
+```
+
+**Check pipeline status:**
+
+```bash
+python scripts/cluster_pipeline.py --dataset mah --status
+```
+
+**Clean intermediate files:**
+
+```bash
+python scripts/cluster_pipeline.py --dataset mah --clean           # Clean all
+python scripts/cluster_pipeline.py --dataset mah --clean-export    # Clean export only
+python scripts/cluster_pipeline.py --dataset mah --clean-docs      # Clean documents only
+python scripts/cluster_pipeline.py --dataset mah --clean-cache     # Clean embeddings only
+```
+
+For detailed documentation including SLURM job scripts, troubleshooting, and best practices, see [docs/CLUSTER_PIPELINE.md](docs/CLUSTER_PIPELINE.md).
+
 ### Multi-Dataset Mode
 
 When `config/datasets.yaml` is configured, the chat interface displays a dataset selector dropdown. Select a dataset to:
@@ -291,6 +436,8 @@ python main.py --env .env.openai --rebuild
 
 ### CLI Reference
 
+**main.py flags:**
+
 | Flag | Description |
 |------|-------------|
 | `--env <file>` | Path to environment config file (e.g., `.env.openai`) |
@@ -302,6 +449,34 @@ python main.py --env .env.openai --rebuild
 | `--no-embedding-cache` | Disable embedding cache (force re-embedding) |
 | `--generate-docs-only` | Generate documents from SPARQL without embedding (for cluster workflow) |
 | `--embed-from-docs` | Generate embeddings from existing documents (no SPARQL needed) |
+
+**scripts/cluster_pipeline.py flags:**
+
+| Flag | Description |
+|------|-------------|
+| `--dataset <id>` | Dataset ID (required, from datasets.yaml) |
+| `--all` | Run full pipeline (export + generate + embed) |
+| `--export` | Step 1: Export RDF from SPARQL endpoint |
+| `--generate-docs` | Step 2: Generate entity documents |
+| `--embed` | Step 3: Compute embeddings and build graph |
+| `--env <file>` | Path to environment config file |
+| `--from-file <path>` | Use existing TTL/RDF file instead of exporting |
+| `--workers <n>` | Number of parallel workers (default: 1) |
+| `--context-depth <0,1,2>` | Relationship traversal depth (default: 2) |
+| `--batch-size <n>` | Embedding batch size (default: 64) |
+| `--status` | Show pipeline status for dataset |
+| `--clean` | Clean all intermediate files |
+
+**scripts/bulk_generate_documents.py flags:**
+
+| Flag | Description |
+|------|-------------|
+| `--dataset <id>` | Dataset ID (required, reads endpoint from datasets.yaml) |
+| `--endpoint <url>` | Override SPARQL endpoint from config |
+| `--from-file <path>` | Load from existing RDF export instead of querying |
+| `--export-only` | Only export triples, don't generate documents |
+| `--workers <n>` | Number of parallel processes (default: 1, use 32+ on cluster) |
+| `--context-depth <0,1,2>` | Relationship traversal depth (default: 2 for CIDOC-CRM) |
 
 ### Processing Specific Datasets
 

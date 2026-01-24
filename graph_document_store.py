@@ -4,6 +4,8 @@ This replaces context-specific indices with a unified graph structure.
 """
 
 import logging
+import os
+import pickle
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, field
 import numpy as np
@@ -171,12 +173,8 @@ class GraphDocumentStore:
             logger.info(f"Building vector store with {len(docs_for_faiss)} documents (generating embeddings)")
             self.vector_store = FAISS.from_documents(docs_for_faiss, self.embeddings_model)
 
-    # Add to GraphDocumentStore class
     def save_document_graph(self, path='document_graph.pkl'):
         """Save document graph to disk"""
-        import pickle
-        import os
-        
         # Create directory if needed
         os.makedirs(os.path.dirname(path) if os.path.dirname(path) else '.', exist_ok=True)
         
@@ -191,9 +189,6 @@ class GraphDocumentStore:
 
     def load_document_graph(self, path='document_graph.pkl'):
         """Load document graph from disk"""
-        import pickle
-        import os
-        
         if not os.path.exists(path):
             logger.error(f"Document graph file not found at {path}")
             return False

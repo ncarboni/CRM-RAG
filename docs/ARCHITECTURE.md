@@ -2,8 +2,8 @@
 
 **Universal Graph-Based RAG System for CIDOC-CRM and Semantic RDF Data**
 
-Version: 1.0
-Last Updated: 2025-12-06
+Version: 2.0
+Last Updated: 2026-01-24
 
 ---
 
@@ -18,6 +18,8 @@ Last Updated: 2025-12-06
 7. [Component Interactions](#component-interactions)
 8. [Configuration](#configuration)
 9. [Extension Points](#extension-points)
+10. [Performance Considerations](#performance-considerations)
+11. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -29,10 +31,13 @@ This system implements a **Retrieval-Augmented Generation (RAG)** pipeline speci
 
 ### Key Features
 
-- **CIDOC-CRM Aware**: Deep understanding of CIDOC-CRM ontologies and their extensions (VIR, CRMdig, FRBRoo, etc.)
+- **Multi-Dataset Support**: Lazy-loaded datasets with per-dataset caching and configuration
+- **CIDOC-CRM Aware**: Deep understanding of CIDOC-CRM ontologies and extensions (VIR, CRMdig, FRBRoo)
 - **Graph-Based Retrieval**: Uses graph structure and relationships for coherent document selection
-- **Ontology Validation**: Automatic detection and reporting of missing ontology files
-- **Multi-LLM Support**: Abstraction layer supporting OpenAI, Anthropic, R1, and Ollama
+- **Local Embeddings**: Fast sentence-transformers embeddings (no API rate limits)
+- **Cluster Pipeline**: Unified workflow for GPU cluster processing of large datasets
+- **Multi-LLM Support**: Abstraction layer supporting OpenAI, Anthropic, R1, Ollama, and local models
+- **Embedding Cache**: Resumable processing with disk-based embedding cache
 - **Coherent Subgraph Extraction**: Balances relevance and connectivity for better context
 - **Natural Language Generation**: Converts technical RDF triples into readable descriptions
 
@@ -304,22 +309,26 @@ class_labels.json          # URI → English label (classes)
 
 **File**: `llm_providers.py`
 
-**Purpose**: Unified interface for multiple LLM providers.
+**Purpose**: Unified interface for multiple LLM and embedding providers.
 
 **Key Classes**:
 - `BaseLLMProvider`: Abstract base class
   - `generate()`: Generate text completion
   - `get_embeddings()`: Get vector embeddings
-- `OpenAIProvider`: OpenAI API (GPT-4, text-embedding-3-small)
+  - `supports_batch_embedding()`: Check batch support
+- `OpenAIProvider`: OpenAI API (GPT-4o, text-embedding-3-small)
 - `AnthropicProvider`: Anthropic Claude API (uses OpenAI for embeddings)
-- `R1Provider`: Cohere R1 API
+- `SentenceTransformersProvider`: Local embeddings (BAAI/bge-m3, etc.)
+- `R1Provider`: DeepSeek R1 API
 - `OllamaProvider`: Local Ollama models
 
-**Factory**:
-- `get_llm_provider()`: Create provider from config
+**Factory Functions**:
+- `get_llm_provider()`: Create LLM provider from config
+- `get_embedding_provider()`: Create embedding provider (can differ from LLM)
 
 **Configuration Example**:
 ```python
+# OpenAI for both LLM and embeddings
 config = {
     "llm_provider": "openai",
     "api_key": "sk-...",
@@ -327,7 +336,65 @@ config = {
     "embedding_model": "text-embedding-3-small",
     "temperature": 0.7
 }
+
+# OpenAI for LLM, local for embeddings
+config = {
+    "llm_provider": "openai",
+    "embedding_provider": "local",
+    "embedding_model": "BAAI/bge-m3",
+    "embedding_device": "cuda",  # or "mps", "cpu"
+    "embedding_batch_size": 64
+}
 ```
+
+### 5. Dataset Manager
+
+**File**: `dataset_manager.py`
+
+**Purpose**: Manage multiple RAG system instances with lazy loading.
+
+**Key Class**: `DatasetManager`
+- `list_datasets()`: Return available datasets with status
+- `get_dataset()`: Get or lazy-initialize RAG system for dataset
+- `is_initialized()`: Check if dataset is loaded in memory
+- `get_cache_paths()`: Return dataset-specific cache paths
+- `get_interface_config()`: Merge default interface with dataset overrides
+
+**Configuration** (`config/datasets.yaml`):
+```yaml
+default_dataset: asinou
+
+datasets:
+  asinou:
+    name: asinou
+    display_name: "Asinou Church"
+    endpoint: "http://localhost:3030/asinou/sparql"
+    embedding:
+      provider: local
+      model: BAAI/bge-m3
+    interface:
+      page_title: "Asinou Dataset Chat"
+      example_questions:
+        - "Where is Panagia Phorbiottisa located?"
+```
+
+### 6. Embedding Cache
+
+**File**: `embedding_cache.py`
+
+**Purpose**: Disk-based embedding cache for resumable processing.
+
+**Key Class**: `EmbeddingCache`
+- `get()`: Retrieve cached embedding
+- `set()`: Cache an embedding
+- `get_batch()`: Batch retrieval with cache hits/misses
+- `count()`: Number of cached embeddings
+- `get_stats()`: Cache statistics
+
+**Features**:
+- Stores embeddings as NumPy arrays in subdirectories
+- Uses MD5 hash of document ID for file names
+- Enables stopping and resuming large dataset processing
 
 ---
 
@@ -605,51 +672,74 @@ C [0.75 1.0  1.0 ]
 
 ```
 CRM_RAG/
-├── universal_rag_system.py          # Main RAG orchestrator
+├── main.py                          # Flask web application
+├── universal_rag_system.py          # Core RAG orchestrator
 ├── graph_document_store.py          # Graph-based document storage
 ├── llm_providers.py                 # LLM abstraction layer
-├── extract_ontology_labels.py       # Ontology label extraction
+├── dataset_manager.py               # Multi-dataset management
+├── embedding_cache.py               # Disk-based embedding cache
+├── config_loader.py                 # Configuration loading
 │
-├── ontology/                        # Ontology files
-│   ├── CIDOC_CRM_v7.1.3.rdf
-│   ├── vir.ttl
-│   ├── CRMdig_v3.2.1.rdf
-│   └── [add custom ontologies here]
+├── config/                          # Configuration files
+│   ├── .env.openai                  # OpenAI provider config
+│   ├── .env.local                   # Local embeddings config
+│   ├── .env.cluster                 # GPU cluster config
+│   ├── .env.secrets                 # API keys (git-ignored)
+│   ├── datasets.yaml                # Multi-dataset configuration
+│   ├── interface.yaml               # Chat UI customization
+│   └── event_classes.json           # CIDOC-CRM event classes
 │
-├── property_labels.json             # Property URI → English label
-├── ontology_classes.json            # Technical class identifiers
-├── class_labels.json                # Class URI → English label
+├── data/                            # All data files
+│   ├── ontologies/                  # Ontology files
+│   │   ├── CIDOC_CRM_v7.1.3.rdf
+│   │   ├── vir.ttl
+│   │   └── CRMdig_v3.2.1.rdf
+│   │
+│   ├── labels/                      # Extracted ontology labels (shared)
+│   │   ├── property_labels.json
+│   │   ├── class_labels.json
+│   │   └── ontology_classes.json
+│   │
+│   ├── exports/                     # RDF bulk exports
+│   │   └── <dataset>_dump.ttl
+│   │
+│   ├── cache/                       # Per-dataset caches
+│   │   └── <dataset>/
+│   │       ├── document_graph.pkl
+│   │       ├── vector_index/
+│   │       └── embeddings/
+│   │
+│   └── documents/                   # Per-dataset entity documents
+│       └── <dataset>/
+│           ├── entity_documents/*.md
+│           └── documents_metadata.json
 │
-├── document_graph.pkl               # Serialized graph documents (cached)
-├── vector_index/                    # FAISS vector index (cached)
-│   ├── index.faiss
-│   └── index.pkl
+├── scripts/                         # Utility scripts
+│   ├── extract_ontology_labels.py   # Ontology label extraction
+│   ├── bulk_generate_documents.py   # Fast bulk RDF export
+│   ├── cluster_pipeline.py          # Unified cluster workflow
+│   └── test_entity_context.py       # Debug utility
 │
-├── entity_documents/                # Natural language markdown docs
-│   ├── README.md
-│   ├── Panagia_Phorbiottisa_a1b2c3d4.md
-│   ├── Anastasia_e5f6g7h8.md
-│   └── ...
-│
-├── ontology_validation_report.txt   # Missing classes/properties report
-│
-├── .env                             # Environment configuration
-├── requirements.txt                 # Python dependencies
-├── ARCHITECTURE.md                  # This file
-└── README.md                        # User guide
+├── static/                          # Web interface assets
+├── templates/                       # Flask HTML templates
+├── logs/                            # Application logs
+└── docs/                            # Documentation
 ```
 
 ### Data Files
 
 | File | Purpose | Format | Generated By |
 |------|---------|--------|--------------|
-| `property_labels.json` | Property URI → English label | JSON dict | `extract_ontology_labels.py` |
-| `ontology_classes.json` | Set of ontology class identifiers | JSON array | `extract_ontology_labels.py` |
-| `class_labels.json` | Class URI → English label | JSON dict | `extract_ontology_labels.py` |
-| `document_graph.pkl` | Serialized GraphDocument objects | Pickle | `process_rdf_data()` |
-| `vector_index/` | FAISS vector index | FAISS binary | `build_vector_store_batched()` |
-| `entity_documents/*.md` | Human-readable entity documents | Markdown | `save_entity_document()` |
-| `ontology_validation_report.txt` | Validation report | Text | `generate_validation_report()` |
+| `data/labels/property_labels.json` | Property URI → English label | JSON dict | `extract_ontology_labels.py` |
+| `data/labels/ontology_classes.json` | Set of ontology class identifiers | JSON array | `extract_ontology_labels.py` |
+| `data/labels/class_labels.json` | Class URI → English label | JSON dict | `extract_ontology_labels.py` |
+| `data/exports/<dataset>_dump.ttl` | Bulk RDF export from SPARQL | Turtle | `bulk_generate_documents.py` |
+| `data/cache/<dataset>/document_graph.pkl` | Serialized GraphDocument objects | Pickle | `process_rdf_data()` |
+| `data/cache/<dataset>/vector_index/` | FAISS vector index | FAISS binary | `rebuild_vector_store()` |
+| `data/cache/<dataset>/embeddings/` | Cached embeddings for resumability | NumPy | `EmbeddingCache` |
+| `data/documents/<dataset>/entity_documents/*.md` | Human-readable entity documents | Markdown | `save_entity_document()` |
+| `data/documents/<dataset>/documents_metadata.json` | Entity metadata for embedding | JSON | `generate_documents_only()` |
+| `logs/ontology_validation_report.txt` | Validation report | Text | `generate_validation_report()` |
 
 ---
 
@@ -758,38 +848,66 @@ User Question
 
 ## Configuration
 
-### Environment Variables
+### Configuration Files
 
-Create a `.env` file:
+Configuration is split across multiple files in `config/`:
 
+**Provider Configuration** (`config/.env.openai`, `.env.local`, `.env.cluster`):
 ```bash
-# LLM Provider Selection
-LLM_PROVIDER=openai  # openai, anthropic, r1, ollama
-
-# OpenAI Configuration
-OPENAI_API_KEY=sk-...
+# LLM Provider
+LLM_PROVIDER=openai
 OPENAI_MODEL=gpt-4o
-OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 
-# Anthropic Configuration
-ANTHROPIC_API_KEY=sk-ant-...
-ANTHROPIC_MODEL=claude-3-5-sonnet
+# Embedding Provider (can differ from LLM)
+EMBEDDING_PROVIDER=local
+EMBEDDING_MODEL=BAAI/bge-m3
+EMBEDDING_DEVICE=auto
+EMBEDDING_BATCH_SIZE=64
 
-# R1 (Cohere) Configuration
-R1_API_KEY=...
-R1_MODEL=rank-r1-v16
+# Cache settings
+USE_EMBEDDING_CACHE=true
 
-# Ollama Configuration (local)
-OLLAMA_HOST=http://localhost:11434
-OLLAMA_MODEL=mistral
-OLLAMA_EMBEDDING_MODEL=nomic-embed-text
-
-# SPARQL Endpoint
-SPARQL_ENDPOINT=http://localhost:3030/dataset/sparql
-
-# Generation Settings
+# Server settings
 TEMPERATURE=0.7
-MAX_TOKENS=2000
+PORT=5001
+```
+
+**API Keys** (`config/.env.secrets`):
+```bash
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+**Dataset Configuration** (`config/datasets.yaml`):
+```yaml
+default_dataset: asinou
+
+datasets:
+  asinou:
+    name: asinou
+    display_name: "Asinou Church"
+    endpoint: "http://localhost:3030/asinou/sparql"
+    embedding:
+      provider: local
+      model: BAAI/bge-m3
+    interface:
+      page_title: "Asinou Dataset Chat"
+      example_questions:
+        - "Where is Panagia Phorbiottisa located?"
+
+  museum:
+    name: museum
+    display_name: "Museum Collection"
+    endpoint: "http://localhost:3030/museum/sparql"
+```
+
+**Interface Customization** (`config/interface.yaml`):
+```yaml
+page_title: "Cultural Heritage Chat"
+header_title: "Heritage Assistant"
+welcome_message: "Ask me about cultural heritage..."
+example_questions:
+  - "What churches have Byzantine frescoes?"
 ```
 
 ### System Configuration
@@ -834,15 +952,6 @@ class RetrievalConfig:
    rm -rf document_graph.pkl vector_index/ entity_documents/
    ```
 5. Re-initialize RAG system
-
-**Supported Ontology Extensions**:
-- FRBRoo (Functional Requirements for Bibliographic Records)
-- CRMgeo (Geospatial extension)
-- CRMsci (Scientific observation)
-- CRMarchaeo (Archaeological excavation)
-- CRMinf (Argumentation and inference)
-- CRMtex (Text encoding)
-- LRM (Library Reference Model)
 
 ### 2. Adding New LLM Providers
 
@@ -983,45 +1092,3 @@ Typical query breakdown (for 10k entity dataset):
 
 **Symptom**: Irrelevant documents retrieved
 **Solution**: Adjust `VECTOR_PAGERANK_ALPHA` and `RELEVANCE_CONNECTIVITY_ALPHA`
-
----
-
-## Future Enhancements
-
-### Planned Features
-
-1. **Incremental Updates**: Update graph without full rebuild
-2. **Multi-Language Support**: Beyond English labels
-3. **Advanced Reasoning**: Inference over CIDOC-CRM constraints
-4. **Visualization**: Interactive graph visualization
-5. **Query Expansion**: Automatic expansion using ontology hierarchy
-6. **Federated Queries**: Query multiple SPARQL endpoints
-7. **Caching Layer**: Redis for frequently accessed entities
-8. **Metrics Dashboard**: Monitor retrieval quality and system performance
-
----
-
-## References
-
-### CIDOC-CRM Resources
-
-- **Official Site**: https://www.cidoc-crm.org/
-- **Extensions**: https://www.cidoc-crm.org/extensions
-- **Documentation**: https://www.cidoc-crm.org/versions-of-the-cidoc-crm
-
-### Technical Papers
-
-- **RAG**: "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks" (Lewis et al., 2020)
-- **Graph-Based Retrieval**: "Graph-Based Reasoning over Heterogeneous External Knowledge" (Yasunaga et al., 2021)
-- **CIDOC-CRM**: "The CIDOC Conceptual Reference Model" (Doerr, 2003)
-
-### Related Tools
-
-- **RDFLib**: https://rdflib.readthedocs.io/
-- **SPARQLWrapper**: https://sparqlwrapper.readthedocs.io/
-- **FAISS**: https://github.com/facebookresearch/faiss
-- **LangChain**: https://python.langchain.com/
-
----
-
-**End of Architecture Documentation**

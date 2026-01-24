@@ -13,7 +13,6 @@ import pickle
 import re
 import shutil
 import time
-import types
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Tuple
 
@@ -94,6 +93,11 @@ class UniversalRagSystem:
         self.dataset_id = dataset_id or "default"
         self.sparql = SPARQLWrapper(endpoint_url)
         self.sparql.setReturnFormat(JSON)
+
+        # Reset per-dataset tracking sets to avoid cross-dataset contamination
+        # These track missing ontology elements for validation reports
+        UniversalRagSystem._missing_properties = set()
+        UniversalRagSystem._missing_classes = set()
 
         # Initialize configuration
         self.config = config or {}
@@ -530,26 +534,7 @@ class UniversalRagSystem:
         
         if os.path.exists(doc_graph_path) and os.path.exists(vector_index_path):
             logger.info("Found both document graph and vector store, attempting to load...")
-            
-            # Add graph document load method
-            if not hasattr(self.document_store, 'load_document_graph'):
-                # Define the method if it doesn't exist
-                def load_document_graph(self, path):
-                    """Load document graph from disk"""
-                    if os.path.exists(path):
-                        try:
-                            with open(path, 'rb') as f:
-                                self.docs = pickle.load(f)
-                            logger.info(f"Document graph loaded from {path} with {len(self.docs)} documents")
-                            return True
-                        except Exception as e:
-                            logger.error(f"Error loading document graph: {str(e)}")
-                            return False
-                    return False
 
-                # Add method to class
-                self.document_store.load_document_graph = types.MethodType(load_document_graph, self.document_store)
-            
             # Try to load document graph
             graph_loaded = self.document_store.load_document_graph(doc_graph_path)
             
@@ -578,25 +563,6 @@ class UniversalRagSystem:
         
         # Process RDF data
         self.process_rdf_data()
-        
-        # Save the document graph
-        if not hasattr(self.document_store, 'save_document_graph'):
-            # Define the method if it doesn't exist
-            def save_document_graph(self, path):
-                """Save document graph to disk"""
-                try:
-                    # Ensure directory exists
-                    os.makedirs(os.path.dirname(path), exist_ok=True)
-                    with open(path, 'wb') as f:
-                        pickle.dump(self.docs, f)
-                    logger.info(f"Document graph saved to {path}")
-                    return True
-                except Exception as e:
-                    logger.error(f"Error saving document graph: {str(e)}")
-                    return False
-
-            # Add method to class
-            self.document_store.save_document_graph = types.MethodType(save_document_graph, self.document_store)
 
         # Save document graph
         self.document_store.save_document_graph(doc_graph_path)
@@ -1037,43 +1003,6 @@ class UniversalRagSystem:
                 return True
 
         return False
-
-    def is_event_entity(self, entity_uri):
-        """
-        Check if an entity is an instance of a CIDOC-CRM Event class.
-
-        In CIDOC-CRM, events are the "glue" that connect physical things, actors,
-        places, and times. This method is used for event-aware graph traversal
-        where multi-hop context only goes THROUGH events.
-
-        Args:
-            entity_uri: The URI of the entity to check
-
-        Returns:
-            bool: True if the entity is an event, False otherwise
-        """
-        type_query = f"""
-        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-        SELECT ?type WHERE {{
-            <{entity_uri}> rdf:type ?type .
-            FILTER(STRSTARTS(STR(?type), "http://"))
-        }}
-        """
-
-        try:
-            self.sparql.setQuery(type_query)
-            results = self.sparql.query().convert()
-
-            event_classes = UniversalRagSystem.get_event_classes()
-            for result in results["results"]["bindings"]:
-                type_uri = result["type"]["value"]
-                if type_uri in event_classes:
-                    return True
-
-            return False
-        except Exception as e:
-            logger.warning(f"Error checking if entity is event: {entity_uri}: {str(e)}")
-            return False
 
     def get_entity_types_cached(self, entity_uri, cache=None):
         """
@@ -2228,18 +2157,7 @@ Each file contains:
         
         # Properly escape URIs for SPARQL query
         escaped_uris = ['<' + uri.replace('>', '\\>').replace('<', '\\<') + '>' for uri in entity_uris]
-        
-        # Define relationship importance scores
-        relationship_weights = {
-            "http://www.cidoc-crm.org/cidoc-crm/P89_falls_within": 0.9,  # High weight for spatial containment
-            "http://www.cidoc-crm.org/cidoc-crm/P55_has_current_location": 0.9,  # High weight for location
-            "http://www.cidoc-crm.org/cidoc-crm/P56_bears_feature": 0.8,  # Important for physical features
-            "http://www.cidoc-crm.org/cidoc-crm/P46_is_composed_of": 0.8,  # Important for part-whole
-            "http://www.cidoc-crm.org/cidoc-crm/P108i_was_produced_by": 0.7,  # Important for creation
-            "http://w3id.org/vir#K24_portray": 0.7,  # Important for visual representation
-            "http://www.cidoc-crm.org/cidoc-crm/P2_has_type": 0.6  # Moderate for type information
-        }
-        
+
         # Create a graph representation
         G = nx.DiGraph()
         
@@ -2269,7 +2187,7 @@ Each file contains:
                 object_uri = result["object"]["value"]
                 
                 # Get weight for this relationship type
-                weight = relationship_weights.get(predicate, 0.5)  # Default weight for unspecified relationships
+                weight = self.get_relationship_weight(predicate)
                 
                 G.add_edge(subject, object_uri, weight=weight, predicate=predicate)
         except Exception as e:
@@ -2998,135 +2916,142 @@ Remember: Your audience wants to learn about cultural heritage, not database sch
         return selected_docs
 
     def answer_question(self, question, include_wikidata=True):
-            """Answer a question using the universal RAG system with CIDOC-CRM knowledge and optional Wikidata context"""
-            logger.info(f"Answering question directly: '{question}'")
-            
-            # Retrieve relevant documents
-            retrieved_docs = self.retrieve(question, k=RetrievalConfig.DEFAULT_RETRIEVAL_K)  # Get more documents
-            
-            if not retrieved_docs:
-                return {
-                    "answer": "I couldn't find relevant information to answer your question.",
-                    "sources": []
-                }
-            
-            # Create context from retrieved documents with better references
-            context = ""
-            
-            # Track Wikidata IDs for retrieved entities
-            wikidata_context = ""
-            entities_with_wikidata = []
-            
-            # Truncate each doc if needed to prevent rate limit errors
-            # Roughly 4 chars per token, limit ~500 tokens per doc
-            MAX_DOC_CHARS = 2000
-
-            for i, doc in enumerate(retrieved_docs):
-                entity_uri = doc.id
-                entity_label = doc.metadata.get("label", entity_uri.split('/')[-1])
-
-                # Build context without technical type information
-                context += f"Entity: {entity_label}\n"
-                doc_text = doc.text
-                if len(doc_text) > MAX_DOC_CHARS:
-                    doc_text = doc_text[:MAX_DOC_CHARS] + "...[truncated]"
-                context += doc_text + "\n\n"
-                
-                # Get Wikidata info if available and requested
-                if include_wikidata:
-                    wikidata_id = self.get_wikidata_for_entity(entity_uri)
-                    if wikidata_id:
-                        entities_with_wikidata.append({
-                            "entity_uri": entity_uri,
-                            "entity_label": entity_label,
-                            "wikidata_id": wikidata_id
-                        })
-            
-            # If requested, fetch Wikidata information for top 2 most relevant entities
-            if include_wikidata and entities_with_wikidata:
-                wikidata_context += "\nWikidata Context:\n"
-                for entity_info in entities_with_wikidata[:2]:  # Limit to top 2 entities
-                    wikidata_data = self.fetch_wikidata_info(entity_info["wikidata_id"])
-                    if wikidata_data:
-                        wikidata_context += f"\nWikidata information for {entity_info['entity_label']} ({entity_info['wikidata_id']}):\n"
-                        
-                        if "label" in wikidata_data:
-                            wikidata_context += f"- Label: {wikidata_data['label']}\n"
-                            
-                        if "description" in wikidata_data:
-                            wikidata_context += f"- Description: {wikidata_data['description']}\n"
-                        
-                        if "properties" in wikidata_data:
-                            for prop_name, prop_value in wikidata_data["properties"].items():
-                                if isinstance(prop_value, dict) and "latitude" in prop_value:
-                                    wikidata_context += f"- {prop_name.replace('_', ' ').title()}: Latitude {prop_value['latitude']}, Longitude {prop_value['longitude']}\n"
-                                elif isinstance(prop_value, list):
-                                    wikidata_context += f"- {prop_name.replace('_', ' ').title()}: {', '.join(str(v) for v in prop_value)}\n"
-                                else:
-                                    wikidata_context += f"- {prop_name.replace('_', ' ').title()}: {prop_value}\n"
-                        
-                        if "wikipedia" in wikidata_data:
-                            wikidata_context += f"- Wikipedia: {wikidata_data['wikipedia']['title']}\n"
-            
-            # Get CIDOC-CRM system prompt
-            system_prompt = self.get_cidoc_system_prompt()
-            
-            # Add Wikidata instructions to system prompt
-            if include_wikidata and wikidata_context:
-                system_prompt += "\n\nI have also provided Wikidata information for some entities. When appropriate, incorporate this Wikidata information to enhance your answer with additional context, especially for factual details not present in the RDF data."
-            
-            # Create enhanced prompt
-            prompt = f"""Answer the following question based on the retrieved information about cultural heritage entities:
-
-    Retrieved information:
-    {context}
-    """
-
-            # Add Wikidata context if available
-            if include_wikidata and wikidata_context:
-                prompt += f"{wikidata_context}\n"
-
-            prompt += f"""
-    Question: {question}
-
-    Provide a clear, comprehensive answer in natural language:
-    - Use the entities' actual names (like "Panagia Phorbiottisa", "Nikitari") not document numbers
-    - Write in accessible language - avoid technical ontology codes (E22_, IC9_, D1_, etc.)
-    - Focus on meaningful information that answers the question
-    - Present relationships and context in natural, flowing prose
-    """
-            
-            # Generate answer using the provider
-            answer = self.llm_provider.generate(system_prompt, prompt)
-            
-            # Prepare sources
-            sources = []
-            for i, doc in enumerate(retrieved_docs):
-                entity_uri = doc.id
-                entity_label = doc.metadata.get("label", entity_uri.split('/')[-1])
-                raw_triples = doc.metadata.get("raw_triples", [])
-
-                sources.append({
-                    "id": i,
-                    "entity_uri": entity_uri,
-                    "entity_label": entity_label,
-                    "type": "graph",  # Changed from doc.metadata.get("type", "unknown") to "graph"
-                    "entity_type": doc.metadata.get("type", "unknown"),  # Keep entity type separate
-                    "raw_triples": raw_triples  # Include raw RDF triples
-                })
-
-            # Add Wikidata sources
-            for entity_info in entities_with_wikidata:
-                sources.append({
-                    "id": f"wikidata_{entity_info['wikidata_id']}",
-                    "entity_uri": entity_info["entity_uri"],
-                    "entity_label": entity_info["entity_label"],
-                    "type": "wikidata",
-                    "wikidata_id": entity_info["wikidata_id"],
-                    "wikidata_url": f"https://www.wikidata.org/wiki/{entity_info['wikidata_id']}"
-                })
-            
+        """Answer a question using the universal RAG system with CIDOC-CRM knowledge and optional Wikidata context"""
+        # Validate input
+        if not question or not question.strip():
             return {
-                "answer": answer,
-                "sources": sources
+                "answer": "Please provide a question.",
+                "sources": []
             }
+
+        logger.info(f"Answering question directly: '{question}'")
+
+        # Retrieve relevant documents
+        retrieved_docs = self.retrieve(question, k=RetrievalConfig.DEFAULT_RETRIEVAL_K)
+
+        if not retrieved_docs:
+            return {
+                "answer": "I couldn't find relevant information to answer your question.",
+                "sources": []
+            }
+
+        # Create context from retrieved documents with better references
+        context = ""
+
+        # Track Wikidata IDs for retrieved entities
+        wikidata_context = ""
+        entities_with_wikidata = []
+
+        # Truncate each doc if needed to prevent rate limit errors
+        # Roughly 4 chars per token, limit ~500 tokens per doc
+        MAX_DOC_CHARS = 2000
+
+        for i, doc in enumerate(retrieved_docs):
+            entity_uri = doc.id
+            entity_label = doc.metadata.get("label", entity_uri.split('/')[-1])
+
+            # Build context without technical type information
+            context += f"Entity: {entity_label}\n"
+            doc_text = doc.text
+            if len(doc_text) > MAX_DOC_CHARS:
+                doc_text = doc_text[:MAX_DOC_CHARS] + "...[truncated]"
+            context += doc_text + "\n\n"
+
+            # Get Wikidata info if available and requested
+            if include_wikidata:
+                wikidata_id = self.get_wikidata_for_entity(entity_uri)
+                if wikidata_id:
+                    entities_with_wikidata.append({
+                        "entity_uri": entity_uri,
+                        "entity_label": entity_label,
+                        "wikidata_id": wikidata_id
+                    })
+
+        # If requested, fetch Wikidata information for top 2 most relevant entities
+        if include_wikidata and entities_with_wikidata:
+            wikidata_context += "\nWikidata Context:\n"
+            for entity_info in entities_with_wikidata[:2]:  # Limit to top 2 entities
+                wikidata_data = self.fetch_wikidata_info(entity_info["wikidata_id"])
+                if wikidata_data:
+                    wikidata_context += f"\nWikidata information for {entity_info['entity_label']} ({entity_info['wikidata_id']}):\n"
+
+                    if "label" in wikidata_data:
+                        wikidata_context += f"- Label: {wikidata_data['label']}\n"
+
+                    if "description" in wikidata_data:
+                        wikidata_context += f"- Description: {wikidata_data['description']}\n"
+
+                    if "properties" in wikidata_data:
+                        for prop_name, prop_value in wikidata_data["properties"].items():
+                            if isinstance(prop_value, dict) and "latitude" in prop_value:
+                                wikidata_context += f"- {prop_name.replace('_', ' ').title()}: Latitude {prop_value['latitude']}, Longitude {prop_value['longitude']}\n"
+                            elif isinstance(prop_value, list):
+                                wikidata_context += f"- {prop_name.replace('_', ' ').title()}: {', '.join(str(v) for v in prop_value)}\n"
+                            else:
+                                wikidata_context += f"- {prop_name.replace('_', ' ').title()}: {prop_value}\n"
+
+                    if "wikipedia" in wikidata_data:
+                        wikidata_context += f"- Wikipedia: {wikidata_data['wikipedia']['title']}\n"
+
+        # Get CIDOC-CRM system prompt
+        system_prompt = self.get_cidoc_system_prompt()
+
+        # Add Wikidata instructions to system prompt
+        if include_wikidata and wikidata_context:
+            system_prompt += "\n\nI have also provided Wikidata information for some entities. When appropriate, incorporate this Wikidata information to enhance your answer with additional context, especially for factual details not present in the RDF data."
+
+        # Create enhanced prompt
+        prompt = f"""Answer the following question based on the retrieved information about cultural heritage entities:
+
+Retrieved information:
+{context}
+"""
+
+        # Add Wikidata context if available
+        if include_wikidata and wikidata_context:
+            prompt += f"{wikidata_context}\n"
+
+        prompt += f"""
+Question: {question}
+
+Provide a clear, comprehensive answer in natural language:
+- Use the entities' actual names (like "Panagia Phorbiottisa", "Nikitari") not document numbers
+- Write in accessible language - avoid technical ontology codes (E22_, IC9_, D1_, etc.)
+- Focus on meaningful information that answers the question
+- Present relationships and context in natural, flowing prose
+"""
+
+        # Generate answer using the provider
+        answer = self.llm_provider.generate(system_prompt, prompt)
+
+        # Prepare sources
+        sources = []
+        for i, doc in enumerate(retrieved_docs):
+            entity_uri = doc.id
+            entity_label = doc.metadata.get("label", entity_uri.split('/')[-1])
+            raw_triples = doc.metadata.get("raw_triples", [])
+
+            sources.append({
+                "id": i,
+                "entity_uri": entity_uri,
+                "entity_label": entity_label,
+                "type": "graph",
+                "entity_type": doc.metadata.get("type", "unknown"),
+                "raw_triples": raw_triples
+            })
+
+        # Add Wikidata sources
+        for entity_info in entities_with_wikidata:
+            sources.append({
+                "id": f"wikidata_{entity_info['wikidata_id']}",
+                "entity_uri": entity_info["entity_uri"],
+                "entity_label": entity_info["entity_label"],
+                "type": "wikidata",
+                "wikidata_id": entity_info["wikidata_id"],
+                "wikidata_url": f"https://www.wikidata.org/wiki/{entity_info['wikidata_id']}"
+            })
+
+        return {
+            "answer": answer,
+            "sources": sources
+        }

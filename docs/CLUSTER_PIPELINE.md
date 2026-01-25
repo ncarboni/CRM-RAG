@@ -85,6 +85,16 @@ scp -r user@cluster:CRM_RAG/data/cache/mah/ data/cache/mah/
 scp -r user@cluster:CRM_RAG/data/documents/mah/ data/documents/mah/
 ```
 
+For large datasets, use `--data-dir` to store outputs on scratch storage:
+
+```bash
+python scripts/cluster_pipeline.py --dataset mah \
+  --generate-docs --embed \
+  --workers 32 \
+  --env .env.cluster \
+  --data-dir ~/scratch/CRM_RAG_data
+```
+
 ---
 
 ## Part 4: Run Server Locally
@@ -124,6 +134,7 @@ python scripts/cluster_pipeline.py --dataset <id> --generate-docs --embed --work
 | `--context-depth <0\|1\|2>` | Relationship traversal depth | 2 |
 | `--batch-size <n>` | Embedding batch size | 64 |
 | `--from-file <path>` | Use specific TTL file | Auto-detect |
+| `--data-dir <path>` | Override data directory (e.g., for scratch storage) | `data/` |
 
 ### Utilities
 

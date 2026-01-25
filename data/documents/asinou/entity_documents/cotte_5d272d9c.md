@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/fbb4f994-4840-46a8-9042-414f7c97247f
 Label: cotte
-Generated: 2026-01-22 19:14:03
+Generated: 2026-01-24 17:57:52
 ---
 
 # cotte
@@ -19,6 +19,6 @@ URI: http://map.cnrs.fr/semantics/attribute/fbb4f994-4840-46a8-9042-414f7c97247f
 
 ## Relationships
 
-- cotte depict things of type clothing
-- cotte is attribute of Latin Donor
 - cotte is attribute of Donor's wife
+- cotte is attribute of Latin Donor
+- cotte depict things of type clothing

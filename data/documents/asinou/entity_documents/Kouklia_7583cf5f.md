@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/location/97bdae06-46da-402c-a4d0-d4d9d7bff4a2/
 Label: Kouklia
-Generated: 2026-01-22 19:14:07
+Generated: 2026-01-24 17:57:57
 ---
 
 # Kouklia
@@ -19,6 +19,6 @@ URI: http://map.cnrs.fr/semantics/location/97bdae06-46da-402c-a4d0-d4d9d7bff4a2/
 
 ## Relationships
 
-- Kouklia is same as Q930838
-- Kouklia contains Palaia Enkleistra
 - Kouklia falls within Cyprus
+- Kouklia contains Palaia Enkleistra
+- Kouklia is same as Q930838

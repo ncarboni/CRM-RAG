@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/dff3208a-f270-4ad8-a050-8284d968993e/
 Label: trident
-Generated: 2026-01-22 19:14:00
+Generated: 2026-01-24 17:57:48
 ---
 
 # trident

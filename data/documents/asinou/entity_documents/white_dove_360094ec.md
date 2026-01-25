@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/icon/c316adb9-69bb-458d-9ac4-3f1d350a407d
 Label: white dove
-Generated: 2026-01-22 19:13:55
+Generated: 2026-01-24 17:57:45
 ---
 
 # white dove

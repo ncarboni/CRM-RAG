@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/spatial/578fd3ad-5fb3-4b48-a123-c32a30a6cbc3/
 Label: Palaia Enkleistra
-Generated: 2026-01-22 19:14:05
+Generated: 2026-01-24 17:57:54
 ---
 
 # Palaia Enkleistra
@@ -19,5 +19,5 @@ URI: http://map.cnrs.fr/semantics/spatial/578fd3ad-5fb3-4b48-a123-c32a30a6cbc3/
 
 ## Relationships
 
-- Palaia Enkleistra falls within Kouklia
 - Palaia Enkleistra witnessed Painting of Anastasia
+- Palaia Enkleistra falls within Kouklia

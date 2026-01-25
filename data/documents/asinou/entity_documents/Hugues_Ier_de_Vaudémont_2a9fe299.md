@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/f0bab441-0004-4fb9-8699-2fc08db72a9a/
 Label: Hugues Ier de Vaudémont
-Generated: 2026-01-22 19:14:03
+Generated: 2026-01-24 17:57:52
 ---
 
 # Hugues Ier de Vaudémont

@@ -751,7 +751,8 @@ class UniversalRagSystem:
                         "uri": doc_meta["uri"],
                         "label": doc_meta["label"],
                         "type": doc_meta["type"],
-                        "all_types": doc_meta.get("all_types", [])
+                        "all_types": doc_meta.get("all_types", []),
+                        "wikidata_id": doc_meta.get("wikidata_id")
                     },
                     cached_embedding
                 ))
@@ -1840,12 +1841,16 @@ Each file contains:
                         ]
                         primary_type = human_readable_types[0] if human_readable_types else "Entity"
 
+                    # Get Wikidata ID if available (cache it in metadata)
+                    wikidata_id = self._fetch_wikidata_id_from_sparql(entity_uri)
+
                     metadata = {
                         "label": entity_label,
                         "type": primary_type,
                         "uri": entity_uri,
                         "all_types": entity_types,
-                        "raw_triples": raw_triples
+                        "raw_triples": raw_triples,
+                        "wikidata_id": wikidata_id  # May be None
                     }
 
                     # Check embedding cache
@@ -2546,25 +2551,26 @@ Remember: Your audience wants to learn about cultural heritage, not database sch
 
             return (values - min_val) / (max_val - min_val)
 
+    def _fetch_wikidata_id_from_sparql(self, entity_uri):
+        """Fetch Wikidata ID from SPARQL endpoint (used during build phase).
 
-
-
-    def get_wikidata_for_entity(self, entity_uri):
-        """Get Wikidata ID for an entity if available"""
+        This is a private method for build-time use. At query time,
+        use get_wikidata_for_entity() which checks cached metadata first.
+        """
         query = f"""
         PREFIX crmdig: <http://www.ics.forth.gr/isl/CRMdig/>
-        
+
         SELECT ?wikidata WHERE {{
             <{entity_uri}> crmdig:L54_is_same-as ?wikidata .
             FILTER(STRSTARTS(STR(?wikidata), "http://www.wikidata.org/entity/"))
         }}
         LIMIT 1
         """
-        
+
         try:
             self.sparql.setQuery(query)
             results = self.sparql.query().convert()
-            
+
             if results["results"]["bindings"]:
                 wikidata_uri = results["results"]["bindings"][0]["wikidata"]["value"]
                 # Extract the Q-ID from the URI
@@ -2572,7 +2578,46 @@ Remember: Your audience wants to learn about cultural heritage, not database sch
                 return wikidata_id
             return None
         except Exception as e:
-            logger.error(f"Error fetching Wikidata ID: {str(e)}")
+            logger.debug(f"Could not fetch Wikidata ID for {entity_uri}: {str(e)}")
+            return None
+
+    def get_wikidata_for_entity(self, entity_uri):
+        """Get Wikidata ID for an entity if available.
+
+        First checks document metadata (cached from build time),
+        then falls back to SPARQL query if needed.
+        """
+        # First, check if Wikidata ID is in document metadata (no SPARQL needed)
+        if entity_uri in self.document_store.docs:
+            doc = self.document_store.docs[entity_uri]
+            wikidata_id = doc.metadata.get("wikidata_id")
+            if wikidata_id:
+                return wikidata_id
+
+        # Fall back to SPARQL query (only if endpoint is available)
+        query = f"""
+        PREFIX crmdig: <http://www.ics.forth.gr/isl/CRMdig/>
+
+        SELECT ?wikidata WHERE {{
+            <{entity_uri}> crmdig:L54_is_same-as ?wikidata .
+            FILTER(STRSTARTS(STR(?wikidata), "http://www.wikidata.org/entity/"))
+        }}
+        LIMIT 1
+        """
+
+        try:
+            self.sparql.setQuery(query)
+            results = self.sparql.query().convert()
+
+            if results["results"]["bindings"]:
+                wikidata_uri = results["results"]["bindings"][0]["wikidata"]["value"]
+                # Extract the Q-ID from the URI
+                wikidata_id = wikidata_uri.split('/')[-1]
+                return wikidata_id
+            return None
+        except Exception as e:
+            # Log at debug level since this is expected when SPARQL is unavailable
+            logger.debug(f"Could not fetch Wikidata ID from SPARQL: {str(e)}")
             return None
 
     def fetch_wikidata_info(self, wikidata_id):

@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/799f8362-050e-4af6-b80d-7e46e26f081d/symbolic
 Label: passion
-Generated: 2026-01-22 19:13:56
+Generated: 2026-01-24 17:57:45
 ---
 
 # passion

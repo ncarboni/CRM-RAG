@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/b9675eb2-15f1-44e0-a39d-ea556866da65/
 Label: Painting of the Virgin of Mercy
-Generated: 2026-01-22 19:14:04
+Generated: 2026-01-24 17:57:53
 ---
 
 # Painting of the Virgin of Mercy

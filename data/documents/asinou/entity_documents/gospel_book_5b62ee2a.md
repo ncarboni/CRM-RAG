@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/type/8b6ee16b-90b2-4b4e-b481-3a7a09aff658
 Label: gospel book
-Generated: 2026-01-22 19:13:55
+Generated: 2026-01-24 17:57:45
 ---
 
 # gospel book
@@ -18,5 +18,5 @@ URI: http://map.cnrs.fr/semantics/type/8b6ee16b-90b2-4b4e-b481-3a7a09aff658
 
 ## Relationships
 
-- gospel book is same as Q690851
 - gospel book is same as 300026466
+- gospel book is same as Q690851

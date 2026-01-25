@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/7812891f-8899-4d04-a6d4-c0a66d002d90/
 Label: Bible
-Generated: 2026-01-22 19:14:15
+Generated: 2026-01-24 17:58:06
 ---
 
 # Bible

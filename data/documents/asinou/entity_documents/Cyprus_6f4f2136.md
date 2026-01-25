@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/location/146582/
 Label: Cyprus
-Generated: 2026-01-22 19:14:13
+Generated: 2026-01-24 17:58:04
 ---
 
 # Cyprus

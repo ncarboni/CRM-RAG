@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/icon/fbb4f994-4840-46a8-9042-414f7c97247f
 Label: cotte
-Generated: 2026-01-22 19:13:56
+Generated: 2026-01-24 17:57:45
 ---
 
 # cotte

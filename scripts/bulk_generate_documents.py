@@ -65,11 +65,15 @@ def _process_entity_worker(args):
             human_readable = [t for t in types if not _worker_generator.is_technical_class_name(t)]
             primary_type = human_readable[0] if human_readable else "Entity"
 
+        # Get Wikidata ID if available
+        wikidata_id = _worker_generator.get_wikidata_id(entity_uri)
+
         return {
             "uri": entity_uri,
             "label": label,
             "type": primary_type,
             "all_types": types,
+            "wikidata_id": wikidata_id,
             "filepath": os.path.basename(filepath) if filepath else None,
             "error": None
         }
@@ -89,6 +93,7 @@ logger = logging.getLogger(__name__)
 CRM = Namespace("http://www.cidoc-crm.org/cidoc-crm/")
 VIR = Namespace("http://w3id.org/vir#")
 SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
+CRMDIG = Namespace("http://www.ics.forth.gr/isl/CRMdig/")
 
 
 class BulkDocumentGenerator:
@@ -121,6 +126,7 @@ class BulkDocumentGenerator:
         self.entity_literals = defaultdict(lambda: defaultdict(list))  # uri -> prop -> [values]
         self.outgoing = defaultdict(list)          # uri -> [(pred, obj)]
         self.incoming = defaultdict(list)          # uri -> [(pred, subj)]
+        self.wikidata_ids = {}                     # uri -> wikidata Q-ID
 
     def _load_datasets_config(self) -> dict:
         """Load datasets configuration from YAML."""
@@ -274,11 +280,17 @@ class BulkDocumentGenerator:
                     self.outgoing[s_str].append((p_str, o_str))
                     self.incoming[o_str].append((p_str, s_str))
 
+                    # Extract Wikidata ID (crmdig:L54_is_same-as -> wikidata.org)
+                    if p_str.endswith('L54_is_same-as') and o_str.startswith('http://www.wikidata.org/entity/'):
+                        wikidata_id = o_str.split('/')[-1]
+                        self.wikidata_ids[s_str] = wikidata_id
+
         # Count entities (those with literals - same logic as original)
         entities_with_literals = set(self.entity_literals.keys())
         logger.info(f"Indexed {len(entities_with_literals)} entities with literals")
         logger.info(f"Total outgoing relationships: {sum(len(v) for v in self.outgoing.values())}")
         logger.info(f"Total incoming relationships: {sum(len(v) for v in self.incoming.values())}")
+        logger.info(f"Entities with Wikidata IDs: {len(self.wikidata_ids)}")
 
     def get_entity_label(self, uri: str) -> str:
         """Get label for an entity."""
@@ -287,6 +299,10 @@ class BulkDocumentGenerator:
 
         # Fallback to URI fragment
         return uri.rstrip('/').split('/')[-1].split('#')[-1]
+
+    def get_wikidata_id(self, uri: str) -> str:
+        """Get Wikidata Q-ID for an entity if available."""
+        return self.wikidata_ids.get(uri)
 
     def is_event(self, uri: str) -> bool:
         """Check if entity is an event class instance."""
@@ -557,11 +573,15 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                 human_readable = [t for t in types if not self.is_technical_class_name(t)]
                 primary_type = human_readable[0] if human_readable else "Entity"
 
+            # Get Wikidata ID if available
+            wikidata_id = self.get_wikidata_id(entity_uri)
+
             return {
                 "uri": entity_uri,
                 "label": label,
                 "type": primary_type,
                 "all_types": types,
+                "wikidata_id": wikidata_id,
                 "filepath": os.path.basename(filepath) if filepath else None,
                 "error": None
             }
@@ -584,6 +604,7 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
             'entity_literals': {k: dict(v) for k, v in self.entity_literals.items()},
             'outgoing': dict(self.outgoing),
             'incoming': dict(self.incoming),
+            'wikidata_ids': self.wikidata_ids,
         }
 
     def generate_all_documents(self, context_depth: int = 2, workers: int = 1):

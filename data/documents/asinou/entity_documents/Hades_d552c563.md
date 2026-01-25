@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/character/d919e124-4022-4dad-bfe0-ff676c68a573
 Label: Hades
-Generated: 2026-01-22 19:14:04
+Generated: 2026-01-24 17:57:53
 ---
 
 # Hades

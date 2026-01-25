@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/c1769184-3238-4002-b918-edcd6beb2bdb/
 Label: neck decorated patches
-Generated: 2026-01-22 19:13:55
+Generated: 2026-01-24 17:57:44
 ---
 
 # neck decorated patches

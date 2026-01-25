@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/location/a12044cd-f6bc-4be4-b7b7-467f9193a322/
 Label: Nikitari
-Generated: 2026-01-22 19:14:07
+Generated: 2026-01-24 17:57:57
 ---
 
 # Nikitari
@@ -20,6 +20,6 @@ URI: http://map.cnrs.fr/semantics/location/a12044cd-f6bc-4be4-b7b7-467f9193a322/
 ## Relationships
 
 - Nikitari contains spatial
+- Nikitari contains Panagia Phorbiottisa
 - Nikitari falls within Cyprus
 - Nikitari is same as Q4319691
-- Nikitari contains Panagia Phorbiottisa

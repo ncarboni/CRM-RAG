@@ -438,14 +438,14 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Full pipeline (all steps)
-  python scripts/cluster_pipeline.py --dataset mah --all
+  # Full pipeline (all steps, single machine)
+  python scripts/cluster_pipeline.py --dataset mah --all --workers 8
 
-  # Local machine: export and generate docs
-  python scripts/cluster_pipeline.py --dataset mah --export --generate-docs --workers 8
+  # Split workflow - LOCAL: export only (fast, single SPARQL query)
+  python scripts/cluster_pipeline.py --dataset mah --export
 
-  # Cluster: embed only (no SPARQL needed)
-  python scripts/cluster_pipeline.py --dataset mah --embed --env .env.cluster
+  # Split workflow - CLUSTER: generate docs + embed (no SPARQL needed)
+  python scripts/cluster_pipeline.py --dataset mah --generate-docs --embed --workers 16 --env .env.cluster
 
   # Check status
   python scripts/cluster_pipeline.py --dataset mah --status

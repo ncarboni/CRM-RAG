@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/cc650e09-d26f-4aec-b8df-9ccd8ac21821/
 Label: Church of the Virgin
-Generated: 2026-01-22 19:14:07
+Generated: 2026-01-24 17:57:57
 ---
 
 # Church of the Virgin

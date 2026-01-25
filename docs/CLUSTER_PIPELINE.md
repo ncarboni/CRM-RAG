@@ -59,20 +59,28 @@ python scripts/cluster_pipeline.py --dataset mah --all --workers 8
 
 ```bash
 # === LOCAL MACHINE (has SPARQL) ===
-python scripts/cluster_pipeline.py --dataset mah --export --generate-docs --workers 8
+# Only export - this is fast (single SPARQL query to dump all triples)
+python scripts/cluster_pipeline.py --dataset mah --export
 
-# Transfer documents to cluster
-rsync -avz data/documents/mah/ user@cluster:CRM_RAG/data/documents/mah/
+# Transfer TTL file to cluster (smaller than generated documents!)
+rsync -avz data/exports/mah_dump.ttl user@cluster:CRM_RAG/data/exports/
 
-# === GPU CLUSTER (has GPU, no SPARQL) ===
-python scripts/cluster_pipeline.py --dataset mah --embed --env .env.cluster
+# === GPU CLUSTER (has GPU + more CPU cores, no SPARQL needed) ===
+# Generate docs AND embed on cluster - uses cluster's CPU cores + GPU
+python scripts/cluster_pipeline.py --dataset mah --generate-docs --embed --workers 16 --env .env.cluster
 
-# Transfer cache back
+# Transfer cache back (document_graph.pkl + vector_index)
 rsync -avz user@cluster:CRM_RAG/data/cache/mah/ data/cache/mah/
 
 # === LOCAL MACHINE (serve) ===
 python main.py --env .env.local
 ```
+
+**Why this workflow is better:**
+- `--generate-docs` works from the TTL file, not SPARQL - can run on cluster
+- TTL file is smaller than thousands of generated document files
+- Cluster has more CPU cores for multiprocessing (`--workers 16`)
+- Cluster has GPU for fast embedding
 
 ## Prerequisites
 

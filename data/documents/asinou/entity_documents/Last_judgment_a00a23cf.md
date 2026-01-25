@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/visual/atom/6ebeccbc-2abb-4d20-bd6f-51ff095377ea
 Label: Last judgment
-Generated: 2026-01-22 19:14:12
+Generated: 2026-01-24 17:58:03
 ---
 
 # Last judgment
@@ -20,10 +20,10 @@ URI: http://map.cnrs.fr/semantics/visual/atom/6ebeccbc-2abb-4d20-bd6f-51ff095377
 ## Relationships
 
 - Painting of the last judgment took place at Panagia Kanakaria
-- Last judgment is found on Panagia Kanakaria
-- Painting of the last judgment is classified as type: Mural Painting
-- Painting of the last judgment occurs during Lusignan
-- Last judgment was produced by Painting of the last judgment
-- Painting of the last judgment has time-span 1300-01-01
 - Painting of the last judgment has produced Last judgment
+- Painting of the last judgment is classified as type: Mural Painting
+- Last judgment was produced by Painting of the last judgment
+- Painting of the last judgment occurs during Lusignan
+- Painting of the last judgment has time-span 1300-01-01
 - Painting of the last judgment has modified Panagia Kanakaria
+- Last judgment is found on Panagia Kanakaria

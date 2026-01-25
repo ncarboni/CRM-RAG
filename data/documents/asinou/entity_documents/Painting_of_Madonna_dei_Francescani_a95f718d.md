@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/production/0776d830-2df2-46b5-a15a-5cfec4fe2f94
 Label: Painting of Madonna dei Francescani
-Generated: 2026-01-22 19:14:05
+Generated: 2026-01-24 17:57:54
 ---
 
 # Painting of Madonna dei Francescani
@@ -18,11 +18,11 @@ URI: http://map.cnrs.fr/semantics/production/0776d830-2df2-46b5-a15a-5cfec4fe2f9
 
 ## Relationships
 
-- 300033618 is same as Painting
 - Painting of Madonna dei Francescani has produced Madonna dei Francescani
 - Painting has narrower term Mural Painting
-- Painting of Madonna dei Francescani is classified as type: Painting
-- Painting of Madonna dei Francescani has time-span 1280-01-01
-- 1280-01-01 is time-span of Painting of Madonna dei Francescani
 - Painting is type of Painting of Madonna dei Francescani
+- Painting of Madonna dei Francescani is classified as type: Painting
+- 1280-01-01 is time-span of Painting of Madonna dei Francescani
+- Painting of Madonna dei Francescani has time-span 1280-01-01
+- 300033618 is same as Painting
 - Painting is same as 300033618

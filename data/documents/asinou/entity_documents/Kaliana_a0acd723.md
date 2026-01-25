@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/27c5e9f8-1a38-424c-9f85-cc06ac849726/
 Label: Kaliana
-Generated: 2026-01-22 19:14:14
+Generated: 2026-01-24 17:58:04
 ---
 
 # Kaliana

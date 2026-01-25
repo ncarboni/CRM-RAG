@@ -374,14 +374,14 @@ python scripts/cluster_pipeline.py --dataset mah --embed --env .env.cluster
 **Typical cluster workflow:**
 
 ```bash
-# LOCAL (has SPARQL access)
-python scripts/cluster_pipeline.py --dataset mah --export --generate-docs --workers 8
+# LOCAL (has SPARQL access) - just export, fast single query
+python scripts/cluster_pipeline.py --dataset mah --export
 
-# Transfer documents to cluster
-rsync -avz data/documents/mah/ user@cluster:CRM_RAG/data/documents/mah/
+# Transfer TTL file to cluster (smaller than generated documents)
+rsync -avz data/exports/mah_dump.ttl user@cluster:CRM_RAG/data/exports/
 
-# CLUSTER (has GPU, no SPARQL)
-python scripts/cluster_pipeline.py --dataset mah --embed --env .env.cluster
+# CLUSTER (has GPU + more CPU cores) - generate docs AND embed
+python scripts/cluster_pipeline.py --dataset mah --generate-docs --embed --workers 16 --env .env.cluster
 
 # Transfer embeddings back
 rsync -avz user@cluster:CRM_RAG/data/cache/mah/ data/cache/mah/

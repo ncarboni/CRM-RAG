@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/location/1dcfdbf0-e283-4edc-b416-759084429b8f/
 Label: Moutoullas
-Generated: 2026-01-22 19:14:08
+Generated: 2026-01-24 17:57:58
 ---
 
 # Moutoullas
@@ -19,6 +19,6 @@ URI: http://map.cnrs.fr/semantics/location/1dcfdbf0-e283-4edc-b416-759084429b8f/
 
 ## Relationships
 
-- Moutoullas contains Our Lady of Moutoullas
-- Moutoullas falls within Cyprus
 - Moutoullas is same as Q691096
+- Moutoullas falls within Cyprus
+- Moutoullas contains Our Lady of Moutoullas

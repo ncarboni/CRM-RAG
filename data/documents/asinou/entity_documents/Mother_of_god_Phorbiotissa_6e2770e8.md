@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/99033646-e639-4de9-94b4-6ccd1e7785e2/
 Label: Mother of god Phorbiotissa
-Generated: 2026-01-22 19:14:13
+Generated: 2026-01-24 17:58:04
 ---
 
 # Mother of god Phorbiotissa

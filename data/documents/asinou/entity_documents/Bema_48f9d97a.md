@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/physical/0b861822-2c13-4ada-8773-5f14a9087c31
 Label: Bema
-Generated: 2026-01-22 19:14:02
+Generated: 2026-01-24 17:57:50
 ---
 
 # Bema

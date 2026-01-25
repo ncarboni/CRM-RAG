@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/9088331b-7c6c-4f29-acd8-12e3e7e8d741/
 Label: Painting of Saint George
-Generated: 2026-01-22 19:14:04
+Generated: 2026-01-24 17:57:53
 ---
 
 # Painting of Saint George

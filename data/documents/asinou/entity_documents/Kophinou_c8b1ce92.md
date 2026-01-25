@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/078b7ef0-7622-449a-b7d5-55fc587068ac/
 Label: Kophinou
-Generated: 2026-01-22 19:14:15
+Generated: 2026-01-24 17:58:06
 ---
 
 # Kophinou

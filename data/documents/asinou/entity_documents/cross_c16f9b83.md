@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/b0360f8c-b412-4e2e-8ba2-35ec03bbd7a7
 Label: cross
-Generated: 2026-01-22 19:14:03
+Generated: 2026-01-24 17:57:52
 ---
 
 # cross
@@ -19,5 +19,5 @@ URI: http://map.cnrs.fr/semantics/attribute/b0360f8c-b412-4e2e-8ba2-35ec03bbd7a7
 
 ## Relationships
 
-- cross symbolize Holy trinity
 - cross is attribute of Preparation of the throne
+- cross symbolize Holy trinity

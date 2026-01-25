@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/b15a726b-a0af-4a4f-9257-fa264b95e268/symbolic
 Label: Holy trinity
-Generated: 2026-01-22 19:13:55
+Generated: 2026-01-24 17:57:45
 ---
 
 # Holy trinity

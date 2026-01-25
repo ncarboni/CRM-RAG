@@ -79,7 +79,7 @@ class UniversalRagSystem:
     _missing_properties = set()  # Track properties that couldn't be found
     _missing_classes = set()  # Track classes that couldn't be found in ontology files
 
-    def __init__(self, endpoint_url, config=None, dataset_id=None):
+    def __init__(self, endpoint_url, config=None, dataset_id=None, data_dir=None):
         """
         Initialize the universal RAG system.
 
@@ -88,9 +88,12 @@ class UniversalRagSystem:
             config: Configuration dictionary for LLM provider
             dataset_id: Optional dataset identifier for multi-dataset support.
                         Used to create dataset-specific cache directories.
+            data_dir: Optional override for data directory (e.g., for cluster storage).
+                      If not provided, uses 'data/' relative to current directory.
         """
         self.endpoint_url = endpoint_url
         self.dataset_id = dataset_id or "default"
+        self.data_dir = data_dir  # None means use default 'data/' directory
         self.sparql = SPARQLWrapper(endpoint_url)
         self.sparql.setReturnFormat(JSON)
 
@@ -166,7 +169,8 @@ class UniversalRagSystem:
 
     def _get_cache_dir(self) -> str:
         """Return the cache directory for this dataset."""
-        return f'data/cache/{self.dataset_id}'
+        base = self.data_dir if self.data_dir else 'data'
+        return f'{base}/cache/{self.dataset_id}'
 
     def _get_document_graph_path(self) -> str:
         """Return the document graph pickle file path for this dataset."""
@@ -186,7 +190,8 @@ class UniversalRagSystem:
 
     def _get_documents_dir(self) -> str:
         """Return the entity documents directory for this dataset."""
-        return f'data/documents/{self.dataset_id}/entity_documents'
+        base = self.data_dir if self.data_dir else 'data'
+        return f'{base}/documents/{self.dataset_id}/entity_documents'
 
     # ==================== End Path Helper Methods ====================
 

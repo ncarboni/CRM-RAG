@@ -43,7 +43,7 @@ CRM_RAG/
 ├── docs/                Documentation
 │   ├── ARCHITECTURE.md
 │   ├── LOCAL_EMBEDDINGS.md   # Local embeddings guide
-│   ├── CLUSTER_EMBEDDINGS.md # GPU cluster processing guide
+│   ├── CLUSTER_PIPELINE.md   # GPU cluster processing guide
 │   └── REORGANIZATION_PLAN.md
 ├── scripts/             Utility scripts
 │   ├── extract_ontology_labels.py
@@ -299,13 +299,13 @@ python scripts/bulk_generate_documents.py --dataset mah --endpoint http://localh
 python scripts/bulk_generate_documents.py --dataset mah
 
 # 2. Transfer to cluster
-rsync -avz data/documents/mah/ user@cluster:~/CRM_RAG/data/documents/mah/
+scp -r data/documents/mah/ user@cluster:~/CRM_RAG/data/documents/mah/
 
 # 3. On cluster: generate embeddings (no SPARQL needed)
 python main.py --env .env.cluster --dataset mah --embed-from-docs --process-only
 
 # 4. Transfer cache back
-rsync -avz user@cluster:~/CRM_RAG/data/cache/mah/ ./data/cache/mah/
+scp -r user@cluster:~/CRM_RAG/data/cache/mah/ ./data/cache/mah/
 
 # 5. Run locally
 python main.py --env .env.local
@@ -377,14 +377,16 @@ python scripts/cluster_pipeline.py --dataset mah --embed --env .env.cluster
 # LOCAL (has SPARQL access) - just export, fast single query
 python scripts/cluster_pipeline.py --dataset mah --export
 
-# Transfer TTL file to cluster (smaller than generated documents)
-rsync -avz data/exports/mah_dump.ttl user@cluster:CRM_RAG/data/exports/
+# Transfer to cluster: TTL file + labels (required for doc generation)
+scp data/exports/mah_dump.ttl user@cluster:CRM_RAG/data/exports/
+scp -r data/labels/ user@cluster:CRM_RAG/data/labels/
 
 # CLUSTER (has GPU + more CPU cores) - generate docs AND embed
 python scripts/cluster_pipeline.py --dataset mah --generate-docs --embed --workers 16 --env .env.cluster
 
-# Transfer embeddings back
-rsync -avz user@cluster:CRM_RAG/data/cache/mah/ data/cache/mah/
+# Transfer cache (embeddings) + documents (metadata) back
+scp -r user@cluster:CRM_RAG/data/cache/mah/ data/cache/mah/
+scp -r user@cluster:CRM_RAG/data/documents/mah/ data/documents/mah/
 
 # Run locally
 python main.py --env .env.local

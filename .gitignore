@@ -2,6 +2,7 @@
 config/.env
 config/.env.*
 !config/.env.*.example
+!config/.env.cluster
 .env.local
 
 # MacOS
@@ -61,3 +62,6 @@ htmlcov/
 
 # Jupyter
 .ipynb_checkpoints/
+
+# User-specific SLURM job scripts
+scripts/pipeline.sbatch

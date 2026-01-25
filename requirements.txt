@@ -7,10 +7,9 @@ SPARQLWrapper==2.0.0
 rdflib==7.1.1
 
 # LangChain and RAG
-langchain==0.3.13
-langchain-community==0.3.27  # Updated to fix XXE vulnerability (CVE)
-langchain-openai==0.2.14
-langchain-anthropic==0.3.6
+langchain-community>=0.3.27  # Minimum version to fix XXE vulnerability (CVE)
+langchain-openai
+langchain-anthropic
 
 # Vector Store
 faiss-cpu==1.9.0.post1
@@ -22,10 +21,10 @@ sentence-transformers>=2.2.0
 torch>=2.0.0  # Includes CUDA support when available
 
 # Graph Processing
-networkx==3.4.2
+networkx>=3.0
 
 # Numerical Computing
-numpy==2.2.0
+numpy>=1.24.0
 
 # Utilities
 python-dotenv==1.0.1

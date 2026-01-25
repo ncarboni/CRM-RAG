@@ -366,4 +366,4 @@ python main.py --env .env.local
 
 For large datasets or if your local machine lacks GPU memory, you can process embeddings on a GPU cluster and transfer the cache to your local machine.
 
-See **[CLUSTER_EMBEDDINGS.md](CLUSTER_EMBEDDINGS.md)** for detailed instructions.
+See **[CLUSTER_PIPELINE.md](CLUSTER_PIPELINE.md)** for detailed instructions.

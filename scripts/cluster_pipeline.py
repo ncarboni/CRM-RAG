@@ -29,6 +29,7 @@ Usage:
     --env FILE            # Config file (.env.local, .env.cluster)
     --from-file PATH      # Use existing TTL export
     --batch-size N        # Embedding batch size (default: 64)
+    --data-dir PATH       # Override data directory (default: <project>/data)
 
     # Utilities
     --status              # Show pipeline status for dataset
@@ -77,7 +78,8 @@ class ClusterPipeline:
         env_file: str = None,
         workers: int = 1,
         context_depth: int = 2,
-        batch_size: int = 64
+        batch_size: int = 64,
+        data_dir: str = None
     ):
         """
         Initialize the cluster pipeline.
@@ -88,6 +90,7 @@ class ClusterPipeline:
             workers: Number of parallel workers for document generation
             context_depth: Relationship traversal depth (0, 1, or 2)
             batch_size: Batch size for embedding computation
+            data_dir: Override data directory (default: <project>/data)
         """
         self.dataset_id = dataset_id
         self.env_file = env_file
@@ -97,6 +100,14 @@ class ClusterPipeline:
 
         # Base directory
         self.base_dir = Path(__file__).parent.parent
+
+        # Data directory (can be overridden for cluster storage)
+        if data_dir:
+            self.data_dir = Path(data_dir)
+            self.data_dir.mkdir(parents=True, exist_ok=True)
+            logger.info(f"Using custom data directory: {self.data_dir}")
+        else:
+            self.data_dir = self.base_dir / "data"
 
         # Load configuration
         self.config = ConfigLoader.load_config(env_file)
@@ -112,15 +123,15 @@ class ClusterPipeline:
                 f"Available: {available}"
             )
 
-        # Initialize bulk document generator
-        self.generator = BulkDocumentGenerator(dataset_id, str(self.base_dir))
+        # Initialize bulk document generator with custom data directory
+        self.generator = BulkDocumentGenerator(dataset_id, str(self.base_dir), data_dir=str(self.data_dir) if data_dir else None)
 
-        # Paths
-        self.export_dir = self.base_dir / "data" / "exports"
+        # Paths (use data_dir instead of base_dir/data)
+        self.export_dir = self.data_dir / "exports"
         self.export_file = self.export_dir / f"{dataset_id}_dump.ttl"
-        self.docs_dir = self.base_dir / "data" / "documents" / dataset_id / "entity_documents"
-        self.metadata_file = self.base_dir / "data" / "documents" / dataset_id / "documents_metadata.json"
-        self.cache_dir = self.base_dir / "data" / "cache" / dataset_id
+        self.docs_dir = self.data_dir / "documents" / dataset_id / "entity_documents"
+        self.metadata_file = self.data_dir / "documents" / dataset_id / "documents_metadata.json"
+        self.cache_dir = self.data_dir / "cache" / dataset_id
         self.graph_file = self.cache_dir / "document_graph.pkl"
         self.vector_dir = self.cache_dir / "vector_index"
 
@@ -143,6 +154,7 @@ class ClusterPipeline:
         logger.info(f"Workers: {self.workers}")
         logger.info(f"Context depth: {self.context_depth}")
         logger.info(f"Batch size: {self.batch_size}")
+        logger.info(f"Data directory: {self.data_dir}")
         logger.info("=" * 60)
 
         export_path = from_file or str(self.export_file)
@@ -294,10 +306,13 @@ class ClusterPipeline:
         endpoint = self.dataset_config.get("endpoint", "http://localhost:3030/dummy/sparql")
 
         try:
+            # Pass data_dir if using custom location (e.g., scratch storage)
+            data_dir_str = str(self.data_dir) if self.data_dir != self.base_dir / "data" else None
             rag_system = UniversalRagSystem(
                 endpoint_url=endpoint,
                 config=embed_config,
-                dataset_id=self.dataset_id
+                dataset_id=self.dataset_id,
+                data_dir=data_dir_str
             )
 
             # Run embedding (embed_from_docs mode)
@@ -447,6 +462,9 @@ Examples:
   # Split workflow - CLUSTER: generate docs + embed (no SPARQL needed)
   python scripts/cluster_pipeline.py --dataset mah --generate-docs --embed --workers 16 --env .env.cluster
 
+  # CLUSTER with scratch storage (for large datasets)
+  python scripts/cluster_pipeline.py --dataset mah --generate-docs --embed --workers 32 --env .env.cluster --data-dir ~/scratch/CRM_RAG_data
+
   # Check status
   python scripts/cluster_pipeline.py --dataset mah --status
         """
@@ -468,6 +486,7 @@ Examples:
     parser.add_argument("--context-depth", type=int, default=2, choices=[0, 1, 2],
                         help="Relationship traversal depth (default: 2)")
     parser.add_argument("--batch-size", type=int, default=64, help="Embedding batch size (default: 64)")
+    parser.add_argument("--data-dir", help="Override data directory (e.g., ~/scratch/data for cluster storage)")
 
     # Utilities
     parser.add_argument("--status", action="store_true", help="Show pipeline status for dataset")
@@ -484,7 +503,8 @@ Examples:
             env_file=args.env,
             workers=args.workers,
             context_depth=args.context_depth,
-            batch_size=args.batch_size
+            batch_size=args.batch_size,
+            data_dir=args.data_dir
         )
     except ValueError as e:
         logger.error(str(e))

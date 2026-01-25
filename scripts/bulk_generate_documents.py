@@ -99,19 +99,27 @@ CRMDIG = Namespace("http://www.ics.forth.gr/isl/CRMdig/")
 class BulkDocumentGenerator:
     """Generate entity documents from a bulk RDF export."""
 
-    def __init__(self, dataset_id: str, base_dir: str = None):
+    def __init__(self, dataset_id: str, base_dir: str = None, data_dir: str = None):
         self.dataset_id = dataset_id
         self.base_dir = Path(base_dir) if base_dir else Path(__file__).parent.parent
 
-        # Output directories
-        self.output_dir = self.base_dir / "data" / "documents" / dataset_id / "entity_documents"
-        self.export_dir = self.base_dir / "data" / "exports"
+        # Data directory (can be overridden for cluster storage)
+        # Labels stay in base_dir/data/labels (small, shared files)
+        # Output goes to data_dir (can be on scratch for large datasets)
+        if data_dir:
+            self.data_dir = Path(data_dir)
+        else:
+            self.data_dir = self.base_dir / "data"
+
+        # Output directories (use data_dir for large outputs)
+        self.output_dir = self.data_dir / "documents" / dataset_id / "entity_documents"
+        self.export_dir = self.data_dir / "exports"
 
         # Load dataset config
         self.datasets_config = self._load_datasets_config()
         self.endpoint = self._get_endpoint()
 
-        # Load configuration files
+        # Load configuration files (always from base_dir/data/labels - small shared files)
         self.property_labels = self._load_json("data/labels/property_labels.json")
         self.class_labels = self._load_json("data/labels/class_labels.json")
         self.ontology_classes = set(self._load_json("data/labels/ontology_classes.json") or [])

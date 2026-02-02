@@ -289,3 +289,270 @@
 .sources-subsection .source-list {
     margin-top: 8px;
 }
+
+/* Image Gallery Panel Styles */
+.image-gallery-card {
+    position: sticky;
+    top: 20px;
+}
+
+.image-gallery {
+    min-height: 200px;
+}
+
+.image-gallery-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.image-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+}
+
+.gallery-item {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #f5f5f5;
+    aspect-ratio: 1;
+}
+
+.gallery-image-link {
+    display: block;
+    width: 100%;
+    height: 100%;
+    text-decoration: none;
+}
+
+.gallery-thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.gallery-item:hover .gallery-thumbnail {
+    transform: scale(1.05);
+}
+
+.gallery-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    color: white;
+    padding: 30px 10px 10px 10px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.gallery-item:hover .gallery-overlay {
+    opacity: 1;
+}
+
+.gallery-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gallery-action {
+    font-size: 0.7rem;
+    opacity: 0.9;
+}
+
+.gallery-count {
+    text-align: center;
+    padding-top: 8px;
+    border-top: 1px solid #e9ecef;
+}
+
+/* Wikidata Panel Image Styles (for More Info panel) */
+.wikidata-image-property {
+    margin-top: 10px;
+}
+
+.wikidata-panel-image-container {
+    margin-top: 8px;
+}
+
+.wikidata-panel-image-container a {
+    display: inline-block;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.2s ease;
+}
+
+.wikidata-panel-image-container a:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.wikidata-panel-thumbnail {
+    display: block;
+    max-width: 100%;
+    max-height: 180px;
+    width: auto;
+    height: auto;
+    border-radius: 4px;
+    background-color: #f5f5f5;
+}
+
+/* Loading placeholder for images */
+.gallery-thumbnail:not([src]),
+.gallery-thumbnail[src=""],
+.wikidata-panel-thumbnail:not([src]),
+.wikidata-panel-thumbnail[src=""] {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* About Section Styles */
+.about-card {
+    margin-top: 20px;
+}
+
+.about-header {
+    transition: background-color 0.2s ease;
+}
+
+.about-header:hover {
+    background-color: #f8f9fa;
+}
+
+.about-toggle-icon {
+    transition: transform 0.2s ease;
+    color: #6c757d;
+}
+
+.about-content {
+    border-top: 1px solid #dee2e6;
+}
+
+/* Image Lightbox Styles */
+.image-lightbox {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.lightbox-content {
+    position: relative;
+    max-width: 90%;
+    max-height: 90%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.lightbox-close {
+    position: absolute;
+    top: -40px;
+    right: -10px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 2.5rem;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+    line-height: 1;
+    padding: 0;
+}
+
+.lightbox-close:hover {
+    opacity: 1;
+}
+
+#lightbox-image {
+    max-width: 100%;
+    max-height: calc(90vh - 100px);
+    object-fit: contain;
+    border-radius: 4px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.lightbox-caption {
+    margin-top: 15px;
+    text-align: center;
+    color: white;
+}
+
+#lightbox-label {
+    display: block;
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+}
+
+#lightbox-commons-link {
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+#lightbox-commons-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 991px) {
+    .image-gallery-card {
+        position: relative;
+        top: 0;
+        margin-top: 20px;
+    }
+
+    .image-gallery-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    }
+}
+
+@media (max-width: 576px) {
+    .image-gallery-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    .wikidata-panel-thumbnail {
+        max-width: 100%;
+        max-height: 150px;
+    }
+
+    .lightbox-close {
+        top: -35px;
+        right: 0;
+        font-size: 2rem;
+    }
+
+    #lightbox-label {
+        font-size: 0.95rem;
+    }
+}

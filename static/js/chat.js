@@ -187,7 +187,190 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load system info on page load (for single-dataset mode fallback)
     loadSystemInfo();
-    
+
+    // Function to update the image gallery panel
+    function updateImageGallery(sources) {
+        const galleryContainer = document.getElementById('image-gallery');
+        const galleryColumn = document.getElementById('image-gallery-column');
+        if (!galleryContainer || !galleryColumn) return;
+
+        // Collect all images from sources (deduplicate by URL)
+        const imageMap = new Map();
+        sources.forEach(source => {
+            if (source.image && source.image.thumbnail_url) {
+                // Validate the URL - skip if it looks malformed (e.g., array stringified)
+                const thumbnailUrl = source.image.thumbnail_url;
+                if (typeof thumbnailUrl === 'string' &&
+                    thumbnailUrl.startsWith('http') &&
+                    !thumbnailUrl.includes('[') &&
+                    !thumbnailUrl.includes(']')) {
+
+                    const key = thumbnailUrl;
+                    if (!imageMap.has(key)) {
+                        imageMap.set(key, {
+                            thumbnailUrl: thumbnailUrl,
+                            fullUrl: source.image.full_url || thumbnailUrl,
+                            linkUrl: source.image.url || thumbnailUrl,
+                            label: source.entity_label || 'Image',
+                            source: source.image.source || 'wikidata'
+                        });
+                    }
+                }
+            }
+        });
+        const images = Array.from(imageMap.values());
+
+        // If no images, hide the gallery column
+        if (images.length === 0) {
+            galleryColumn.style.display = 'none';
+            galleryContainer.innerHTML = '';
+            return;
+        }
+
+        // Show the gallery column
+        galleryColumn.style.display = 'block';
+
+        // Build gallery HTML
+        let galleryHtml = '<div class="image-gallery-grid" id="image-gallery-grid">';
+        images.forEach((img, index) => {
+            galleryHtml += `
+                <div class="gallery-item" data-image-index="${index}">
+                    <a href="#" class="gallery-image-link"
+                       data-full-url="${img.fullUrl}"
+                       data-commons-url="${img.linkUrl}"
+                       data-label="${img.label}"
+                       onclick="openLightbox(event, this)">
+                        <img src="${img.thumbnailUrl}"
+                             alt="${img.label}"
+                             class="gallery-thumbnail"
+                             loading="lazy"
+                             onerror="handleImageError(this)">
+                        <div class="gallery-overlay">
+                            <span class="gallery-label">${img.label}</span>
+                            <span class="gallery-action"><i class="fas fa-search-plus"></i> View larger</span>
+                        </div>
+                    </a>
+                </div>
+            `;
+        });
+        galleryHtml += '</div>';
+
+        // Add image count (will be updated if images fail to load)
+        galleryHtml += `<div class="gallery-count text-muted small mt-2" id="gallery-count">${images.length} image${images.length > 1 ? 's' : ''} found</div>`;
+
+        galleryContainer.innerHTML = galleryHtml;
+    }
+
+    // Global function to handle image load errors
+    window.handleImageError = function(imgElement) {
+        const galleryItem = imgElement.closest('.gallery-item');
+        if (galleryItem) {
+            galleryItem.style.display = 'none';
+
+            // Update the count and check if all images failed
+            const galleryGrid = document.getElementById('image-gallery-grid');
+            const galleryCount = document.getElementById('gallery-count');
+            const galleryColumn = document.getElementById('image-gallery-column');
+
+            if (galleryGrid) {
+                const visibleItems = galleryGrid.querySelectorAll('.gallery-item:not([style*="display: none"])');
+                const count = visibleItems.length;
+
+                if (count === 0) {
+                    // All images failed, hide the gallery
+                    if (galleryColumn) {
+                        galleryColumn.style.display = 'none';
+                    }
+                } else if (galleryCount) {
+                    // Update the count
+                    galleryCount.textContent = `${count} image${count > 1 ? 's' : ''} found`;
+                }
+            }
+        }
+    };
+
+    // Function to clear/hide the image gallery
+    function clearImageGallery() {
+        const galleryContainer = document.getElementById('image-gallery');
+        const galleryColumn = document.getElementById('image-gallery-column');
+        if (galleryContainer) {
+            galleryContainer.innerHTML = '';
+        }
+        if (galleryColumn) {
+            galleryColumn.style.display = 'none';
+        }
+    }
+
+    // Setup About section toggle
+    const aboutToggle = document.getElementById('about-toggle');
+    const aboutContent = document.getElementById('about-content');
+    if (aboutToggle && aboutContent) {
+        aboutToggle.addEventListener('click', function() {
+            const icon = this.querySelector('.about-toggle-icon');
+            if (aboutContent.style.display === 'none') {
+                aboutContent.style.display = 'block';
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            } else {
+                aboutContent.style.display = 'none';
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
+        });
+    }
+
+    // Setup lightbox functionality
+    const lightbox = document.getElementById('image-lightbox');
+    const lightboxImage = document.getElementById('lightbox-image');
+    const lightboxLabel = document.getElementById('lightbox-label');
+    const lightboxCommonsLink = document.getElementById('lightbox-commons-link');
+    const lightboxClose = document.getElementById('lightbox-close');
+
+    // Global function to open lightbox (called from onclick)
+    window.openLightbox = function(event, element) {
+        event.preventDefault();
+        const fullUrl = element.getAttribute('data-full-url');
+        const commonsUrl = element.getAttribute('data-commons-url');
+        const label = element.getAttribute('data-label');
+
+        if (lightbox && lightboxImage) {
+            lightboxImage.src = fullUrl;
+            lightboxLabel.textContent = label;
+            lightboxCommonsLink.href = commonsUrl;
+            lightbox.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+    };
+
+    // Close lightbox on close button click
+    if (lightboxClose) {
+        lightboxClose.addEventListener('click', function() {
+            lightbox.style.display = 'none';
+            document.body.style.overflow = '';
+            lightboxImage.src = '';
+        });
+    }
+
+    // Close lightbox on background click
+    if (lightbox) {
+        lightbox.addEventListener('click', function(e) {
+            if (e.target === lightbox) {
+                lightbox.style.display = 'none';
+                document.body.style.overflow = '';
+                lightboxImage.src = '';
+            }
+        });
+    }
+
+    // Close lightbox on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && lightbox && lightbox.style.display === 'flex') {
+            lightbox.style.display = 'none';
+            document.body.style.overflow = '';
+            lightboxImage.src = '';
+        }
+    });
+
     // Function to add user message
     function addUserMessage(text) {
         const messageDiv = document.createElement('div');
@@ -338,6 +521,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     contentHtml += '</div>';
                 }
 
+                // Update the image gallery with images from all sources
+                updateImageGallery(sources);
+
                 contentDiv.innerHTML = contentHtml;
 
                 // Add toggle functionality
@@ -419,12 +605,31 @@ document.addEventListener('DOMContentLoaded', function() {
                             
                             for (const [propName, propValue] of Object.entries(data.properties)) {
                                 const formattedPropName = propName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                                
+
                                 if (propName === 'coordinates' && propValue.latitude && propValue.longitude) {
                                     panelContent += `<li><strong>${formattedPropName}:</strong> ${propValue.latitude.toFixed(4)}, ${propValue.longitude.toFixed(4)}</li>`;
                                 } else if (propName === 'image') {
-                                    // Don't include image URLs directly
-                                    continue;
+                                    // Display image with link to Wikimedia Commons
+                                    // Handle both single image and array of images
+                                    const imageFilename = Array.isArray(propValue) ? propValue[0] : propValue;
+                                    if (imageFilename && typeof imageFilename === 'string') {
+                                        const encodedFilename = encodeURIComponent(imageFilename);
+                                        const thumbnailUrl = `https://commons.wikimedia.org/wiki/Special:FilePath/${encodedFilename}?width=250`;
+                                        const commonsUrl = `https://commons.wikimedia.org/wiki/File:${encodedFilename}`;
+                                        panelContent += `
+                                            <li class="wikidata-image-property">
+                                                <strong>${formattedPropName}:</strong>
+                                                <div class="wikidata-panel-image-container">
+                                                    <a href="${commonsUrl}" target="_blank" title="View on Wikimedia Commons">
+                                                        <img src="${thumbnailUrl}"
+                                                             alt="${data.label || 'Image'}"
+                                                             class="wikidata-panel-thumbnail"
+                                                             loading="lazy"
+                                                             onerror="this.parentElement.parentElement.style.display='none'">
+                                                    </a>
+                                                </div>
+                                            </li>`;
+                                    }
                                 } else if (Array.isArray(propValue)) {
                                     panelContent += `<li><strong>${formattedPropName}:</strong> ${propValue.join(', ')}</li>`;
                                 } else {
@@ -555,6 +760,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Add user message to chat
         addUserMessage(question);
+
+        // Clear image gallery while loading new response
+        clearImageGallery();
 
         // Clear input and disable send button
         questionInput.value = '';

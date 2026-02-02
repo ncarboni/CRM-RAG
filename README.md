@@ -4,8 +4,6 @@ Graph-based RAG (Retrieval-Augmented Generation) system for querying CIDOC-CRM R
 
 ## Demo
 
-
-
 https://github.com/user-attachments/assets/692a69ff-c25f-40b1-8a36-1a660e810060
 
 

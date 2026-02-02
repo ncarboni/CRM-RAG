@@ -15,6 +15,7 @@ import shutil
 import time
 from datetime import datetime
 from typing import List, Dict, Any, Optional, Tuple
+from urllib.parse import quote
 
 # Third-party imports
 import numpy as np
@@ -2223,6 +2224,14 @@ Each file contains:
 
         return """You are a cultural heritage expert who provides clear, accessible answers about cultural heritage.
 
+CRITICAL - Only Use Provided Information:
+- You MUST ONLY use information explicitly provided in the retrieved context below
+- NEVER invent, guess, or hallucinate information that is not in the provided data
+- If asked about something not covered in the provided context, clearly state "Based on the available data, I don't have information about [topic]"
+- Do NOT supplement with your general knowledge - only use what is explicitly provided
+- If the retrieved data only mentions a few entities, only discuss those entities
+- Do NOT list entities that are not explicitly described in the retrieved information
+
 IMPORTANT - Natural Language Output:
 - Write in clear, natural language suitable for general audiences
 - NEVER use technical ontology identifiers (like E22_Man-Made_Object, E53_Place, IC9_Representation, D1_Digital_Object)
@@ -2240,13 +2249,14 @@ The data comes from a structured cultural heritage database (CIDOC-CRM) which or
 - Relationships between these entities
 
 When answering questions:
-1. Interpret the structured relationships to extract meaningful information
-2. Present information in natural, flowing language
-3. Focus on what matters to the user, not technical classifications
-4. Use specific entity names (like "Panagia Phorbiottisa") rather than generic terms
-5. If information is missing or unclear, say so plainly
+1. ONLY use information from the provided context - never add external knowledge
+2. If the context doesn't contain enough information to fully answer, acknowledge the limitation
+3. Present information in natural, flowing language
+4. Focus on what matters to the user, not technical classifications
+5. Use specific entity names (like "Panagia Phorbiottisa") rather than generic terms
+6. If information is missing or unclear, say so plainly - do NOT make things up
 
-Remember: Your audience wants to learn about cultural heritage, not database schemas. Make your answers informative and accessible.
+Remember: Your audience wants accurate information. It's better to say "I don't have information about that" than to provide fabricated details.
 """
 
     def get_entity_literals(self, entity_uri):
@@ -3057,11 +3067,17 @@ Retrieved information:
         prompt += f"""
 Question: {question}
 
-Provide a clear, comprehensive answer in natural language:
+IMPORTANT INSTRUCTIONS:
+- ONLY use information from the "Retrieved information" section above to answer the question
+- Do NOT add any information from your general knowledge - only use what is explicitly provided above
+- If the retrieved information doesn't contain enough details to answer fully, say so clearly
+- Only mention entities that are explicitly described in the retrieved information above
+
+Provide a clear answer in natural language:
 - Use the entities' actual names (like "Panagia Phorbiottisa", "Nikitari") not document numbers
 - Write in accessible language - avoid technical ontology codes (E22_, IC9_, D1_, etc.)
 - Focus on meaningful information that answers the question
-- Present relationships and context in natural, flowing prose
+- If the data is limited, acknowledge what you can and cannot answer based on the available information
 """
 
         # Generate answer using the provider
@@ -3083,16 +3099,53 @@ Provide a clear, comprehensive answer in natural language:
                 "raw_triples": raw_triples
             })
 
-        # Add Wikidata sources
+        # Add Wikidata sources with image info
         for entity_info in entities_with_wikidata:
-            sources.append({
+            wikidata_source = {
                 "id": f"wikidata_{entity_info['wikidata_id']}",
                 "entity_uri": entity_info["entity_uri"],
                 "entity_label": entity_info["entity_label"],
                 "type": "wikidata",
                 "wikidata_id": entity_info["wikidata_id"],
                 "wikidata_url": f"https://www.wikidata.org/wiki/{entity_info['wikidata_id']}"
-            })
+            }
+
+            # Fetch Wikidata info to get image (P18)
+            wikidata_data = self.fetch_wikidata_info(entity_info["wikidata_id"])
+            if wikidata_data and "properties" in wikidata_data:
+                image_value = wikidata_data["properties"].get("image")
+                if image_value:
+                    try:
+                        # Handle both single image and array of images
+                        # Wikidata P18 can return multiple images as a list
+                        if isinstance(image_value, list):
+                            # Use the first image from the list
+                            image_filename = image_value[0] if image_value else None
+                        else:
+                            image_filename = image_value
+
+                        if image_filename:
+                            # Ensure filename is a proper string for URL encoding
+                            if isinstance(image_filename, bytes):
+                                image_filename_str = image_filename.decode('utf-8')
+                            else:
+                                image_filename_str = str(image_filename)
+
+                            # URL encode the filename for safe use in URLs
+                            encoded_filename = quote(image_filename_str, safe='')
+
+                            wikidata_source["image"] = {
+                                "url": f"https://commons.wikimedia.org/wiki/File:{encoded_filename}",
+                                "thumbnail_url": f"https://commons.wikimedia.org/wiki/Special:FilePath/{encoded_filename}?width=300",
+                                "full_url": f"https://commons.wikimedia.org/wiki/Special:FilePath/{encoded_filename}",
+                                "filename": image_filename_str,
+                                "source": "wikidata_p18"
+                            }
+                            logger.info(f"Found Wikidata image for {entity_info['entity_label']}: {image_filename_str}")
+                    except Exception as e:
+                        logger.warning(f"Error processing image filename for {entity_info['entity_label']}: {e}")
+
+            sources.append(wikidata_source)
 
         return {
             "answer": answer,

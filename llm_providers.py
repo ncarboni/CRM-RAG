@@ -549,19 +549,146 @@ class SentenceTransformersProvider(BaseLLMProvider):
     def get_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
         """
         Get embeddings for multiple texts efficiently in batch.
-        This is the primary performance advantage of local embeddings.
+
+        Uses dynamic batching based on text length to prevent OOM errors.
+        Longer texts get smaller batch sizes since attention memory is O(batch × seq²).
+
+        The algorithm:
+        1. Sorts texts by length to group similar-sized documents
+        2. Derives thresholds from the model's max_seq_length (model-aware)
+        3. Uses relative batch sizes (fractions of configured batch_size)
+        4. Clears GPU cache after processing long documents
+
+        See docs/DYNAMIC_BATCHING.md for detailed documentation.
         """
         if not texts:
             return []
 
-        logger.info(f"Batch embedding {len(texts)} texts with batch_size={self.batch_size}")
-        embeddings = self.model.encode(
-            texts,
-            batch_size=self.batch_size,
-            normalize_embeddings=True,
-            show_progress_bar=True
-        )
-        return embeddings.tolist()
+        # Get model-aware thresholds
+        thresholds = self._get_length_thresholds()
+
+        # Sort texts by length, keeping track of original indices
+        indexed_texts = [(i, text, len(text)) for i, text in enumerate(texts)]
+        indexed_texts.sort(key=lambda x: x[2])  # Sort by length
+
+        # Process in length-adaptive batches
+        all_embeddings = [None] * len(texts)  # Preallocate for reordering
+        current_batch_start = 0
+        total_batches = 0
+
+        while current_batch_start < len(indexed_texts):
+            # Determine batch size based on max text length in potential batch
+            max_len_in_batch = indexed_texts[min(current_batch_start + self.batch_size - 1,
+                                                   len(indexed_texts) - 1)][2]
+
+            # Get effective batch size using relative scaling
+            effective_batch_size = self._get_effective_batch_size(max_len_in_batch, thresholds)
+
+            # Extract batch
+            batch_end = min(current_batch_start + effective_batch_size, len(indexed_texts))
+            batch_items = indexed_texts[current_batch_start:batch_end]
+            batch_texts = [item[1] for item in batch_items]
+            batch_indices = [item[0] for item in batch_items]
+
+            # Log batch info
+            batch_max_len = max(len(t) for t in batch_texts)
+            logger.info(f"Processing batch of {len(batch_texts)} texts "
+                       f"(max_len={batch_max_len} chars, batch_size={effective_batch_size})")
+
+            # Encode batch
+            batch_embeddings = self.model.encode(
+                batch_texts,
+                batch_size=effective_batch_size,
+                normalize_embeddings=True,
+                show_progress_bar=False  # Disable per-batch progress bar
+            )
+
+            # Place embeddings back in original order
+            for idx, embedding in zip(batch_indices, batch_embeddings):
+                all_embeddings[idx] = embedding.tolist()
+
+            # Clear GPU cache after processing long documents (>25% of max)
+            if max_len_in_batch > thresholds['medium']:
+                try:
+                    import torch
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                except ImportError:
+                    pass
+
+            current_batch_start = batch_end
+            total_batches += 1
+
+        logger.info(f"Completed embedding {len(texts)} texts in {total_batches} batches")
+        return all_embeddings
+
+    def _get_length_thresholds(self) -> Dict[str, int]:
+        """
+        Calculate character length thresholds based on model's max sequence length.
+
+        Returns thresholds as fractions of the model's maximum capacity.
+        This makes the batching strategy model-agnostic.
+        """
+        # Get model's max sequence length (in tokens)
+        try:
+            max_seq_length = self.model.max_seq_length
+        except AttributeError:
+            # Fallback for models that don't expose this
+            max_seq_length = 512
+            logger.warning(f"Model doesn't expose max_seq_length, using default: {max_seq_length}")
+
+        # Convert to characters (conservative estimate: ~4 chars per token)
+        # This ratio varies by language/content but 4 is a safe average
+        chars_per_token = 4
+        max_chars = max_seq_length * chars_per_token
+
+        # Define thresholds as fractions of max capacity
+        # These fractions determine when to reduce batch size
+        thresholds = {
+            'very_long': int(max_chars * 0.75),   # 75% of max → batch_size ÷ 16
+            'long': int(max_chars * 0.50),        # 50% of max → batch_size ÷ 8
+            'medium_long': int(max_chars * 0.25), # 25% of max → batch_size ÷ 4
+            'medium': int(max_chars * 0.125),     # 12.5% of max → batch_size ÷ 2
+        }
+
+        logger.debug(f"Model max_seq_length: {max_seq_length} tokens, "
+                    f"thresholds (chars): {thresholds}")
+
+        return thresholds
+
+    def _get_effective_batch_size(self, max_text_length: int, thresholds: Dict[str, int]) -> int:
+        """
+        Calculate effective batch size based on the longest text in the batch.
+
+        Uses relative scaling: batch sizes are fractions of the configured batch_size.
+        This respects the user's configuration while adapting to document length.
+
+        Args:
+            max_text_length: Length of longest text in potential batch (in characters)
+            thresholds: Dictionary of length thresholds from _get_length_thresholds()
+
+        Returns:
+            Effective batch size (minimum 1)
+        """
+        if max_text_length > thresholds['very_long']:
+            # Very long documents: use 1/16 of configured batch size
+            divisor = 16
+        elif max_text_length > thresholds['long']:
+            # Long documents: use 1/8 of configured batch size
+            divisor = 8
+        elif max_text_length > thresholds['medium_long']:
+            # Medium-long documents: use 1/4 of configured batch size
+            divisor = 4
+        elif max_text_length > thresholds['medium']:
+            # Medium documents: use 1/2 of configured batch size
+            divisor = 2
+        else:
+            # Short documents: use full configured batch size
+            divisor = 1
+
+        effective_size = max(1, self.batch_size // divisor)
+
+        return effective_size
 
     def supports_batch_embedding(self) -> bool:
         """SentenceTransformers supports efficient batch embedding."""

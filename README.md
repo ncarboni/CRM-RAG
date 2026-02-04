@@ -42,6 +42,7 @@ CRM_RAG/
 │   ├── ARCHITECTURE.md
 │   ├── LOCAL_EMBEDDINGS.md   # Local embeddings guide
 │   ├── CLUSTER_PIPELINE.md   # GPU cluster processing guide
+│   ├── DYNAMIC_BATCHING.md   # Dynamic batch sizing for variable-length docs
 │   └── REORGANIZATION_PLAN.md
 ├── scripts/             Utility scripts
 │   ├── extract_ontology_labels.py
@@ -260,6 +261,8 @@ python main.py --env .env.local --dataset asinou --rebuild --process-only
 - Model recommendations
 - Hardware acceleration (GPU/CPU)
 - Troubleshooting
+
+**Dynamic Batching:** The system automatically adjusts batch sizes based on document length to prevent out-of-memory errors. Long documents get smaller batches, short documents get full batches. This is model-aware and works with any embedding model. See [docs/DYNAMIC_BATCHING.md](docs/DYNAMIC_BATCHING.md) for details.
 
 ### Bulk Document Generation (Very Large Datasets)
 

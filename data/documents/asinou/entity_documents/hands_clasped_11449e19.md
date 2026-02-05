@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/icon/4c58a916-6119-4471-95f1-612c8ee74d66
 Label: hands clasped
-Generated: 2026-02-04 22:48:44
+Generated: 2026-02-04 23:03:22
 ---
 
 # hands clasped

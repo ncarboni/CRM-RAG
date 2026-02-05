@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/character/d919e124-4022-4dad-bfe0-ff676c68a573
 Label: Hades
-Generated: 2026-02-04 22:49:00
+Generated: 2026-02-04 23:03:25
 ---
 
 # Hades
@@ -19,5 +19,5 @@ URI: http://map.cnrs.fr/semantics/character/d919e124-4022-4dad-bfe0-ff676c68a573
 
 ## Relationships
 
-- Hades is same as http:/www./wikidata.org/entity/Q41410
 - Hades portray Fiery stream
+- Hades is same as http:/www./wikidata.org/entity/Q41410

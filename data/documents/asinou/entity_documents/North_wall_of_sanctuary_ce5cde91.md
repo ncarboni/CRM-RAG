@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/92de9ea0-77c0-4dca-8819-daf3c9224a1b/
 Label: North wall of sanctuary
-Generated: 2026-02-04 22:48:57
+Generated: 2026-02-04 23:03:24
 ---
 
 # North wall of sanctuary

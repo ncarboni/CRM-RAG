@@ -1,7 +1,7 @@
 ---
 URI: http://www.wikidata.org/entity/Q405
 Label: http://www.wikidata.org/entity/Q405
-Generated: 2026-02-04 22:48:58
+Generated: 2026-02-04 23:03:25
 ---
 
 # http://www.wikidata.org/entity/Q405

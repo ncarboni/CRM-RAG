@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/9cb3ada3-25b9-4bb1-896e-82257d7e39bd/symbolic
 Label: salvation
-Generated: 2026-02-04 22:48:44
+Generated: 2026-02-04 23:03:22
 ---
 
 # salvation

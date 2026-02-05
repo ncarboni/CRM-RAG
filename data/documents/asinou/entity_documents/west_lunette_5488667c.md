@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/44bcfbfb-edf2-454a-85dc-dd52fcc529a5/
 Label: west lunette
-Generated: 2026-02-04 22:48:55
+Generated: 2026-02-04 23:03:23
 ---
 
 # west lunette

@@ -1,7 +1,7 @@
 ---
 URI: http://www.wikidata.org/entity/Q232975
 Label: http://www.wikidata.org/entity/Q232975
-Generated: 2026-02-04 22:48:59
+Generated: 2026-02-04 23:03:25
 ---
 
 # http://www.wikidata.org/entity/Q232975

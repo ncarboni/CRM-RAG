@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/spatial/372f9c0f-4112-4bdc-a804-022530a76592/
 Label: St. John Lampadistis
-Generated: 2026-02-04 22:49:00
+Generated: 2026-02-04 23:03:25
 ---
 
 # St. John Lampadistis

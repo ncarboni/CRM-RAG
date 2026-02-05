@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/71243e11-3df7-4eaa-b2bf-ddf8c75b9915/
 Label: Pedoulas
-Generated: 2026-02-04 22:49:18
+Generated: 2026-02-04 23:03:31
 ---
 
 # Pedoulas

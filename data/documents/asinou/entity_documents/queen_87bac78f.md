@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/f2a5a179-9f06-49a2-ab33-08143c092e1c/
 Label: queen
-Generated: 2026-02-04 22:48:58
+Generated: 2026-02-04 23:03:25
 ---
 
 # queen

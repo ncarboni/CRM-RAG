@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/dbff2b38-8115-438f-a725-a41134b3cac5/
 Label: Painting of the last judgment
-Generated: 2026-02-04 22:49:01
+Generated: 2026-02-04 23:03:26
 ---
 
 # Painting of the last judgment

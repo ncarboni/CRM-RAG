@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/type/875de4b3-1a0c-4de0-9781-7d6359ab0940
 Label: Bema
-Generated: 2026-02-04 22:48:57
+Generated: 2026-02-04 23:03:24
 ---
 
 # Bema
@@ -18,6 +18,6 @@ URI: http://map.cnrs.fr/semantics/type/875de4b3-1a0c-4de0-9781-7d6359ab0940
 
 ## Relationships
 
-- Bema is same as 300266806
-- Bema is same as Q2029217
 - Bema has broader term Architectural element
+- Bema is same as Q2029217
+- Bema is same as 300266806

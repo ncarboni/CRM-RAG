@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/location/146359/
 Label: Turkish Republic of Northern Cyprus
-Generated: 2026-02-04 22:49:19
+Generated: 2026-02-04 23:03:31
 ---
 
 # Turkish Republic of Northern Cyprus

@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/practice/423d47f3-9d7b-4d60-9230-47c51016a7d9
 Label: Meatfare sunday rites
-Generated: 2026-02-04 22:49:17
+Generated: 2026-02-04 23:03:31
 ---
 
 # Meatfare sunday rites
@@ -18,5 +18,5 @@ URI: http://map.cnrs.fr/semantics/practice/423d47f3-9d7b-4d60-9230-47c51016a7d9
 
 ## Relationships
 
-- Meatfare sunday rites took place at Naos
 - Meatfare sunday rites was performed in plan
+- Meatfare sunday rites took place at Naos

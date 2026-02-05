@@ -84,7 +84,9 @@ class ConfigLoader:
                 "embedding_max_concurrent": int(os.environ.get("EMBEDDING_MAX_CONCURRENT", "10")),
                 "embedding_retry_attempts": int(os.environ.get("EMBEDDING_RETRY_ATTEMPTS", "3")),
                 "embedding_retry_delay": float(os.environ.get("EMBEDDING_RETRY_DELAY", "1.0")),
-                "embedding_chunk_size": int(os.environ.get("EMBEDDING_CHUNK_SIZE", "100"))
+                "embedding_chunk_size": int(os.environ.get("EMBEDDING_CHUNK_SIZE", "100")),
+                # Outer batch size for processing entities (before checkpoint save)
+                "embedding_batch_size": int(os.environ.get("EMBEDDING_BATCH_SIZE", "500")),
             })
         elif llm_provider == "anthropic":
             config.update({

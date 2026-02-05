@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/icon/8c1e23b7-df38-4d5a-a1c7-cf45f7fabb2c
 Label: Last Judgment
-Generated: 2026-02-04 22:49:11
+Generated: 2026-02-04 23:03:28
 ---
 
 # Last Judgment

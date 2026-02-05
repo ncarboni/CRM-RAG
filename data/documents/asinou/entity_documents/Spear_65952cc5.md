@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/type/8d40a0c4-a99d-4490-9597-71f6fefd6bee
 Label: Spear
-Generated: 2026-02-04 22:48:44
+Generated: 2026-02-04 23:03:22
 ---
 
 # Spear

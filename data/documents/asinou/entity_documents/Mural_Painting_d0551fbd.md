@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/772a5b43-edcc-4003-a2d8-58f8624ff227/
 Label: Mural Painting
-Generated: 2026-02-04 22:49:21
+Generated: 2026-02-04 23:03:32
 ---
 
 # Mural Painting

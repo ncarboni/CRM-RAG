@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/0638e021-6cf6-4f90-a369-c834fe396dd6/symbolic
 Label: blessing
-Generated: 2026-02-04 22:48:55
+Generated: 2026-02-04 23:03:23
 ---
 
 # blessing

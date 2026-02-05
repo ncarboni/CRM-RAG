@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/type/da07b29f-1696-408c-94cd-ff7f122bb2d5
 Label: clothing
-Generated: 2026-02-04 22:48:44
+Generated: 2026-02-04 23:03:22
 ---
 
 # clothing
@@ -18,12 +18,12 @@ URI: http://map.cnrs.fr/semantics/type/da07b29f-1696-408c-94cd-ff7f122bb2d5
 
 ## Relationships
 
-- clothing depict things of type diaphanous robe
-- clothing is same as 300266639
-- clothing depict things of type loros
-- clothing depict things of type T-shaped garment
-- clothing has narrower term headdress
-- clothing depict things of type cotte
-- clothing has narrower term Patches
 - clothing depict things of type undergarment
+- clothing depict things of type diaphanous robe
+- clothing has narrower term Patches
+- clothing depict things of type T-shaped garment
+- clothing depict things of type loros
+- clothing has narrower term headdress
+- clothing is same as 300266639
+- clothing depict things of type cotte
 - clothing depict things of type porphyria

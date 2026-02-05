@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/spatial/0062f461-2dc8-4830-b53a-c3ad0f8d65a4/
 Label: Panagia Phorbiottisa
-Generated: 2026-02-04 22:48:56
+Generated: 2026-02-04 23:03:24
 ---
 
 # Panagia Phorbiottisa
@@ -19,18 +19,18 @@ URI: http://map.cnrs.fr/semantics/spatial/0062f461-2dc8-4830-b53a-c3ad0f8d65a4/
 
 ## Relationships
 
+- Panagia Phorbiottisa currently holds Asinou
+- Panagia Phorbiottisa witnessed Construction of Asinou
 - Panagia Phorbiottisa witnessed Painting of the Virgin of Mercy
 - Panagia Phorbiottisa contains Narthex
-- Panagia Phorbiottisa witnessed Initial painting
-- Panagia Phorbiottisa witnessed Closing of the south door of the Narthex
-- Panagia Phorbiottisa witnessed Addition of the narthex
-- Panagia Phorbiottisa witnessed Wall paintings of 1332/33
-- Panagia Phorbiottisa witnessed Construction of Asinou
 - Panagia Phorbiottisa witnessed Painting of Saint George
+- Panagia Phorbiottisa witnessed Closing of the south door of the Narthex
+- Panagia Phorbiottisa witnessed Wall paintings of 1332/33
 - Panagia Phorbiottisa contains South lunette
+- Panagia Phorbiottisa falls within Nikitari
 - Panagia Phorbiottisa contains Bema
 - Panagia Phorbiottisa contains Naos
-- Panagia Phorbiottisa currently holds Asinou
-- Panagia Phorbiottisa falls within Nikitari
 - Panagia Phorbiottisa witnessed Painting cycle of 1332/33
+- Panagia Phorbiottisa witnessed Initial painting
+- Panagia Phorbiottisa witnessed Addition of the narthex
 - Panagia Phorbiottisa witnessed Painting of Anastasias

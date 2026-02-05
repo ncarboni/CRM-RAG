@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/type/389ebfda-31bc-4221-9863-0af10e05628c
 Label: Mary with the Christ-child
-Generated: 2026-02-04 22:49:19
+Generated: 2026-02-04 23:03:31
 ---
 
 # Mary with the Christ-child
@@ -18,6 +18,6 @@ URI: http://map.cnrs.fr/semantics/type/389ebfda-31bc-4221-9863-0af10e05628c
 
 ## Relationships
 
-- Mary with the Christ-child is same as Q9309699
 - Mary with the Christ-child has narrower term Madonna della misericordia
 - Mary with the Christ-child is same as 11F4
+- Mary with the Christ-child is same as Q9309699

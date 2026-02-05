@@ -1,0 +1,92 @@
+{
+  "metadata": {
+    "dataset": "mah",
+    "endpoint": "http://localhost:3030/MAH/sparql",
+    "timestamp": "2026-02-05T00:11:49.889426",
+    "python_version": "3.12.12 (main, Jan 27 2026, 23:41:44) [Clang 21.1.4 ]",
+    "entity_list_time_sec": 0.3798360824584961,
+    "ontology_classes_skipped": 0
+  },
+  "entity_count": 1000,
+  "approaches": {
+    "individual": {
+      "approach": "individual",
+      "entity_count": 1000,
+      "total_time_sec": 1.0672698020935059,
+      "avg_time_per_entity_ms": 1.0672698020935059,
+      "median_time_ms": 0.9543895721435547,
+      "min_time_ms": 0.6699562072753906,
+      "max_time_ms": 7.51495361328125,
+      "stddev_ms": 0.465361373668618,
+      "total_triples": 15670,
+      "avg_triples_per_entity": 15.67,
+      "error_count": 0,
+      "errors": [],
+      "throughput_entities_per_sec": 936.9702000735404
+    },
+    "bulk": {
+      "approach": "bulk",
+      "entity_count": 1000,
+      "total_time_sec": 62.272457122802734,
+      "export_time_sec": 11.1704740524292,
+      "parse_time_sec": 51.09259486198425,
+      "query_time_sec": 0.009388208389282227,
+      "export_size_bytes": 349048444,
+      "export_size_mb": 332.87853622436523,
+      "total_triples": 4391600,
+      "avg_triples_per_entity": 15.67,
+      "throughput_entities_per_sec": 16.058463824993716
+    },
+    "batch": {
+      "approach": "batch",
+      "entity_count": 1000,
+      "batch_results": {
+        "batch_100": {
+          "batch_size": 100,
+          "num_batches": 10,
+          "total_time_sec": 0.14891672134399414,
+          "avg_time_per_batch_ms": 14.891672134399414,
+          "avg_time_per_entity_ms": 0.14891672134399414,
+          "median_batch_time_ms": 14.191985130310059,
+          "min_batch_time_ms": 13.20505142211914,
+          "max_batch_time_ms": 22.098779678344727,
+          "total_triples": 15670,
+          "error_count": 0,
+          "errors": [],
+          "throughput_entities_per_sec": 6715.162615553584
+        },
+        "batch_500": {
+          "batch_size": 500,
+          "num_batches": 2,
+          "total_time_sec": 0.10061025619506836,
+          "avg_time_per_batch_ms": 50.30512809753418,
+          "avg_time_per_entity_ms": 0.10061025619506836,
+          "median_batch_time_ms": 50.30512809753418,
+          "min_batch_time_ms": 49.13830757141113,
+          "max_batch_time_ms": 51.47194862365723,
+          "total_triples": 15670,
+          "error_count": 0,
+          "errors": [],
+          "throughput_entities_per_sec": 9939.34453423067
+        },
+        "batch_1000": {
+          "batch_size": 1000,
+          "num_batches": 1,
+          "total_time_sec": 0.09743595123291016,
+          "avg_time_per_batch_ms": 97.43595123291016,
+          "avg_time_per_entity_ms": 0.09743595123291016,
+          "median_batch_time_ms": 97.43595123291016,
+          "min_batch_time_ms": 97.43595123291016,
+          "max_batch_time_ms": 97.43595123291016,
+          "total_triples": 15670,
+          "error_count": 0,
+          "errors": [],
+          "throughput_entities_per_sec": 10263.152228170971
+        }
+      },
+      "best_batch_size": 1000,
+      "best_total_time_sec": 0.09743595123291016,
+      "best_throughput": 10263.152228170971
+    }
+  }
+}

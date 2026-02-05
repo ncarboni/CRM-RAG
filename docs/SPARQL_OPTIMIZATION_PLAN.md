@@ -162,7 +162,22 @@ benchmarks/
 - Validate measurements before long-running tests
 - Same CIDOC-CRM structure as mah
 
-### Phase 0: Benchmark Current Approaches with Fuseki
+### Phase 0: Benchmark Results (Fuseki)
+
+#### Asinou Dataset (605 entities, depth=2 bidirectional traversal)
+
+| Approach | Total Time | Queries | Throughput | Speedup |
+|----------|------------|---------|------------|---------|
+| Individual Queries | 144.75s | 201,574 | 4.2 ent/s | baseline |
+| Bulk Export + rdflib | 0.24s | 1 | 2,527 ent/s | 603x |
+| **Batch Queries** | **0.09s** | **6** | **6,699 ent/s** | **1,602x** |
+
+**Key findings:**
+- Individual queries: ~333 SPARQL queries per entity (outgoing + incoming × depth)
+- Batch queries with VALUES clause are **1,602x faster** than individual queries
+- Bulk export is fast for small datasets but downloads entire graph
+
+#### Run More Benchmarks
 
 Run the benchmark script to measure all three approaches:
 
@@ -317,3 +332,246 @@ class BatchSPARQLDocumentGenerator:
 2. Is QLever already available or needs setup?
 3. Are there rate limits on the SPARQL endpoint?
 4. What's the acceptable total time for document generation?
+
+---
+
+## QLever Setup Guide
+
+QLever is a high-performance graph database optimized for large-scale SPARQL queries. It's particularly efficient with VALUES clause batching, making it ideal for our batch query strategy.
+
+### Why QLever?
+
+- **85x faster** than Fuseki for complex queries (0.18s vs 15s geometric mean)
+- Optimized for VALUES clause queries (our batch strategy)
+- Can handle hundreds of billions of triples on a single machine
+- Efficient memory usage with external memory algorithms
+
+### Installation
+
+#### macOS (Homebrew) - Recommended
+
+```bash
+brew tap qlever-dev/qlever
+brew install qlever
+```
+
+#### Debian/Ubuntu (apt)
+
+```bash
+sudo apt update && sudo apt install -y wget gpg ca-certificates
+wget -qO - https://packages.qlever.dev/pub.asc | gpg --dearmor | sudo tee /usr/share/keyrings/qlever.gpg > /dev/null
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/qlever.gpg] https://packages.qlever.dev/ $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") main" | sudo tee /etc/apt/sources.list.d/qlever.list
+sudo apt update && sudo apt install qlever
+```
+
+#### Other Platforms (pip/pipx/uv)
+
+```bash
+# Using pip
+pip install qlever
+
+# Using pipx (isolated environment)
+pipx install qlever
+
+# Using uv
+uv tool install qlever
+```
+
+Note: pip/pipx/uv installation runs QLever in a container, which has a small performance penalty compared to native installation.
+
+### Setup for MAH Dataset
+
+#### 1. Create Working Directory
+
+```bash
+mkdir -p ~/qlever-indices/mah
+cd ~/qlever-indices/mah
+```
+
+#### 2. Create Qleverfile
+
+Create a file named `Qleverfile` in the working directory:
+
+```ini
+[data]
+NAME = mah
+# Point to the existing TTL dump
+# No download needed - we have local data
+GET_DATA_CMD = echo "Using local TTL dump"
+FORMAT = ttl
+
+[index]
+# Path to your TTL dump file
+INPUT_FILES = /Users/carboni/Documents/pynotebook/personal/RAG rdf/CRM_RAG/data/exports/mah_dump.ttl
+# Memory for index building (adjust based on your RAM)
+# For 333MB TTL, 4-8GB should be sufficient
+STXXL_MEMORY = 8G
+# Index settings for optimal query performance
+SETTINGS_JSON = {"num-triples-per-batch": 5000000, "language-priority": "en,de,fr,it"}
+
+[server]
+# SPARQL endpoint port (choose any available port)
+PORT = 7001
+# Memory for query processing
+MEMORY_FOR_QUERIES = 8G
+# Result cache size
+CACHE_MAX_SIZE = 4G
+# Query timeout in seconds
+TIMEOUT = 300
+# Leave empty for public access (local development)
+ACCESS_TOKEN =
+
+[runtime]
+# Use Docker for containerized execution
+SYSTEM = docker
+IMAGE = docker.io/adfreiburg/qlever:latest
+CONTAINER_NAME = qlever-mah
+
+[ui]
+# Optional: Web UI for interactive queries
+UI_PORT = 7000
+```
+
+#### 3. Build the Index
+
+```bash
+cd ~/qlever-indices/mah
+qlever index
+```
+
+This will:
+- Parse the TTL file
+- Build optimized index structures
+- Create vocabulary and permutation files
+
+For the MAH dataset (333MB, ~6.7M triples), indexing should take **5-15 minutes**.
+
+#### 4. Start the SPARQL Endpoint
+
+```bash
+qlever start
+```
+
+The endpoint will be available at `http://localhost:7001`
+
+#### 5. Verify It's Working
+
+```bash
+# Test with a simple query
+qlever query "SELECT (COUNT(*) AS ?count) WHERE { ?s ?p ?o }"
+
+# Or use curl
+curl -s "http://localhost:7001" \
+  --data-urlencode "query=SELECT (COUNT(*) AS ?count) WHERE { ?s ?p ?o }" \
+  --data-urlencode "action=tsv_export"
+```
+
+#### 6. (Optional) Start the Web UI
+
+```bash
+qlever ui
+```
+
+Access the UI at `http://localhost:7000`
+
+### Using QLever in the Pipeline
+
+#### Update datasets.yaml
+
+Add a QLever endpoint configuration:
+
+```yaml
+mah_qlever:
+  name: "MAH (QLever)"
+  description: "MAH dataset with QLever endpoint"
+  endpoint: "http://localhost:7001"
+  # ... other settings
+```
+
+#### Run Benchmark Against QLever
+
+```bash
+# Test with QLever endpoint
+python benchmarks/benchmark_document_generation.py \
+  --dataset mah \
+  --endpoint http://localhost:7001 \
+  --limit 5000
+
+# Compare with Fuseki
+python benchmarks/benchmark_document_generation.py \
+  --dataset mah \
+  --endpoint http://localhost:3030/mah/sparql \
+  --limit 5000
+```
+
+### QLever CLI Commands Reference
+
+| Command | Description |
+|---------|-------------|
+| `qlever setup-config <name>` | Get example Qleverfile for dataset |
+| `qlever index` | Build index from data files |
+| `qlever start` | Start SPARQL endpoint server |
+| `qlever stop` | Stop the server |
+| `qlever restart` | Restart the server |
+| `qlever status` | Show server status |
+| `qlever query "<sparql>"` | Execute a SPARQL query |
+| `qlever log` | Show server logs |
+| `qlever ui` | Start web UI |
+| `qlever --help` | Show all commands |
+
+### Qleverfile Settings Reference
+
+#### [data] Section
+| Setting | Description |
+|---------|-------------|
+| `NAME` | Dataset identifier (used for file naming) |
+| `GET_DATA_URL` | URL for downloading data |
+| `GET_DATA_CMD` | Shell command to download/prepare data |
+| `FORMAT` | RDF format: `ttl`, `nt`, `rdf` |
+
+#### [index] Section
+| Setting | Description |
+|---------|-------------|
+| `INPUT_FILES` | Glob pattern for input files |
+| `MULTI_INPUT_JSON` | JSON spec for multiple file processing |
+| `STXXL_MEMORY` | External memory for indexing (e.g., `8G`) |
+| `SETTINGS_JSON` | JSON object with indexer settings |
+
+#### [server] Section
+| Setting | Description |
+|---------|-------------|
+| `PORT` | HTTP port for SPARQL endpoint |
+| `MEMORY_FOR_QUERIES` | RAM for query processing |
+| `CACHE_MAX_SIZE` | Result cache size limit |
+| `TIMEOUT` | Query timeout in seconds |
+| `ACCESS_TOKEN` | Optional authentication token |
+
+#### [runtime] Section
+| Setting | Description |
+|---------|-------------|
+| `SYSTEM` | Execution mode: `docker`, `native`, `podman` |
+| `IMAGE` | Docker image URI |
+| `CONTAINER_NAME` | Container identifier |
+
+### Troubleshooting
+
+#### Index building fails with memory error
+- Increase `STXXL_MEMORY` in Qleverfile
+- Ensure Docker has enough memory allocated (Docker Desktop → Settings → Resources)
+
+#### Server won't start
+- Check if port is already in use: `lsof -i :7001`
+- Check logs: `qlever log`
+- Ensure index was built successfully
+
+#### Slow query performance
+- Increase `MEMORY_FOR_QUERIES`
+- Increase `CACHE_MAX_SIZE`
+- Check if the query pattern is optimized for QLever
+
+### Resources
+
+- [QLever Documentation](https://docs.qlever.dev)
+- [QLever GitHub](https://github.com/ad-freiburg/qlever)
+- [qlever-control CLI](https://github.com/ad-freiburg/qlever-control)
+- [Example Qleverfiles](https://deepwiki.com/qlever-dev/qlever-control/7-example-dataset-configurations)

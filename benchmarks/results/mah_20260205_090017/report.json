@@ -1,0 +1,91 @@
+{
+  "metadata": {
+    "dataset": "mah",
+    "endpoint": "http://localhost:3030/MAH/sparql",
+    "timestamp": "2026-02-05T09:00:17.307228",
+    "python_version": "3.12.12 (main, Jan 27 2026, 23:41:44) [Clang 21.1.4 ]",
+    "entity_list_time_sec": 0.2029120922088623,
+    "ontology_classes_skipped": 0,
+    "depth": 2
+  },
+  "entity_count": 100,
+  "approaches": {
+    "individual": {
+      "approach": "individual",
+      "entity_count": 100,
+      "depth": 2,
+      "total_time_sec": 3566.758540868759,
+      "total_queries": 5182528,
+      "avg_queries_per_entity": 51825.28,
+      "avg_time_per_entity_ms": 35667.58540868759,
+      "median_time_ms": 35484.768986701965,
+      "min_time_ms": 34536.07678413391,
+      "max_time_ms": 44060.965061187744,
+      "stddev_ms": 1090.1930118977823,
+      "total_triples": 125790205,
+      "avg_triples_per_entity": 1257902.05,
+      "error_count": 0,
+      "errors": [],
+      "throughput_entities_per_sec": 0.028036660977797195
+    },
+    "bulk": {
+      "approach": "bulk",
+      "entity_count": 100,
+      "total_time_sec": 66.33870244026184,
+      "export_time_sec": 15.289437294006348,
+      "parse_time_sec": 51.048362016677856,
+      "query_time_sec": 0.0009031295776367188,
+      "export_size_bytes": 349048444,
+      "export_size_mb": 332.87853622436523,
+      "total_triples": 4391600,
+      "avg_triples_per_entity": 14.11,
+      "throughput_entities_per_sec": 1.507415676241938
+    },
+    "batch": {
+      "approach": "batch",
+      "entity_count": 100,
+      "depth": 2,
+      "batch_results": {
+        "batch_100": {
+          "batch_size": 100,
+          "depth": 2,
+          "total_time_sec": 10.190216779708862,
+          "total_queries": 584,
+          "total_triples": 1711134,
+          "total_uris_visited": 29185,
+          "avg_time_per_entity_ms": 101.90216779708862,
+          "error_count": 0,
+          "errors": [],
+          "throughput_entities_per_sec": 9.813333922309063
+        },
+        "batch_500": {
+          "batch_size": 500,
+          "depth": 2,
+          "total_time_sec": 14.333699703216553,
+          "total_queries": 120,
+          "total_triples": 1711134,
+          "total_uris_visited": 29185,
+          "avg_time_per_entity_ms": 143.33699703216553,
+          "error_count": 0,
+          "errors": [],
+          "throughput_entities_per_sec": 6.976565860212594
+        },
+        "batch_1000": {
+          "batch_size": 1000,
+          "depth": 2,
+          "total_time_sec": 8.841300249099731,
+          "total_queries": 62,
+          "total_triples": 1711134,
+          "total_uris_visited": 29185,
+          "avg_time_per_entity_ms": 88.41300249099731,
+          "error_count": 0,
+          "errors": [],
+          "throughput_entities_per_sec": 11.310553559153535
+        }
+      },
+      "best_batch_size": 1000,
+      "best_total_time_sec": 8.841300249099731,
+      "best_throughput": 11.310553559153535
+    }
+  }
+}

@@ -165,17 +165,33 @@ class OpenAIProvider(BaseLLMProvider):
 
         return self._embeddings.embed_query(text)
 
-    def get_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
+    def get_embeddings_batch(self, texts: List[str], stats_file: Optional[str] = None) -> List[List[float]]:
         """
         Get embeddings for multiple texts using OpenAI's native batch API.
         This is significantly faster than calling embed_query in a loop.
 
         OpenAI's embed_documents handles batching internally with chunk_size=1000.
+
+        Args:
+            texts: List of texts to embed
+            stats_file: Optional path to save embedding stats (JSON format)
         """
         from langchain_openai import OpenAIEmbeddings
 
         if not texts:
             return []
+
+        # Track stats
+        start_time = datetime.now()
+        start_timestamp = time.time()
+        doc_lengths = [len(t) for t in texts]
+
+        logger.info(f"=== OpenAI Embedding Started ===")
+        logger.info(f"Start time: {start_time.isoformat()}")
+        logger.info(f"Documents: {len(texts)}")
+        logger.info(f"Document lengths: min={min(doc_lengths)}, max={max(doc_lengths)}, "
+                   f"avg={sum(doc_lengths)//len(doc_lengths)} chars")
+        logger.info(f"Model: {self.embedding_model}")
 
         if self._embeddings is None:
             self._embeddings = OpenAIEmbeddings(
@@ -184,7 +200,19 @@ class OpenAIProvider(BaseLLMProvider):
             )
 
         # embed_documents sends texts in batches to the API (default chunk_size=1000)
-        return self._embeddings.embed_documents(texts)
+        embeddings = self._embeddings.embed_documents(texts)
+
+        # Calculate final stats
+        end_time = datetime.now()
+        elapsed_seconds = time.time() - start_timestamp
+        throughput = len(texts) / elapsed_seconds if elapsed_seconds > 0 else 0
+
+        logger.info(f"=== OpenAI Embedding Completed ===")
+        logger.info(f"End time: {end_time.isoformat()}")
+        logger.info(f"Total time: {elapsed_seconds:.1f}s")
+        logger.info(f"Throughput: {throughput:.2f} docs/sec")
+
+        return embeddings
 
     def supports_batch_embedding(self) -> bool:
         """OpenAI supports efficient batch embedding via embed_documents."""
@@ -194,7 +222,7 @@ class OpenAIProvider(BaseLLMProvider):
         """OpenAI supports concurrent batch embedding with ThreadPoolExecutor."""
         return True
 
-    def get_embeddings_batch_concurrent(self, texts: List[str]) -> List[List[float]]:
+    def get_embeddings_batch_concurrent(self, texts: List[str], stats_file: Optional[str] = None) -> List[List[float]]:
         """
         Get embeddings for multiple texts using concurrent API calls.
 
@@ -206,6 +234,7 @@ class OpenAIProvider(BaseLLMProvider):
 
         Args:
             texts: List of texts to embed
+            stats_file: Optional path to save embedding stats (JSON format)
 
         Returns:
             List of embeddings in the same order as input texts
@@ -217,7 +246,20 @@ class OpenAIProvider(BaseLLMProvider):
 
         # For small batches, use sequential processing
         if len(texts) <= self.embedding_chunk_size:
-            return self.get_embeddings_batch(texts)
+            return self.get_embeddings_batch(texts, stats_file=stats_file)
+
+        # Track stats
+        start_time = datetime.now()
+        start_timestamp = time.time()
+        doc_lengths = [len(t) for t in texts]
+
+        logger.info(f"=== OpenAI Concurrent Embedding Started ===")
+        logger.info(f"Start time: {start_time.isoformat()}")
+        logger.info(f"Documents: {len(texts)}")
+        logger.info(f"Document lengths: min={min(doc_lengths)}, max={max(doc_lengths)}, "
+                   f"avg={sum(doc_lengths)//len(doc_lengths)} chars")
+        logger.info(f"Model: {self.embedding_model}")
+        logger.info(f"Max concurrent: {self.embedding_max_concurrent}")
 
         # Initialize embeddings model (lazy initialization for thread safety)
         if self._embeddings is None:
@@ -307,7 +349,18 @@ class OpenAIProvider(BaseLLMProvider):
         for chunk_idx in range(len(chunks)):
             all_embeddings.extend(results[chunk_idx])
 
-        logger.info(f"Concurrent embedding complete: {len(all_embeddings)} embeddings generated")
+        # Calculate final stats
+        end_time = datetime.now()
+        elapsed_seconds = time.time() - start_timestamp
+        throughput = len(texts) / elapsed_seconds if elapsed_seconds > 0 else 0
+
+        logger.info(f"=== OpenAI Concurrent Embedding Completed ===")
+        logger.info(f"End time: {end_time.isoformat()}")
+        logger.info(f"Total time: {elapsed_seconds:.1f}s")
+        logger.info(f"Documents: {len(all_embeddings)}")
+        logger.info(f"Throughput: {throughput:.2f} docs/sec")
+        logger.info(f"Chunks processed: {len(chunks)}")
+
         return all_embeddings
 
 
@@ -365,10 +418,14 @@ class AnthropicProvider(BaseLLMProvider):
 
         return self._openai_embeddings.embed_query(text)
 
-    def get_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
+    def get_embeddings_batch(self, texts: List[str], stats_file: Optional[str] = None) -> List[List[float]]:
         """
         Get embeddings for multiple texts using OpenAI's native batch API.
         Claude doesn't have embeddings, so we use OpenAI's embed_documents.
+
+        Args:
+            texts: List of texts to embed
+            stats_file: Optional path to save embedding stats (JSON format)
         """
         from langchain_openai import OpenAIEmbeddings
 
@@ -378,13 +435,37 @@ class AnthropicProvider(BaseLLMProvider):
         if self.openai_api_key is None:
             raise ValueError("OpenAI API key not set for embeddings. Use set_embedding_provider().")
 
+        # Track stats
+        start_time = datetime.now()
+        start_timestamp = time.time()
+        doc_lengths = [len(t) for t in texts]
+
+        logger.info(f"=== Anthropic (OpenAI) Embedding Started ===")
+        logger.info(f"Start time: {start_time.isoformat()}")
+        logger.info(f"Documents: {len(texts)}")
+        logger.info(f"Document lengths: min={min(doc_lengths)}, max={max(doc_lengths)}, "
+                   f"avg={sum(doc_lengths)//len(doc_lengths)} chars")
+        logger.info(f"Model: text-embedding-3-small (via OpenAI)")
+
         if self._openai_embeddings is None:
             self._openai_embeddings = OpenAIEmbeddings(
                 model="text-embedding-3-small",
                 openai_api_key=self.openai_api_key
             )
 
-        return self._openai_embeddings.embed_documents(texts)
+        embeddings = self._openai_embeddings.embed_documents(texts)
+
+        # Calculate final stats
+        end_time = datetime.now()
+        elapsed_seconds = time.time() - start_timestamp
+        throughput = len(texts) / elapsed_seconds if elapsed_seconds > 0 else 0
+
+        logger.info(f"=== Anthropic (OpenAI) Embedding Completed ===")
+        logger.info(f"End time: {end_time.isoformat()}")
+        logger.info(f"Total time: {elapsed_seconds:.1f}s")
+        logger.info(f"Throughput: {throughput:.2f} docs/sec")
+
+        return embeddings
 
     def supports_batch_embedding(self) -> bool:
         """Anthropic uses OpenAI embeddings which support batch embedding."""

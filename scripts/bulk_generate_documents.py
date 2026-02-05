@@ -55,29 +55,31 @@ def _process_entity_worker(args):
     try:
         text, label, types = _worker_generator.create_document(entity_uri, context_depth=context_depth)
 
-        # Get images for this entity
-        images = _worker_generator.get_entity_images(entity_uri)
-
-        # Save document with images in frontmatter
-        _worker_generator.output_dir = Path(output_dir)
-        filepath = _worker_generator.save_document(entity_uri, text, label, images=images)
-
-        # Determine primary type
-        primary_type = "Unknown"
+        # Determine primary type (filter technical class names)
+        primary_type = None
+        human_readable_types = []
         if types:
-            human_readable = [t for t in types if not _worker_generator.is_technical_class_name(t)]
-            primary_type = human_readable[0] if human_readable else "Entity"
+            human_readable_types = [t for t in types if not _worker_generator.is_technical_class_name(t)]
+            primary_type = human_readable_types[0] if human_readable_types else None
 
         # Get Wikidata ID if available
         wikidata_id = _worker_generator.get_wikidata_id(entity_uri)
 
+        # Get images for this entity
+        images = _worker_generator.get_entity_images(entity_uri)
+
+        # Save document with all metadata in frontmatter
+        _worker_generator.output_dir = Path(output_dir)
+        filepath = _worker_generator.save_document(
+            entity_uri, text, label,
+            entity_type=primary_type,
+            all_types=human_readable_types,
+            wikidata_id=wikidata_id,
+            images=images
+        )
+
         return {
             "uri": entity_uri,
-            "label": label,
-            "type": primary_type,
-            "all_types": types,
-            "wikidata_id": wikidata_id,
-            "images": images,
             "filepath": os.path.basename(filepath) if filepath else None,
             "error": None
         }
@@ -622,13 +624,18 @@ class BulkDocumentGenerator:
 
         return text, entity_label, entity_types
 
-    def save_document(self, entity_uri: str, text: str, label: str, images: list = None) -> str:
+    def save_document(self, entity_uri: str, text: str, label: str,
+                      entity_type: str = None, all_types: list = None,
+                      wikidata_id: str = None, images: list = None) -> str:
         """Save document to file. Returns filepath.
 
         Args:
             entity_uri: The entity URI
             text: Document text content
             label: Entity label
+            entity_type: Primary entity type
+            all_types: List of all entity types
+            wikidata_id: Wikidata Q-ID if available
             images: Optional list of image URLs
         """
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -642,13 +649,25 @@ class BulkDocumentGenerator:
         filename = f"{safe_label}_{uri_hash}.md"
         filepath = self.output_dir / filename
 
-        # Build metadata header with optional images
+        # Build metadata header (source of truth for all metadata)
         metadata_lines = [
             "---",
             f"URI: {entity_uri}",
             f"Label: {label}",
-            f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         ]
+
+        # Add type info
+        if entity_type:
+            metadata_lines.append(f"Type: {entity_type}")
+
+        if all_types:
+            metadata_lines.append("Types:")
+            for t in all_types:
+                metadata_lines.append(f"  - {t}")
+
+        # Add Wikidata ID if available
+        if wikidata_id:
+            metadata_lines.append(f"Wikidata: {wikidata_id}")
 
         # Add images if present
         if images:
@@ -671,28 +690,30 @@ class BulkDocumentGenerator:
         try:
             text, label, types = self.create_document(entity_uri, context_depth=context_depth)
 
-            # Get images for this entity
-            images = self.get_entity_images(entity_uri)
-
-            # Save document with images in frontmatter
-            filepath = self.save_document(entity_uri, text, label, images=images)
-
-            # Determine primary type
-            primary_type = "Unknown"
+            # Determine primary type (filter technical class names)
+            primary_type = None
+            human_readable_types = []
             if types:
-                human_readable = [t for t in types if not self.is_technical_class_name(t)]
-                primary_type = human_readable[0] if human_readable else "Entity"
+                human_readable_types = [t for t in types if not self.is_technical_class_name(t)]
+                primary_type = human_readable_types[0] if human_readable_types else None
 
             # Get Wikidata ID if available
             wikidata_id = self.get_wikidata_id(entity_uri)
 
+            # Get images for this entity
+            images = self.get_entity_images(entity_uri)
+
+            # Save document with all metadata in frontmatter
+            filepath = self.save_document(
+                entity_uri, text, label,
+                entity_type=primary_type,
+                all_types=human_readable_types,
+                wikidata_id=wikidata_id,
+                images=images
+            )
+
             return {
                 "uri": entity_uri,
-                "label": label,
-                "type": primary_type,
-                "all_types": types,
-                "wikidata_id": wikidata_id,
-                "images": images,
                 "filepath": os.path.basename(filepath) if filepath else None,
                 "error": None
             }
@@ -741,7 +762,7 @@ class BulkDocumentGenerator:
             shutil.rmtree(self.output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-        documents_metadata = []
+        success_count = 0
         errors = 0
         start_time = time.time()
 
@@ -772,7 +793,7 @@ class BulkDocumentGenerator:
                             if errors <= 10:
                                 logger.error(f"Error processing {result['uri']}: {result['error']}")
                         else:
-                            documents_metadata.append(result)
+                            success_count += 1
                         pbar.update(1)
 
             elapsed = time.time() - start_time
@@ -789,7 +810,7 @@ class BulkDocumentGenerator:
                     if errors <= 10:
                         logger.error(f"Error processing {entity_uri}: {result['error']}")
                 else:
-                    documents_metadata.append(result)
+                    success_count += 1
 
                 # Log progress every 30 seconds
                 current_time = time.time()
@@ -802,38 +823,25 @@ class BulkDocumentGenerator:
                                f"ETA: {remaining/60:.1f} min")
                     last_log_time = current_time
 
-        # Count entities with images
-        entities_with_images = sum(1 for doc in documents_metadata if doc.get("images"))
-        total_images = sum(len(doc.get("images", [])) for doc in documents_metadata)
-
-        # Save metadata
-        metadata_path = self.output_dir.parent / "documents_metadata.json"
-        with open(metadata_path, 'w', encoding='utf-8') as f:
-            json.dump({
-                "dataset_id": self.dataset_id,
-                "total_documents": len(documents_metadata),
-                "entities_with_images": entities_with_images,
-                "total_images": total_images,
-                "generated_at": datetime.now().isoformat(),
-                "documents": documents_metadata
-            }, f, indent=2)
+        # Count entities with images (from the image index)
+        entities_with_images = len(self.entity_images)
+        total_images = sum(len(imgs) for imgs in self.entity_images.values())
 
         logger.info("=" * 60)
         logger.info("DOCUMENT GENERATION COMPLETE")
         logger.info("=" * 60)
-        logger.info(f"Generated {len(documents_metadata)} documents")
+        logger.info(f"Generated {success_count} documents ({errors} errors)")
         logger.info(f"Entities with images: {entities_with_images} ({total_images} total images)")
         logger.info(f"Documents: {self.output_dir}")
-        logger.info(f"Metadata: {metadata_path}")
         logger.info("")
         logger.info("Next steps:")
         logger.info(f"  1. Transfer to cluster:")
         logger.info(f"     rsync -avz data/documents/{self.dataset_id}/ user@cluster:CRM_RAG/data/documents/{self.dataset_id}/")
         logger.info(f"  2. On cluster:")
-        logger.info(f"     python main.py --env .env.cluster --dataset {self.dataset_id} --embed-from-docs --process-only")
+        logger.info(f"     python scripts/cluster_pipeline.py --dataset {self.dataset_id} --embed --env .env.cluster")
         logger.info("=" * 60)
 
-        return len(documents_metadata)
+        return success_count
 
 
 def get_generator(dataset_id: str, base_dir: str = None, endpoint: str = None) -> "BulkDocumentGenerator":

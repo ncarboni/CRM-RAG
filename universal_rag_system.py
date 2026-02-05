@@ -17,6 +17,8 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional, Tuple
 from urllib.parse import quote
 
+import yaml
+
 # Third-party imports
 import numpy as np
 import networkx as nx
@@ -587,9 +589,9 @@ class UniversalRagSystem:
         embeddings on a remote GPU cluster.
 
         Documents are saved to: data/documents/<dataset_id>/entity_documents/
-        Metadata is saved to: data/documents/<dataset_id>/documents_metadata.json
+        All metadata is stored in YAML frontmatter of each document.
 
-        Transfer these files to the cluster, then run with --embed-from-docs.
+        Transfer the documents directory to the cluster, then run with --embed-from-docs.
         """
         logger.info("=" * 60)
         logger.info("GENERATE DOCUMENTS ONLY MODE")
@@ -615,8 +617,8 @@ class UniversalRagSystem:
         os.makedirs(output_dir, exist_ok=True)
         logger.info(f"Saving documents to: {output_dir}")
 
-        # Track document metadata for later embedding
-        documents_metadata = []
+        success_count = 0
+        error_count = 0
 
         # Process entities and create documents
         for entity in tqdm(entities, desc="Generating documents", unit="entity"):
@@ -625,53 +627,26 @@ class UniversalRagSystem:
             try:
                 doc_text, entity_label, entity_types, raw_triples = self.create_enhanced_document(entity_uri)
 
-                # Save document to disk
+                # Save document to disk (metadata in frontmatter)
                 filepath = self.save_entity_document(entity_uri, doc_text, entity_label)
-
-                # Determine primary type
-                primary_type = "Unknown"
-                if entity_types:
-                    human_readable_types = [
-                        t for t in entity_types
-                        if not self.is_technical_class_name(t)
-                    ]
-                    primary_type = human_readable_types[0] if human_readable_types else "Entity"
-
-                # Store metadata for embedding phase
-                documents_metadata.append({
-                    "uri": entity_uri,
-                    "label": entity_label,
-                    "type": primary_type,
-                    "all_types": entity_types,
-                    "filepath": os.path.basename(filepath) if filepath else None
-                })
+                success_count += 1
 
             except Exception as e:
                 logger.error(f"Error processing entity {entity_uri}: {str(e)}")
+                error_count += 1
                 continue
-
-        # Save metadata file
-        metadata_path = os.path.join(os.path.dirname(output_dir), "documents_metadata.json")
-        with open(metadata_path, 'w', encoding='utf-8') as f:
-            json.dump({
-                "dataset_id": self.dataset_id,
-                "total_documents": len(documents_metadata),
-                "generated_at": datetime.now().isoformat(),
-                "documents": documents_metadata
-            }, f, indent=2)
 
         logger.info("=" * 60)
         logger.info("DOCUMENT GENERATION COMPLETE")
         logger.info("=" * 60)
-        logger.info(f"Generated {len(documents_metadata)} documents")
+        logger.info(f"Generated {success_count} documents ({error_count} errors)")
         logger.info(f"Documents saved to: {output_dir}")
-        logger.info(f"Metadata saved to: {metadata_path}")
         logger.info("")
         logger.info("Next steps:")
         logger.info(f"  1. Transfer to cluster:")
         logger.info(f"     scp -r data/documents/{self.dataset_id}/ user@cluster:CRM_RAG/data/documents/{self.dataset_id}/")
         logger.info(f"  2. On cluster, run:")
-        logger.info(f"     python main.py --env .env.cluster --dataset {self.dataset_id} --embed-from-docs --process-only")
+        logger.info(f"     python scripts/cluster_pipeline.py --dataset {self.dataset_id} --embed --env .env.cluster")
         logger.info("=" * 60)
 
         return True
@@ -681,8 +656,8 @@ class UniversalRagSystem:
         Generate embeddings from existing document files (no SPARQL needed).
         Use this on a GPU cluster after transferring documents from local machine.
 
-        Reads documents from: data/documents/<dataset_id>/entity_documents/
-        Reads metadata from: data/documents/<dataset_id>/documents_metadata.json
+        Reads documents from: data/documents/<dataset_id>/entity_documents/*.md
+        (Metadata is parsed from YAML frontmatter in each markdown file)
 
         Creates: data/cache/<dataset_id>/document_graph.pkl
                  data/cache/<dataset_id>/vector_index/
@@ -704,23 +679,20 @@ class UniversalRagSystem:
 
         # Check for documents directory
         docs_dir = self._get_documents_dir()
-        metadata_path = os.path.join(os.path.dirname(docs_dir), "documents_metadata.json")
-
-        if not os.path.exists(metadata_path):
-            logger.error(f"Metadata file not found: {metadata_path}")
-            logger.error("Run --generate-docs-only first, then transfer documents to this machine.")
-            return False
 
         if not os.path.exists(docs_dir):
             logger.error(f"Documents directory not found: {docs_dir}")
+            logger.error("Run --generate-docs first, then transfer documents to this machine.")
             return False
 
-        # Load metadata
-        with open(metadata_path, 'r', encoding='utf-8') as f:
-            metadata = json.load(f)
+        # List all markdown files in directory
+        from pathlib import Path
+        doc_files = sorted(Path(docs_dir).glob("*.md"))
+        logger.info(f"Found {len(doc_files)} document files")
 
-        documents_metadata = metadata.get("documents", [])
-        logger.info(f"Found metadata for {len(documents_metadata)} documents")
+        if not doc_files:
+            logger.error(f"No .md files found in {docs_dir}")
+            return False
 
         # Initialize document store
         self.document_store = GraphDocumentStore(self.embeddings)
@@ -728,52 +700,54 @@ class UniversalRagSystem:
         # Read documents and prepare for batch embedding
         batch_docs = []  # List of (uri, text, metadata, cached_embedding)
 
-        for doc_meta in tqdm(documents_metadata, desc="Reading documents", unit="doc"):
-            filepath = doc_meta.get("filepath")
-            if not filepath:
-                continue
-
-            full_path = os.path.join(docs_dir, filepath)
-            if not os.path.exists(full_path):
-                logger.warning(f"Document file not found: {full_path}")
-                continue
-
-            # Read document content
+        for filepath in tqdm(doc_files, desc="Reading documents", unit="doc"):
             try:
-                with open(full_path, 'r', encoding='utf-8') as f:
+                with open(filepath, 'r', encoding='utf-8') as f:
                     content = f.read()
 
-                # Skip YAML frontmatter to get actual document text
+                # Parse YAML frontmatter and extract document text
+                frontmatter = {}
+                doc_text = content
+
                 if content.startswith('---'):
                     parts = content.split('---', 2)
                     if len(parts) >= 3:
+                        try:
+                            frontmatter = yaml.safe_load(parts[1]) or {}
+                        except yaml.YAMLError as e:
+                            logger.warning(f"Error parsing frontmatter in {filepath.name}: {e}")
+                            frontmatter = {}
                         doc_text = parts[2].strip()
-                    else:
-                        doc_text = content
-                else:
-                    doc_text = content
+
+                # Extract metadata from frontmatter (source of truth)
+                uri = frontmatter.get("URI", "")
+                if not uri:
+                    logger.warning(f"No URI in frontmatter: {filepath.name}")
+                    continue
+
+                metadata = {
+                    "uri": uri,
+                    "label": frontmatter.get("Label", ""),
+                    "type": frontmatter.get("Type", ""),
+                    "all_types": frontmatter.get("Types", []),
+                    "wikidata_id": frontmatter.get("Wikidata"),
+                    "images": frontmatter.get("Images", [])
+                }
 
                 # Check embedding cache
                 cached_embedding = None
                 if self.embedding_cache:
-                    cached_embedding = self.embedding_cache.get(doc_meta["uri"])
+                    cached_embedding = self.embedding_cache.get(uri)
 
                 batch_docs.append((
-                    doc_meta["uri"],
+                    uri,
                     doc_text,
-                    {
-                        "uri": doc_meta["uri"],
-                        "label": doc_meta["label"],
-                        "type": doc_meta["type"],
-                        "all_types": doc_meta.get("all_types", []),
-                        "wikidata_id": doc_meta.get("wikidata_id"),
-                        "images": doc_meta.get("images", [])  # Local images from dataset
-                    },
+                    metadata,
                     cached_embedding
                 ))
 
             except Exception as e:
-                logger.error(f"Error reading document {filepath}: {str(e)}")
+                logger.error(f"Error reading document {filepath.name}: {str(e)}")
                 continue
 
         logger.info(f"Loaded {len(batch_docs)} documents")
@@ -806,9 +780,9 @@ class UniversalRagSystem:
 
         # Build edges from document relationships
         # Note: Without SPARQL, we can't query relationships directly
-        # Edges will be built from the raw_triples stored in documents if available
+        # Edges will be built based on label mentions in document content
         logger.info("Building document graph edges from stored relationships...")
-        self._build_edges_from_documents(documents_metadata, docs_dir)
+        self._build_edges_from_documents()
 
         # Build vector store
         logger.info("Building vector store...")
@@ -917,34 +891,30 @@ class UniversalRagSystem:
 
         return True
 
-    def _build_edges_from_documents(self, documents_metadata, docs_dir):
+    def _build_edges_from_documents(self):
         """
         Build edges between documents by extracting relationships from document content.
         This is used when SPARQL is not available (embed-from-docs mode).
+        Uses document store directly - all documents must be added before calling this.
         """
-        # Create a mapping of URIs to doc_ids for quick lookup
-        uri_to_doc = {meta["uri"]: meta["uri"] for meta in documents_metadata}
+        docs = self.document_store.docs
+        if not docs:
+            logger.warning("No documents in store, skipping edge building")
+            return
 
         # For each document, try to find relationships in the content
         edges_added = 0
-        for doc_meta in documents_metadata:
-            uri = doc_meta["uri"]
-            if uri not in self.document_store.docs:
-                continue
+        doc_items = list(docs.items())
 
-            # Check if other document URIs are mentioned in this document's text
-            doc = self.document_store.docs[uri]
+        for uri, doc in doc_items:
             doc_text = doc.text.lower()
 
-            for other_meta in documents_metadata:
-                other_uri = other_meta["uri"]
+            for other_uri, other_doc in doc_items:
                 if other_uri == uri:
-                    continue
-                if other_uri not in self.document_store.docs:
                     continue
 
                 # Check if other entity's label appears in this document
-                other_label = other_meta.get("label", "").lower()
+                other_label = other_doc.metadata.get("label", "").lower()
                 if other_label and len(other_label) > 3 and other_label in doc_text:
                     # Add edge with default weight
                     self.document_store.add_edge(uri, other_uri, "mentioned", weight=0.5)

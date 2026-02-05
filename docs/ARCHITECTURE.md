@@ -711,8 +711,7 @@ CRM_RAG/
 │   │
 │   └── documents/                   # Per-dataset entity documents
 │       └── <dataset>/
-│           ├── entity_documents/*.md
-│           └── documents_metadata.json
+│           └── entity_documents/*.md
 │
 ├── scripts/                         # Utility scripts
 │   ├── extract_ontology_labels.py   # Ontology label extraction
@@ -737,8 +736,7 @@ CRM_RAG/
 | `data/cache/<dataset>/document_graph.pkl` | Serialized GraphDocument objects | Pickle | `process_rdf_data()` |
 | `data/cache/<dataset>/vector_index/` | FAISS vector index | FAISS binary | `rebuild_vector_store()` |
 | `data/cache/<dataset>/embeddings/` | Cached embeddings for resumability | NumPy | `EmbeddingCache` |
-| `data/documents/<dataset>/entity_documents/*.md` | Human-readable entity documents | Markdown | `save_entity_document()` |
-| `data/documents/<dataset>/documents_metadata.json` | Entity metadata for embedding | JSON | `generate_documents_only()` |
+| `data/documents/<dataset>/entity_documents/*.md` | Entity documents with YAML frontmatter | Markdown | `save_entity_document()` |
 | `logs/ontology_validation_report.txt` | Validation report | Text | `generate_validation_report()` |
 
 ---

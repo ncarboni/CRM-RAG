@@ -244,8 +244,7 @@ After processing:
 data/
 ├── exports/mah_dump.ttl              # RDF export
 ├── documents/mah/
-│   ├── entity_documents/             # Generated markdown files
-│   └── documents_metadata.json       # Document index
+│   └── entity_documents/             # Generated markdown files
 └── cache/mah/
     ├── document_graph.pkl            # Document graph
     ├── vector_index/                 # FAISS index

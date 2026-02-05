@@ -130,7 +130,6 @@ class ClusterPipeline:
         self.export_dir = self.data_dir / "exports"
         self.export_file = self.export_dir / f"{dataset_id}_dump.ttl"
         self.docs_dir = self.data_dir / "documents" / dataset_id / "entity_documents"
-        self.metadata_file = self.data_dir / "documents" / dataset_id / "documents_metadata.json"
         self.cache_dir = self.data_dir / "cache" / dataset_id
         self.graph_file = self.cache_dir / "document_graph.pkl"
         self.vector_dir = self.cache_dir / "vector_index"
@@ -283,15 +282,20 @@ class ClusterPipeline:
         logger.info("STEP 3: COMPUTE EMBEDDINGS")
         logger.info("-" * 60)
 
-        # Check for documents
-        if not self.metadata_file.exists():
-            logger.error(f"Metadata file not found: {self.metadata_file}")
+        # Check for documents directory
+        if not self.docs_dir.exists():
+            logger.error(f"Documents directory not found: {self.docs_dir}")
             logger.error("Run --generate-docs first")
             return False
 
-        if not self.docs_dir.exists():
-            logger.error(f"Documents directory not found: {self.docs_dir}")
+        # Check for document files
+        doc_files = list(self.docs_dir.glob("*.md"))
+        if not doc_files:
+            logger.error(f"No .md files found in {self.docs_dir}")
+            logger.error("Run --generate-docs first")
             return False
+
+        logger.info(f"Found {len(doc_files)} document files")
 
         # Import here to avoid loading heavy dependencies if not needed
         from universal_rag_system import UniversalRagSystem
@@ -357,18 +361,21 @@ class ClusterPipeline:
         else:
             status["steps"]["export"] = {"complete": False}
 
-        # Check documents
-        if self.metadata_file.exists():
-            with open(self.metadata_file, 'r') as f:
-                meta = json.load(f)
-            doc_count = meta.get("total_documents", 0)
-            generated_at = meta.get("generated_at", "unknown")
-            status["steps"]["generate"] = {
-                "complete": True,
-                "document_count": doc_count,
-                "directory": str(self.docs_dir),
-                "generated_at": generated_at
-            }
+        # Check documents (count files in directory)
+        if self.docs_dir.exists():
+            doc_files = list(self.docs_dir.glob("*.md"))
+            if doc_files:
+                # Get modification time from most recent file
+                latest_file = max(doc_files, key=lambda f: f.stat().st_mtime)
+                mtime = datetime.fromtimestamp(latest_file.stat().st_mtime)
+                status["steps"]["generate"] = {
+                    "complete": True,
+                    "document_count": len(doc_files),
+                    "directory": str(self.docs_dir),
+                    "generated_at": mtime.isoformat()
+                }
+            else:
+                status["steps"]["generate"] = {"complete": False}
         else:
             status["steps"]["generate"] = {"complete": False}
 
@@ -407,9 +414,6 @@ class ClusterPipeline:
             if self.docs_dir.exists():
                 shutil.rmtree(self.docs_dir)
                 logger.info(f"Removed: {self.docs_dir}")
-            if self.metadata_file.exists():
-                self.metadata_file.unlink()
-                logger.info(f"Removed: {self.metadata_file}")
 
         if clean_cache:
             if self.cache_dir.exists():

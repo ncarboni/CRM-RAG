@@ -710,7 +710,7 @@ class SentenceTransformersProvider(BaseLLMProvider):
             texts: List of texts to embed
             stats_file: Optional path to save embedding stats (JSON format)
 
-        See docs/DYNAMIC_BATCHING.md for detailed documentation.
+        See docs/TECHNICAL_REPORT.md for detailed explanation.
         """
         if not texts:
             return []

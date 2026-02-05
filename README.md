@@ -40,10 +40,8 @@ CRM_RAG/
 │       └── museum/entity_documents/
 ├── docs/                Documentation
 │   ├── ARCHITECTURE.md
-│   ├── LOCAL_EMBEDDINGS.md   # Local embeddings guide
-│   ├── CLUSTER_PIPELINE.md   # GPU cluster processing guide
-│   ├── DYNAMIC_BATCHING.md   # Dynamic batch sizing for variable-length docs
-│   └── REORGANIZATION_PLAN.md
+│   ├── PROCESSING.md         # Processing guide (setup, configuration, workflow)
+│   └── TECHNICAL_REPORT.md   # Technical explanations
 ├── scripts/             Utility scripts
 │   ├── extract_ontology_labels.py
 │   └── bulk_generate_documents.py  # Fast bulk export for large datasets
@@ -255,14 +253,9 @@ python main.py --env .env.local --dataset asinou --rebuild --process-only
 | Local (CPU) | 1-2 hours | Free |
 | Local (GPU) | 10-20 minutes | Free |
 
-**See [docs/LOCAL_EMBEDDINGS.md](docs/LOCAL_EMBEDDINGS.md) for complete documentation** including:
-- Configuration options
-- Per-dataset embedding providers
-- Model recommendations
-- Hardware acceleration (GPU/CPU)
-- Troubleshooting
+**See [docs/PROCESSING.md](docs/PROCESSING.md) for complete documentation** including configuration options, model recommendations, and workflow details.
 
-**Dynamic Batching:** The system automatically adjusts batch sizes based on document length to prevent out-of-memory errors. Long documents get smaller batches, short documents get full batches. This is model-aware and works with any embedding model. See [docs/DYNAMIC_BATCHING.md](docs/DYNAMIC_BATCHING.md) for details.
+The system automatically adjusts batch sizes based on document length to prevent memory issues. See [docs/TECHNICAL_REPORT.md](docs/TECHNICAL_REPORT.md) for technical details.
 
 ### Bulk Document Generation (Very Large Datasets)
 
@@ -347,7 +340,7 @@ python scripts/bulk_generate_documents.py \
     --workers 32
 ```
 
-See [docs/CLUSTER_PIPELINE.md](docs/CLUSTER_PIPELINE.md) for the complete cluster workflow guide.
+See [docs/PROCESSING.md](docs/PROCESSING.md) for the complete workflow guide.
 
 ### Cluster Pipeline (Unified Workflow)
 
@@ -408,7 +401,7 @@ python scripts/cluster_pipeline.py --dataset mah --clean-docs      # Clean docum
 python scripts/cluster_pipeline.py --dataset mah --clean-cache     # Clean embeddings only
 ```
 
-For detailed documentation including SLURM job scripts, troubleshooting, and best practices, see [docs/CLUSTER_PIPELINE.md](docs/CLUSTER_PIPELINE.md).
+For detailed documentation including SLURM job scripts, see [docs/PROCESSING.md](docs/PROCESSING.md).
 
 ### Multi-Dataset Mode
 
@@ -496,7 +489,7 @@ python main.py --env .env.openai --dataset museum --rebuild --process-only
 python main.py --env .env.local --dataset asinou --rebuild
 ```
 
-See [docs/LOCAL_EMBEDDINGS.md](docs/LOCAL_EMBEDDINGS.md) for detailed examples of processing multiple datasets with different embedding providers.
+See [docs/PROCESSING.md](docs/PROCESSING.md) for configuration details.
 
 ## API Endpoints
 

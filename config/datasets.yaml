@@ -26,6 +26,13 @@ datasets:
     display_name: "Museum Collection"
     description: "Museum artworks, artists, and exhibitions"
     endpoint: "http://localhost:3030/MAH/sparql"
+    # Image: SPARQL to find image URLs (?entity = subject, ?url = image URL)
+    image:
+      sparql: |
+        PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>
+        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+        ?entity crm:P138i_has_representation ?img .
+        ?img rdf:value ?url .
     interface:
       page_title: "Museum Collection Chat"
       header_title: "Museum Collection Chatbot"

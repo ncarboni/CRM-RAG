@@ -55,9 +55,12 @@ def _process_entity_worker(args):
     try:
         text, label, types = _worker_generator.create_document(entity_uri, context_depth=context_depth)
 
-        # Save document
+        # Get images for this entity
+        images = _worker_generator.get_entity_images(entity_uri)
+
+        # Save document with images in frontmatter
         _worker_generator.output_dir = Path(output_dir)
-        filepath = _worker_generator.save_document(entity_uri, text, label)
+        filepath = _worker_generator.save_document(entity_uri, text, label, images=images)
 
         # Determine primary type
         primary_type = "Unknown"
@@ -74,6 +77,7 @@ def _process_entity_worker(args):
             "type": primary_type,
             "all_types": types,
             "wikidata_id": wikidata_id,
+            "images": images,
             "filepath": os.path.basename(filepath) if filepath else None,
             "error": None
         }
@@ -94,6 +98,7 @@ CRM = Namespace("http://www.cidoc-crm.org/cidoc-crm/")
 VIR = Namespace("http://w3id.org/vir#")
 SKOS = Namespace("http://www.w3.org/2004/02/skos/core#")
 CRMDIG = Namespace("http://www.ics.forth.gr/isl/CRMdig/")
+
 
 
 class BulkDocumentGenerator:
@@ -135,6 +140,10 @@ class BulkDocumentGenerator:
         self.outgoing = defaultdict(list)          # uri -> [(pred, obj)]
         self.incoming = defaultdict(list)          # uri -> [(pred, subj)]
         self.wikidata_ids = {}                     # uri -> wikidata Q-ID
+        self.entity_images = defaultdict(list)     # uri -> [image URLs]
+
+        # Load image configuration for this dataset
+        self.image_config = self._get_image_config()
 
     def _load_datasets_config(self) -> dict:
         """Load datasets configuration from YAML."""
@@ -173,6 +182,70 @@ class BulkDocumentGenerator:
                         classes.update(values)
                 return classes
         return set()
+
+    def _get_image_config(self) -> dict:
+        """Get image configuration for this dataset from datasets.yaml."""
+        datasets = self.datasets_config.get("datasets", {})
+        if self.dataset_id in datasets:
+            return datasets[self.dataset_id].get("image", {})
+        return {}
+
+    def _build_image_index(self):
+        """Build image index using SPARQL pattern from dataset configuration.
+
+        The config should contain a SPARQL graph pattern with:
+        - ?entity: bound to each entity URI
+        - ?url: the image URL to extract
+        """
+        if not self.image_config:
+            logger.info("No image configuration for this dataset")
+            return
+
+        sparql_pattern = self.image_config.get("sparql")
+        if not sparql_pattern:
+            logger.warning("No image SPARQL pattern configured")
+            return
+
+        logger.info("Indexing images via SPARQL query...")
+
+        # Extract PREFIX declarations (must be before SELECT)
+        lines = sparql_pattern.strip().split('\n')
+        prefixes = []
+        pattern_lines = []
+
+        for line in lines:
+            stripped = line.strip()
+            if stripped.upper().startswith('PREFIX'):
+                prefixes.append(stripped)
+            elif stripped:
+                pattern_lines.append(line)
+
+        # Build full SPARQL query
+        prefix_block = '\n'.join(prefixes)
+        pattern_block = '\n'.join(pattern_lines)
+
+        query = f"""
+        {prefix_block}
+        SELECT ?entity ?url WHERE {{
+            {pattern_block}
+        }}
+        """
+
+        try:
+            results = self.graph.query(query)
+            count = 0
+            for row in results:
+                entity_uri = str(row.entity)
+                url = str(row.url)
+                if url.startswith("http"):
+                    self.entity_images[entity_uri].append(url)
+                    count += 1
+
+            logger.info(f"Found {count} images for {len(self.entity_images)} entities")
+
+        except Exception as e:
+            logger.error(f"Error executing image SPARQL query: {e}")
+            logger.debug(f"Query was: {query}")
 
     def export_from_sparql(self, endpoint: str, output_file: str = None) -> str:
         """Export all triples from SPARQL endpoint."""
@@ -300,6 +373,10 @@ class BulkDocumentGenerator:
         logger.info(f"Total incoming relationships: {sum(len(v) for v in self.incoming.values())}")
         logger.info(f"Entities with Wikidata IDs: {len(self.wikidata_ids)}")
 
+        # Index images based on dataset configuration
+        self._build_image_index()
+        logger.info(f"Entities with images: {len(self.entity_images)}")
+
     def get_entity_label(self, uri: str) -> str:
         """Get label for an entity."""
         if uri in self.entity_labels:
@@ -311,6 +388,10 @@ class BulkDocumentGenerator:
     def get_wikidata_id(self, uri: str) -> str:
         """Get Wikidata Q-ID for an entity if available."""
         return self.wikidata_ids.get(uri)
+
+    def get_entity_images(self, uri: str) -> list:
+        """Get image URLs for an entity if available."""
+        return self.entity_images.get(uri, [])
 
     def is_event(self, uri: str) -> bool:
         """Check if entity is an event class instance."""
@@ -541,8 +622,15 @@ class BulkDocumentGenerator:
 
         return text, entity_label, entity_types
 
-    def save_document(self, entity_uri: str, text: str, label: str) -> str:
-        """Save document to file. Returns filepath."""
+    def save_document(self, entity_uri: str, text: str, label: str, images: list = None) -> str:
+        """Save document to file. Returns filepath.
+
+        Args:
+            entity_uri: The entity URI
+            text: Document text content
+            label: Entity label
+            images: Optional list of image URLs
+        """
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         # Create safe filename
@@ -554,14 +642,23 @@ class BulkDocumentGenerator:
         filename = f"{safe_label}_{uri_hash}.md"
         filepath = self.output_dir / filename
 
-        # Add metadata header
-        metadata = f"""---
-URI: {entity_uri}
-Label: {label}
-Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
----
+        # Build metadata header with optional images
+        metadata_lines = [
+            "---",
+            f"URI: {entity_uri}",
+            f"Label: {label}",
+            f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        ]
 
-"""
+        # Add images if present
+        if images:
+            metadata_lines.append("Images:")
+            for img_url in images:
+                metadata_lines.append(f"  - {img_url}")
+
+        metadata_lines.append("---")
+        metadata_lines.append("")
+        metadata = "\n".join(metadata_lines) + "\n"
 
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(metadata)
@@ -573,7 +670,12 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         """Process a single entity and return metadata. Used for sequential processing."""
         try:
             text, label, types = self.create_document(entity_uri, context_depth=context_depth)
-            filepath = self.save_document(entity_uri, text, label)
+
+            # Get images for this entity
+            images = self.get_entity_images(entity_uri)
+
+            # Save document with images in frontmatter
+            filepath = self.save_document(entity_uri, text, label, images=images)
 
             # Determine primary type
             primary_type = "Unknown"
@@ -590,6 +692,7 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                 "type": primary_type,
                 "all_types": types,
                 "wikidata_id": wikidata_id,
+                "images": images,
                 "filepath": os.path.basename(filepath) if filepath else None,
                 "error": None
             }
@@ -613,6 +716,8 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
             'outgoing': dict(self.outgoing),
             'incoming': dict(self.incoming),
             'wikidata_ids': self.wikidata_ids,
+            'entity_images': dict(self.entity_images),  # Image URLs per entity
+            'image_config': self.image_config,
         }
 
     def generate_all_documents(self, context_depth: int = 2, workers: int = 1):
@@ -697,12 +802,18 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                                f"ETA: {remaining/60:.1f} min")
                     last_log_time = current_time
 
+        # Count entities with images
+        entities_with_images = sum(1 for doc in documents_metadata if doc.get("images"))
+        total_images = sum(len(doc.get("images", [])) for doc in documents_metadata)
+
         # Save metadata
         metadata_path = self.output_dir.parent / "documents_metadata.json"
         with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump({
                 "dataset_id": self.dataset_id,
                 "total_documents": len(documents_metadata),
+                "entities_with_images": entities_with_images,
+                "total_images": total_images,
                 "generated_at": datetime.now().isoformat(),
                 "documents": documents_metadata
             }, f, indent=2)
@@ -711,6 +822,7 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         logger.info("DOCUMENT GENERATION COMPLETE")
         logger.info("=" * 60)
         logger.info(f"Generated {len(documents_metadata)} documents")
+        logger.info(f"Entities with images: {entities_with_images} ({total_images} total images)")
         logger.info(f"Documents: {self.output_dir}")
         logger.info(f"Metadata: {metadata_path}")
         logger.info("")

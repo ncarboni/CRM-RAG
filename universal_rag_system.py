@@ -766,7 +766,8 @@ class UniversalRagSystem:
                         "label": doc_meta["label"],
                         "type": doc_meta["type"],
                         "all_types": doc_meta.get("all_types", []),
-                        "wikidata_id": doc_meta.get("wikidata_id")
+                        "wikidata_id": doc_meta.get("wikidata_id"),
+                        "images": doc_meta.get("images", [])  # Local images from dataset
                     },
                     cached_embedding
                 ))
@@ -3180,65 +3181,90 @@ Provide a clear answer in natural language:
 
         # Prepare sources
         sources = []
+        entities_with_local_images = set()  # Track entities that have local images
+
         for i, doc in enumerate(retrieved_docs):
             entity_uri = doc.id
             entity_label = doc.metadata.get("label", entity_uri.split('/')[-1])
             raw_triples = doc.metadata.get("raw_triples", [])
+            local_images = doc.metadata.get("images", [])
 
-            sources.append({
+            source_entry = {
                 "id": i,
                 "entity_uri": entity_uri,
                 "entity_label": entity_label,
                 "type": "graph",
                 "entity_type": doc.metadata.get("type", "unknown"),
                 "raw_triples": raw_triples
-            })
+            }
+
+            # Add local images if present (priority over Wikidata)
+            if local_images:
+                entities_with_local_images.add(entity_uri)
+                source_entry["images"] = [
+                    {
+                        "url": img_url,
+                        "source": "dataset"
+                    }
+                    for img_url in local_images
+                ]
+                logger.info(f"Using {len(local_images)} local image(s) for {entity_label}")
+
+            sources.append(source_entry)
 
         # Add Wikidata sources with image info
+        # Skip image fetch for entities that have local images
         for entity_info in entities_with_wikidata:
+            entity_uri = entity_info["entity_uri"]
+            has_local_images = entity_uri in entities_with_local_images
+
             wikidata_source = {
                 "id": f"wikidata_{entity_info['wikidata_id']}",
-                "entity_uri": entity_info["entity_uri"],
+                "entity_uri": entity_uri,
                 "entity_label": entity_info["entity_label"],
                 "type": "wikidata",
                 "wikidata_id": entity_info["wikidata_id"],
                 "wikidata_url": f"https://www.wikidata.org/wiki/{entity_info['wikidata_id']}"
             }
 
-            # Fetch Wikidata info to get image (P18)
-            wikidata_data = self.fetch_wikidata_info(entity_info["wikidata_id"])
-            if wikidata_data and "properties" in wikidata_data:
-                image_value = wikidata_data["properties"].get("image")
-                if image_value:
-                    try:
-                        # Handle both single image and array of images
-                        # Wikidata P18 can return multiple images as a list
-                        if isinstance(image_value, list):
-                            # Use the first image from the list
-                            image_filename = image_value[0] if image_value else None
-                        else:
-                            image_filename = image_value
-
-                        if image_filename:
-                            # Ensure filename is a proper string for URL encoding
-                            if isinstance(image_filename, bytes):
-                                image_filename_str = image_filename.decode('utf-8')
+            # Only fetch Wikidata image if no local images exist
+            if has_local_images:
+                logger.debug(f"Skipping Wikidata image for {entity_info['entity_label']} - local images available")
+            else:
+                # Fetch Wikidata info to get image (P18)
+                wikidata_data = self.fetch_wikidata_info(entity_info["wikidata_id"])
+                if wikidata_data and "properties" in wikidata_data:
+                    image_value = wikidata_data["properties"].get("image")
+                    if image_value:
+                        try:
+                            # Handle both single image and array of images
+                            # Wikidata P18 can return multiple images as a list
+                            if isinstance(image_value, list):
+                                # Use the first image from the list
+                                image_filename = image_value[0] if image_value else None
                             else:
-                                image_filename_str = str(image_filename)
+                                image_filename = image_value
 
-                            # URL encode the filename for safe use in URLs
-                            encoded_filename = quote(image_filename_str, safe='')
+                            if image_filename:
+                                # Ensure filename is a proper string for URL encoding
+                                if isinstance(image_filename, bytes):
+                                    image_filename_str = image_filename.decode('utf-8')
+                                else:
+                                    image_filename_str = str(image_filename)
 
-                            wikidata_source["image"] = {
-                                "url": f"https://commons.wikimedia.org/wiki/File:{encoded_filename}",
-                                "thumbnail_url": f"https://commons.wikimedia.org/wiki/Special:FilePath/{encoded_filename}?width=300",
-                                "full_url": f"https://commons.wikimedia.org/wiki/Special:FilePath/{encoded_filename}",
-                                "filename": image_filename_str,
-                                "source": "wikidata_p18"
-                            }
-                            logger.info(f"Found Wikidata image for {entity_info['entity_label']}: {image_filename_str}")
-                    except Exception as e:
-                        logger.warning(f"Error processing image filename for {entity_info['entity_label']}: {e}")
+                                # URL encode the filename for safe use in URLs
+                                encoded_filename = quote(image_filename_str, safe='')
+
+                                wikidata_source["image"] = {
+                                    "url": f"https://commons.wikimedia.org/wiki/File:{encoded_filename}",
+                                    "thumbnail_url": f"https://commons.wikimedia.org/wiki/Special:FilePath/{encoded_filename}?width=300",
+                                    "full_url": f"https://commons.wikimedia.org/wiki/Special:FilePath/{encoded_filename}",
+                                    "filename": image_filename_str,
+                                    "source": "wikidata_p18"
+                                }
+                                logger.info(f"Found Wikidata image for {entity_info['entity_label']}: {image_filename_str}")
+                        except Exception as e:
+                            logger.warning(f"Error processing image filename for {entity_info['entity_label']}: {e}")
 
             sources.append(wikidata_source)
 

@@ -1969,56 +1969,32 @@ Each file contains:
             outgoing_rels = self.get_outgoing_relationships(entity_uri)
             incoming_rels = self.get_incoming_relationships(entity_uri)
             
-            # Add edges for outgoing relationships with weights based on relationship type
+            # Add edges for outgoing relationships with semantic weights
             for rel in outgoing_rels:
                 target_uri = rel["object"]
                 predicate = rel["predicate"]
-                
-                # Determine weight based on relationship type
-                weight = 1.0  # Default weight
-                
-                # Important CIDOC-CRM relationships get higher weights
-                if "P89_falls_within" in predicate:
-                    weight = 1.5  # Higher weight for spatial containment
-                elif "P55_has_current_location" in predicate:
-                    weight = 1.5  # Higher weight for location
-                elif "P46_is_composed_of" in predicate or "P56_bears_feature" in predicate:
-                    weight = 1.3  # Higher weight for physical relationships
-                elif "P108i_was_produced_by" in predicate:
-                    weight = 1.2  # Higher weight for production
-                
+                weight = self.get_relationship_weight(predicate)
+
                 # Only add edge if both entities exist as documents
                 if entity_uri in self.document_store.docs and target_uri in self.document_store.docs:
                     self.document_store.add_edge(
-                        entity_uri, 
-                        target_uri, 
+                        entity_uri,
+                        target_uri,
                         predicate.split('/')[-1],
                         weight=weight
                     )
-            
-            # Add edges for incoming relationships
+
+            # Add edges for incoming relationships with semantic weights
             for rel in incoming_rels:
                 source_uri = rel["subject"]
                 predicate = rel["predicate"]
-                
-                # Determine weight based on relationship type
-                weight = 1.0  # Default weight
-                
-                # Important CIDOC-CRM relationships get higher weights
-                if "P89_falls_within" in predicate:
-                    weight = 1.5  # Higher weight for spatial containment
-                elif "P55_has_current_location" in predicate:
-                    weight = 1.5  # Higher weight for location
-                elif "P46_is_composed_of" in predicate or "P56_bears_feature" in predicate:
-                    weight = 1.3  # Higher weight for physical relationships
-                elif "P108i_was_produced_by" in predicate:
-                    weight = 1.2  # Higher weight for production
-                
+                weight = self.get_relationship_weight(predicate)
+
                 # Only add edge if both entities exist as documents
                 if entity_uri in self.document_store.docs and source_uri in self.document_store.docs:
                     self.document_store.add_edge(
-                        entity_uri, 
-                        source_uri, 
+                        entity_uri,
+                        source_uri,
                         predicate.split('/')[-1],
                         weight=weight
                     )

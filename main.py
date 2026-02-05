@@ -10,7 +10,6 @@ import os
 import sys
 import argparse
 import shutil
-import re
 import yaml
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_from_directory, abort

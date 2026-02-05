@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/966e0bb5-74b4-45af-9253-2cb73ea454a5/
 Label: headdress
-Generated: 2026-02-04 23:03:32
+Generated: 2026-02-05 11:50:44
 ---
 
 # headdress

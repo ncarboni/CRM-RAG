@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/2be6fb8b-c453-4e87-8202-2bda42b2c710
 Label: Dragon
-Generated: 2026-02-04 23:03:24
+Generated: 2026-02-05 11:50:36
 ---
 
 # Dragon
@@ -21,5 +21,5 @@ URI: http://map.cnrs.fr/semantics/attribute/2be6fb8b-c453-4e87-8202-2bda42b2c710
 
 ## Relationships
 
-- Dragon is attribute of Sunset
 - Dragon is attribute of Saint George and the Dragon
+- Dragon is attribute of Sunset

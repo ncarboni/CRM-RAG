@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/997fd0e8-5ffe-479f-9fed-d22de821c246/
 Label: Madonna della misericordia
-Generated: 2026-02-04 23:03:30
+Generated: 2026-02-05 11:50:42
 ---
 
 # Madonna della misericordia

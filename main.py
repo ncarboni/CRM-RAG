@@ -50,6 +50,8 @@ parser.add_argument('--process-only', action='store_true',
                     help='Process the dataset and exit without starting the web server. Use with --dataset.')
 parser.add_argument('--generate-docs-only', action='store_true',
                     help='Generate entity documents from SPARQL without computing embeddings. Use this locally, then transfer docs to cluster for embedding.')
+parser.add_argument('--no-batch', action='store_true',
+                    help='Disable batch SPARQL queries for document generation. Use legacy per-entity queries (slower but useful for debugging).')
 parser.add_argument('--embed-from-docs', action='store_true',
                     help='Generate embeddings from existing document files (no SPARQL needed). Use on cluster after transferring docs.')
 parser.add_argument('--debug', action='store_true',
@@ -88,7 +90,9 @@ if args.no_embedding_cache:
 # Document generation / embedding modes
 if args.generate_docs_only:
     config['generate_docs_only'] = True
-    logger.info("Generate docs only mode: will create documents without embeddings")
+    config['use_batch_queries'] = not args.no_batch
+    batch_mode = "batch" if config['use_batch_queries'] else "individual"
+    logger.info(f"Generate docs only mode: will create documents without embeddings ({batch_mode} queries)")
 if args.embed_from_docs:
     config['embed_from_docs'] = True
     logger.info("Embed from docs mode: will generate embeddings from existing documents")

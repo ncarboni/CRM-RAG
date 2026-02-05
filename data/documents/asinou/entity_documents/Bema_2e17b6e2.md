@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/875de4b3-1a0c-4de0-9781-7d6359ab0940/
 Label: Bema
-Generated: 2026-02-04 23:03:32
+Generated: 2026-02-05 11:50:44
 ---
 
 # Bema

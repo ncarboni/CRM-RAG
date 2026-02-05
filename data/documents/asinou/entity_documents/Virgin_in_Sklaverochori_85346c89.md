@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/973d8e91-43bb-4b6e-9bef-63ef62503e42/
 Label: Virgin in Sklaverochori
-Generated: 2026-02-04 23:03:27
+Generated: 2026-02-05 11:50:40
 ---
 
 # Virgin in Sklaverochori

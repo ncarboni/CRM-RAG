@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/icon/41cf76a8-e605-4d50-9d57-96a5bddbe144
 Label: neck rectangular patches
-Generated: 2026-02-04 23:03:23
+Generated: 2026-02-05 11:50:35
 ---
 
 # neck rectangular patches

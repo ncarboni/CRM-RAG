@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/icon/b0360f8c-b412-4e2e-8ba2-35ec03bbd7a7
 Label: cross
-Generated: 2026-02-04 23:03:22
+Generated: 2026-02-05 11:50:34
 ---
 
 # cross

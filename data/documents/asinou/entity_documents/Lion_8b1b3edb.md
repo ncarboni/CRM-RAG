@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/type/f2cc1b85-5f84-4ac3-9f0d-e7bed1137ddc
 Label: Lion
-Generated: 2026-02-04 23:03:24
+Generated: 2026-02-05 11:50:36
 ---
 
 # Lion

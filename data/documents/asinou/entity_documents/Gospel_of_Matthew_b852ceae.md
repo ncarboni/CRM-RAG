@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/bibliographic/dbb8dafb-4d92-4b61-83dc-c9f13255d29a
 Label: Gospel of Matthew
-Generated: 2026-02-04 23:03:31
+Generated: 2026-02-05 11:50:43
 ---
 
 # Gospel of Matthew

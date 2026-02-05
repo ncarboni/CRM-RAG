@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/character/530bfbb3-7c3b-4917-b332-c4f38f24d4b7
 Label: Aigeline de Bourgogne
-Generated: 2026-02-04 23:03:25
+Generated: 2026-02-05 11:50:37
 ---
 
 # Aigeline de Bourgogne

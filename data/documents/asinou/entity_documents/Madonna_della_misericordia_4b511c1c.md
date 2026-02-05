@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/type/80fdce19-971c-43a8-9803-091fc91e144b
 Label: Madonna della misericordia
-Generated: 2026-02-04 23:03:29
+Generated: 2026-02-05 11:50:41
 ---
 
 # Madonna della misericordia
@@ -18,7 +18,7 @@ URI: http://map.cnrs.fr/semantics/type/80fdce19-971c-43a8-9803-091fc91e144b
 
 ## Relationships
 
-- Madonna della misericordia is same as Q176813
-- Madonna della misericordia has broader term Mary with the Christ-child
 - Madonna della misericordia is same as 11F624%28%2B5%29
 - Madonna della misericordia is type of Madonna dei Francescani
+- Madonna della misericordia is same as Q176813
+- Madonna della misericordia has broader term Mary with the Christ-child

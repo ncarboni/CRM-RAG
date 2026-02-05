@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/type/215b99b2-70e9-4cce-9928-2508719a4905
 Label: Construction
-Generated: 2026-02-04 23:03:25
+Generated: 2026-02-05 11:50:37
 ---
 
 # Construction

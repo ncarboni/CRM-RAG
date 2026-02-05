@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/bibliographic/7812891f-8899-4d04-a6d4-c0a66d002d90
 Label: Bible
-Generated: 2026-02-04 23:03:31
+Generated: 2026-02-05 11:50:43
 ---
 
 # Bible

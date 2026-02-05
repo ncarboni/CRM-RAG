@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/location/2990999/
 Label: France
-Generated: 2026-02-04 23:03:31
+Generated: 2026-02-05 11:50:43
 ---
 
 # France

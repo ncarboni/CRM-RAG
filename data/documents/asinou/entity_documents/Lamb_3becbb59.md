@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/type/3f720a44-1655-4b7b-92d7-c4004228934f
 Label: Lamb
-Generated: 2026-02-04 23:03:24
+Generated: 2026-02-05 11:50:36
 ---
 
 # Lamb

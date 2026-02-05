@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/dcd8b338-6811-4d0d-bc4b-c8e21bc4f90b/symbolic
 Label: healing
-Generated: 2026-02-04 23:03:22
+Generated: 2026-02-05 11:50:34
 ---
 
 # healing

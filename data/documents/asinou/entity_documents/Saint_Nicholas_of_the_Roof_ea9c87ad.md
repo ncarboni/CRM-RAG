@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/spatial/da147ccc-fad7-43dd-9b25-6331df841d08/
 Label: Saint Nicholas of the Roof
-Generated: 2026-02-04 23:03:27
+Generated: 2026-02-05 11:50:40
 ---
 
 # Saint Nicholas of the Roof

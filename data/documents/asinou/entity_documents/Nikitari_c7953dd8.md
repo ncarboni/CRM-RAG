@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/a12044cd-f6bc-4be4-b7b7-467f9193a322/
 Label: Nikitari
-Generated: 2026-02-04 23:03:31
+Generated: 2026-02-05 11:50:43
 ---
 
 # Nikitari

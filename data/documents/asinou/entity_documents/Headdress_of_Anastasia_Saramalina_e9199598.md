@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/icon/5f9d7a0d-4918-462e-8192-9e5980697f7d
 Label: Headdress of Anastasia Saramalina
-Generated: 2026-02-04 23:03:30
+Generated: 2026-02-05 11:50:42
 ---
 
 # Headdress of Anastasia Saramalina
@@ -19,7 +19,7 @@ URI: http://map.cnrs.fr/semantics/icon/5f9d7a0d-4918-462e-8192-9e5980697f7d
 
 ## Relationships
 
-- Headdress of Anastasia Saramalina is denoted by Anastasias
-- Headdress of Anastasia Saramalina has attribute barbette
 - Headdress of Anastasia Saramalina is composed of Anastasia Saramalina
 - Headdress of Anastasia Saramalina has attribute crespine
+- Headdress of Anastasia Saramalina has attribute barbette
+- Headdress of Anastasia Saramalina is denoted by Anastasias

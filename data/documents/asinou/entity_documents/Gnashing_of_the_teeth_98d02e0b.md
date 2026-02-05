@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/icon/d7b15090-9580-4f59-9193-d4bb6e015e8d
 Label: Gnashing of the teeth
-Generated: 2026-02-04 23:03:30
+Generated: 2026-02-05 11:50:42
 ---
 
 # Gnashing of the teeth
@@ -20,9 +20,9 @@ URI: http://map.cnrs.fr/semantics/icon/d7b15090-9580-4f59-9193-d4bb6e015e8d
 ## Relationships
 
 - Gnashing of the teeth illustrate Canticle seven
-- Gnashing of the teeth illustrate vesper of the Saturday of the Soul
-- Gnashing of the teeth illustrate Matthew passage
-- Gnashing of the teeth is composed of Last judgment
-- Gnashing of the teeth illustrate Canticle five
 - Gnashing of the teeth illustrate Canticle six
+- Gnashing of the teeth is composed of Last judgment
+- Gnashing of the teeth illustrate Matthew passage
 - Gnashing of the teeth illustrate Canticle one
+- Gnashing of the teeth illustrate vesper of the Saturday of the Soul
+- Gnashing of the teeth illustrate Canticle five

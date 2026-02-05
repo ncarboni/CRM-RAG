@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/character/cf4f929e-1fcf-441e-84f7-9f10f2672d52
 Label: Latin Donor
-Generated: 2026-02-04 23:03:25
+Generated: 2026-02-05 11:50:37
 ---
 
 # Latin Donor

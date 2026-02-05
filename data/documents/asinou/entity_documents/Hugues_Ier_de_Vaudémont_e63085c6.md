@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/character/f0bab441-0004-4fb9-8699-2fc08db72a9a
 Label: Hugues Ier de Vaudémont
-Generated: 2026-02-04 23:03:25
+Generated: 2026-02-05 11:50:37
 ---
 
 # Hugues Ier de Vaudémont
@@ -19,5 +19,5 @@ URI: http://map.cnrs.fr/semantics/character/f0bab441-0004-4fb9-8699-2fc08db72a9a
 
 ## Relationships
 
-- Hugues Ier de Vaudémont is same as http://www.wikidata.org/entity/Q822916
 - Hugues Ier de Vaudémont portray Hugues et Aigeline
+- Hugues Ier de Vaudémont is same as http://www.wikidata.org/entity/Q822916

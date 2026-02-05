@@ -686,10 +686,18 @@ class UniversalRagSystem:
 
         Creates: data/cache/<dataset_id>/document_graph.pkl
                  data/cache/<dataset_id>/vector_index/
+                 data/cache/<dataset_id>/embedding_stats.json
         """
+        from llm_providers import get_hardware_info
+
+        # Track overall timing
+        embedding_start_time = datetime.now()
+        embedding_start_timestamp = time.time()
+
         logger.info("=" * 60)
         logger.info("EMBED FROM DOCUMENTS MODE")
         logger.info("=" * 60)
+        logger.info(f"Start time: {embedding_start_time.isoformat()}")
         logger.info("Will generate embeddings from existing document files.")
         logger.info("No SPARQL connection needed.")
         logger.info("=" * 60)
@@ -769,8 +777,18 @@ class UniversalRagSystem:
 
         logger.info(f"Loaded {len(batch_docs)} documents")
 
+        # Track document lengths for stats
+        doc_lengths = [len(doc[1]) for doc in batch_docs]
+        cached_count = sum(1 for doc in batch_docs if doc[3] is not None)
+        uncached_count = len(batch_docs) - cached_count
+
+        logger.info(f"Document lengths: min={min(doc_lengths)}, max={max(doc_lengths)}, "
+                   f"avg={sum(doc_lengths)//len(doc_lengths)} chars")
+        logger.info(f"Cached embeddings: {cached_count}, Need embedding: {uncached_count}")
+
         # Process embeddings in batches
         batch_size = int(self.config.get("embedding_batch_size", 64))
+        effective_batch_sizes = []  # Track batch sizes used
 
         for i in range(0, len(batch_docs), batch_size):
             batch = batch_docs[i:i + batch_size]
@@ -780,8 +798,10 @@ class UniversalRagSystem:
 
             if self.use_batch_embedding:
                 self._process_batch_embeddings(batch)
+                effective_batch_sizes.append(len(batch))
             else:
                 self._process_sequential_embeddings(batch, 0, time.time(), float('inf'))
+                effective_batch_sizes.append(len(batch))
 
         # Build edges from document relationships
         # Note: Without SPARQL, we can't query relationships directly
@@ -805,12 +825,87 @@ class UniversalRagSystem:
             self.document_store.vector_store.save_local(vector_index_dir)
             logger.info(f"Vector store saved to {vector_index_dir}")
 
+        # Calculate final stats
+        embedding_end_time = datetime.now()
+        embedding_elapsed = time.time() - embedding_start_timestamp
+        throughput = len(batch_docs) / embedding_elapsed if embedding_elapsed > 0 else 0
+
+        # Get model info
+        model_name = self.config.get("embedding_model", "unknown")
+        try:
+            if hasattr(self.embedding_provider, 'model_name'):
+                model_name = self.embedding_provider.model_name
+            if hasattr(self.embedding_provider, 'model'):
+                max_seq_length = getattr(self.embedding_provider.model, 'max_seq_length', None)
+                embedding_dim = self.embedding_provider.model.get_sentence_embedding_dimension() if hasattr(self.embedding_provider.model, 'get_sentence_embedding_dimension') else None
+            else:
+                max_seq_length = None
+                embedding_dim = None
+        except:
+            max_seq_length = None
+            embedding_dim = None
+
+        # Get hardware info (with fallback if it fails)
+        try:
+            hardware_info = get_hardware_info()
+        except Exception as e:
+            logger.warning(f"Failed to get hardware info: {e}")
+            hardware_info = {'error': str(e)}
+
+        # Build stats dictionary
+        embedding_stats = {
+            'dataset': self.dataset_id,
+            'timing': {
+                'start': embedding_start_time.isoformat(),
+                'end': embedding_end_time.isoformat(),
+                'elapsed_seconds': round(embedding_elapsed, 2),
+            },
+            'documents': {
+                'total': len(batch_docs),
+                'from_cache': cached_count,
+                'newly_embedded': uncached_count,
+                'length_chars': {
+                    'min': min(doc_lengths),
+                    'max': max(doc_lengths),
+                    'avg': sum(doc_lengths) // len(doc_lengths),
+                    'total': sum(doc_lengths),
+                },
+            },
+            'batching': {
+                'configured_batch_size': batch_size,
+                'outer_batches': len(effective_batch_sizes),
+            },
+            'performance': {
+                'throughput_docs_per_sec': round(throughput, 2),
+                'avg_time_per_doc_ms': round((embedding_elapsed / len(batch_docs)) * 1000, 2) if len(batch_docs) > 0 else 0,
+            },
+            'model': {
+                'name': model_name,
+                'max_seq_length': max_seq_length,
+                'embedding_dimension': embedding_dim,
+            },
+            'hardware': hardware_info,
+        }
+
+        # Save stats to file
+        stats_file = os.path.join(self._get_cache_dir(), "embedding_stats.json")
+        try:
+            with open(stats_file, 'w') as f:
+                json.dump(embedding_stats, f, indent=2)
+            logger.info(f"Embedding stats saved to: {stats_file}")
+        except Exception as e:
+            logger.warning(f"Failed to save embedding stats: {e}")
+
         logger.info("=" * 60)
         logger.info("EMBEDDING COMPLETE")
         logger.info("=" * 60)
+        logger.info(f"End time: {embedding_end_time.isoformat()}")
+        logger.info(f"Total time: {embedding_elapsed:.1f}s")
         logger.info(f"Processed {len(self.document_store.docs)} documents")
+        logger.info(f"Throughput: {throughput:.2f} docs/sec")
         logger.info(f"Document graph saved to: {doc_graph_path}")
         logger.info(f"Vector index saved to: {vector_index_dir}")
+        logger.info(f"Stats saved to: {stats_file}")
         logger.info("")
         logger.info("Next steps:")
         logger.info(f"  1. Transfer cache to local machine:")

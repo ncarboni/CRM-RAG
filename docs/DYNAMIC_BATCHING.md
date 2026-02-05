@@ -147,15 +147,86 @@ Completed embedding 6773 texts in 87 batches
 The system logs detailed information about each batch:
 
 ```
+INFO - === Embedding Started ===
+INFO - Start time: 2026-02-04T12:30:00
+INFO - Documents: 6773
+INFO - Document lengths: min=1200, max=28000, avg=4500 chars
 INFO - Processing batch of 128 texts (max_len=2500 chars, batch_size=128)
 INFO - Processing batch of 8 texts (max_len=28000 chars, batch_size=8)
-INFO - Completed embedding 6773 texts in 87 batches
+INFO - === Embedding Completed ===
+INFO - End time: 2026-02-04T12:45:30
+INFO - Total time: 930.5s
+INFO - Throughput: 7.28 docs/sec
 ```
 
 Key metrics to watch:
 - `max_len`: Maximum document length in the batch (characters)
 - `batch_size`: Effective batch size used
 - Total batches: More batches with long documents is normal
+
+## Stats File
+
+After processing, a stats file is saved to `data/cache/<dataset_id>/embedding_stats.json`:
+
+```json
+{
+  "dataset": "mah",
+  "timing": {
+    "start": "2026-02-04T12:30:00",
+    "end": "2026-02-04T12:45:30",
+    "elapsed_seconds": 930.5
+  },
+  "documents": {
+    "total": 6773,
+    "from_cache": 0,
+    "newly_embedded": 6773,
+    "length_chars": {
+      "min": 1200,
+      "max": 28000,
+      "avg": 4500,
+      "total": 30478500
+    }
+  },
+  "batching": {
+    "configured_batch_size": 128,
+    "outer_batches": 53
+  },
+  "performance": {
+    "throughput_docs_per_sec": 7.28,
+    "avg_time_per_doc_ms": 137.4
+  },
+  "model": {
+    "name": "BAAI/bge-m3",
+    "max_seq_length": 8192,
+    "embedding_dimension": 1024
+  },
+  "hardware": {
+    "cpu": {
+      "model": "AMD EPYC 7763 64-Core Processor",
+      "cores_physical": 64,
+      "cores_logical": 128
+    },
+    "ram_gb": 512,
+    "gpu": [
+      {
+        "name": "NVIDIA A100-SXM4-80GB",
+        "memory_gb": 80,
+        "compute_capability": "8.0"
+      }
+    ],
+    "platform": {
+      "system": "Linux",
+      "release": "5.15.0",
+      "python_version": "3.11.5"
+    }
+  }
+}
+```
+
+This file is useful for:
+- Benchmarking different hardware configurations
+- Documenting processing runs for reproducibility
+- Comparing performance across datasets
 
 ## Troubleshooting
 

@@ -3,14 +3,80 @@ LLM provider abstraction layer to support multiple AI model providers.
 This module provides a unified interface for different LLM APIs.
 """
 
+import json
 import logging
+import os
+import platform
 import time
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
+from pathlib import Path
 from threading import Semaphore
 from typing import Dict, Any, Optional, List, Tuple
 
 logger = logging.getLogger(__name__)
+
+
+def get_hardware_info() -> Dict[str, Any]:
+    """
+    Gather hardware information for stats logging.
+    Returns CPU, RAM, and GPU details.
+    """
+    info = {
+        'cpu': {
+            'model': platform.processor() or 'Unknown',
+            'cores_physical': None,
+            'cores_logical': None,
+        },
+        'ram_gb': None,
+        'gpu': [],
+        'platform': {
+            'system': platform.system(),
+            'release': platform.release(),
+            'python_version': platform.python_version(),
+        }
+    }
+
+    # CPU cores
+    try:
+        import psutil
+        info['cpu']['cores_physical'] = psutil.cpu_count(logical=False)
+        info['cpu']['cores_logical'] = psutil.cpu_count(logical=True)
+        info['ram_gb'] = round(psutil.virtual_memory().total / (1024**3), 1)
+    except ImportError:
+        # psutil not available, try os
+        try:
+            info['cpu']['cores_logical'] = os.cpu_count()
+        except:
+            pass
+
+    # GPU info
+    try:
+        import torch
+        if torch.cuda.is_available():
+            for i in range(torch.cuda.device_count()):
+                props = torch.cuda.get_device_properties(i)
+                info['gpu'].append({
+                    'name': props.name,
+                    'memory_gb': round(props.total_memory / (1024**3), 1),
+                    'compute_capability': f"{props.major}.{props.minor}",
+                })
+    except ImportError:
+        pass
+
+    # Check for Apple Silicon MPS
+    try:
+        import torch
+        if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+            info['gpu'].append({
+                'name': 'Apple Silicon (MPS)',
+                'memory_gb': 'shared',
+            })
+    except:
+        pass
+
+    return info
 
 class BaseLLMProvider(ABC):
     """Base class for LLM providers"""
@@ -546,7 +612,7 @@ class SentenceTransformersProvider(BaseLLMProvider):
         )
         return embedding.tolist()
 
-    def get_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
+    def get_embeddings_batch(self, texts: List[str], stats_file: Optional[str] = None) -> List[List[float]]:
         """
         Get embeddings for multiple texts efficiently in batch.
 
@@ -559,10 +625,30 @@ class SentenceTransformersProvider(BaseLLMProvider):
         3. Uses relative batch sizes (fractions of configured batch_size)
         4. Clears GPU cache after processing long documents
 
+        Args:
+            texts: List of texts to embed
+            stats_file: Optional path to save embedding stats (JSON format)
+
         See docs/DYNAMIC_BATCHING.md for detailed documentation.
         """
         if not texts:
             return []
+
+        # Track stats
+        start_time = datetime.now()
+        start_timestamp = time.time()
+        batch_sizes_used = []
+        doc_lengths = [len(t) for t in texts]
+
+        # Log start
+        logger.info(f"=== Embedding Started ===")
+        logger.info(f"Start time: {start_time.isoformat()}")
+        logger.info(f"Documents: {len(texts)}")
+        logger.info(f"Document lengths: min={min(doc_lengths)}, max={max(doc_lengths)}, "
+                   f"avg={sum(doc_lengths)//len(doc_lengths)} chars")
+        logger.info(f"Model: {self.model_name}")
+        logger.info(f"Base batch size: {self.batch_size}")
+        logger.info(f"Device: {self.device}")
 
         # Get model-aware thresholds
         thresholds = self._get_length_thresholds()
@@ -583,6 +669,7 @@ class SentenceTransformersProvider(BaseLLMProvider):
 
             # Get effective batch size using relative scaling
             effective_batch_size = self._get_effective_batch_size(max_len_in_batch, thresholds)
+            batch_sizes_used.append(effective_batch_size)
 
             # Extract batch
             batch_end = min(current_batch_start + effective_batch_size, len(indexed_texts))
@@ -592,7 +679,7 @@ class SentenceTransformersProvider(BaseLLMProvider):
 
             # Log batch info
             batch_max_len = max(len(t) for t in batch_texts)
-            logger.info(f"Processing batch of {len(batch_texts)} texts "
+            logger.info(f"Processing batch {total_batches + 1} of {len(batch_texts)} texts "
                        f"(max_len={batch_max_len} chars, batch_size={effective_batch_size})")
 
             # Encode batch
@@ -619,8 +706,114 @@ class SentenceTransformersProvider(BaseLLMProvider):
             current_batch_start = batch_end
             total_batches += 1
 
-        logger.info(f"Completed embedding {len(texts)} texts in {total_batches} batches")
+        # Calculate final stats
+        end_time = datetime.now()
+        elapsed_seconds = time.time() - start_timestamp
+        throughput = len(texts) / elapsed_seconds if elapsed_seconds > 0 else 0
+
+        # Log summary
+        logger.info(f"=== Embedding Completed ===")
+        logger.info(f"End time: {end_time.isoformat()}")
+        logger.info(f"Total time: {elapsed_seconds:.1f}s")
+        logger.info(f"Documents: {len(texts)}")
+        logger.info(f"Throughput: {throughput:.2f} docs/sec")
+        logger.info(f"Batches: {total_batches}")
+        logger.info(f"Batch sizes: min={min(batch_sizes_used)}, max={max(batch_sizes_used)}, "
+                   f"avg={sum(batch_sizes_used)//len(batch_sizes_used)}")
+
+        # Build stats dict
+        stats = self._build_embedding_stats(
+            start_time=start_time,
+            end_time=end_time,
+            elapsed_seconds=elapsed_seconds,
+            num_documents=len(texts),
+            doc_lengths=doc_lengths,
+            batch_sizes_used=batch_sizes_used,
+            total_batches=total_batches,
+            throughput=throughput,
+        )
+
+        # Save stats file if requested
+        if stats_file:
+            self._save_embedding_stats(stats, stats_file)
+
         return all_embeddings
+
+    def _build_embedding_stats(
+        self,
+        start_time: datetime,
+        end_time: datetime,
+        elapsed_seconds: float,
+        num_documents: int,
+        doc_lengths: List[int],
+        batch_sizes_used: List[int],
+        total_batches: int,
+        throughput: float,
+    ) -> Dict[str, Any]:
+        """Build a comprehensive stats dictionary."""
+        # Get model info
+        try:
+            max_seq_length = self.model.max_seq_length
+            embedding_dim = self.model.get_sentence_embedding_dimension()
+        except:
+            max_seq_length = None
+            embedding_dim = None
+
+        # Get hardware info (with fallback if it fails)
+        try:
+            hardware_info = get_hardware_info()
+        except Exception as e:
+            logger.warning(f"Failed to get hardware info: {e}")
+            hardware_info = {'error': str(e)}
+
+        return {
+            'timing': {
+                'start': start_time.isoformat(),
+                'end': end_time.isoformat(),
+                'elapsed_seconds': round(elapsed_seconds, 2),
+            },
+            'documents': {
+                'count': num_documents,
+                'length_chars': {
+                    'min': min(doc_lengths),
+                    'max': max(doc_lengths),
+                    'avg': sum(doc_lengths) // len(doc_lengths),
+                    'total': sum(doc_lengths),
+                },
+            },
+            'batching': {
+                'base_batch_size': self.batch_size,
+                'total_batches': total_batches,
+                'effective_batch_sizes': {
+                    'min': min(batch_sizes_used),
+                    'max': max(batch_sizes_used),
+                    'avg': round(sum(batch_sizes_used) / len(batch_sizes_used), 1),
+                },
+            },
+            'performance': {
+                'throughput_docs_per_sec': round(throughput, 2),
+                'avg_time_per_doc_ms': round((elapsed_seconds / num_documents) * 1000, 2) if num_documents > 0 else 0,
+            },
+            'model': {
+                'name': self.model_name,
+                'max_seq_length': max_seq_length,
+                'embedding_dimension': embedding_dim,
+            },
+            'hardware': hardware_info,
+        }
+
+    def _save_embedding_stats(self, stats: Dict[str, Any], file_path: str) -> None:
+        """Save embedding stats to a JSON file."""
+        try:
+            path = Path(file_path)
+            path.parent.mkdir(parents=True, exist_ok=True)
+
+            with open(path, 'w') as f:
+                json.dump(stats, f, indent=2)
+
+            logger.info(f"Embedding stats saved to: {file_path}")
+        except Exception as e:
+            logger.warning(f"Failed to save embedding stats: {e}")
 
     def _get_length_thresholds(self) -> Dict[str, int]:
         """

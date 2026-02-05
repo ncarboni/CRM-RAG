@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/a34503d7-0041-42f0-9695-6931e4829714/
 Label: Initial painting
-Generated: 2026-01-24 17:57:54
+Generated: 2026-02-04 22:49:01
 ---
 
 # Initial painting

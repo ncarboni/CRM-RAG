@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/location/77c3e6a9-58b8-4678-bfaa-728ec6795c34/
 Label: Malatheros/Kisamos
-Generated: 2026-01-24 17:57:59
+Generated: 2026-02-04 22:49:11
 ---
 
 # Malatheros/Kisamos

@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/c1769184-3238-4002-b918-edcd6beb2bdb
 Label: neck decorated patches
-Generated: 2026-01-24 17:57:52
+Generated: 2026-02-04 22:48:58
 ---
 
 # neck decorated patches
@@ -19,5 +19,5 @@ URI: http://map.cnrs.fr/semantics/attribute/c1769184-3238-4002-b918-edcd6beb2bdb
 
 ## Relationships
 
-- neck decorated patches is attribute of Wife of Michael Katzouroumpos
 - neck decorated patches depict things of type Patches
+- neck decorated patches is attribute of Wife of Michael Katzouroumpos

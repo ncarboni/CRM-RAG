@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/type/a7740e44-e086-4b05-8765-9326aa7885ea
 Label: Bottle
-Generated: 2026-01-24 17:58:06
+Generated: 2026-02-04 22:49:20
 ---
 
 # Bottle

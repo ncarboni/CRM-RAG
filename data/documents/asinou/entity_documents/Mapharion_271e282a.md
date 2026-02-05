@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/icon/3836e340-6531-4d96-9ccd-49f1deefc6b4
 Label: Mapharion
-Generated: 2026-01-24 17:57:45
+Generated: 2026-02-04 22:48:45
 ---
 
 # Mapharion
@@ -18,5 +18,5 @@ URI: http://map.cnrs.fr/semantics/icon/3836e340-6531-4d96-9ccd-49f1deefc6b4
 
 ## Relationships
 
-- Mapharion depict things of type Mantle
 - Mapharion symbolize protection
+- Mapharion depict things of type Mantle

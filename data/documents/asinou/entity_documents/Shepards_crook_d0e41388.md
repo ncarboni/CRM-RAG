@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/type/b2c81a1b-420b-4af1-8459-98477861ac6c
 Label: Shepard's crook
-Generated: 2026-01-24 17:57:50
+Generated: 2026-02-04 22:48:57
 ---
 
 # Shepard's crook

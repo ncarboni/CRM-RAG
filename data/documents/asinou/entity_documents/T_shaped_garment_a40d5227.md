@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/d2058159-5ec7-4539-9909-c9636c09ced4
 Label: T-shaped garment
-Generated: 2026-01-24 17:57:52
+Generated: 2026-02-04 22:48:58
 ---
 
 # T-shaped garment
@@ -19,5 +19,5 @@ URI: http://map.cnrs.fr/semantics/attribute/d2058159-5ec7-4539-9909-c9636c09ced4
 
 ## Relationships
 
-- T-shaped garment depict things of type clothing
 - T-shaped garment is attribute of Anastasia Saramalina
+- T-shaped garment depict things of type clothing

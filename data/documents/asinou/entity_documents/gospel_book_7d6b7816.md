@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/8b6ee16b-90b2-4b4e-b481-3a7a09aff658/
 Label: gospel book
-Generated: 2026-01-24 17:58:07
+Generated: 2026-02-04 22:49:21
 ---
 
 # gospel book

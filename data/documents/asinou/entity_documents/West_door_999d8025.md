@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/1a22e725-7eeb-4865-b40f-879b9965062d/
 Label: West door
-Generated: 2026-01-24 17:57:50
+Generated: 2026-02-04 22:48:57
 ---
 
 # West door

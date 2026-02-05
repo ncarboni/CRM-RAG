@@ -26,7 +26,7 @@ from tqdm import tqdm
 from SPARQLWrapper import SPARQLWrapper, JSON
 
 # Langchain imports
-from langchain.docstore.document import Document
+from langchain_core.documents import Document
 from langchain_community.vectorstores import FAISS
 
 # Third-party data fetching

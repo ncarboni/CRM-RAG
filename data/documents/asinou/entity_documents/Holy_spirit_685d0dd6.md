@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/c316adb9-69bb-458d-9ac4-3f1d350a407d/symbolic
 Label: Holy spirit
-Generated: 2026-01-24 17:57:45
+Generated: 2026-02-04 22:48:44
 ---
 
 # Holy spirit

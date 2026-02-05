@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/visual/atom/e2cd985c-d27a-4ce8-a839-3d7a8d330fcd
 Label: Last judgment
-Generated: 2026-01-24 17:57:59
+Generated: 2026-02-04 22:49:11
 ---
 
 # Last judgment

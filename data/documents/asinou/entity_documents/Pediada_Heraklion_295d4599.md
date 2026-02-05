@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/a247a398-6278-4a0e-bff3-b177e4c76de5/
 Label: Pediada, Heraklion
-Generated: 2026-01-24 17:58:04
+Generated: 2026-02-04 22:49:18
 ---
 
 # Pediada, Heraklion

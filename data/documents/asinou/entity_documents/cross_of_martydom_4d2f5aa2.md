@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/icon/9cb3ada3-25b9-4bb1-896e-82257d7e39bd
 Label: cross of martydom
-Generated: 2026-01-24 17:57:48
+Generated: 2026-02-04 22:48:55
 ---
 
 # cross of martydom

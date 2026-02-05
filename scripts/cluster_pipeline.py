@@ -36,10 +36,14 @@ Usage:
     --clean               # Clean intermediate files
 """
 
+# Fix OpenMP conflict between PyTorch and faiss-cpu on macOS
+# Must be set before any imports that load these libraries
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 import argparse
 import json
 import logging
-import os
 import shutil
 import sys
 import time

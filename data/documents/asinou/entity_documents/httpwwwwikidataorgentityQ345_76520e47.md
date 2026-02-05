@@ -1,7 +1,7 @@
 ---
 URI: http://www.wikidata.org/entity/Q345
 Label: http://www.wikidata.org/entity/Q345
-Generated: 2026-01-24 17:57:52
+Generated: 2026-02-04 22:48:59
 ---
 
 # http://www.wikidata.org/entity/Q345

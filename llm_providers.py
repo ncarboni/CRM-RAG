@@ -222,15 +222,68 @@ class OpenAIProvider(BaseLLMProvider):
         """OpenAI supports concurrent batch embedding with ThreadPoolExecutor."""
         return True
 
+    def _get_openai_length_thresholds(self) -> Dict[str, int]:
+        """
+        Calculate character length thresholds for OpenAI embeddings.
+
+        OpenAI text-embedding-3-small has 8191 token limit per text.
+        We use conservative character estimates (~4 chars/token).
+
+        Dynamic batching helps with:
+        - Per-request token limits
+        - Timeout risk with large payloads
+        - Error recovery (smaller batches lose less on failure)
+        """
+        # OpenAI embedding models max tokens
+        max_tokens = 8191  # text-embedding-3-small/large
+        chars_per_token = 4  # Conservative estimate
+        max_chars = max_tokens * chars_per_token  # ~32K chars
+
+        # Thresholds based on document length
+        thresholds = {
+            'very_long': int(max_chars * 0.50),   # >16K chars → chunk_size ÷ 8
+            'long': int(max_chars * 0.25),        # >8K chars → chunk_size ÷ 4
+            'medium': int(max_chars * 0.0625),    # >2K chars → chunk_size ÷ 2
+        }
+
+        return thresholds
+
+    def _get_effective_chunk_size(self, max_text_length: int, thresholds: Dict[str, int]) -> int:
+        """
+        Calculate effective chunk size based on the longest text in the batch.
+
+        Uses relative scaling: chunk sizes are fractions of the configured chunk_size.
+        This respects user configuration while adapting to document length.
+
+        Args:
+            max_text_length: Length of longest text in potential chunk (in characters)
+            thresholds: Dictionary of length thresholds
+
+        Returns:
+            Effective chunk size (minimum 1)
+        """
+        if max_text_length > thresholds['very_long']:
+            divisor = 8
+        elif max_text_length > thresholds['long']:
+            divisor = 4
+        elif max_text_length > thresholds['medium']:
+            divisor = 2
+        else:
+            divisor = 1
+
+        effective_size = max(1, self.embedding_chunk_size // divisor)
+        return effective_size
+
     def get_embeddings_batch_concurrent(self, texts: List[str], stats_file: Optional[str] = None) -> List[List[float]]:
         """
-        Get embeddings for multiple texts using concurrent API calls.
+        Get embeddings for multiple texts using concurrent API calls with dynamic batching.
 
         This method provides ~5-10x speedup over sequential processing by:
-        1. Splitting texts into chunks (default: 100 texts each)
-        2. Processing chunks in parallel using ThreadPoolExecutor
-        3. Using a Semaphore for rate limiting
-        4. Implementing exponential backoff for rate limit errors (429)
+        1. Sorting texts by length for efficient batching
+        2. Using dynamic chunk sizes based on document length
+        3. Processing chunks in parallel using ThreadPoolExecutor
+        4. Using a Semaphore for rate limiting
+        5. Implementing exponential backoff for rate limit errors (429)
 
         Args:
             texts: List of texts to embed
@@ -260,6 +313,7 @@ class OpenAIProvider(BaseLLMProvider):
                    f"avg={sum(doc_lengths)//len(doc_lengths)} chars")
         logger.info(f"Model: {self.embedding_model}")
         logger.info(f"Max concurrent: {self.embedding_max_concurrent}")
+        logger.info(f"Base chunk size: {self.embedding_chunk_size}")
 
         # Initialize embeddings model (lazy initialization for thread safety)
         if self._embeddings is None:
@@ -268,26 +322,55 @@ class OpenAIProvider(BaseLLMProvider):
                 openai_api_key=self.api_key
             )
 
-        # Split texts into chunks
-        chunks = []
-        for i in range(0, len(texts), self.embedding_chunk_size):
-            chunk = texts[i:i + self.embedding_chunk_size]
-            chunks.append((i // self.embedding_chunk_size, chunk))
+        # Get length thresholds for dynamic batching
+        thresholds = self._get_openai_length_thresholds()
+
+        # Sort texts by length (with original indices) for efficient batching
+        indexed_texts = sorted(enumerate(texts), key=lambda x: len(x[1]))
+
+        # Build chunks with dynamic sizing based on document length
+        chunks = []  # List of (chunk_id, [(original_idx, text), ...])
+        chunk_sizes_used = []
+        current_pos = 0
+        chunk_id = 0
+
+        while current_pos < len(indexed_texts):
+            # Look ahead to find max length in potential chunk
+            lookahead_end = min(current_pos + self.embedding_chunk_size, len(indexed_texts))
+            max_len_in_chunk = len(indexed_texts[lookahead_end - 1][1])  # Sorted, so last is longest
+
+            # Get effective chunk size based on document length
+            effective_chunk_size = self._get_effective_chunk_size(max_len_in_chunk, thresholds)
+            chunk_sizes_used.append(effective_chunk_size)
+
+            # Extract chunk
+            chunk_end = min(current_pos + effective_chunk_size, len(indexed_texts))
+            chunk_items = indexed_texts[current_pos:chunk_end]
+            chunks.append((chunk_id, chunk_items))
+
+            current_pos = chunk_end
+            chunk_id += 1
+
+        logger.info(f"Dynamic batching: {len(chunks)} chunks, sizes min={min(chunk_sizes_used)}, "
+                   f"max={max(chunk_sizes_used)}, avg={sum(chunk_sizes_used)//len(chunk_sizes_used)}")
 
         logger.info(f"Using concurrent batch embedding: {len(texts)} texts in {len(chunks)} chunks "
-                    f"(chunk_size={self.embedding_chunk_size}, max_concurrent={self.embedding_max_concurrent})")
+                    f"(base_chunk_size={self.embedding_chunk_size}, max_concurrent={self.embedding_max_concurrent})")
 
         # Semaphore for rate limiting
         semaphore = Semaphore(self.embedding_max_concurrent)
 
-        # Results storage (indexed by chunk position)
-        results: Dict[int, List[List[float]]] = {}
+        # Results storage: maps original text index -> embedding
+        results: Dict[int, List[float]] = {}
         errors: List[Tuple[int, Exception]] = []
 
-        def process_chunk(chunk_idx: int, chunk_texts: List[str]) -> Tuple[int, Optional[List[List[float]]]]:
+        def process_chunk(chunk_idx: int, chunk_items: List[Tuple[int, str]]) -> Tuple[int, Optional[List[Tuple[int, List[float]]]]]:
             """Process a single chunk with retries and exponential backoff."""
             with semaphore:
                 last_exception = None
+                chunk_texts = [text for _, text in chunk_items]
+                original_indices = [idx for idx, _ in chunk_items]
+
                 for attempt in range(self.embedding_retry_attempts):
                     try:
                         # Create a new embeddings instance for thread safety
@@ -296,7 +379,9 @@ class OpenAIProvider(BaseLLMProvider):
                             openai_api_key=self.api_key
                         )
                         result = embeddings.embed_documents(chunk_texts)
-                        return (chunk_idx, result)
+                        # Pair embeddings with their original indices
+                        indexed_results = list(zip(original_indices, result))
+                        return (chunk_idx, indexed_results)
                     except Exception as e:
                         last_exception = e
                         error_str = str(e).lower()
@@ -324,14 +409,18 @@ class OpenAIProvider(BaseLLMProvider):
         # Process chunks concurrently
         completed_chunks = 0
         with ThreadPoolExecutor(max_workers=self.embedding_max_concurrent) as executor:
-            futures = {executor.submit(process_chunk, idx, chunk): idx for idx, chunk in chunks}
+            # Submit chunks - each chunk is (chunk_id, [(original_idx, text), ...])
+            futures = {executor.submit(process_chunk, chunk_id, chunk_items): chunk_id
+                       for chunk_id, chunk_items in chunks}
 
             for future in as_completed(futures):
-                chunk_idx, embeddings = future.result()
+                chunk_idx, indexed_embeddings = future.result()
                 completed_chunks += 1
 
-                if embeddings is not None:
-                    results[chunk_idx] = embeddings
+                if indexed_embeddings is not None:
+                    # Store embeddings by original index
+                    for orig_idx, embedding in indexed_embeddings:
+                        results[orig_idx] = embedding
                     if completed_chunks % 5 == 0 or completed_chunks == len(chunks):
                         logger.info(f"Embedding progress: {completed_chunks}/{len(chunks)} chunks completed")
                 else:
@@ -344,10 +433,8 @@ class OpenAIProvider(BaseLLMProvider):
             raise RuntimeError(f"Failed to embed {len(errors)} chunks: {failed_indices}. "
                                f"Consider reducing embedding_max_concurrent or increasing retry_attempts.")
 
-        # Reassemble results in order
-        all_embeddings = []
-        for chunk_idx in range(len(chunks)):
-            all_embeddings.extend(results[chunk_idx])
+        # Reassemble results in original order
+        all_embeddings = [results[i] for i in range(len(texts))]
 
         # Calculate final stats
         end_time = datetime.now()
@@ -359,7 +446,7 @@ class OpenAIProvider(BaseLLMProvider):
         logger.info(f"Total time: {elapsed_seconds:.1f}s")
         logger.info(f"Documents: {len(all_embeddings)}")
         logger.info(f"Throughput: {throughput:.2f} docs/sec")
-        logger.info(f"Chunks processed: {len(chunks)}")
+        logger.info(f"Chunks processed: {len(chunks)} (dynamic sizes: {min(chunk_sizes_used)}-{max(chunk_sizes_used)})")
 
         return all_embeddings
 

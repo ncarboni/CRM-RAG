@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/c72ec6f5-01cc-4e1f-bf5f-b120ebdab4ef/
 Label: Naos
-Generated: 2026-01-24 17:58:06
+Generated: 2026-02-04 22:49:20
 ---
 
 # Naos

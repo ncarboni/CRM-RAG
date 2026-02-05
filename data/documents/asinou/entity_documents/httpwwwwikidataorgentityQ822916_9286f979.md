@@ -1,7 +1,7 @@
 ---
 URI: http://www.wikidata.org/entity/Q822916
 Label: http://www.wikidata.org/entity/Q822916
-Generated: 2026-01-24 17:57:53
+Generated: 2026-02-04 22:49:00
 ---
 
 # http://www.wikidata.org/entity/Q822916

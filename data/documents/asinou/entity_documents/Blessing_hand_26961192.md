@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/0638e021-6cf6-4f90-a369-c834fe396dd6
 Label: Blessing hand
-Generated: 2026-01-24 17:57:52
+Generated: 2026-02-04 22:48:58
 ---
 
 # Blessing hand
@@ -19,6 +19,6 @@ URI: http://map.cnrs.fr/semantics/attribute/0638e021-6cf6-4f90-a369-c834fe396dd6
 
 ## Relationships
 
-- Blessing hand depict things of type hand
 - Blessing hand is attribute of Christ child
+- Blessing hand depict things of type hand
 - Blessing hand symbolize blessing

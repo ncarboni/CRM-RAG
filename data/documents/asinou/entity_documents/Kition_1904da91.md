@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/d4653805-a193-49de-b51f-78a824a6c135/
 Label: Kition
-Generated: 2026-01-24 17:58:04
+Generated: 2026-02-04 22:49:18
 ---
 
 # Kition

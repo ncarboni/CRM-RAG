@@ -9,7 +9,7 @@ import pickle
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, field
 import numpy as np
-from langchain.docstore.document import Document
+from langchain_core.documents import Document
 from langchain_community.vectorstores import FAISS
 
 logger = logging.getLogger(__name__)

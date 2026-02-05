@@ -5,6 +5,11 @@ Main application file for the CIDOC-CRM RAG system.
 This file contains all the Flask routes and application initialization.
 """
 
+# Fix OpenMP conflict between PyTorch and faiss-cpu on macOS
+# Must be set before any imports that load these libraries
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 import logging
 import os
 import sys

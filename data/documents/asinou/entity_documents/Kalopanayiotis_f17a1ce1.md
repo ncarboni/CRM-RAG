@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/location/3b60a040-3e3b-4027-a59e-e5f65b25bf24/
 Label: Kalopanayiotis
-Generated: 2026-01-24 17:57:57
+Generated: 2026-02-04 22:49:05
 ---
 
 # Kalopanayiotis
@@ -19,7 +19,7 @@ URI: http://map.cnrs.fr/semantics/location/3b60a040-3e3b-4027-a59e-e5f65b25bf24/
 
 ## Relationships
 
-- Kalopanayiotis contains St. John Lampadistis
 - Kalopanayiotis falls within Cyprus
 - Kalopanayiotis contains St. Herakleidos
 - Kalopanayiotis is same as Q6354269
+- Kalopanayiotis contains St. John Lampadistis

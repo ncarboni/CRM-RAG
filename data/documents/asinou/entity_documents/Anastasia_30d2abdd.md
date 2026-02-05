@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/ced621a1-2616-4eff-9cbd-bdb9a8db0c93/
 Label: Anastasia
-Generated: 2026-01-24 17:58:04
+Generated: 2026-02-04 22:49:17
 ---
 
 # Anastasia

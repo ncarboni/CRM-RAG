@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/gr/0062f461-2dc8-4830-b53a-c3ad0f8d65a4/
 Label: Παναγία Φορβιώτισσα / Παναγία της Ασίνου
-Generated: 2026-01-24 17:57:57
+Generated: 2026-02-04 22:49:05
 ---
 
 # Παναγία Φορβιώτισσα / Παναγία της Ασίνου

@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/type/68a00836-2c25-46f2-b013-bbefa106d80b
 Label: Narthex
-Generated: 2026-01-24 17:57:49
+Generated: 2026-02-04 22:48:56
 ---
 
 # Narthex
@@ -18,6 +18,6 @@ URI: http://map.cnrs.fr/semantics/type/68a00836-2c25-46f2-b013-bbefa106d80b
 
 ## Relationships
 
-- Narthex has broader term Architectural element
 - Narthex is same as 300004624
+- Narthex has broader term Architectural element
 - Narthex is same as Q208576

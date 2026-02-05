@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/icon/cf15a5e9-3a1f-49d7-bb25-b457fe2d81d6
 Label: undergarment
-Generated: 2026-01-24 17:57:44
+Generated: 2026-02-04 22:48:44
 ---
 
 # undergarment

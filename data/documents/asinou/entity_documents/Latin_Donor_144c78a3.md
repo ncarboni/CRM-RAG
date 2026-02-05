@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/icon/9a846ecd-ca9d-40ae-8452-7066a00be57f
 Label: Latin Donor
-Generated: 2026-01-24 17:58:00
+Generated: 2026-02-04 22:49:12
 ---
 
 # Latin Donor
@@ -19,7 +19,7 @@ URI: http://map.cnrs.fr/semantics/icon/9a846ecd-ca9d-40ae-8452-7066a00be57f
 
 ## Relationships
 
-- Latin Donor has attribute cotte
 - Latin Donor has attribute hands clasped
-- Latin Donor is denoted by Virgin of Mercy
 - Latin Donor is classified as type: Donor
+- Latin Donor has attribute cotte
+- Latin Donor is denoted by Virgin of Mercy

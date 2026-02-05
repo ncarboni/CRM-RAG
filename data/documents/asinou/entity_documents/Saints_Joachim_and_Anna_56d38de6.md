@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/physical/55163f7c-24d7-477b-b28d-caca072a2b5b
 Label: Saints Joachim and Anna
-Generated: 2026-01-24 17:57:57
+Generated: 2026-02-04 22:49:05
 ---
 
 # Saints Joachim and Anna
@@ -18,5 +18,5 @@ URI: http://map.cnrs.fr/semantics/physical/55163f7c-24d7-477b-b28d-caca072a2b5b
 
 ## Relationships
 
-- Saints Joachim and Anna is identified by Αγίοι Ιωακείμ και Άννα
 - Saints Joachim and Anna is classified as type: Church
+- Saints Joachim and Anna is identified by Αγίοι Ιωακείμ και Άννα

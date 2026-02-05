@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/spatial/5a5609a8-2ef0-447f-9a72-7b5a8b089755/
 Label: Naos
-Generated: 2026-01-24 17:57:50
+Generated: 2026-02-04 22:48:56
 ---
 
 # Naos
@@ -19,5 +19,5 @@ URI: http://map.cnrs.fr/semantics/spatial/5a5609a8-2ef0-447f-9a72-7b5a8b089755/
 
 ## Relationships
 
-- Naos falls within Panagia Phorbiottisa
 - Naos witnessed Meatfare sunday rites
+- Naos falls within Panagia Phorbiottisa

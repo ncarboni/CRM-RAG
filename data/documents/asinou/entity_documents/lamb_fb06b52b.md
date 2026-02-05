@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/75ea920a-1f44-47b8-a584-06fe6033b979
 Label: lamb
-Generated: 2026-01-24 17:57:52
+Generated: 2026-02-04 22:48:58
 ---
 
 # lamb

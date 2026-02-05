@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/text/5d69f352-0202-45c9-9022-8a91d472388f
 Label: Canticle one
-Generated: 2026-01-24 17:58:06
+Generated: 2026-02-04 22:49:19
 ---
 
 # Canticle one
@@ -18,6 +18,6 @@ URI: http://map.cnrs.fr/semantics/text/5d69f352-0202-45c9-9022-8a91d472388f
 
 ## Relationships
 
-- Canticle one illustrate Gnashing of the teeth
 - Canticle one forms part of Sunday of the Last Judgment
+- Canticle one illustrate Gnashing of the teeth
 - Canticle one incorporates plan

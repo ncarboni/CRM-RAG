@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/372f9c0f-4112-4bdc-a804-022530a76592/
 Label: St. John Lampadistis
-Generated: 2026-01-24 17:57:57
+Generated: 2026-02-04 22:49:05
 ---
 
 # St. John Lampadistis

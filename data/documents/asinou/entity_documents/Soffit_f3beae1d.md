@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/type/15341c63-20e1-4d29-b333-b388050a087b
 Label: Soffit
-Generated: 2026-01-24 17:58:07
+Generated: 2026-02-04 22:49:21
 ---
 
 # Soffit

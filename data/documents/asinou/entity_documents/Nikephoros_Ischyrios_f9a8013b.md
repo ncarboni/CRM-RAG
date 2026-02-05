@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/character/c97e3141-7242-4565-979c-45684ad0e1fd
 Label: Nikephoros Ischyrios
-Generated: 2026-01-24 17:57:52
+Generated: 2026-02-04 22:48:58
 ---
 
 # Nikephoros Ischyrios

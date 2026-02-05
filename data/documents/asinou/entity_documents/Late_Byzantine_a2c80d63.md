@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/e3f5751a-daa0-4fb5-b4c1-003786094fa4/
 Label: Late Byzantine
-Generated: 2026-01-24 17:58:04
+Generated: 2026-02-04 22:49:18
 ---
 
 # Late Byzantine

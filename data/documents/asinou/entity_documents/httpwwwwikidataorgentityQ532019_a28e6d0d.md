@@ -1,7 +1,7 @@
 ---
 URI: http://www.wikidata.org/entity/Q532019
 Label: http://www.wikidata.org/entity/Q532019
-Generated: 2026-01-24 17:57:52
+Generated: 2026-02-04 22:48:58
 ---
 
 # http://www.wikidata.org/entity/Q532019

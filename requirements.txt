@@ -7,6 +7,7 @@ SPARQLWrapper==2.0.0
 rdflib==7.1.1
 
 # LangChain and RAG
+langchain-core>=0.3.0  # Core components (Document class, etc.)
 langchain-community>=0.3.27  # Minimum version to fix XXE vulnerability (CVE)
 langchain-openai
 langchain-anthropic

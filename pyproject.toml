@@ -1,0 +1,35 @@
+[project]
+name = "crm-rag"
+version = "0.5.0"
+description = "Graph-based RAG system for CIDOC-CRM RDF knowledge graphs"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    # Web framework
+    "flask>=3.1.1",
+    "werkzeug>=3.1.4",
+
+    # RDF & Semantic Web
+    "rdflib>=7.1.1",
+    "sparqlwrapper>=2.0.0",
+
+    # LLM & embeddings
+    "langchain>=1.2.8",
+    "langchain-community>=0.3.27",
+    "langchain-openai>=1.1.7",
+    "langchain-anthropic>=1.3.1",
+    "sentence-transformers>=5.0.0",
+    "tiktoken>=0.12.0",
+
+    # Vector search & graph
+    "faiss-cpu>=1.9.0",
+    "numpy>=2.0.0",
+    "networkx>=3.4.0",
+
+    # Configuration & utilities
+    "python-dotenv>=1.0.1",
+    "pyyaml>=6.0.2",
+    "requests>=2.32.4",
+    "tqdm>=4.67.0",
+    "psutil>=5.9.0",
+]

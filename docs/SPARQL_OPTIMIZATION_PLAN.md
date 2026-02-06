@@ -402,7 +402,7 @@ FORMAT = ttl
 
 [index]
 # Path to your TTL dump file
-INPUT_FILES = /Users/carboni/Documents/pynotebook/personal/RAG rdf/CRM_RAG/data/exports/mah_dump.ttl
+INPUT_FILES = data/exports/mah_dump.ttl
 # Memory for index building (adjust based on your RAM)
 # For 333MB TTL, 4-8GB should be sufficient
 STXXL_MEMORY = 8G

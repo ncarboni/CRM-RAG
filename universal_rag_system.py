@@ -9,7 +9,6 @@ import hashlib
 import json
 import logging
 import os
-import pickle
 import re
 import shutil
 import time
@@ -34,7 +33,7 @@ import requests
 
 # Local imports
 from graph_document_store import GraphDocumentStore
-from llm_providers import get_llm_provider, get_embedding_provider, BaseLLMProvider
+from llm_providers import get_llm_provider, get_embedding_provider
 from embedding_cache import EmbeddingCache
 from scripts.extract_ontology_labels import run_extraction
 
@@ -57,7 +56,6 @@ class RetrievalConfig:
 
     # Retrieval parameters
     DEFAULT_RETRIEVAL_K = 10  # Default number of documents to retrieve
-    INITIAL_POOL_MULTIPLIER = 2  # Multiplier for initial candidate pool size
 
     # Processing parameters
     DEFAULT_BATCH_SIZE = 50  # Default batch size for processing entities
@@ -68,10 +66,6 @@ class RetrievalConfig:
     BATCH_QUERY_SIZE = 1000  # Number of URIs per VALUES clause in batch queries
     BATCH_QUERY_TIMEOUT = 60000  # Timeout for batch queries in ms (60 seconds)
     BATCH_QUERY_RETRY_SIZE = 100  # Smaller batch size for retry on timeout
-
-    # Event classes are loaded from config/event_classes.json at runtime
-    # This allows users to modify event classes without changing code.
-    # See UniversalRagSystem._load_event_classes() for loading logic.
 
 
 class UniversalRagSystem:
@@ -660,7 +654,6 @@ class UniversalRagSystem:
         Fast batch document generation using batch SPARQL queries.
         Achieves 400-1600x speedup over individual queries.
         """
-        import time
         start_time = time.time()
 
         entity_uris = [e["entity"] for e in entities]
@@ -1300,7 +1293,7 @@ class UniversalRagSystem:
         if DEBUG_TRAVERSAL:
             logger.debug(f"Starting entity {entity_uri.split('/')[-1]}: is_event={start_is_event}")
 
-        def traverse(uri, current_depth=0, direction="both", came_from_event=False):
+        def traverse(uri, current_depth=0):
             if uri in visited or current_depth > depth:
                 return
 
@@ -1312,202 +1305,193 @@ class UniversalRagSystem:
             if DEBUG_TRAVERSAL:
                 logger.debug(f"==> Traversing {entity_label} (depth={current_depth}, uri={uri.split('/')[-1]})")
 
-            # Get outgoing relationships if direction is "both" or "outgoing"
-            if direction in ["both", "outgoing"]:
-                outgoing_query = f"""
-                PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-                SELECT ?pred ?obj ?objLabel WHERE {{
-                    <{uri}> ?pred ?obj .
-                    OPTIONAL {{ ?obj rdfs:label ?objLabel }}
-                    FILTER(isURI(?obj))
-                }}
-                """
+            # Get outgoing relationships
+            outgoing_query = f"""
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            SELECT ?pred ?obj ?objLabel WHERE {{
+                <{uri}> ?pred ?obj .
+                OPTIONAL {{ ?obj rdfs:label ?objLabel }}
+                FILTER(isURI(?obj))
+            }}
+            """
 
-                try:
-                    self.sparql.setQuery(outgoing_query)
-                    outgoing_results = self.sparql.query().convert()
+            try:
+                self.sparql.setQuery(outgoing_query)
+                outgoing_results = self.sparql.query().convert()
 
-                    for result in outgoing_results["results"]["bindings"]:
-                        pred = result["pred"]["value"]
-                        obj = result["obj"]["value"]
+                for result in outgoing_results["results"]["bindings"]:
+                    pred = result["pred"]["value"]
+                    obj = result["obj"]["value"]
 
-                        # Filter out schema-level predicates
-                        if self.is_schema_predicate(pred):
-                            continue
+                    # Filter out schema-level predicates
+                    if self.is_schema_predicate(pred):
+                        continue
 
-                        # Get labels if available, with improved fallback
-                        # Use property_labels.json for English predicate labels
-                        pred_label = UniversalRagSystem._property_labels.get(pred)
-                        if not pred_label:
-                            # Fallback to local name if not in property_labels
-                            pred_label = pred.split('/')[-1].split('#')[-1]
+                    # Get labels if available, with improved fallback
+                    # Use property_labels.json for English predicate labels
+                    pred_label = UniversalRagSystem._property_labels.get(pred)
+                    if not pred_label:
+                        # Fallback to local name if not in property_labels
+                        pred_label = pred.split('/')[-1].split('#')[-1]
 
-                        obj_label = result.get("objLabel", {}).get("value")
-                        if not obj_label:
-                            obj_label = self.get_entity_label(obj)
+                    obj_label = result.get("objLabel", {}).get("value")
+                    if not obj_label:
+                        obj_label = self.get_entity_label(obj)
 
-                        # Filter out self-referential relationships
-                        # Skip if same URI or same label (redundant statements)
-                        if uri == obj or (entity_label and obj_label and entity_label.lower() == obj_label.lower()):
-                            continue
+                    # Filter out self-referential relationships
+                    # Skip if same URI or same label (redundant statements)
+                    if uri == obj or (entity_label and obj_label and entity_label.lower() == obj_label.lower()):
+                        continue
 
-                        # Event-aware filtering:
-                        # For non-event starting entities at depth > 0, only include:
-                        # - Paths TO events (target is event)
-                        # - Connections FROM events to non-events (completing the chain)
-                        # This prevents pollution from unrelated event connections.
-                        current_is_event = is_event(uri)
-                        target_is_event = is_event(obj)
+                    # Event-aware filtering:
+                    # For non-event starting entities at depth > 0, only include:
+                    # - Connections FROM events to non-events (completing the chain)
+                    # This prevents pollution from unrelated event connections.
+                    current_is_event = is_event(uri)
 
-                        if start_is_event:
-                            # Starting entity is an event - include all connections
-                            should_include = True
-                            reason = "start_is_event"
-                        elif current_depth == 0:
-                            # Always include direct connections from starting entity
-                            should_include = True
-                            reason = "depth_0"
-                        elif current_is_event:
-                            # At depth > 0: only include if traversing FROM an event
-                            # Events are the "glue" - we traverse THROUGH them, not TO them
-                            # A non-event's production/creation events are about that entity,
-                            # not relevant to the starting entity's document
-                            should_include = True
-                            reason = "from_event"
-                        else:
-                            # Non-event at depth > 0: don't pull in connected events
-                            should_include = False
-                            reason = "non_event_skip"
+                    if start_is_event:
+                        # Starting entity is an event - include all connections
+                        should_include = True
+                        reason = "start_is_event"
+                    elif current_depth == 0:
+                        # Always include direct connections from starting entity
+                        should_include = True
+                        reason = "depth_0"
+                    elif current_is_event:
+                        # At depth > 0: only include if traversing FROM an event
+                        # Events are the "glue" - we traverse THROUGH them, not TO them
+                        should_include = True
+                        reason = "from_event"
+                    else:
+                        # Non-event at depth > 0: don't pull in connected events
+                        should_include = False
+                        reason = "non_event_skip"
 
-                        if DEBUG_TRAVERSAL:
-                            logger.debug(f"  [OUT d={current_depth}] {entity_label} --{pred_label}--> {obj_label}: {reason} -> include={should_include}")
+                    if DEBUG_TRAVERSAL:
+                        logger.debug(f"  [OUT d={current_depth}] {entity_label} --{pred_label}--> {obj_label}: {reason} -> include={should_include}")
 
-                        if not should_include:
-                            continue  # Skip this statement - not relevant to starting entity
+                    if not should_include:
+                        continue  # Skip this statement - not relevant to starting entity
 
-                        # Store raw triple if requested
-                        if return_triples:
-                            raw_triples.append({
-                                "subject": uri,
-                                "subject_label": entity_label,
-                                "predicate": pred,
-                                "predicate_label": pred_label,
-                                "object": obj,
-                                "object_label": obj_label
-                            })
+                    # Store raw triple if requested
+                    if return_triples:
+                        raw_triples.append({
+                            "subject": uri,
+                            "subject_label": entity_label,
+                            "predicate": pred,
+                            "predicate_label": pred_label,
+                            "object": obj,
+                            "object_label": obj_label
+                        })
 
-                        # Create natural language statement
-                        statement = self.process_cidoc_relationship(
-                            uri, pred, obj, entity_label, obj_label
-                        )
+                    # Create natural language statement
+                    statement = self.process_cidoc_relationship(
+                        uri, pred, obj, entity_label, obj_label
+                    )
 
-                        context_statements.append(statement)
+                    context_statements.append(statement)
 
-                        # Event-aware recursive traversal:
-                        # Only continue deeper if this connection involves events
-                        if current_depth < depth and should_include:
-                            traverse(obj, current_depth + 1, "both", came_from_event=current_is_event)
-                except Exception as e:
-                    logger.error(f"Error traversing outgoing relationships: {str(e)}")
+                    # Event-aware recursive traversal:
+                    # Only continue deeper if this connection involves events
+                    if current_depth < depth and should_include:
+                        traverse(obj, current_depth + 1)
+            except Exception as e:
+                logger.error(f"Error traversing outgoing relationships: {str(e)}")
 
-            # Get incoming relationships if direction is "both" or "incoming"
-            if direction in ["both", "incoming"]:
-                incoming_query = f"""
-                PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-                SELECT ?subj ?subjLabel ?pred WHERE {{
-                    ?subj ?pred <{uri}> .
-                    OPTIONAL {{ ?subj rdfs:label ?subjLabel }}
-                    FILTER(isURI(?subj))
-                }}
-                """
+            # Get incoming relationships
+            incoming_query = f"""
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            SELECT ?subj ?subjLabel ?pred WHERE {{
+                ?subj ?pred <{uri}> .
+                OPTIONAL {{ ?subj rdfs:label ?subjLabel }}
+                FILTER(isURI(?subj))
+            }}
+            """
 
-                try:
-                    self.sparql.setQuery(incoming_query)
-                    incoming_results = self.sparql.query().convert()
+            try:
+                self.sparql.setQuery(incoming_query)
+                incoming_results = self.sparql.query().convert()
 
-                    for result in incoming_results["results"]["bindings"]:
-                        subj = result["subj"]["value"]
-                        pred = result["pred"]["value"]
+                for result in incoming_results["results"]["bindings"]:
+                    subj = result["subj"]["value"]
+                    pred = result["pred"]["value"]
 
-                        # Filter out schema-level predicates
-                        if self.is_schema_predicate(pred):
-                            continue
+                    # Filter out schema-level predicates
+                    if self.is_schema_predicate(pred):
+                        continue
 
-                        # Get labels if available, with improved fallback
-                        subj_label = result.get("subjLabel", {}).get("value")
-                        if not subj_label:
-                            subj_label = self.get_entity_label(subj)
+                    # Get labels if available, with improved fallback
+                    subj_label = result.get("subjLabel", {}).get("value")
+                    if not subj_label:
+                        subj_label = self.get_entity_label(subj)
 
-                        # Use property_labels.json for English predicate labels
-                        pred_label = UniversalRagSystem._property_labels.get(pred)
-                        if not pred_label:
-                            # Fallback to local name if not in property_labels
-                            pred_label = pred.split('/')[-1].split('#')[-1]
+                    # Use property_labels.json for English predicate labels
+                    pred_label = UniversalRagSystem._property_labels.get(pred)
+                    if not pred_label:
+                        # Fallback to local name if not in property_labels
+                        pred_label = pred.split('/')[-1].split('#')[-1]
 
-                        # Filter out self-referential relationships
-                        # Skip if same URI or same label (redundant statements)
-                        if subj == uri or (subj_label and entity_label and subj_label.lower() == entity_label.lower()):
-                            continue
+                    # Filter out self-referential relationships
+                    # Skip if same URI or same label (redundant statements)
+                    if subj == uri or (subj_label and entity_label and subj_label.lower() == entity_label.lower()):
+                        continue
 
-                        # Event-aware filtering (same logic as outgoing)
-                        current_is_event = is_event(uri)
-                        target_is_event = is_event(subj)
+                    # Event-aware filtering (same logic as outgoing)
+                    current_is_event = is_event(uri)
 
-                        if start_is_event:
-                            should_include = True
-                            reason = "start_is_event"
-                        elif current_depth == 0:
-                            should_include = True
-                            reason = "depth_0"
-                        elif current_is_event:
-                            # At depth > 0: only include if traversing FROM an event
-                            # Events are the "glue" - we traverse THROUGH them, not TO them
-                            should_include = True
-                            reason = "from_event"
-                        else:
-                            # Non-event at depth > 0: don't pull in connected events
-                            should_include = False
-                            reason = "non_event_skip"
+                    if start_is_event:
+                        should_include = True
+                        reason = "start_is_event"
+                    elif current_depth == 0:
+                        should_include = True
+                        reason = "depth_0"
+                    elif current_is_event:
+                        # At depth > 0: only include if traversing FROM an event
+                        # Events are the "glue" - we traverse THROUGH them, not TO them
+                        should_include = True
+                        reason = "from_event"
+                    else:
+                        # Non-event at depth > 0: don't pull in connected events
+                        should_include = False
+                        reason = "non_event_skip"
 
-                        if DEBUG_TRAVERSAL:
-                            logger.debug(f"  [IN d={current_depth}] {subj_label} --{pred_label}--> {entity_label}: {reason} -> include={should_include}")
+                    if DEBUG_TRAVERSAL:
+                        logger.debug(f"  [IN d={current_depth}] {subj_label} --{pred_label}--> {entity_label}: {reason} -> include={should_include}")
 
-                        if not should_include:
-                            continue  # Skip this statement - not relevant to starting entity
+                    if not should_include:
+                        continue  # Skip this statement - not relevant to starting entity
 
-                        # Store raw triple if requested
-                        if return_triples:
-                            raw_triples.append({
-                                "subject": subj,
-                                "subject_label": subj_label,
-                                "predicate": pred,
-                                "predicate_label": pred_label,
-                                "object": uri,
-                                "object_label": entity_label
-                            })
+                    # Store raw triple if requested
+                    if return_triples:
+                        raw_triples.append({
+                            "subject": subj,
+                            "subject_label": subj_label,
+                            "predicate": pred,
+                            "predicate_label": pred_label,
+                            "object": uri,
+                            "object_label": entity_label
+                        })
 
-                        # Create natural language statement using INVERSE predicate
-                        # For incoming: Production P108 Painting → Painting P108i Production
-                        # This expresses the relationship from the current entity's perspective
-                        inverse_pred = self._get_inverse_predicate(pred)
-                        if DEBUG_TRAVERSAL:
-                            logger.debug(f"    Inverse: {pred.split('#')[-1]} -> {inverse_pred.split('#')[-1]}")
-                        statement = self.process_cidoc_relationship(
-                            uri, inverse_pred, subj, entity_label, subj_label
-                        )
-                        if DEBUG_TRAVERSAL:
-                            logger.debug(f"    Statement: {statement}")
+                    # Create natural language statement using INVERSE predicate
+                    # For incoming: Production P108 Painting → Painting P108i Production
+                    # This expresses the relationship from the current entity's perspective
+                    inverse_pred = self._get_inverse_predicate(pred)
+                    if DEBUG_TRAVERSAL:
+                        logger.debug(f"    Inverse: {pred.split('#')[-1]} -> {inverse_pred.split('#')[-1]}")
+                    statement = self.process_cidoc_relationship(
+                        uri, inverse_pred, subj, entity_label, subj_label
+                    )
+                    if DEBUG_TRAVERSAL:
+                        logger.debug(f"    Statement: {statement}")
 
-                        context_statements.append(statement)
+                    context_statements.append(statement)
 
-                        # NOTE: We do NOT traverse from incoming relationships.
-                        # Incoming relationships are "about" this entity from another entity's perspective.
-                        # Information flows FROM subject TO object, so we only traverse outgoing.
-                        # Example: "Atom carries Inscription" is the Atom's property, not the Inscription's.
-                        # The Inscription's document should not inherit the Atom's production info.
+                    # NOTE: We do NOT traverse from incoming relationships.
+                    # Incoming relationships are "about" this entity from another entity's perspective.
+                    # Information flows FROM subject TO object, so we only traverse outgoing.
 
-                except Exception as e:
-                    logger.error(f"Error traversing incoming relationships: {str(e)}")
+            except Exception as e:
+                logger.error(f"Error traversing incoming relationships: {str(e)}")
 
         # Start traversal
         traverse(entity_uri)
@@ -1994,7 +1978,7 @@ class UniversalRagSystem:
 
                     # Event-aware filtering for each starting entity
                     target_types = type_cache.get(obj, set())
-                    target_is_event = bool(target_types & event_classes)
+
 
                     for start_uri in origins:
                         start_is_event = starting_is_event.get(start_uri, False)
@@ -2059,7 +2043,7 @@ class UniversalRagSystem:
                         continue
 
                     target_types = type_cache.get(subj, set())
-                    target_is_event = bool(target_types & event_classes)
+
 
                     for start_uri in origins:
                         start_is_event = starting_is_event.get(start_uri, False)
@@ -2403,7 +2387,7 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
             logger.error(f"⚠ WARNING: Found {len(UniversalRagSystem._missing_classes)} classes NOT in ontology files!")
             logger.error("!" * 80)
             logger.warning("\nThese classes exist in your triplestore but their ontology definitions are")
-            logger.warning("NOT present in the 'ontology/' directory (CIDOC-CRM/VIR/CRMdig):")
+            logger.warning("NOT present in the 'data/ontologies/' directory (CIDOC-CRM/VIR/CRMdig):")
 
             # Sort for consistent output
             missing_classes_sorted = sorted(UniversalRagSystem._missing_classes)
@@ -2425,12 +2409,12 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
             logger.error("\n  STEP 2: Download or locate the ontology files (.ttl, .rdf, .owl)")
             logger.error("    • CIDOC-CRM extensions: https://www.cidoc-crm.org/extensions")
             logger.error("    • Custom ontologies: check your data provider or project docs")
-            logger.error("\n  STEP 3: Add ontology files to 'ontology/' directory")
-            logger.error("    $ cp /path/to/ontology.ttl ontology/")
+            logger.error("\n  STEP 3: Add ontology files to 'data/ontologies/' directory")
+            logger.error("    $ cp /path/to/ontology.ttl data/ontologies/")
             logger.error("\n  STEP 4: Extract labels from new ontology files")
-            logger.error("    $ python extract_ontology_labels.py")
+            logger.error("    $ python scripts/extract_ontology_labels.py")
             logger.error("\n  STEP 5: Rebuild RAG system (delete caches and re-run)")
-            logger.error("    $ rm -rf data/cache/document_graph.pkl data/cache/vector_index/ data/documents/entity_documents/")
+            logger.error("    $ rm -rf data/cache/<dataset_id>/ data/documents/<dataset_id>/")
             logger.error("\nCurrently using fallback strategy:")
             logger.error("  - Attempting to query labels from triplestore (English only)")
             logger.error("  - If no label found, deriving from URI local names")
@@ -2446,7 +2430,7 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
             logger.error(f"⚠ WARNING: Found {len(UniversalRagSystem._missing_properties)} properties NOT in ontology files!")
             logger.error("!" * 80)
             logger.warning("\nThese properties exist in your triplestore but their ontology definitions are")
-            logger.warning("NOT present in the 'ontology/' directory (CIDOC-CRM/VIR/CRMdig):")
+            logger.warning("NOT present in the 'data/ontologies/' directory (CIDOC-CRM/VIR/CRMdig):")
 
             # Sort for consistent output
             missing_props_sorted = sorted(UniversalRagSystem._missing_properties)
@@ -2468,12 +2452,12 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
             logger.error("\n  STEP 2: Download or locate the ontology files (.ttl, .rdf, .owl)")
             logger.error("    • CIDOC-CRM extensions: https://www.cidoc-crm.org/extensions")
             logger.error("    • Custom ontologies: check your data provider or project docs")
-            logger.error("\n  STEP 3: Add ontology files to 'ontology/' directory")
-            logger.error("    $ cp /path/to/ontology.ttl ontology/")
+            logger.error("\n  STEP 3: Add ontology files to 'data/ontologies/' directory")
+            logger.error("    $ cp /path/to/ontology.ttl data/ontologies/")
             logger.error("\n  STEP 4: Extract labels from new ontology files")
-            logger.error("    $ python extract_ontology_labels.py")
+            logger.error("    $ python scripts/extract_ontology_labels.py")
             logger.error("\n  STEP 5: Rebuild RAG system (delete caches and re-run)")
-            logger.error("    $ rm -rf data/cache/document_graph.pkl data/cache/vector_index/ data/documents/entity_documents/")
+            logger.error("    $ rm -rf data/cache/<dataset_id>/ data/documents/<dataset_id>/")
             logger.error("\nCurrently using fallback strategy:")
             logger.error("  - Deriving labels from property local names")
             logger.error("    Example: 'P1_is_identified_by' → 'is identified by'")
@@ -2502,7 +2486,7 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                     f.write("⚠ WARNING: ONTOLOGY FILES MISSING\n")
                     f.write("!" * 80 + "\n\n")
                     f.write("The ontology files for these classes/properties are NOT present in the\n")
-                    f.write("'ontology/' directory. To proceed with optimal use of the RAG system,\n")
+                    f.write("'data/ontologies/' directory. To proceed with optimal use of the RAG system,\n")
                     f.write("you MUST add the missing ontology files.\n\n")
 
                 if UniversalRagSystem._missing_classes:
@@ -2529,9 +2513,9 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                     f.write("Look at the URIs listed above. The namespace in the URI tells you which\n")
                     f.write("ontology defines these classes/properties:\n\n")
                     f.write("Example URI patterns and their ontologies:\n")
-                    f.write("  • http://www.cidoc-crm.org/cidoc-crm/...  → CIDOC-CRM (already in ontology/)\n")
-                    f.write("  • http://w3id.org/vir#...                  → VIR (already in ontology/)\n")
-                    f.write("  • http://www.ics.forth.gr/isl/CRMdig/...  → CRMdig (already in ontology/)\n")
+                    f.write("  • http://www.cidoc-crm.org/cidoc-crm/...  → CIDOC-CRM (already in data/ontologies/)\n")
+                    f.write("  • http://w3id.org/vir#...                  → VIR (already in data/ontologies/)\n")
+                    f.write("  • http://www.ics.forth.gr/isl/CRMdig/...  → CRMdig (already in data/ontologies/)\n")
                     f.write("  • http://erlangen-crm.org/...             → Erlangen CRM\n")
                     f.write("  • http://www.cidoc-crm.org/frbroo/...     → FRBRoo\n")
                     f.write("  • http://www.cidoc-crm.org/crmgeo/...     → CRMgeo\n")
@@ -2553,10 +2537,10 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
                     f.write("  • Check your project documentation\n")
                     f.write("  • Look for ontology files alongside your RDF data\n\n")
 
-                    f.write("STEP 3: Add ontology files to the 'ontology/' directory\n")
+                    f.write("STEP 3: Add ontology files to the 'data/ontologies/' directory\n")
                     f.write("-" * 80 + "\n")
-                    f.write("  $ cp /path/to/downloaded/ontology.ttl ontology/\n")
-                    f.write("  $ cp /path/to/custom/ontology.rdf ontology/\n\n")
+                    f.write("  $ cp /path/to/downloaded/ontology.ttl data/ontologies/\n")
+                    f.write("  $ cp /path/to/custom/ontology.rdf data/ontologies/\n\n")
                     f.write("Supported formats: .ttl, .rdf, .owl, .n3\n\n")
 
                     f.write("STEP 4: Extract labels from ontology files\n")
@@ -2569,10 +2553,9 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
                     f.write("STEP 5: Rebuild the RAG system\n")
                     f.write("-" * 80 + "\n")
-                    f.write("Delete cached data:\n")
-                    f.write("  $ rm -f data/cache/document_graph.pkl data/cache/document_graph_temp.pkl\n")
-                    f.write("  $ rm -rf data/cache/vector_index/\n")
-                    f.write("  $ rm -rf data/documents/entity_documents/\n\n")
+                    f.write("Delete cached data (replace <dataset_id> with your dataset):\n")
+                    f.write("  $ rm -rf data/cache/<dataset_id>/\n")
+                    f.write("  $ rm -rf data/documents/<dataset_id>/\n\n")
                     f.write("Re-run your initialization script to rebuild with new labels.\n\n")
 
                     f.write("!" * 80 + "\n")
@@ -2912,13 +2895,12 @@ Each file contains:
 
         return global_token_count, last_reset_time
 
-    def build_vector_store_batched(self, batch_size=RetrievalConfig.DEFAULT_BATCH_SIZE):
+    def build_vector_store_batched(self):
         """
         Build vector store using pre-computed embeddings from GraphDocument objects.
         This avoids redundant API calls since embeddings were already generated
         during document graph building.
         """
-        from langchain_community.vectorstores import FAISS
 
         vector_index_path = self._get_vector_index_dir()
         os.makedirs(vector_index_path, exist_ok=True)

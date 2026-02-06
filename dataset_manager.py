@@ -5,7 +5,7 @@ Manages multiple RAG system instances with lazy loading.
 
 import logging
 import os
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 
 logger = logging.getLogger(__name__)
 
@@ -23,13 +23,10 @@ class DatasetManager:
             llm_config: LLM configuration from .env files
         """
         self.datasets = datasets_config.get('datasets', {})
-        self.default_dataset = datasets_config.get('default_dataset')
         self.llm_config = llm_config
         self._rag_systems: Dict[str, Any] = {}  # Lazy-loaded RAG instances
 
         logger.info(f"DatasetManager initialized with {len(self.datasets)} datasets")
-        if self.default_dataset:
-            logger.info(f"Default dataset: {self.default_dataset}")
 
     def list_datasets(self) -> List[Dict[str, Any]]:
         """
@@ -196,27 +193,3 @@ class DatasetManager:
 
         return merged
 
-    def unload_dataset(self, dataset_id: str) -> bool:
-        """
-        Unload a dataset from memory to free resources.
-
-        Args:
-            dataset_id: The dataset identifier
-
-        Returns:
-            True if dataset was unloaded, False if it wasn't loaded
-        """
-        if dataset_id in self._rag_systems:
-            del self._rag_systems[dataset_id]
-            logger.info(f"Unloaded dataset from memory: {dataset_id}")
-            return True
-        return False
-
-    def get_loaded_datasets(self) -> List[str]:
-        """
-        Get list of currently loaded dataset IDs.
-
-        Returns:
-            List of dataset IDs that are currently in memory
-        """
-        return list(self._rag_systems.keys())

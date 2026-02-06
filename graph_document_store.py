@@ -1,6 +1,6 @@
 """
 Graph-based document store for universal RAG system.
-This replaces context-specific indices with a unified graph structure.
+Unified graph structure for document storage with weighted edges and vector retrieval.
 """
 
 import logging
@@ -173,7 +173,7 @@ class GraphDocumentStore:
         logger.info(f"Retrieved {len(retrieved_docs)} documents")
         return retrieved_docs
 
-    def create_adjacency_matrix(self, doc_ids, max_hops=3):
+    def create_adjacency_matrix(self, doc_ids, max_hops=2):
         """Create an adjacency matrix for a subgraph with multi-hop connections"""
         # Create a mapping of doc IDs to indices
         doc_to_idx = {doc_id: i for i, doc_id in enumerate(doc_ids)}

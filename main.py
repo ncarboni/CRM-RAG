@@ -11,7 +11,6 @@ import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 import logging
-import os
 import sys
 import argparse
 import shutil

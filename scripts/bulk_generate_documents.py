@@ -844,39 +844,6 @@ class BulkDocumentGenerator:
         return success_count
 
 
-def get_generator(dataset_id: str, base_dir: str = None, endpoint: str = None) -> "BulkDocumentGenerator":
-    """
-    Factory function to create and return an initialized BulkDocumentGenerator.
-
-    This function is useful for importing the generator from other scripts
-    (e.g., cluster_pipeline.py) without duplicating initialization logic.
-
-    Args:
-        dataset_id: Dataset identifier (from datasets.yaml)
-        base_dir: Base directory for the project (defaults to project root)
-        endpoint: Optional SPARQL endpoint URL (overrides datasets.yaml)
-
-    Returns:
-        Initialized BulkDocumentGenerator instance
-
-    Example:
-        from scripts.bulk_generate_documents import get_generator
-
-        generator = get_generator("mah")
-        generator.export_from_sparql(generator.endpoint)
-        generator.load_graph("data/exports/mah_dump.ttl")
-        generator.build_indexes()
-        generator.generate_all_documents(workers=8)
-    """
-    generator = BulkDocumentGenerator(dataset_id, base_dir)
-
-    # Override endpoint if provided
-    if endpoint:
-        generator.endpoint = endpoint
-
-    return generator
-
-
 def main():
     parser = argparse.ArgumentParser(description="Bulk generate entity documents from RDF")
     parser.add_argument("--dataset", required=True, help="Dataset ID (e.g., mah)")

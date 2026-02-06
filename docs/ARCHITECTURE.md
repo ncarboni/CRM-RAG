@@ -64,7 +64,7 @@ This system implements a **Retrieval-Augmented Generation (RAG)** pipeline speci
         │  1. ONTOLOGY EXTRACTION LAYER                 │
         │  (extract_ontology_labels.py)                 │
         │                                               │
-        │  Input:  ontology/*.ttl, *.rdf, *.owl        │
+        │  Input:  data/ontologies/*.ttl, *.rdf, *.owl  │
         │  Output: property_labels.json                 │
         │          ontology_classes.json                │
         │          class_labels.json                    │
@@ -182,7 +182,7 @@ This system implements a **Retrieval-Augmented Generation (RAG)** pipeline speci
 - `run_extraction()`: Main orchestrator that generates all JSON label files
 
 **Inputs**:
-- `ontology/*.ttl`, `*.rdf`, `*.owl`, `*.n3` files
+- `data/ontologies/*.ttl`, `*.rdf`, `*.owl`, `*.n3` files
 - CIDOC-CRM core and extensions (VIR, CRMdig, FRBRoo, etc.)
 
 **Outputs**:
@@ -943,8 +943,8 @@ class RetrievalConfig:
 
 **Steps**:
 1. Obtain ontology file (.ttl, .rdf, .owl)
-2. Copy to `ontology/` directory
-3. Run `python extract_ontology_labels.py`
+2. Copy to `data/ontologies/` directory
+3. Run `python scripts/extract_ontology_labels.py`
 4. Delete caches and rebuild:
    ```bash
    rm -rf document_graph.pkl vector_index/ entity_documents/

@@ -571,8 +571,6 @@ class R1Provider(BaseLLMProvider):
         self.embedding_model = embedding_model
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self._llm = None
-        self._embeddings = None
 
         # Create a secure session that doesn't use .netrc credentials
         # This prevents CVE-related .netrc credential leaks
@@ -581,8 +579,6 @@ class R1Provider(BaseLLMProvider):
         
     def generate(self, system_prompt: str, user_prompt: str) -> str:
         """Generate a response using R1 API"""
-        import json
-
         endpoint = "https://api.cohere.ai/v1/chat"
         headers = {
             "Authorization": f"Bearer {self.api_key}",

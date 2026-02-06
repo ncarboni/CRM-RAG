@@ -2,10 +2,11 @@
 """
 Benchmark Script for Document Generation Approaches
 
-Compares three approaches for generating entity documents:
-1. Individual SPARQL queries (current: universal_rag_system.py)
-2. Bulk TTL export + rdflib parsing (current: bulk_generate_documents.py)
-3. Batch SPARQL queries with VALUES clause (proposed)
+Compares approaches for generating entity documents:
+1. Individual SPARQL queries (universal_rag_system.py legacy path)
+2. Bulk TTL export + rdflib parsing (bulk_generate_documents.py)
+3. Batch SPARQL queries with VALUES clause (universal_rag_system.py batch path)
+4. Response format comparison: JSON vs TSV for batch queries
 
 Usage:
     # Run all benchmarks on asinou (small dataset for testing)
@@ -37,10 +38,9 @@ import logging
 import os
 import sys
 import time
-import traceback
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional
 import statistics
 
 # Add parent directory to path for imports

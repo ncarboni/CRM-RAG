@@ -2365,9 +2365,10 @@ class UniversalRagSystem:
 
             # Add metadata header to document
             # Quote label to handle values containing colons (YAML special char)
+            safe_entity_label = entity_label.replace('"', '\\"')
             metadata = f"""---
 URI: {entity_uri}
-Label: "{entity_label.replace('"', '\\"')}"
+Label: "{safe_entity_label}"
 Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 ---
 

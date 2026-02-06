@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/50e23006-5d0b-4936-8231-fd1a1e2540fe/
 Label: Wall paintings of 1332/33
-Generated: 2026-02-05 11:50:39
+Generated: 2026-02-06 09:01:09
 ---
 
 # Wall paintings of 1332/33

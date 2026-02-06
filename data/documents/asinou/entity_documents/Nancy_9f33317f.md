@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/location/1435d1b4-acef-4a36-a7f0-4c9e1ae4e880/
 Label: Nancy
-Generated: 2026-02-05 11:50:40
+Generated: 2026-02-06 09:01:10
 ---
 
 # Nancy

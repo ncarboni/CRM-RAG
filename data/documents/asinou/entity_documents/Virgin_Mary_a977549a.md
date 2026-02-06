@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/04cac897-30b7-42da-aaea-9d85b60511c5/
 Label: Virgin Mary
-Generated: 2026-02-05 11:50:37
+Generated: 2026-02-06 09:01:07
 ---
 
 # Virgin Mary

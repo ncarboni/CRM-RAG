@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/character/f41bece1-d1ef-409f-885b-474bf25886ad
 Label: Wife of Michael Katzouroumpos
-Generated: 2026-02-05 11:50:37
+Generated: 2026-02-06 09:01:07
 ---
 
 # Wife of Michael Katzouroumpos

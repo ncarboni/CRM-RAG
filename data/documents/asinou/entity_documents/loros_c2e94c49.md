@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/7dc9ab11-6dd4-4b27-849d-dba520d48b2d
 Label: loros
-Generated: 2026-02-05 11:50:37
+Generated: 2026-02-06 09:01:07
 ---
 
 # loros

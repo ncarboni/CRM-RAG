@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/physical/cc650e09-d26f-4aec-b8df-9ccd8ac21821
 Label: Church of the Virgin
-Generated: 2026-02-05 11:50:38
+Generated: 2026-02-06 09:01:08
 ---
 
 # Church of the Virgin
@@ -18,7 +18,7 @@ URI: http://map.cnrs.fr/semantics/physical/cc650e09-d26f-4aec-b8df-9ccd8ac21821
 
 ## Relationships
 
-- Church of the Virgin was modified by Painting of Anastasia
-- Church of the Virgin is classified as type: Church
 - Church of the Virgin bears feature Saint Mamas
+- Church of the Virgin is classified as type: Church
 - Church of the Virgin bears feature Anastasia
+- Church of the Virgin was modified by Painting of Anastasia

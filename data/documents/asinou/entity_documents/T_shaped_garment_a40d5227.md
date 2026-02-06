@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/d2058159-5ec7-4539-9909-c9636c09ced4
 Label: T-shaped garment
-Generated: 2026-02-05 11:50:37
+Generated: 2026-02-06 09:01:06
 ---
 
 # T-shaped garment

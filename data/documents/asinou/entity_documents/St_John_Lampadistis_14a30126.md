@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/physical/372f9c0f-4112-4bdc-a804-022530a76592
 Label: St. John Lampadistis
-Generated: 2026-02-05 11:50:35
+Generated: 2026-02-06 09:01:05
 ---
 
 # St. John Lampadistis
@@ -18,8 +18,8 @@ URI: http://map.cnrs.fr/semantics/physical/372f9c0f-4112-4bdc-a804-022530a76592
 
 ## Relationships
 
-- St. John Lampadistis is composed of Narthex
 - St. John Lampadistis bears feature Last judgment
-- St. John Lampadistis was modified by Painting of the last Judgment
 - St. John Lampadistis is classified as type: Church
+- St. John Lampadistis is composed of Narthex
 - St. John Lampadistis is identified by Άγιος Ιωάννης ο Λαμπαδιστής
+- St. John Lampadistis was modified by Painting of the last Judgment

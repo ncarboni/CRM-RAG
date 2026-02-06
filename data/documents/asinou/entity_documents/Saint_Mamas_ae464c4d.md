@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/character/f74d5c31-5d7e-4c26-9124-f4d93e99d915
 Label: Saint Mamas
-Generated: 2026-02-05 11:50:37
+Generated: 2026-02-06 09:01:07
 ---
 
 # Saint Mamas

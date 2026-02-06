@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/physical/578fd3ad-5fb3-4b48-a123-c32a30a6cbc3
 Label: Palaia Enkleistra
-Generated: 2026-02-05 11:50:37
+Generated: 2026-02-06 09:01:07
 ---
 
 # Palaia Enkleistra
@@ -18,7 +18,7 @@ URI: http://map.cnrs.fr/semantics/physical/578fd3ad-5fb3-4b48-a123-c32a30a6cbc3
 
 ## Relationships
 
-- Palaia Enkleistra bears feature Anastasia
+- Palaia Enkleistra is classified as type: Church
 - Palaia Enkleistra is identified by Παλαιά Εγκλείστρα
 - Palaia Enkleistra was modified by Painting of Anastasia
-- Palaia Enkleistra is classified as type: Church
+- Palaia Enkleistra bears feature Anastasia

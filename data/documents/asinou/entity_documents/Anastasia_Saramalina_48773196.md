@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/7eb6aaa7-78fa-425d-a907-b30d524ada17/
 Label: Anastasia Saramalina
-Generated: 2026-02-05 11:50:37
+Generated: 2026-02-06 09:01:07
 ---
 
 # Anastasia Saramalina

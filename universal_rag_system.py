@@ -23,7 +23,7 @@ import yaml
 import numpy as np
 import networkx as nx
 from tqdm import tqdm
-from SPARQLWrapper import SPARQLWrapper, JSON
+from SPARQLWrapper import SPARQLWrapper, JSON, TSV, POST
 
 # Langchain imports
 from langchain_core.documents import Document
@@ -104,6 +104,7 @@ class UniversalRagSystem:
         self.data_dir = data_dir  # None means use default 'data/' directory
         self.sparql = SPARQLWrapper(endpoint_url)
         self.sparql.setReturnFormat(JSON)
+        self.sparql.setMethod(POST)
 
         # Reset per-dataset tracking sets to avoid cross-dataset contamination
         # These track missing ontology elements for validation reports
@@ -1531,6 +1532,48 @@ class UniversalRagSystem:
     # These methods replace per-entity queries with batch queries using VALUES clause
     # for 400-1600x speedup on large datasets.
 
+    def _batch_query_tsv(self, query: str) -> List[List[str]]:
+        """
+        Execute a SPARQL query using TSV format for 3x faster parsing.
+
+        TSV returns raw bytes with tab-separated values. URIs are wrapped in <...>,
+        literals in "..." with optional @lang or ^^type suffixes.
+
+        Returns:
+            List of rows, each row being a list of raw string values (URIs unwrapped).
+        """
+        self.sparql.setQuery(query)
+        self.sparql.setReturnFormat(TSV)
+        self.sparql.setMethod(POST)
+        raw = self.sparql.query().convert()
+        # Restore default format for non-batch queries
+        self.sparql.setReturnFormat(JSON)
+
+        rows = []
+        lines = raw.decode('utf-8').split('\n')
+        for line in lines[1:]:  # skip header
+            if not line.strip():
+                continue
+            cols = line.split('\t')
+            # Unwrap URIs: <http://...> -> http://...
+            # Extract literal values: "value"@en -> value, "value"^^<type> -> value
+            parsed = []
+            for col in cols:
+                if col.startswith('<') and col.endswith('>'):
+                    parsed.append(col[1:-1])
+                elif col.startswith('"'):
+                    # Strip quotes, language tags, and datatype suffixes
+                    # Formats: "val", "val"@en, "val"^^<xsd:string>
+                    end_quote = col.rfind('"')
+                    if end_quote > 0:
+                        parsed.append(col[1:end_quote])
+                    else:
+                        parsed.append(col.strip('"'))
+                else:
+                    parsed.append(col)
+            rows.append(parsed)
+        return rows
+
     def _escape_uri_for_values(self, uri: str) -> str:
         """Escape a URI for use in SPARQL VALUES clause."""
         # Handle special characters that might break SPARQL
@@ -1575,16 +1618,13 @@ class UniversalRagSystem:
             """
 
             try:
-                self.sparql.setQuery(query)
-                results = self.sparql.query().convert()
-
-                for binding in results["results"]["bindings"]:
-                    entity = binding["entity"]["value"]
-                    type_uri = binding["type"]["value"]
-
-                    if entity not in result:
-                        result[entity] = set()
-                    result[entity].add(type_uri)
+                rows = self._batch_query_tsv(query)
+                for row in rows:
+                    if len(row) >= 2:
+                        entity, type_uri = row[0], row[1]
+                        if entity not in result:
+                            result[entity] = set()
+                        result[entity].add(type_uri)
 
             except Exception as e:
                 logger.warning(f"Batch type query failed for batch {i//batch_size}: {str(e)}")
@@ -1633,18 +1673,14 @@ class UniversalRagSystem:
             """
 
             try:
-                self.sparql.setQuery(query)
-                results = self.sparql.query().convert()
-
-                for binding in results["results"]["bindings"]:
-                    entity = binding["entity"]["value"]
-                    pred = binding["p"]["value"]
-                    obj = binding["o"]["value"]
-                    obj_label = binding.get("oLabel", {}).get("value")
-
-                    if entity not in result:
-                        result[entity] = []
-                    result[entity].append((pred, obj, obj_label))
+                rows = self._batch_query_tsv(query)
+                for row in rows:
+                    if len(row) >= 3:
+                        entity, pred, obj = row[0], row[1], row[2]
+                        obj_label = row[3] if len(row) >= 4 and row[3] else None
+                        if entity not in result:
+                            result[entity] = []
+                        result[entity].append((pred, obj, obj_label))
 
             except Exception as e:
                 logger.warning(f"Batch outgoing query failed for batch {i//batch_size}: {str(e)}")
@@ -1695,18 +1731,14 @@ class UniversalRagSystem:
             """
 
             try:
-                self.sparql.setQuery(query)
-                results = self.sparql.query().convert()
-
-                for binding in results["results"]["bindings"]:
-                    entity = binding["entity"]["value"]
-                    subj = binding["s"]["value"]
-                    pred = binding["p"]["value"]
-                    subj_label = binding.get("sLabel", {}).get("value")
-
-                    if entity not in result:
-                        result[entity] = []
-                    result[entity].append((subj, pred, subj_label))
+                rows = self._batch_query_tsv(query)
+                for row in rows:
+                    if len(row) >= 3:
+                        subj, pred, entity = row[0], row[1], row[2]
+                        subj_label = row[3] if len(row) >= 4 and row[3] else None
+                        if entity not in result:
+                            result[entity] = []
+                        result[entity].append((subj, pred, subj_label))
 
             except Exception as e:
                 logger.warning(f"Batch incoming query failed for batch {i//batch_size}: {str(e)}")
@@ -1755,22 +1787,17 @@ class UniversalRagSystem:
             """
 
             try:
-                self.sparql.setQuery(query)
-                results = self.sparql.query().convert()
-
-                for binding in results["results"]["bindings"]:
-                    entity = binding["entity"]["value"]
-                    prop = binding["property"]["value"]
-                    value = binding["value"]["value"]
-
-                    # Store by property local name
-                    prop_name = prop.split('/')[-1].split('#')[-1]
-
-                    if entity not in result:
-                        result[entity] = {}
-                    if prop_name not in result[entity]:
-                        result[entity][prop_name] = []
-                    result[entity][prop_name].append(value)
+                rows = self._batch_query_tsv(query)
+                for row in rows:
+                    if len(row) >= 3:
+                        entity, prop, value = row[0], row[1], row[2]
+                        # Store by property local name
+                        prop_name = prop.split('/')[-1].split('#')[-1]
+                        if entity not in result:
+                            result[entity] = {}
+                        if prop_name not in result[entity]:
+                            result[entity][prop_name] = []
+                        result[entity][prop_name].append(value)
 
             except Exception as e:
                 logger.warning(f"Batch literals query failed for batch {i//batch_size}: {str(e)}")
@@ -1824,13 +1851,11 @@ class UniversalRagSystem:
             """
 
             try:
-                self.sparql.setQuery(query)
-                results = self.sparql.query().convert()
-
-                for binding in results["results"]["bindings"]:
-                    type_uri = binding["type"]["value"]
-                    label = binding["label"]["value"]
-                    result[type_uri] = label
+                rows = self._batch_query_tsv(query)
+                for row in rows:
+                    if len(row) >= 2:
+                        type_uri, label = row[0], row[1]
+                        result[type_uri] = label
 
             except Exception as e:
                 logger.warning(f"Batch type labels query failed: {str(e)}")

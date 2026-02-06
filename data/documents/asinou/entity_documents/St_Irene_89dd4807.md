@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/physical/1efd5397-8ffe-45c7-97ae-21b2f9d5d90c
 Label: St Irene
-Generated: 2026-02-05 11:50:40
+Generated: 2026-02-06 09:01:10
 ---
 
 # St Irene
@@ -19,5 +19,5 @@ URI: http://map.cnrs.fr/semantics/physical/1efd5397-8ffe-45c7-97ae-21b2f9d5d90c
 ## Relationships
 
 - St Irene has current location spatial
-- St Irene is identified by Ἁγία Εἰρήνη
 - St Irene is classified as type: Church
+- St Irene is identified by Ἁγία Εἰρήνη

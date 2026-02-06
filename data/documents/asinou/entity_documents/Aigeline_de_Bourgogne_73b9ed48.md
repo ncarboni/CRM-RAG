@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/530bfbb3-7c3b-4917-b332-c4f38f24d4b7/
 Label: Aigeline de Bourgogne
-Generated: 2026-02-05 11:50:37
+Generated: 2026-02-06 09:01:07
 ---
 
 # Aigeline de Bourgogne

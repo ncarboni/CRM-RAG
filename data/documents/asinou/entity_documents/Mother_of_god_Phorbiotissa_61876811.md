@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/visual/atom/99033646-e639-4de9-94b4-6ccd1e7785e2
 Label: Mother of god Phorbiotissa
-Generated: 2026-02-05 11:50:43
+Generated: 2026-02-06 09:01:13
 ---
 
 # Mother of god Phorbiotissa

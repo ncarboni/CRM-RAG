@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/type/9b81f415-d2ae-4381-86a5-47514ed9a35c
 Label: Architectural addition
-Generated: 2026-02-05 11:50:37
+Generated: 2026-02-06 09:01:07
 ---
 
 # Architectural addition

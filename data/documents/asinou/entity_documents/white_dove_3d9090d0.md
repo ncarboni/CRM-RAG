@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/attribute/c316adb9-69bb-458d-9ac4-3f1d350a407d
 Label: white dove
-Generated: 2026-02-05 11:50:37
+Generated: 2026-02-06 09:01:06
 ---
 
 # white dove
@@ -19,5 +19,5 @@ URI: http://map.cnrs.fr/semantics/attribute/c316adb9-69bb-458d-9ac4-3f1d350a407d
 
 ## Relationships
 
-- white dove is attribute of Preparation of the throne
 - white dove symbolize Holy spirit
+- white dove is attribute of Preparation of the throne

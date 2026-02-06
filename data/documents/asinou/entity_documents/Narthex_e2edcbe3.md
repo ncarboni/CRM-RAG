@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/047ab215-997b-4c07-a767-bbec47772f0b/
 Label: Narthex
-Generated: 2026-02-05 11:50:36
+Generated: 2026-02-06 09:01:05
 ---
 
 # Narthex

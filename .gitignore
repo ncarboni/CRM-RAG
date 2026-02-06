@@ -65,3 +65,9 @@ htmlcov/
 
 # User-specific SLURM job scripts
 scripts/pipeline.sbatch
+
+#Qlever
+qlever/
+
+#Benchmark
+benchmarks/

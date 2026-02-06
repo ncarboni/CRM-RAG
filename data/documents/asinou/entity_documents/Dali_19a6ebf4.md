@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/8626adf2-e33b-4aa7-b351-d7feb1f3d2e0/
 Label: Dali
-Generated: 2026-02-05 11:50:43
+Generated: 2026-02-06 09:01:13
 ---
 
 # Dali

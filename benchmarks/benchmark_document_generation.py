@@ -47,7 +47,7 @@ import statistics
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import requests
-from SPARQLWrapper import SPARQLWrapper, JSON
+from SPARQLWrapper import SPARQLWrapper, JSON, TSV, POST
 from config_loader import ConfigLoader
 
 logging.basicConfig(
@@ -66,6 +66,7 @@ class DocumentGenerationBenchmark:
         self.output_dir = output_dir
         self.sparql = SPARQLWrapper(endpoint)
         self.sparql.setReturnFormat(JSON)
+        self.sparql.setMethod(POST)
 
         # Results storage
         self.results = {
@@ -434,7 +435,6 @@ class DocumentGenerationBenchmark:
                     start = time.time()
                     try:
                         self.sparql.setQuery(outgoing_query)
-                        self.sparql.setReturnFormat(JSON)
                         results = self.sparql.query().convert()
                         elapsed = time.time() - start
                         total_time += elapsed
@@ -463,7 +463,6 @@ class DocumentGenerationBenchmark:
                     start = time.time()
                     try:
                         self.sparql.setQuery(incoming_query)
-                        self.sparql.setReturnFormat(JSON)
                         results = self.sparql.query().convert()
                         elapsed = time.time() - start
                         total_time += elapsed
@@ -499,8 +498,10 @@ class DocumentGenerationBenchmark:
             logger.info(f"    Total: {total_time:.2f}s, {total_queries} queries, "
                        f"{total_triples} triples, {len(visited)} URIs visited")
 
-        # Find best batch size
-        best_batch = min(all_batch_results.items(), key=lambda x: x[1]["total_time_sec"])
+        # Find best batch size: prefer error-free results, then fastest time
+        error_free = {k: v for k, v in all_batch_results.items() if v["error_count"] == 0}
+        candidates = error_free if error_free else all_batch_results
+        best_batch = min(candidates.items(), key=lambda x: x[1]["total_time_sec"])
 
         result = {
             "approach": "batch",
@@ -513,6 +514,153 @@ class DocumentGenerationBenchmark:
         }
 
         return result
+
+    @staticmethod
+    def _parse_tsv_uri(value: str) -> Optional[str]:
+        """Extract URI from TSV value like <http://...>. Returns None for literals."""
+        if value.startswith('<') and value.endswith('>'):
+            return value[1:-1]
+        return None
+
+    def _query_tsv(self, query: str) -> bytes:
+        """Execute a SPARQL query and return raw TSV bytes."""
+        self.sparql.setQuery(query)
+        self.sparql.setReturnFormat(TSV)
+        return self.sparql.query().convert()
+
+    def _query_json(self, query: str) -> dict:
+        """Execute a SPARQL query and return parsed JSON dict."""
+        self.sparql.setQuery(query)
+        self.sparql.setReturnFormat(JSON)
+        return self.sparql.query().convert()
+
+    def benchmark_format_comparison(self, entities: List[str], batch_size: int = 1000,
+                                     depth: int = 2) -> Dict[str, Any]:
+        """
+        Benchmark JSON vs TSV response formats for batch SPARQL queries.
+
+        Runs the same BFS traversal twice — once with JSON, once with TSV —
+        to measure the impact of response format on total time.
+        """
+        logger.info(f"=== Benchmarking FORMAT COMPARISON: JSON vs TSV ({len(entities)} entities, "
+                     f"batch_size={batch_size}, depth={depth}) ===")
+
+        format_results = {}
+
+        for fmt in ["json", "tsv"]:
+            logger.info(f"  Testing format={fmt}...")
+
+            total_time = 0
+            total_queries = 0
+            total_triples = 0
+            total_bytes = 0
+            errors = []
+
+            visited = set()
+            current_level_uris = set(entities)
+
+            for current_depth in range(depth + 1):
+                uris_to_query = [u for u in current_level_uris if u not in visited]
+                if not uris_to_query:
+                    break
+
+                visited.update(uris_to_query)
+                next_level_uris = set()
+
+                logger.info(f"    Depth {current_depth}: {len(uris_to_query)} URIs to query")
+
+                for i in range(0, len(uris_to_query), batch_size):
+                    batch = uris_to_query[i:i + batch_size]
+                    values_clause = " ".join(f"<{uri}>" for uri in batch)
+
+                    for direction in ["outgoing", "incoming"]:
+                        if direction == "outgoing":
+                            query = f"""
+                            SELECT ?entity ?p ?o WHERE {{
+                                VALUES ?entity {{ {values_clause} }}
+                                ?entity ?p ?o .
+                                FILTER(isURI(?o))
+                            }}
+                            """
+                            uri_col = 2  # ?o is 3rd column (index 2)
+                            json_key = "o"
+                        else:
+                            query = f"""
+                            SELECT ?s ?p ?entity WHERE {{
+                                VALUES ?entity {{ {values_clause} }}
+                                ?s ?p ?entity .
+                                FILTER(isURI(?s))
+                            }}
+                            """
+                            uri_col = 0  # ?s is 1st column (index 0)
+                            json_key = "s"
+
+                        start = time.time()
+                        try:
+                            if fmt == "json":
+                                results = self._query_json(query)
+                                elapsed = time.time() - start
+                                for binding in results["results"]["bindings"]:
+                                    total_triples += 1
+                                    uri = binding[json_key]["value"]
+                                    if uri not in visited:
+                                        next_level_uris.add(uri)
+                            else:
+                                raw = self._query_tsv(query)
+                                elapsed = time.time() - start
+                                total_bytes += len(raw)
+                                lines = raw.decode('utf-8').split('\n')
+                                for line in lines[1:]:  # skip header
+                                    if not line.strip():
+                                        continue
+                                    total_triples += 1
+                                    cols = line.split('\t')
+                                    uri = self._parse_tsv_uri(cols[uri_col])
+                                    if uri and uri not in visited:
+                                        next_level_uris.add(uri)
+
+                            total_time += elapsed
+                            total_queries += 1
+
+                        except Exception as e:
+                            elapsed = time.time() - start
+                            total_time += elapsed
+                            errors.append({"depth": current_depth, "batch": i,
+                                          "query": direction, "error": str(e)})
+
+                current_level_uris = next_level_uris
+
+            format_results[fmt] = {
+                "format": fmt,
+                "batch_size": batch_size,
+                "depth": depth,
+                "total_time_sec": total_time,
+                "total_queries": total_queries,
+                "total_triples": total_triples,
+                "total_uris_visited": len(visited),
+                "error_count": len(errors),
+                "errors": errors[:5],
+                "avg_time_per_entity_ms": (total_time / len(entities)) * 1000,
+                "throughput_entities_per_sec": len(entities) / total_time if total_time > 0 else 0,
+            }
+            if fmt == "tsv":
+                format_results[fmt]["total_response_bytes"] = total_bytes
+
+            logger.info(f"    Total: {total_time:.2f}s, {total_queries} queries, "
+                        f"{total_triples} triples, {len(visited)} URIs visited")
+
+        # Compute speedup
+        json_time = format_results["json"]["total_time_sec"]
+        tsv_time = format_results["tsv"]["total_time_sec"]
+        if tsv_time > 0:
+            format_results["speedup"] = json_time / tsv_time
+        else:
+            format_results["speedup"] = 0
+
+        logger.info(f"  JSON: {json_time:.2f}s, TSV: {tsv_time:.2f}s, "
+                     f"speedup: {format_results['speedup']:.2f}x")
+
+        return format_results
 
     def run_all_benchmarks(self, entities: List[str], batch_sizes: List[int] = None,
                            approaches: List[str] = None, depth: int = 2) -> Dict[str, Any]:
@@ -531,6 +679,13 @@ class DocumentGenerationBenchmark:
 
         if "batch" in approaches:
             self.results["approaches"]["batch"] = self.benchmark_batch_queries(entities, batch_sizes, depth=depth)
+
+        if "format" in approaches:
+            best_batch_size = 1000
+            if "batch" in self.results.get("approaches", {}):
+                best_batch_size = self.results["approaches"]["batch"].get("best_batch_size", 1000)
+            self.results["approaches"]["format"] = self.benchmark_format_comparison(
+                entities, batch_size=best_batch_size, depth=depth)
 
         return self.results
 
@@ -627,6 +782,25 @@ class DocumentGenerationBenchmark:
                 f"",
             ])
 
+        if "format" in r["approaches"]:
+            fmt = r["approaches"]["format"]
+            json_r = fmt["json"]
+            tsv_r = fmt["tsv"]
+            speedup = fmt.get("speedup", 0)
+            lines.extend([
+                f"## Response Format Comparison (JSON vs TSV)",
+                f"",
+                f"Same batch traversal (batch_size={json_r['batch_size']}, depth={json_r['depth']}), different response formats.",
+                f"",
+                f"| Format | Time | Queries | Triples | URIs Visited | Throughput | Errors |",
+                f"|--------|------|---------|---------|--------------|------------|--------|",
+                f"| JSON | {json_r['total_time_sec']:.2f}s | {json_r['total_queries']} | {json_r['total_triples']} | {json_r['total_uris_visited']} | {json_r['throughput_entities_per_sec']:.1f} ent/s | {json_r['error_count']} |",
+                f"| TSV | {tsv_r['total_time_sec']:.2f}s | {tsv_r['total_queries']} | {tsv_r['total_triples']} | {tsv_r['total_uris_visited']} | {tsv_r['throughput_entities_per_sec']:.1f} ent/s | {tsv_r['error_count']} |",
+                f"",
+                f"**TSV speedup**: {speedup:.2f}x",
+                f"",
+            ])
+
         # Recommendations
         lines.extend([
             f"## Recommendations",
@@ -677,40 +851,110 @@ class DocumentGenerationBenchmark:
         return json_path, md_path
 
 
+def generate_comparison_report(all_results: Dict[str, Dict], dataset: str, entity_count: int, depth: int) -> str:
+    """Generate a markdown report comparing results across multiple servers."""
+    lines = [
+        "# Multi-Server Benchmark Comparison",
+        "",
+        "## Metadata",
+        f"- **Dataset**: {dataset}",
+        f"- **Timestamp**: {datetime.now().isoformat()}",
+        f"- **Entity Count**: {entity_count}",
+        f"- **Traversal Depth**: {depth} (bidirectional: outgoing + incoming)",
+        f"- **Servers tested**: {', '.join(all_results.keys())}",
+        "",
+        "## Comparison",
+        "",
+        "| Server | Approach | Total Time | Queries | Throughput | Notes |",
+        "|--------|----------|------------|---------|------------|-------|",
+    ]
+
+    for server_name, results in all_results.items():
+        for approach_name, data in results.get("approaches", {}).items():
+            if approach_name == "individual":
+                lines.append(
+                    f"| {server_name} | Individual | {data['total_time_sec']:.2f}s | "
+                    f"{data['total_queries']} | {data['throughput_entities_per_sec']:.1f} ent/s | "
+                    f"{data['error_count']} errors |"
+                )
+            elif approach_name == "bulk":
+                if "error" not in data:
+                    lines.append(
+                        f"| {server_name} | Bulk Export | {data['total_time_sec']:.2f}s | "
+                        f"1 | {data['throughput_entities_per_sec']:.1f} ent/s | "
+                        f"{data['export_size_mb']:.1f}MB export |"
+                    )
+                else:
+                    lines.append(f"| {server_name} | Bulk Export | FAILED | - | - | {data['error']} |")
+            elif approach_name == "batch":
+                best = data["batch_results"][f"batch_{data['best_batch_size']}"]
+                lines.append(
+                    f"| {server_name} | Batch (best) | {data['best_total_time_sec']:.2f}s | "
+                    f"{best['total_queries']} | {data['best_throughput']:.1f} ent/s | "
+                    f"batch_size={data['best_batch_size']} |"
+                )
+
+    # Find overall fastest
+    lines.extend(["", "## Fastest per Approach", ""])
+    approach_times = {}  # approach -> [(server, time)]
+    for server_name, results in all_results.items():
+        for approach_name, data in results.get("approaches", {}).items():
+            if approach_name == "individual":
+                t = data["total_time_sec"]
+            elif approach_name == "bulk" and "error" not in data:
+                t = data["total_time_sec"]
+            elif approach_name == "batch":
+                t = data["best_total_time_sec"]
+            else:
+                continue
+            if approach_name not in approach_times:
+                approach_times[approach_name] = []
+            approach_times[approach_name].append((server_name, t))
+
+    for approach, entries in sorted(approach_times.items()):
+        if len(entries) > 1:
+            entries.sort(key=lambda x: x[1])
+            fastest_name, fastest_time = entries[0]
+            slowest_name, slowest_time = entries[-1]
+            speedup = slowest_time / fastest_time if fastest_time > 0 else 0
+            lines.append(f"- **{approach}**: {fastest_name} ({fastest_time:.2f}s) is {speedup:.1f}x faster than {slowest_name} ({slowest_time:.2f}s)")
+        else:
+            lines.append(f"- **{approach}**: {entries[0][0]} ({entries[0][1]:.2f}s)")
+
+    lines.extend(["", "---", "*Generated by benchmark_document_generation.py*"])
+    return "\n".join(lines)
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Benchmark document generation approaches")
+    parser = argparse.ArgumentParser(
+        description="Benchmark document generation approaches",
+        epilog="""
+Examples:
+  # Single server (from datasets.yaml):
+  %(prog)s --dataset mah --approach batch --limit 100
+
+  # Compare two servers:
+  %(prog)s --dataset mah --servers fuseki=http://localhost:3030/MAH/sparql qlever=http://localhost:7001
+
+  # Compare servers with specific approach:
+  %(prog)s --dataset mah --servers fuseki=http://localhost:3030/MAH/sparql qlever=http://localhost:7001 --approach batch --limit 100
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("--dataset", required=True, help="Dataset ID (e.g., asinou, mah)")
-    parser.add_argument("--endpoint", help="SPARQL endpoint URL (overrides datasets.yaml)")
+    parser.add_argument("--endpoint", help="SPARQL endpoint URL (overrides datasets.yaml, single server mode)")
+    parser.add_argument("--servers", nargs="+", metavar="NAME=URL",
+                        help="Named servers to compare (e.g., fuseki=http://localhost:3030/MAH/sparql qlever=http://localhost:7001)")
     parser.add_argument("--limit", type=int, help="Limit number of entities to test")
     parser.add_argument("--depth", type=int, default=2,
                         help="Traversal depth for multi-hop queries (default: 2)")
-    parser.add_argument("--approach", choices=["individual", "bulk", "batch", "all"],
-                        default="all", help="Which approach to benchmark")
+    parser.add_argument("--approach", choices=["individual", "bulk", "batch", "format", "all"],
+                        default="all", help="Which approach to benchmark (format = JSON vs TSV comparison)")
     parser.add_argument("--batch-sizes", default="100,500,1000",
                         help="Comma-separated batch sizes to test (default: 100,500,1000)")
     parser.add_argument("--output-dir", help="Output directory for results")
 
     args = parser.parse_args()
-
-    # Load endpoint from config if not provided
-    if args.endpoint:
-        endpoint = args.endpoint
-    else:
-        datasets_config = ConfigLoader.load_datasets_config()
-        if args.dataset not in datasets_config.get("datasets", {}):
-            logger.error(f"Dataset '{args.dataset}' not found in config/datasets.yaml")
-            sys.exit(1)
-        endpoint = datasets_config["datasets"][args.dataset].get("endpoint")
-        if not endpoint:
-            logger.error(f"No endpoint configured for dataset '{args.dataset}'")
-            sys.exit(1)
-
-    # Set up output directory
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    if args.output_dir:
-        output_dir = Path(args.output_dir)
-    else:
-        output_dir = Path(__file__).parent / "results" / f"{args.dataset}_{timestamp}"
 
     # Parse batch sizes
     batch_sizes = [int(x.strip()) for x in args.batch_sizes.split(",")]
@@ -721,33 +965,93 @@ def main():
     else:
         approaches = [args.approach]
 
-    # Run benchmark
+    # Build server list: name -> endpoint URL
+    servers = {}
+    if args.servers:
+        for spec in args.servers:
+            if "=" not in spec:
+                parser.error(f"Invalid server spec '{spec}'. Use NAME=URL format (e.g., fuseki=http://localhost:3030/MAH/sparql)")
+            name, url = spec.split("=", 1)
+            servers[name] = url
+    elif args.endpoint:
+        servers["default"] = args.endpoint
+    else:
+        datasets_config = ConfigLoader.load_datasets_config()
+        if args.dataset not in datasets_config.get("datasets", {}):
+            logger.error(f"Dataset '{args.dataset}' not found in config/datasets.yaml")
+            sys.exit(1)
+        endpoint = datasets_config["datasets"][args.dataset].get("endpoint")
+        if not endpoint:
+            logger.error(f"No endpoint configured for dataset '{args.dataset}'")
+            sys.exit(1)
+        servers["default"] = endpoint
+
+    # Set up output directory
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    if args.output_dir:
+        output_dir = Path(args.output_dir)
+    else:
+        output_dir = Path(__file__).parent / "results" / f"{args.dataset}_{timestamp}"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    multi_server = len(servers) > 1
+
     logger.info(f"Starting benchmark for dataset '{args.dataset}'")
-    logger.info(f"Endpoint: {endpoint}")
+    logger.info(f"Servers: {servers}")
     logger.info(f"Approaches: {approaches}")
     logger.info(f"Traversal depth: {args.depth}")
     logger.info(f"Output: {output_dir}")
 
-    benchmark = DocumentGenerationBenchmark(args.dataset, endpoint, output_dir)
-
-    # Get entities
-    entities = benchmark.get_all_entities(limit=args.limit)
+    # Use the first server to get the entity list (shared across all servers)
+    first_endpoint = next(iter(servers.values()))
+    first_name = next(iter(servers.keys()))
+    entity_fetcher = DocumentGenerationBenchmark(args.dataset, first_endpoint, output_dir)
+    entities = entity_fetcher.get_all_entities(limit=args.limit)
 
     if not entities:
         logger.error("No entities found!")
         sys.exit(1)
 
-    # Run benchmarks
-    benchmark.run_all_benchmarks(entities, batch_sizes=batch_sizes, approaches=approaches, depth=args.depth)
+    # Run benchmarks for each server
+    all_results = {}
+    for server_name, endpoint in servers.items():
+        logger.info("")
+        logger.info("=" * 60)
+        logger.info(f"BENCHMARKING SERVER: {server_name} ({endpoint})")
+        logger.info("=" * 60)
 
-    # Save results
-    json_path, md_path = benchmark.save_results()
+        server_dir = output_dir / server_name if multi_server else output_dir
+        benchmark = DocumentGenerationBenchmark(args.dataset, endpoint, server_dir)
+        benchmark.results["entity_count"] = len(entities)
+        benchmark.results["metadata"]["entity_list_time_sec"] = entity_fetcher.results["metadata"].get("entity_list_time_sec", 0)
 
-    # Print summary
-    print("\n" + "=" * 60)
-    print(benchmark.generate_report())
-    print("=" * 60)
-    print(f"\nResults saved to: {output_dir}")
+        benchmark.run_all_benchmarks(entities, batch_sizes=batch_sizes, approaches=approaches, depth=args.depth)
+        benchmark.save_results()
+
+        all_results[server_name] = benchmark.results
+
+        # Print individual report
+        print(f"\n--- {server_name} ---")
+        print(benchmark.generate_report())
+
+    # If multi-server, generate and save comparison report
+    if multi_server:
+        comparison = generate_comparison_report(all_results, args.dataset, len(entities), args.depth)
+
+        comparison_path = output_dir / "comparison.md"
+        with open(comparison_path, "w") as f:
+            f.write(comparison)
+
+        comparison_json_path = output_dir / "comparison.json"
+        with open(comparison_json_path, "w") as f:
+            json.dump(all_results, f, indent=2, default=str)
+
+        print("\n" + "=" * 60)
+        print(comparison)
+        print("=" * 60)
+        print(f"\nComparison saved to: {comparison_path}")
+    else:
+        print(f"\nResults saved to: {output_dir}")
 
 
 if __name__ == "__main__":

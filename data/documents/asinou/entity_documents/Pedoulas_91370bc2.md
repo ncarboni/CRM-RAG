@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/location/71243e11-3df7-4eaa-b2bf-ddf8c75b9915/
 Label: Pedoulas
-Generated: 2026-02-05 11:50:40
+Generated: 2026-02-06 09:01:10
 ---
 
 # Pedoulas
@@ -19,6 +19,6 @@ URI: http://map.cnrs.fr/semantics/location/71243e11-3df7-4eaa-b2bf-ddf8c75b9915/
 
 ## Relationships
 
+- Pedoulas is same as Q984814
 - Pedoulas falls within Cyprus
 - Pedoulas contains spatial
-- Pedoulas is same as Q984814

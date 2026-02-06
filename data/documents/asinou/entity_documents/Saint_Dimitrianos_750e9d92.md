@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/spatial/6717c9ac-6b8e-44b0-9c1f-b526021a007d/
 Label: Saint Dimitrianos
-Generated: 2026-02-05 11:50:38
+Generated: 2026-02-06 09:01:08
 ---
 
 # Saint Dimitrianos
@@ -19,5 +19,5 @@ URI: http://map.cnrs.fr/semantics/spatial/6717c9ac-6b8e-44b0-9c1f-b526021a007d/
 
 ## Relationships
 
-- Saint Dimitrianos witnessed Construction of the church of Demetrianos
 - Saint Dimitrianos falls within Dali
+- Saint Dimitrianos witnessed Construction of the church of Demetrianos

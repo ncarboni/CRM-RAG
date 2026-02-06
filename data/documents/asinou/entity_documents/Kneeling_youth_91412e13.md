@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/icon/d562ab9e-ffca-4636-91fb-0967ab5291fa
 Label: Kneeling youth
-Generated: 2026-02-05 11:50:42
+Generated: 2026-02-06 09:01:12
 ---
 
 # Kneeling youth

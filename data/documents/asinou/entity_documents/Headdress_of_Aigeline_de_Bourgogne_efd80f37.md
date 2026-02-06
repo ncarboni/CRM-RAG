@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/icon/be8fe1b8-4945-4faf-9d5d-ac2af6ef0efe
 Label: Headdress of Aigeline de Bourgogne
-Generated: 2026-02-05 11:50:42
+Generated: 2026-02-06 09:01:12
 ---
 
 # Headdress of Aigeline de Bourgogne
@@ -21,5 +21,5 @@ URI: http://map.cnrs.fr/semantics/icon/be8fe1b8-4945-4faf-9d5d-ac2af6ef0efe
 
 - Headdress of Aigeline de Bourgogne has attribute crespine
 - Headdress of Aigeline de Bourgogne is denoted by Statue of Hugues de Vaudemont
-- Headdress of Aigeline de Bourgogne is composed of Hugues et Aigeline
 - Headdress of Aigeline de Bourgogne has attribute barbette
+- Headdress of Aigeline de Bourgogne is composed of Hugues et Aigeline

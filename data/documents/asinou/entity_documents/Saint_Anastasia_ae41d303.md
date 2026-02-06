@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/icon/5aec0237-faa4-49ba-b1e5-a5c06277dd40
 Label: Saint Anastasia
-Generated: 2026-02-05 11:50:42
+Generated: 2026-02-06 09:01:11
 ---
 
 # Saint Anastasia
@@ -19,8 +19,8 @@ URI: http://map.cnrs.fr/semantics/icon/5aec0237-faa4-49ba-b1e5-a5c06277dd40
 
 ## Relationships
 
-- Saint Anastasia has attribute bottle of medicine
-- Saint Anastasia has attribute cross of martydom
-- Saint Anastasia is denoted by Anastasia
 - Saint Anastasia is classified as type: Saint Anastasia Pharmakolytria
+- Saint Anastasia is denoted by Anastasia
 - Saint Anastasia portray Anastasia of Sirmium
+- Saint Anastasia has attribute cross of martydom
+- Saint Anastasia has attribute bottle of medicine

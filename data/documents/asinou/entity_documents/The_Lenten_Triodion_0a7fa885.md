@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/da4564cb-2820-4f9e-83c2-4b376d566b22/
 Label: The Lenten Triodion
-Generated: 2026-02-05 11:50:43
+Generated: 2026-02-06 09:01:13
 ---
 
 # The Lenten Triodion

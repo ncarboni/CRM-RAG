@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/spatial/372f9c0f-4112-4bdc-a804-022530a76592/
 Label: St. John Lampadistis
-Generated: 2026-02-05 11:50:37
+Generated: 2026-02-06 09:01:07
 ---
 
 # St. John Lampadistis
@@ -19,5 +19,5 @@ URI: http://map.cnrs.fr/semantics/spatial/372f9c0f-4112-4bdc-a804-022530a76592/
 
 ## Relationships
 
-- St. John Lampadistis witnessed Painting of the last Judgment
 - St. John Lampadistis falls within Kalopanayiotis
+- St. John Lampadistis witnessed Painting of the last Judgment

@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/189252bb-4cb9-42e5-9312-96854f3c4780/
 Label: Construction of the church of Demetrianos
-Generated: 2026-02-05 11:50:38
+Generated: 2026-02-06 09:01:08
 ---
 
 # Construction of the church of Demetrianos

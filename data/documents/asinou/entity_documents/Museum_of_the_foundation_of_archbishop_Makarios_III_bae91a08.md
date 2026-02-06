@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/physical/73927644-669a-4ba7-9be6-6f7bc920d65c
 Label: Museum of the foundation of archbishop Makarios III
-Generated: 2026-02-05 11:50:40
+Generated: 2026-02-06 09:01:10
 ---
 
 # Museum of the foundation of archbishop Makarios III
@@ -18,5 +18,5 @@ URI: http://map.cnrs.fr/semantics/physical/73927644-669a-4ba7-9be6-6f7bc920d65c
 
 ## Relationships
 
-- Museum of the foundation of archbishop Makarios III is same as Q42883662
 - Museum of the foundation of archbishop Makarios III is classified as type: Church
+- Museum of the foundation of archbishop Makarios III is same as Q42883662

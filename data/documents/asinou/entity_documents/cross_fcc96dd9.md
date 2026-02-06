@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/b0360f8c-b412-4e2e-8ba2-35ec03bbd7a7/
 Label: cross
-Generated: 2026-02-05 11:50:34
+Generated: 2026-02-06 09:01:04
 ---
 
 # cross

@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/be8fe1b8-4945-4faf-9d5d-ac2af6ef0efe/
 Label: Headdress of Aigeline de Bourgogne
-Generated: 2026-02-05 11:50:42
+Generated: 2026-02-06 09:01:12
 ---
 
 # Headdress of Aigeline de Bourgogne

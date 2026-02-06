@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/4ae2be98-1fe5-43c6-98af-16f31a98a9e2/
 Label: crown
-Generated: 2026-02-05 11:50:34
+Generated: 2026-02-06 09:01:03
 ---
 
 # crown

@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/spatial/f6647390-eb56-43dc-8731-c46d7a0bb37c/
 Label: Église des Cordeliers de Nancy
-Generated: 2026-02-05 11:50:40
+Generated: 2026-02-06 09:01:10
 ---
 
 # Église des Cordeliers de Nancy

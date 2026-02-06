@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/text/5ff8fd7e-98ae-422e-8a9b-3b0177237c43
 Label: Sunday of the Last Judgment
-Generated: 2026-02-05 11:50:43
+Generated: 2026-02-06 09:01:13
 ---
 
 # Sunday of the Last Judgment

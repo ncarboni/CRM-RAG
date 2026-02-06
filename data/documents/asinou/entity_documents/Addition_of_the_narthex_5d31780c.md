@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/2d01542e-bbef-4a3b-8e8c-a5e89b9aca02/
 Label: Addition of the narthex
-Generated: 2026-02-05 11:50:37
+Generated: 2026-02-06 09:01:07
 ---
 
 # Addition of the narthex

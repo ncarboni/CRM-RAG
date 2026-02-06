@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/d32fe83d-e3ad-4f92-a044-2f88a7951249/
 Label: Donor couple
-Generated: 2026-02-05 11:50:43
+Generated: 2026-02-06 09:01:13
 ---
 
 # Donor couple

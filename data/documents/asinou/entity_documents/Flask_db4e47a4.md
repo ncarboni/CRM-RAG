@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/type/fe0d00e7-71c4-4fdd-92e5-15867853470e
 Label: Flask
-Generated: 2026-02-05 11:50:34
+Generated: 2026-02-06 09:01:04
 ---
 
 # Flask

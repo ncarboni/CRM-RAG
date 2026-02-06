@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/42ad4c76-c908-400b-9301-34c5cf4bb4ff/
 Label: Madonna dei Francescani
-Generated: 2026-02-05 11:50:41
+Generated: 2026-02-06 09:01:11
 ---
 
 # Madonna dei Francescani

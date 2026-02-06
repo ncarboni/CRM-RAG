@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/icon/b15a726b-a0af-4a4f-9257-fa264b95e268
 Label: gospel book
-Generated: 2026-02-05 11:50:34
+Generated: 2026-02-06 09:01:04
 ---
 
 # gospel book

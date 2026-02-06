@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/character/a8659c69-6753-4c7d-87c5-9104b1d8440a
 Label: Anastasia of Sirmium
-Generated: 2026-02-05 11:50:37
+Generated: 2026-02-06 09:01:07
 ---
 
 # Anastasia of Sirmium
@@ -19,5 +19,5 @@ URI: http://map.cnrs.fr/semantics/character/a8659c69-6753-4c7d-87c5-9104b1d8440a
 
 ## Relationships
 
-- Anastasia of Sirmium portray Saint Anastasia
 - Anastasia of Sirmium is same as http://www.wikidata.org/entity/Q48438
+- Anastasia of Sirmium portray Saint Anastasia

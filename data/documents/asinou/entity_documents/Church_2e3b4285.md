@@ -1,7 +1,7 @@
 ---
 URI: http://map.cnrs.fr/semantics/appellation/e932fb91-8333-47f3-9862-db213163f0d4/
 Label: Church
-Generated: 2026-02-05 11:50:44
+Generated: 2026-02-06 09:01:14
 ---
 
 # Church

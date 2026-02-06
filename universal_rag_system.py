@@ -872,11 +872,15 @@ class UniversalRagSystem:
                 self._process_sequential_embeddings(batch, 0, time.time(), float('inf'))
                 effective_batch_sizes.append(len(batch))
 
-        # Build edges from document relationships
-        # Note: Without SPARQL, we can't query relationships directly
-        # Edges will be built based on label mentions in document content
-        logger.info("Building document graph edges from stored relationships...")
-        self._build_edges_from_documents()
+        # TODO: Edge building disabled — O(n²) label matching is infeasible for large
+        # datasets (866k docs = ~750B comparisons, killed after 11h on cluster).
+        # Planned fix: store raw triple URIs (subject, predicate, object) in document
+        # YAML frontmatter during --generate-docs, then rebuild edges from those URIs
+        # in O(n×r) time with proper CIDOC-CRM semantic weights.
+        # See _build_edges_from_documents() for the old approach.
+        logger.info("Skipping edge building in embed-from-docs mode (see TODO). "
+                     "Edges can be added later with SPARQL or URI-based matching.")
+        # self._build_edges_from_documents()
 
         # Build vector store
         logger.info("Building vector store...")

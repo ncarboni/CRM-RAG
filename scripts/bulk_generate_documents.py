@@ -653,7 +653,7 @@ class BulkDocumentGenerator:
         metadata_lines = [
             "---",
             f"URI: {entity_uri}",
-            f"Label: {label}",
+            'Label: "' + label.replace('"', '\\"') + '"',  # Quote to handle colons in labels
         ]
 
         # Add type info

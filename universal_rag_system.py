@@ -808,9 +808,15 @@ class UniversalRagSystem:
                     if len(parts) >= 3:
                         try:
                             frontmatter = yaml.safe_load(parts[1]) or {}
-                        except yaml.YAMLError as e:
-                            logger.warning(f"Error parsing frontmatter in {filepath.name}: {e}")
+                        except yaml.YAMLError:
+                            # YAML failed (e.g. unquoted colons in labels).
+                            # Fall back to regex extraction of key fields.
                             frontmatter = {}
+                            for line in parts[1].strip().splitlines():
+                                if line.startswith('URI:'):
+                                    frontmatter['URI'] = line[4:].strip()
+                                elif line.startswith('Label:'):
+                                    frontmatter['Label'] = line[6:].strip().strip('"')
                         doc_text = parts[2].strip()
 
                 # Extract metadata from frontmatter (source of truth)
@@ -2358,9 +2364,10 @@ class UniversalRagSystem:
             filepath = os.path.join(output_dir, filename)
 
             # Add metadata header to document
+            # Quote label to handle values containing colons (YAML special char)
             metadata = f"""---
 URI: {entity_uri}
-Label: {entity_label}
+Label: "{entity_label.replace('"', '\\"')}"
 Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 ---
 

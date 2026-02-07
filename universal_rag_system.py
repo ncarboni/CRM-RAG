@@ -516,11 +516,6 @@ class UniversalRagSystem:
         if self.config.get('embed_from_docs'):
             return self.embed_from_documents()
 
-        # Test connection (not needed for embed_from_docs mode)
-        if not self.test_connection():
-            logger.error("Failed to connect to SPARQL endpoint")
-            return False
-
         # Initialize document store
         self.document_store = GraphDocumentStore(self.embeddings)
 
@@ -530,23 +525,23 @@ class UniversalRagSystem:
         vector_index_dir = self._get_vector_index_dir()
 
         logger.info(f"Checking for saved data at {doc_graph_path} and {vector_index_path}")
-        
+
         if os.path.exists(doc_graph_path):
             logger.info(f"Found document graph at {doc_graph_path}")
         else:
             logger.info(f"Document graph file not found at {doc_graph_path}")
-        
+
         if os.path.exists(vector_index_path):
             logger.info(f"Found vector index at {vector_index_path}")
         else:
             logger.info(f"Vector index not found at {vector_index_path}")
-        
+
         if os.path.exists(doc_graph_path) and os.path.exists(vector_index_path):
             logger.info("Found both document graph and vector store, attempting to load...")
 
             # Try to load document graph
             graph_loaded = self.document_store.load_document_graph(doc_graph_path)
-            
+
             # Try to load vector store
             vector_loaded = False
             try:
@@ -559,7 +554,7 @@ class UniversalRagSystem:
                 logger.info("Vector store loaded successfully")
             except Exception as e:
                 logger.error(f"Error loading vector store: {str(e)}")
-            
+
             if graph_loaded and vector_loaded:
                 logger.info("Successfully loaded existing document graph and vector store")
                 self._load_triples_index()
@@ -568,9 +563,14 @@ class UniversalRagSystem:
                 logger.warning("Failed to load saved data completely, rebuilding...")
         else:
             logger.info("No saved data found, building from scratch...")
-        
+
+        # SPARQL connection only needed when rebuilding
+        if not self.test_connection():
+            logger.error("Failed to connect to SPARQL endpoint (needed to rebuild data)")
+            return False
+
         logger.info("Building document graph from RDF data...")
-        
+
         # Process RDF data
         self.process_rdf_data()
 

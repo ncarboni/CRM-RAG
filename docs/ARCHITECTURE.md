@@ -234,12 +234,14 @@ class_labels.json          # URI → English label (classes)
 
 #### Graph Construction
 - `process_rdf_data()`: Main processing pipeline
-  1. Get all entities from SPARQL
+  1. Get all entities from SPARQL (batch pre-fetch)
   2. Create enhanced documents for each entity
-  3. Add documents to graph store
-  4. Build edges with CIDOC-CRM relationship weights
-  5. Save document graph and vector index
-  6. Generate validation report
+  3. Add documents to graph store with embeddings
+  4. Save triples to edges.parquet (6 columns: URIs + labels)
+  5. Build edges from edges.parquet with CIDOC-CRM relationship weights
+  6. Load triples index from edges.parquet for query-time lookup
+  7. Save document graph and vector index
+  8. Generate validation report
 
 #### Retrieval & Search
 - `cidoc_aware_retrieval()`: First-stage retrieval with graph scoring
@@ -421,7 +423,7 @@ datasets:
        └─> Process RDF Data (see below)
 
 5. Process RDF Data (if no cache)
-   ├─> Query SPARQL for all entities
+   ├─> Query SPARQL for all entities (batch pre-fetch)
    ├─> For each entity:
    │   ├─> Get types (check class_labels.json)
    │   ├─> Get literals (labels, descriptions, etc.)
@@ -431,7 +433,9 @@ datasets:
    │   ├─> Add to graph store
    │   └─> Generate embedding
    │
-   ├─> Build graph edges with CIDOC-CRM weights
+   ├─> Save triples to edges.parquet (6 columns: URIs + labels)
+   ├─> Build graph edges from edges.parquet with CIDOC-CRM weights
+   ├─> Load triples index from edges.parquet
    ├─> Save document_graph.pkl
    ├─> Build FAISS vector index
    ├─> Save to vector_index/
@@ -733,10 +737,11 @@ CRM_RAG/
 | `data/labels/ontology_classes.json` | Set of ontology class identifiers | JSON array | `extract_ontology_labels.py` |
 | `data/labels/class_labels.json` | Class URI → English label | JSON dict | `extract_ontology_labels.py` |
 | `data/exports/<dataset>_dump.ttl` | Bulk RDF export from SPARQL | Turtle | `bulk_generate_documents.py` |
-| `data/cache/<dataset>/document_graph.pkl` | Serialized GraphDocument objects | Pickle | `process_rdf_data()` |
+| `data/cache/<dataset>/document_graph.pkl` | Serialized GraphDocument objects (no raw_triples) | Pickle | `process_rdf_data()` |
 | `data/cache/<dataset>/vector_index/` | FAISS vector index | FAISS binary | `rebuild_vector_store()` |
 | `data/cache/<dataset>/embeddings/` | Cached embeddings for resumability | NumPy | `EmbeddingCache` |
 | `data/documents/<dataset>/entity_documents/*.md` | Entity documents with YAML frontmatter | Markdown | `save_entity_document()` |
+| `data/documents/<dataset>/edges.parquet` | RDF triples with labels (s, s_label, p, p_label, o, o_label) | Parquet | `_save_edges_parquet()` |
 | `logs/ontology_validation_report.txt` | Validation report | Text | `generate_validation_report()` |
 
 ---
@@ -773,29 +778,28 @@ User Script
             │
             ├─> Check document_graph.pkl exists
             │   ├─> Yes: load_document_graph()
+            │   │        └─> _load_triples_index() → edges.parquet
             │   └─> No:  process_rdf_data()
             │               │
             │               ├─> get_all_entities() → SPARQL
             │               │
+            │               ├─> Batch pre-fetch (chunks of BATCH_QUERY_SIZE):
+            │               │   ├─> _batch_fetch_literals()
+            │               │   ├─> _batch_fetch_types()
+            │               │   ├─> _batch_fetch_type_labels()
+            │               │   ├─> get_entities_context_batch()
+            │               │   └─> _batch_fetch_wikidata_ids()
+            │               │
             │               ├─> For each entity:
-            │               │   ├─> create_enhanced_document()
-            │               │   │       │
-            │               │   │       ├─> Query types → SPARQL
-            │               │   │       │   └─> Lookup in class_labels.json
-            │               │   │       │
-            │               │   │       ├─> get_entity_context()
-            │               │   │       │   └─> Query relationships → SPARQL
-            │               │   │       │       └─> Lookup in property_labels.json
-            │               │   │       │
-            │               │   │       └─> Convert to natural language
-            │               │   │
+            │               │   ├─> _create_document_from_prefetched()
             │               │   ├─> save_entity_document()
-            │               │   │
             │               │   └─> document_store.add_document()
             │               │           └─> Generate embedding → LLM Provider
             │               │
-            │               ├─> Build graph edges
+            │               ├─> _save_edges_parquet() → edges.parquet
+            │               ├─> _build_edges_from_parquet()
             │               │   └─> document_store.add_edge()
+            │               ├─> _load_triples_index() → edges.parquet
             │               │
             │               ├─> build_vector_store_batched()
             │               │   └─> FAISS.from_documents()
@@ -840,6 +844,7 @@ User Question
             │       └─> OpenAI/Anthropic/R1/Ollama API
             │
             └─> Return answer + sources
+                    └─> raw_triples from _triples_index (loaded from edges.parquet)
 ```
 
 ---

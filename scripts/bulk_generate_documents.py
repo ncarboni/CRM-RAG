@@ -823,6 +823,9 @@ class BulkDocumentGenerator:
                                f"ETA: {remaining/60:.1f} min")
                     last_log_time = current_time
 
+        # Save edges to Parquet file (for efficient edge building on cluster)
+        self._save_edges_parquet(entities)
+
         # Count entities with images (from the image index)
         entities_with_images = len(self.entity_images)
         total_images = sum(len(imgs) for imgs in self.entity_images.values())
@@ -842,6 +845,84 @@ class BulkDocumentGenerator:
         logger.info("=" * 60)
 
         return success_count
+
+    def _save_edges_parquet(self, entity_uris: list) -> None:
+        """Save all direct RDF triples between entities as a Parquet edges file.
+
+        Collects outgoing and incoming non-schema triples from the in-memory indexes.
+        Stores 6 columns: URIs (s, p, o) and labels (s_label, p_label, o_label).
+        The file is saved alongside entity_documents/ for transfer to the cluster.
+
+        Args:
+            entity_uris: List of entity URIs that had documents generated
+        """
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+
+        logger.info("Collecting triples for edges file...")
+        entity_set = set(entity_uris)
+        seen = set()
+        subjects, subject_labels = [], []
+        predicates, predicate_labels = [], []
+        objects, object_labels = [], []
+
+        for uri in entity_uris:
+            uri_label = self.get_entity_label(uri)
+
+            # Outgoing: (uri) --pred--> (obj)
+            for pred, obj in self.outgoing.get(uri, []):
+                if self.is_schema_predicate(pred):
+                    continue
+                triple_key = (uri, pred, obj)
+                if triple_key not in seen:
+                    seen.add(triple_key)
+                    # Resolve predicate label
+                    pred_label = ""
+                    if self.property_labels:
+                        simple_pred = pred.split('/')[-1].split('#')[-1]
+                        pred_label = (
+                            self.property_labels.get(pred) or
+                            self.property_labels.get(simple_pred) or ""
+                        )
+                    subjects.append(uri)
+                    subject_labels.append(uri_label)
+                    predicates.append(pred)
+                    predicate_labels.append(pred_label)
+                    objects.append(obj)
+                    object_labels.append(self.get_entity_label(obj))
+
+            # Incoming: (subj) --pred--> (uri)
+            for pred, subj in self.incoming.get(uri, []):
+                if self.is_schema_predicate(pred):
+                    continue
+                triple_key = (subj, pred, uri)
+                if triple_key not in seen:
+                    seen.add(triple_key)
+                    pred_label = ""
+                    if self.property_labels:
+                        simple_pred = pred.split('/')[-1].split('#')[-1]
+                        pred_label = (
+                            self.property_labels.get(pred) or
+                            self.property_labels.get(simple_pred) or ""
+                        )
+                    subjects.append(subj)
+                    subject_labels.append(self.get_entity_label(subj))
+                    predicates.append(pred)
+                    predicate_labels.append(pred_label)
+                    objects.append(uri)
+                    object_labels.append(uri_label)
+
+        # Save to parent of entity_documents/
+        edges_path = self.output_dir.parent / "edges.parquet"
+        table = pa.table({
+            "s": subjects, "s_label": subject_labels,
+            "p": predicates, "p_label": predicate_labels,
+            "o": objects, "o_label": object_labels,
+        })
+        pq.write_table(table, str(edges_path))
+
+        size_mb = edges_path.stat().st_size / (1024 * 1024)
+        logger.info(f"Saved {len(subjects)} triples (6 columns) to {edges_path} ({size_mb:.1f} MB)")
 
 
 def main():

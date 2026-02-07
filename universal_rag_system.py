@@ -562,6 +562,7 @@ class UniversalRagSystem:
             
             if graph_loaded and vector_loaded:
                 logger.info("Successfully loaded existing document graph and vector store")
+                self._load_triples_index()
                 return True
             else:
                 logger.warning("Failed to load saved data completely, rebuilding...")
@@ -632,6 +633,7 @@ class UniversalRagSystem:
         """Legacy per-entity document generation (slow but reliable)."""
         success_count = 0
         error_count = 0
+        all_triples = []
 
         for entity in tqdm(entities, desc="Generating documents (individual)", unit="entity"):
             entity_uri = entity["entity"]
@@ -641,10 +643,18 @@ class UniversalRagSystem:
                 filepath = self.save_entity_document(entity_uri, doc_text, entity_label)
                 success_count += 1
 
+                # Collect triples for edges file
+                for triple in raw_triples:
+                    all_triples.append(triple)
+
             except Exception as e:
                 logger.error(f"Error processing entity {entity_uri}: {str(e)}")
                 error_count += 1
                 continue
+
+        # Save edges to Parquet file
+        if all_triples:
+            self._save_edges_parquet(all_triples)
 
         self._log_generation_complete(success_count, error_count, output_dir)
         return True
@@ -692,6 +702,7 @@ class UniversalRagSystem:
 
         success_count = 0
         error_count = 0
+        all_triples = []
 
         for entity in tqdm(entities, desc="Generating documents (batch)", unit="entity"):
             entity_uri = entity["entity"]
@@ -715,6 +726,10 @@ class UniversalRagSystem:
                 filepath = self.save_entity_document(entity_uri, doc_text, entity_label)
                 success_count += 1
 
+                # Collect triples for edges file
+                for triple in raw_triples:
+                    all_triples.append(triple)
+
             except Exception as e:
                 logger.error(f"Error processing entity {entity_uri}: {str(e)}")
                 error_count += 1
@@ -726,6 +741,10 @@ class UniversalRagSystem:
         logger.info(f"Phase 2 complete in {phase2_time:.2f}s")
         logger.info(f"Total batch generation time: {total_time:.2f}s")
         logger.info(f"Throughput: {len(entities) / total_time:.1f} entities/second")
+
+        # Save edges to Parquet file
+        if all_triples:
+            self._save_edges_parquet(all_triples)
 
         self._log_generation_complete(success_count, error_count, output_dir)
         return True
@@ -744,6 +763,86 @@ class UniversalRagSystem:
         logger.info(f"  2. On cluster, run:")
         logger.info(f"     python scripts/cluster_pipeline.py --dataset {self.dataset_id} --embed --env .env.cluster")
         logger.info("=" * 60)
+
+    def _save_edges_parquet(self, all_triples: List[Dict]) -> None:
+        """Save collected triples to a Parquet edges file alongside entity_documents/.
+
+        Stores 6 columns: URIs (s, p, o) and labels (s_label, p_label, o_label).
+
+        Args:
+            all_triples: List of dicts with 'subject', 'subject_label', 'predicate',
+                        'predicate_label', 'object', 'object_label' keys
+        """
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+
+        # edges.parquet lives in data/documents/{dataset_id}/ (parent of entity_documents/)
+        edges_path = os.path.join(os.path.dirname(self._get_documents_dir()), "edges.parquet")
+
+        subjects = [t["subject"] for t in all_triples]
+        subject_labels = [t.get("subject_label", "") for t in all_triples]
+        predicates = [t["predicate"] for t in all_triples]
+        predicate_labels = [t.get("predicate_label", "") for t in all_triples]
+        objects = [t["object"] for t in all_triples]
+        object_labels = [t.get("object_label", "") for t in all_triples]
+
+        table = pa.table({
+            "s": subjects, "s_label": subject_labels,
+            "p": predicates, "p_label": predicate_labels,
+            "o": objects, "o_label": object_labels,
+        })
+        pq.write_table(table, edges_path)
+
+        size_mb = os.path.getsize(edges_path) / (1024 * 1024)
+        logger.info(f"Saved {len(all_triples)} triples (6 columns) to {edges_path} ({size_mb:.1f} MB)")
+
+    def _load_triples_index(self):
+        """Load Parquet edges file and build entity -> triples index.
+
+        Reads the enriched edges.parquet (6 columns: s, s_label, p, p_label, o, o_label)
+        and creates a dict mapping each entity URI to its list of triple dicts.
+        Each triple appears under both its subject and object URI.
+
+        Falls back gracefully if the file is missing or uses the old 3-column format.
+        """
+        edges_path = os.path.join(os.path.dirname(self._get_documents_dir()), "edges.parquet")
+        if not os.path.exists(edges_path):
+            logger.warning(f"No edges file at {edges_path} — raw_triples will be empty in responses")
+            self._triples_index = {}
+            return
+
+        import pyarrow.parquet as pq
+
+        table = pq.read_table(edges_path)
+        columns = set(table.column_names)
+
+        # Check for enriched format (6 columns with labels)
+        has_labels = {"s_label", "p_label", "o_label"}.issubset(columns)
+        if not has_labels:
+            logger.warning("edges.parquet uses old 3-column format — re-generate docs to get labels")
+            self._triples_index = {}
+            return
+
+        index = {}
+        for s, s_label, p, p_label, o, o_label in zip(
+            table.column("s"), table.column("s_label"),
+            table.column("p"), table.column("p_label"),
+            table.column("o"), table.column("o_label"),
+        ):
+            triple = {
+                "subject": s.as_py(),
+                "subject_label": s_label.as_py(),
+                "predicate": p.as_py(),
+                "predicate_label": p_label.as_py(),
+                "object": o.as_py(),
+                "object_label": o_label.as_py(),
+            }
+            index.setdefault(triple["subject"], []).append(triple)
+            index.setdefault(triple["object"], []).append(triple)
+
+        self._triples_index = index
+        logger.info(f"Loaded triples index from {edges_path}: "
+                    f"{len(table)} triples, {len(index)} entities indexed")
 
     def embed_from_documents(self):
         """
@@ -878,15 +977,12 @@ class UniversalRagSystem:
                 self._process_sequential_embeddings(batch, 0, time.time(), float('inf'))
                 effective_batch_sizes.append(len(batch))
 
-        # TODO: Edge building disabled — O(n²) label matching is infeasible for large
-        # datasets (866k docs = ~750B comparisons, killed after 11h on cluster).
-        # Planned fix: store raw triple URIs (subject, predicate, object) in document
-        # YAML frontmatter during --generate-docs, then rebuild edges from those URIs
-        # in O(n×r) time with proper CIDOC-CRM semantic weights.
-        # See _build_edges_from_documents() for the old approach.
-        logger.info("Skipping edge building in embed-from-docs mode (see TODO). "
-                     "Edges can be added later with SPARQL or URI-based matching.")
-        # self._build_edges_from_documents()
+        # Build edges from Parquet file (generated during --generate-docs)
+        logger.info("Building edges from edges file...")
+        self._build_edges_from_parquet()
+
+        # Build triples index from Parquet for query-time lookup
+        self._load_triples_index()
 
         # Build vector store
         logger.info("Building vector store...")
@@ -995,36 +1091,40 @@ class UniversalRagSystem:
 
         return True
 
-    def _build_edges_from_documents(self):
+    def _build_edges_from_parquet(self):
+        """Build edges from Parquet edges file. O(n*r) where r is number of triples.
+
+        Reads edges.parquet (saved during --generate-docs) and adds weighted edges
+        to the document store using proper CIDOC-CRM semantic weights.
         """
-        Build edges between documents by extracting relationships from document content.
-        This is used when SPARQL is not available (embed-from-docs mode).
-        Uses document store directly - all documents must be added before calling this.
-        """
-        docs = self.document_store.docs
-        if not docs:
-            logger.warning("No documents in store, skipping edge building")
+        edges_path = os.path.join(os.path.dirname(self._get_documents_dir()), "edges.parquet")
+        if not os.path.exists(edges_path):
+            logger.warning(f"No edges file found at {edges_path}, skipping edge building")
             return
 
-        # For each document, try to find relationships in the content
+        import pyarrow.parquet as pq
+
+        logger.info(f"Loading edges from {edges_path}...")
+        table = pq.read_table(edges_path)
+        total_triples = len(table)
+        logger.info(f"Loaded {total_triples} triples")
+
+        doc_uris = set(self.document_store.docs.keys())
         edges_added = 0
-        doc_items = list(docs.items())
+        skipped = 0
 
-        for uri, doc in doc_items:
-            doc_text = doc.text.lower()
+        for s, p, o in zip(table.column("s"), table.column("p"), table.column("o")):
+            s_str, p_str, o_str = s.as_py(), p.as_py(), o.as_py()
+            if s_str in doc_uris and o_str in doc_uris and s_str != o_str:
+                weight = self.get_relationship_weight(p_str)
+                pred_name = p_str.split('/')[-1].split('#')[-1]
+                self.document_store.add_edge(s_str, o_str, pred_name, weight=weight)
+                edges_added += 1
+            else:
+                skipped += 1
 
-            for other_uri, other_doc in doc_items:
-                if other_uri == uri:
-                    continue
-
-                # Check if other entity's label appears in this document
-                other_label = other_doc.metadata.get("label", "").lower()
-                if other_label and len(other_label) > 3 and other_label in doc_text:
-                    # Add edge with default weight
-                    self.document_store.add_edge(uri, other_uri, "mentioned", weight=0.5)
-                    edges_added += 1
-
-        logger.info(f"Added {edges_added} edges based on document content relationships")
+        logger.info(f"Added {edges_added} edges from Parquet file "
+                    f"({skipped} triples skipped — endpoints not in document store)")
 
     def _get_inverse_predicate(self, predicate_uri):
         """
@@ -2206,6 +2306,60 @@ class UniversalRagSystem:
 
         return text, entity_label, entity_types, raw_triples
 
+    def _batch_fetch_wikidata_ids(self, uris: List[str], batch_size: int = None) -> Dict[str, str]:
+        """
+        Batch fetch Wikidata IDs (crmdig:L54_is_same-as) for multiple URIs.
+
+        Args:
+            uris: List of entity URIs
+            batch_size: Number of URIs per query (default: BATCH_QUERY_SIZE)
+
+        Returns:
+            Dict mapping entity URI -> Wikidata Q-ID string (e.g. "Q12345")
+        """
+        if batch_size is None:
+            batch_size = RetrievalConfig.BATCH_QUERY_SIZE
+
+        result = {}
+
+        for i in range(0, len(uris), batch_size):
+            batch = uris[i:i + batch_size]
+            escaped = [self._escape_uri_for_values(u) for u in batch]
+            escaped = [e for e in escaped if e is not None]
+
+            if not escaped:
+                continue
+
+            values_clause = " ".join(escaped)
+
+            query = f"""
+            PREFIX crmdig: <http://www.ics.forth.gr/isl/CRMdig/>
+            SELECT ?entity ?wikidata WHERE {{
+                VALUES ?entity {{ {values_clause} }}
+                ?entity crmdig:L54_is_same-as ?wikidata .
+                FILTER(STRSTARTS(STR(?wikidata), "http://www.wikidata.org/entity/"))
+            }}
+            """
+
+            try:
+                rows = self._batch_query_tsv(query)
+                for row in rows:
+                    if len(row) >= 2:
+                        entity, wikidata_uri = row[0], row[1]
+                        # Extract the Q-ID from the URI
+                        wikidata_id = wikidata_uri.split('/')[-1]
+                        if entity not in result:
+                            result[entity] = wikidata_id
+
+            except Exception as e:
+                logger.warning(f"Batch wikidata query failed for batch {i//batch_size}: {str(e)}")
+                if batch_size > RetrievalConfig.BATCH_QUERY_RETRY_SIZE:
+                    logger.info(f"Retrying with smaller batch size {RetrievalConfig.BATCH_QUERY_RETRY_SIZE}")
+                    partial = self._batch_fetch_wikidata_ids(batch, RetrievalConfig.BATCH_QUERY_RETRY_SIZE)
+                    result.update(partial)
+
+        return result
+
     # ==================== End Batch SPARQL Query Methods ====================
 
     def create_enhanced_document(self, entity_uri):
@@ -2642,18 +2796,16 @@ Each file contains:
         with open(readme_path, 'w', encoding='utf-8') as f:
             f.write(readme_content)
         
-        # First pass: create document nodes with enhanced content
-        logger.info("Creating enhanced document nodes...")
+        # Create document nodes with enhanced content using chunked batch SPARQL
+        logger.info("Creating enhanced document nodes (chunked batch SPARQL)...")
 
-        # Determine batch size based on embedding provider
+        # Determine embedding sub-batch size based on embedding provider
         if self.use_batch_embedding:
-            # For local embeddings, use larger batches (no rate limits)
-            batch_size = int(self.config.get("embedding_batch_size", 64))
-            logger.info(f"Using batch embedding with batch_size={batch_size}")
+            embedding_batch_size = int(self.config.get("embedding_batch_size", 64))
+            logger.info(f"Using batch embedding with embedding_batch_size={embedding_batch_size}")
         else:
-            # For API-based embeddings, use smaller batches with rate limiting
-            batch_size = RetrievalConfig.DEFAULT_BATCH_SIZE
-            logger.info(f"Using sequential embedding with batch_size={batch_size}")
+            embedding_batch_size = RetrievalConfig.DEFAULT_BATCH_SIZE
+            logger.info(f"Using sequential embedding with embedding_batch_size={embedding_batch_size}")
 
         # Global rate limit tracking (only used for API-based embeddings)
         global_token_count = 0
@@ -2666,25 +2818,66 @@ Each file contains:
             cache_stats = self.embedding_cache.get_stats()
             logger.info(f"Embedding cache: {cache_stats['count']} cached embeddings ({cache_stats['size_mb']} MB)")
 
-        # Process entities in batches
-        for i in range(0, total_entities, batch_size):
-            batch = entities[i:i+batch_size]
-            batch_num = i // batch_size + 1
-            total_batches = (total_entities + batch_size - 1) // batch_size
-            logger.info(f"Processing batch {batch_num}/{total_batches}")
+        # Collect all triples for edges file
+        all_triples = []
 
-            # Collect document data for batch processing
-            batch_docs = []  # List of (entity_uri, doc_text, metadata, cached_embedding)
+        # SPARQL pre-fetch chunk size (matches existing batch query infrastructure)
+        chunk_size = RetrievalConfig.BATCH_QUERY_SIZE
+        total_chunks = (total_entities + chunk_size - 1) // chunk_size
+        logger.info(f"Processing {total_entities} entities in {total_chunks} chunks of {chunk_size} (batch SPARQL)")
 
-            for entity in tqdm(batch, desc=f"Batch {batch_num}", unit="entity"):
+        for chunk_idx in range(0, total_entities, chunk_size):
+            chunk_entities = entities[chunk_idx:chunk_idx + chunk_size]
+            chunk_num = chunk_idx // chunk_size + 1
+            chunk_uris = [e["entity"] for e in chunk_entities]
+
+            logger.info(f"=== Chunk {chunk_num}/{total_chunks} ({len(chunk_uris)} entities) ===")
+
+            # Phase A: Batch pre-fetch all data for this chunk (5-6 SPARQL batch queries)
+            logger.info(f"  Phase A: Batch pre-fetching data for {len(chunk_uris)} entities...")
+
+            chunk_literals = self._batch_fetch_literals(chunk_uris)
+            logger.info(f"    Literals: {len(chunk_literals)} entities")
+
+            chunk_types = self._batch_fetch_types(chunk_uris)
+            logger.info(f"    Types: {len(chunk_types)} entities")
+
+            # Collect all type URIs for batch label fetching
+            chunk_type_uris = set()
+            for types in chunk_types.values():
+                chunk_type_uris.update(types)
+            chunk_type_labels = self._batch_fetch_type_labels(chunk_type_uris)
+            logger.info(f"    Type labels: {len(chunk_type_labels)} types")
+
+            chunk_contexts = self.get_entities_context_batch(chunk_uris)
+            logger.info(f"    Contexts: {len(chunk_contexts)} entities")
+
+            chunk_wikidata = self._batch_fetch_wikidata_ids(chunk_uris)
+            logger.info(f"    Wikidata IDs: {len(chunk_wikidata)} entities")
+
+            # Phase B: Generate docs from pre-fetched data (zero SPARQL queries)
+            logger.info(f"  Phase B: Generating documents from pre-fetched data...")
+            chunk_docs = []  # List of (entity_uri, doc_text, metadata, cached_embedding)
+
+            for entity in tqdm(chunk_entities, desc=f"Chunk {chunk_num}", unit="entity"):
                 entity_uri = entity["entity"]
 
                 try:
-                    # Create enhanced document with CIDOC-CRM aware natural language
-                    doc_text, entity_label, entity_types, raw_triples = self.create_enhanced_document(entity_uri)
+                    # Get pre-fetched data for this entity
+                    literals = chunk_literals.get(entity_uri, {})
+                    types = chunk_types.get(entity_uri, set())
+                    context = chunk_contexts.get(entity_uri, ([], []))
+
+                    # Create document without any SPARQL calls
+                    doc_text, entity_label, entity_types, raw_triples = self._create_document_from_prefetched(
+                        entity_uri, literals, types, context, chunk_type_labels
+                    )
 
                     # Save document to disk for transparency and reuse
                     self.save_entity_document(entity_uri, doc_text, entity_label)
+
+                    # Collect triples for edges file
+                    all_triples.extend(raw_triples)
 
                     # Determine primary entity type
                     primary_type = "Unknown"
@@ -2695,15 +2888,14 @@ Each file contains:
                         ]
                         primary_type = human_readable_types[0] if human_readable_types else "Entity"
 
-                    # Get Wikidata ID if available (cache it in metadata)
-                    wikidata_id = self._fetch_wikidata_id_from_sparql(entity_uri)
+                    # Get Wikidata ID from pre-fetched batch data
+                    wikidata_id = chunk_wikidata.get(entity_uri)
 
                     metadata = {
                         "label": entity_label,
                         "type": primary_type,
                         "uri": entity_uri,
                         "all_types": entity_types,
-                        "raw_triples": raw_triples,
                         "wikidata_id": wikidata_id  # May be None
                     }
 
@@ -2714,72 +2906,43 @@ Each file contains:
                         if cached_embedding:
                             cached_count += 1
 
-                    batch_docs.append((entity_uri, doc_text, metadata, cached_embedding))
+                    chunk_docs.append((entity_uri, doc_text, metadata, cached_embedding))
 
                 except Exception as e:
                     logger.error(f"Error processing entity {entity_uri}: {str(e)}")
                     continue
 
-            # Process embeddings for the batch
-            if self.use_batch_embedding:
-                # Batch embedding (local embeddings - fast)
-                self._process_batch_embeddings(batch_docs)
-            else:
-                # Sequential embedding with rate limiting (API-based)
-                global_token_count, last_reset_time = self._process_sequential_embeddings(
-                    batch_docs, global_token_count, last_reset_time, tokens_per_min_limit
-                )
+            # Phase C: Free pre-fetched data before embedding
+            del chunk_literals, chunk_types, chunk_type_uris, chunk_type_labels, chunk_contexts, chunk_wikidata
 
-            # Save progress after each batch
+            # Phase D: Embed in sub-batches
+            logger.info(f"  Phase D: Embedding {len(chunk_docs)} documents...")
+            for sub_idx in range(0, len(chunk_docs), embedding_batch_size):
+                sub_batch = chunk_docs[sub_idx:sub_idx + embedding_batch_size]
+
+                if self.use_batch_embedding:
+                    self._process_batch_embeddings(sub_batch)
+                else:
+                    global_token_count, last_reset_time = self._process_sequential_embeddings(
+                        sub_batch, global_token_count, last_reset_time, tokens_per_min_limit
+                    )
+
+                    # For API-based embeddings, pause between sub-batches
+                    logger.info(f"    Completed sub-batch of {len(sub_batch)} documents, pausing for 2 seconds...")
+                    time.sleep(2)
+
+            # Phase E: Save progress after each chunk
             self.document_store.save_document_graph(self._get_document_graph_temp_path())
-
-            # For API-based embeddings, pause between batches
-            if not self.use_batch_embedding:
-                logger.info(f"Completed batch of {len(batch)} documents, pausing for 2 seconds...")
-                time.sleep(2)
+            logger.info(f"  Chunk {chunk_num}/{total_chunks} complete, progress saved")
 
         if cached_count > 0:
             logger.info(f"Used {cached_count} cached embeddings")
-        
-        # Second pass: create edges between documents
+
+        # Save triples and build edges from Parquet (avoids redundant SPARQL queries)
+        if all_triples:
+            self._save_edges_parquet(all_triples)
         logger.info("Creating document graph edges...")
-        
-        for i, entity in tqdm(enumerate(entities), total=total_entities, desc="Creating edges", unit="entity"):
-            entity_uri = entity["entity"]
-            
-            # Get relationships (both incoming and outgoing)
-            outgoing_rels = self.get_outgoing_relationships(entity_uri)
-            incoming_rels = self.get_incoming_relationships(entity_uri)
-            
-            # Add edges for outgoing relationships with semantic weights
-            for rel in outgoing_rels:
-                target_uri = rel["object"]
-                predicate = rel["predicate"]
-                weight = self.get_relationship_weight(predicate)
-
-                # Only add edge if both entities exist as documents
-                if entity_uri in self.document_store.docs and target_uri in self.document_store.docs:
-                    self.document_store.add_edge(
-                        entity_uri,
-                        target_uri,
-                        predicate.split('/')[-1],
-                        weight=weight
-                    )
-
-            # Add edges for incoming relationships with semantic weights
-            for rel in incoming_rels:
-                source_uri = rel["subject"]
-                predicate = rel["predicate"]
-                weight = self.get_relationship_weight(predicate)
-
-                # Only add edge if both entities exist as documents
-                if entity_uri in self.document_store.docs and source_uri in self.document_store.docs:
-                    self.document_store.add_edge(
-                        entity_uri,
-                        source_uri,
-                        predicate.split('/')[-1],
-                        weight=weight
-                    )
+        self._build_edges_from_parquet()
         
         # Rename temp file to final
         temp_path = self._get_document_graph_temp_path()
@@ -2790,6 +2953,9 @@ Each file contains:
         # Build vector store with batched embedding requests
         logger.info("Building vector store...")
         self.build_vector_store_batched()
+
+        # Build triples index from Parquet for query-time lookup
+        self._load_triples_index()
 
         # Generate validation report for missing classes and properties
         self.generate_validation_report()
@@ -3275,81 +3441,6 @@ Remember: Your audience wants accurate information. It's better to say "I don't 
             weight = weights.get(local_name, 0.5)  # Default weight
 
         return weight
-
-    def get_outgoing_relationships(self, entity_uri):
-        """Get outgoing relationships from an entity (domain-level only, no schema predicates)"""
-        query = f"""
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-
-        SELECT ?predicate ?object WHERE {{
-            <{entity_uri}> ?predicate ?object .
-
-            # Filter for meaningful relationships
-            FILTER(STRSTARTS(STR(?predicate), "http://"))
-            FILTER(isURI(?object))
-        }}
-        """
-
-        try:
-            self.sparql.setQuery(query)
-            results = self.sparql.query().convert()
-
-            relationships = []
-            for result in results["results"]["bindings"]:
-                predicate = result["predicate"]["value"]
-                object_uri = result["object"]["value"]
-
-                # Filter out schema-level predicates
-                if self.is_schema_predicate(predicate):
-                    continue
-
-                relationships.append({
-                    "predicate": predicate,
-                    "object": object_uri
-                })
-
-            return relationships
-        except Exception as e:
-            logger.error(f"Error fetching outgoing relationships: {str(e)}")
-            return []
-    
-    def get_incoming_relationships(self, entity_uri):
-        """Get incoming relationships to an entity (domain-level only, no schema predicates)"""
-        query = f"""
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-
-        SELECT ?subject ?predicate WHERE {{
-            ?subject ?predicate <{entity_uri}> .
-
-            # Filter for meaningful relationships
-            FILTER(STRSTARTS(STR(?predicate), "http://"))
-            FILTER(isURI(?subject))
-        }}
-        """
-
-        try:
-            self.sparql.setQuery(query)
-            results = self.sparql.query().convert()
-
-            relationships = []
-            for result in results["results"]["bindings"]:
-                subject_uri = result["subject"]["value"]
-                predicate = result["predicate"]["value"]
-
-                # Filter out schema-level predicates
-                if self.is_schema_predicate(predicate):
-                    continue
-
-                relationships.append({
-                    "subject": subject_uri,
-                    "predicate": predicate
-                })
-
-            return relationships
-        except Exception as e:
-            logger.error(f"Error fetching incoming relationships: {str(e)}")
-            return []
-
 
     def normalize_scores(self, scores):
         """
@@ -3913,7 +4004,7 @@ Provide a clear answer in natural language:
         for i, doc in enumerate(retrieved_docs):
             entity_uri = doc.id
             entity_label = doc.metadata.get("label", entity_uri.split('/')[-1])
-            raw_triples = doc.metadata.get("raw_triples", [])
+            raw_triples = getattr(self, '_triples_index', {}).get(entity_uri, [])
             local_images = doc.metadata.get("images", [])
 
             source_entry = {

@@ -68,9 +68,11 @@ metadata = {
     "label": "Entity Label",
     "uri": "http://example.org/entity",
     "type": "Entity Type",
-    "raw_triples": [...],
-    "doc_id": "unique_id"
+    "all_types": [...],
+    "wikidata_id": "Q12345"  # May be None
 }
+# Note: raw_triples are NOT stored in metadata (to keep document_graph.pkl small).
+# They are loaded at query time from edges.parquet via _load_triples_index().
 ```
 
 ### API Response Structure (Current)
@@ -1444,7 +1446,7 @@ class UniversalRagSystem:
         for i, doc in enumerate(retrieved_docs):
             entity_uri = doc.id
             entity_label = doc.metadata.get("label", entity_uri.split('/')[-1])
-            raw_triples = doc.metadata.get("raw_triples", [])
+            raw_triples = getattr(self, '_triples_index', {}).get(entity_uri, [])
 
             source = {
                 "id": i,

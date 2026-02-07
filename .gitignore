@@ -13,6 +13,7 @@ config/.env.*
 data/labels/*.json
 data/cache/
 data/documents/**/entity_documents/
+data/documents/**/edges.parquet
 data/exports/
 
 # Cache and temporary pickle files

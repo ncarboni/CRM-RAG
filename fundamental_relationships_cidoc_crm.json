@@ -1,0 +1,2805 @@
+{
+  "metadata": {
+    "title": "Fundamental Relationships for CIDOC-CRM",
+    "source": "Tzompanaki & Doerr, 2012, TR ICS-FORTH/TR-429",
+    "ontology": "CIDOC-CRM v7.1.3",
+    "description": "Binary shortcut relationships between Fundamental Categories (Thing, Actor, Place, Event/Time, Concept) mapped to CIDOC-CRM property paths. Each path represents a traversal through intermediate event/entity nodes that the FR collapses into a direct relationship.",
+    "fundamental_categories": {
+      "Thing": "E70_Thing",
+      "Actor": "E39_Actor",
+      "Place": "E53_Place",
+      "Event": "E5_Event",
+      "Concept": "E55_Type",
+      "Time": "E52_Time-Span"
+    },
+    "c1_object_note": "C1.Object = E70_Thing NOT (E21_Person, E55_Type, E30_Right, E41_Appellation)",
+    "event_to_time_conversion": {
+      "note": "Any Event-based FR can be converted to a Time-based FR by appending: E5_Event --P4_has_time-span--> E52_Time-Span",
+      "property": "P4_has_time-span",
+      "from": "E2_Temporal_Entity",
+      "to": "E52_Time-Span"
+    }
+  },
+  "fundamental_relationships": [
+    {
+      "id": "thing_place_refers_to",
+      "label": "refers to or is about",
+      "domain_fc": "Thing",
+      "range_fc": "Place",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E53_Place",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Thing depicts Place directly",
+          "steps": [
+            {
+              "property": "P62_depicts",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing (propositional object) refers to Place",
+          "steps": [
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing shows features of another Thing that depicts Place",
+          "steps": [
+            {
+              "property": "P130_shows_features_of",
+              "from": "E70_Thing",
+              "to": "E70_Thing",
+              "recursive": true
+            },
+            {
+              "property": "P62_depicts",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing carries information object that refers to Place",
+          "steps": [
+            {
+              "property": "P128_carries",
+              "from": "E18_Physical_Thing",
+              "to": "E90_Symbolic_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Place containment (applicable to range in all Thing-Place paths)",
+          "steps": [
+            {
+              "property": "P89i_contains",
+              "from": "E53_Place",
+              "to": "E53_Place",
+              "recursive": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_place_is_referred_to_at",
+      "label": "is referred to at",
+      "domain_fc": "Thing",
+      "range_fc": "Place",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E53_Place",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Thing is referred to by propositional object whose carrier is located at Place",
+          "steps": [
+            {
+              "property": "P67i_is_referred_to_by",
+              "from": "E1_CRM_Entity",
+              "to": "E89_Propositional_Object",
+              "recursive": false
+            },
+            {
+              "property": "P128i_is_carried_by",
+              "from": "E90_Symbolic_Object",
+              "to": "E18_Physical_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P53_has_former_or_current_location",
+              "from": "E18_Physical_Thing",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing is referred to by propositional object created at Place",
+          "steps": [
+            {
+              "property": "P67i_is_referred_to_by",
+              "from": "E1_CRM_Entity",
+              "to": "E89_Propositional_Object",
+              "recursive": false
+            },
+            {
+              "property": "P94i_was_created_by",
+              "from": "E28_Conceptual_Object",
+              "to": "E65_Creation",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing is depicted by physical thing located at Place",
+          "steps": [
+            {
+              "property": "P62i_is_depicted_by",
+              "from": "E1_CRM_Entity",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P53_has_former_or_current_location",
+              "from": "E18_Physical_Thing",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_place_from",
+      "label": "from (history)",
+      "domain_fc": "Thing",
+      "range_fc": "Place",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E53_Place",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Thing has former or current location at Place",
+          "steps": [
+            {
+              "property": "P53_has_former_or_current_location",
+              "from": "E18_Physical_Thing",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing has current permanent location at Place",
+          "steps": [
+            {
+              "property": "P54_has_current_permanent_location",
+              "from": "E19_Physical_Object",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by event that took place at Place",
+          "steps": [
+            {
+              "property": "P92i_was_brought_into_existence_by",
+              "from": "E77_Persistent_Item",
+              "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created by actor who has residence at Place",
+          "steps": [
+            {
+              "property": "P92i_was_brought_into_existence_by",
+              "from": "E77_Persistent_Item",
+              "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P74_has_current_or_former_residence",
+              "from": "E39_Actor",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing moved from Place",
+          "steps": [
+            {
+              "property": "P25i_moved_by",
+              "from": "E19_Physical_Object",
+              "to": "E9_Move",
+              "recursive": false
+            },
+            {
+              "property": "P27_moved_from",
+              "from": "E9_Move",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing moved to Place",
+          "steps": [
+            {
+              "property": "P25i_moved_by",
+              "from": "E19_Physical_Object",
+              "to": "E9_Move",
+              "recursive": false
+            },
+            {
+              "property": "P26_moved_to",
+              "from": "E9_Move",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing found at Place (via finding event)",
+          "steps": [
+            {
+              "property": "P12i_was_present_at",
+              "from": "E77_Persistent_Item",
+              "to": "E5_Event",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing changed ownership at Place (via acquisition)",
+          "steps": [
+            {
+              "property": "P24i_changed_ownership_through",
+              "from": "E18_Physical_Thing",
+              "to": "E8_Acquisition",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_place_created_in",
+      "label": "created in",
+      "domain_fc": "Thing",
+      "range_fc": "Place",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E53_Place",
+      "parent_fr": "thing_place_from",
+      "paths": [
+        {
+          "description": "Thing was brought into existence by event that took place at Place",
+          "steps": [
+            {
+              "property": "P92i_was_brought_into_existence_by",
+              "from": "E77_Persistent_Item",
+              "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_place_found_or_acquired_at",
+      "label": "found or acquired at",
+      "domain_fc": "Thing",
+      "range_fc": "Place",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E53_Place",
+      "parent_fr": "thing_place_from",
+      "paths": [
+        {
+          "description": "Thing found at Place",
+          "steps": [
+            {
+              "property": "P12i_was_present_at",
+              "from": "E77_Persistent_Item",
+              "to": "E5_Event",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing acquired at Place",
+          "steps": [
+            {
+              "property": "P24i_changed_ownership_through",
+              "from": "E18_Physical_Thing",
+              "to": "E8_Acquisition",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_place_created_by_person_from",
+      "label": "created/produced by person from",
+      "domain_fc": "Thing",
+      "range_fc": "Place",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E53_Place",
+      "parent_fr": "thing_place_from",
+      "paths": [
+        {
+          "description": "Thing created by actor born at Place",
+          "steps": [
+            {
+              "property": "P92i_was_brought_into_existence_by",
+              "from": "E77_Persistent_Item",
+              "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P92i_was_brought_into_existence_by",
+              "from": "E77_Persistent_Item",
+              "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created by actor with residence at Place",
+          "steps": [
+            {
+              "property": "P92i_was_brought_into_existence_by",
+              "from": "E77_Persistent_Item",
+              "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P74_has_current_or_former_residence",
+              "from": "E39_Actor",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_place_located_in",
+      "label": "is/was located in",
+      "domain_fc": "Thing",
+      "range_fc": "Place",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E53_Place",
+      "parent_fr": "thing_place_from",
+      "paths": [
+        {
+          "description": "Thing has former or current location at Place",
+          "steps": [
+            {
+              "property": "P53_has_former_or_current_location",
+              "from": "E18_Physical_Thing",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_place_moved_from",
+      "label": "moved from",
+      "domain_fc": "Thing",
+      "range_fc": "Place",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E53_Place",
+      "parent_fr": "thing_place_from",
+      "paths": [
+        {
+          "description": "Thing moved from Place",
+          "steps": [
+            {
+              "property": "P25i_moved_by",
+              "from": "E19_Physical_Object",
+              "to": "E9_Move",
+              "recursive": false
+            },
+            {
+              "property": "P27_moved_from",
+              "from": "E9_Move",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_place_moved_to",
+      "label": "moved to",
+      "domain_fc": "Thing",
+      "range_fc": "Place",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E53_Place",
+      "parent_fr": "thing_place_from",
+      "paths": [
+        {
+          "description": "Thing moved to Place",
+          "steps": [
+            {
+              "property": "P25i_moved_by",
+              "from": "E19_Physical_Object",
+              "to": "E9_Move",
+              "recursive": false
+            },
+            {
+              "property": "P26_moved_to",
+              "from": "E9_Move",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_thing_has_met",
+      "label": "has met",
+      "domain_fc": "Thing",
+      "range_fc": "Thing",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E70_Thing",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Thing was present at event where another Thing was also present",
+          "steps": [
+            {
+              "property": "P12i_was_present_at",
+              "from": "E77_Persistent_Item",
+              "to": "E5_Event",
+              "recursive": false
+            },
+            {
+              "property": "P12_occurred_in_the_presence_of",
+              "from": "E5_Event",
+              "to": "E77_Persistent_Item",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_thing_refers_to",
+      "label": "refers to or is about",
+      "domain_fc": "Thing",
+      "range_fc": "Thing",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E70_Thing",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Thing depicts another Thing",
+          "steps": [
+            {
+              "property": "P62_depicts",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E1_CRM_Entity",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing (propositional) refers to another Thing",
+          "steps": [
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E1_CRM_Entity",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing carries information that refers to another Thing",
+          "steps": [
+            {
+              "property": "P128_carries",
+              "from": "E18_Physical_Thing",
+              "to": "E90_Symbolic_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E1_CRM_Entity",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_thing_is_referred_to_by",
+      "label": "is referred to by",
+      "domain_fc": "Thing",
+      "range_fc": "Thing",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E70_Thing",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Thing is referred to by propositional object",
+          "steps": [
+            {
+              "property": "P67i_is_referred_to_by",
+              "from": "E1_CRM_Entity",
+              "to": "E89_Propositional_Object",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing is depicted by physical thing",
+          "steps": [
+            {
+              "property": "P62i_is_depicted_by",
+              "from": "E1_CRM_Entity",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_thing_from",
+      "label": "from",
+      "domain_fc": "Thing",
+      "range_fc": "Thing",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E70_Thing",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Thing is part of another Thing (structural)",
+          "steps": [
+            {
+              "property": "P46i_forms_part_of",
+              "from": "E18_Physical_Thing",
+              "to": "E18_Physical_Thing",
+              "recursive": true
+            }
+          ]
+        },
+        {
+          "description": "Thing resulted from transformation of another Thing",
+          "steps": [
+            {
+              "property": "P123i_resulted_from",
+              "from": "E18_Physical_Thing",
+              "to": "E81_Transformation",
+              "recursive": false
+            },
+            {
+              "property": "P124_transformed",
+              "from": "E81_Transformation",
+              "to": "E18_Physical_Thing",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was modified and augmented with another Thing",
+          "steps": [
+            {
+              "property": "P31i_was_modified_by",
+              "from": "E18_Physical_Thing",
+              "to": "E11_Modification",
+              "recursive": false
+            },
+            {
+              "property": "P110_augmented",
+              "from": "E79_Part_Addition",
+              "to": "E18_Physical_Thing",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_thing_is_part_of",
+      "label": "is part of",
+      "domain_fc": "Thing",
+      "range_fc": "Thing",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E70_Thing",
+      "parent_fr": "thing_thing_from",
+      "paths": [
+        {
+          "description": "Thing is physically part of another Thing",
+          "steps": [
+            {
+              "property": "P46i_forms_part_of",
+              "from": "E18_Physical_Thing",
+              "to": "E18_Physical_Thing",
+              "recursive": true
+            }
+          ]
+        },
+        {
+          "description": "Thing is symbolically composed into another Thing",
+          "steps": [
+            {
+              "property": "P106i_forms_part_of",
+              "from": "E90_Symbolic_Object",
+              "to": "E90_Symbolic_Object",
+              "recursive": true
+            }
+          ]
+        },
+        {
+          "description": "Thing is component of another Thing (propositional)",
+          "steps": [
+            {
+              "property": "P148i_is_component_of",
+              "from": "E89_Propositional_Object",
+              "to": "E89_Propositional_Object",
+              "recursive": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_thing_has_part",
+      "label": "has part",
+      "domain_fc": "Thing",
+      "range_fc": "Thing",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E70_Thing",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Thing is physically composed of another Thing",
+          "steps": [
+            {
+              "property": "P46_is_composed_of",
+              "from": "E18_Physical_Thing",
+              "to": "E18_Physical_Thing",
+              "recursive": true
+            }
+          ]
+        },
+        {
+          "description": "Thing is symbolically composed of another Thing",
+          "steps": [
+            {
+              "property": "P106_is_composed_of",
+              "from": "E90_Symbolic_Object",
+              "to": "E90_Symbolic_Object",
+              "recursive": true
+            }
+          ]
+        },
+        {
+          "description": "Thing has propositional component",
+          "steps": [
+            {
+              "property": "P148_has_component",
+              "from": "E89_Propositional_Object",
+              "to": "E89_Propositional_Object",
+              "recursive": true
+            }
+          ]
+        },
+        {
+          "description": "Thing was augmented by part addition",
+          "steps": [
+            {
+              "property": "P110i_was_augmented_by",
+              "from": "E18_Physical_Thing",
+              "to": "E79_Part_Addition",
+              "recursive": false
+            },
+            {
+              "property": "P111_added",
+              "from": "E79_Part_Addition",
+              "to": "E18_Physical_Thing",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_thing_is_similar_or_same",
+      "label": "is similar or the same with",
+      "domain_fc": "Thing",
+      "range_fc": "Thing",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E70_Thing",
+      "parent_fr": null,
+      "symmetric": true,
+      "paths": [
+        {
+          "description": "Thing shows features of another Thing",
+          "steps": [
+            {
+              "property": "P130_shows_features_of",
+              "from": "E70_Thing",
+              "to": "E70_Thing",
+              "recursive": true
+            }
+          ]
+        },
+        {
+          "description": "Thing features are also found on another Thing",
+          "steps": [
+            {
+              "property": "P130i_features_are_also_found_on",
+              "from": "E70_Thing",
+              "to": "E70_Thing",
+              "recursive": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_actor_has_met",
+      "label": "has met",
+      "domain_fc": "Thing",
+      "range_fc": "Actor",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E39_Actor",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Thing was present at event where Actor was also present",
+          "steps": [
+            {
+              "property": "P12i_was_present_at",
+              "from": "E77_Persistent_Item",
+              "to": "E5_Event",
+              "recursive": false
+            },
+            {
+              "property": "P12_occurred_in_the_presence_of",
+              "from": "E5_Event",
+              "to": "E77_Persistent_Item",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_actor_refers_to",
+      "label": "refers to or is about",
+      "domain_fc": "Thing",
+      "range_fc": "Actor",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E39_Actor",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Thing depicts Actor",
+          "steps": [
+            {
+              "property": "P62_depicts",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E1_CRM_Entity",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing (propositional) refers to Actor",
+          "steps": [
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E1_CRM_Entity",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing carries information that refers to Actor",
+          "steps": [
+            {
+              "property": "P128_carries",
+              "from": "E18_Physical_Thing",
+              "to": "E90_Symbolic_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E1_CRM_Entity",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_actor_is_referred_to_by",
+      "label": "is referred to by",
+      "domain_fc": "Thing",
+      "range_fc": "Actor",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E39_Actor",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Thing is referred to by propositional object created by Actor",
+          "steps": [
+            {
+              "property": "P67i_is_referred_to_by",
+              "from": "E1_CRM_Entity",
+              "to": "E89_Propositional_Object",
+              "recursive": false
+            },
+            {
+              "property": "P94i_was_created_by",
+              "from": "E28_Conceptual_Object",
+              "to": "E65_Creation",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing is depicted by physical thing produced by Actor",
+          "steps": [
+            {
+              "property": "P62i_is_depicted_by",
+              "from": "E1_CRM_Entity",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P108i_was_produced_by",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E12_Production",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_actor_by",
+      "label": "by",
+      "domain_fc": "Thing",
+      "range_fc": "Actor",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E39_Actor",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Thing was brought into existence by activity carried out by Actor",
+          "steps": [
+            {
+              "property": "P92i_was_brought_into_existence_by",
+              "from": "E77_Persistent_Item",
+              "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was used for activity carried out by Actor",
+          "steps": [
+            {
+              "property": "P16i_was_used_for",
+              "from": "E70_Thing",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was modified by activity carried out by Actor",
+          "steps": [
+            {
+              "property": "P31i_was_modified_by",
+              "from": "E18_Physical_Thing",
+              "to": "E11_Modification",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing has former or current owner",
+          "steps": [
+            {
+              "property": "P51_has_former_or_current_owner",
+              "from": "E18_Physical_Thing",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing changed ownership to Actor",
+          "steps": [
+            {
+              "property": "P24i_changed_ownership_through",
+              "from": "E18_Physical_Thing",
+              "to": "E8_Acquisition",
+              "recursive": false
+            },
+            {
+              "property": "P22_transferred_title_to",
+              "from": "E8_Acquisition",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_actor_created_by",
+      "label": "created by",
+      "domain_fc": "Thing",
+      "range_fc": "Actor",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E39_Actor",
+      "parent_fr": "thing_actor_by",
+      "paths": [
+        {
+          "description": "Thing was brought into existence by activity carried out by Actor",
+          "steps": [
+            {
+              "property": "P92i_was_brought_into_existence_by",
+              "from": "E77_Persistent_Item",
+              "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_actor_used_by",
+      "label": "used by",
+      "domain_fc": "Thing",
+      "range_fc": "Actor",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E39_Actor",
+      "parent_fr": "thing_actor_by",
+      "paths": [
+        {
+          "description": "Thing was used for activity carried out by Actor",
+          "steps": [
+            {
+              "property": "P16i_was_used_for",
+              "from": "E70_Thing",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_actor_modified_by",
+      "label": "modified by",
+      "domain_fc": "Thing",
+      "range_fc": "Actor",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E39_Actor",
+      "parent_fr": "thing_actor_by",
+      "paths": [
+        {
+          "description": "Thing was modified by activity carried out by Actor",
+          "steps": [
+            {
+              "property": "P31i_was_modified_by",
+              "from": "E18_Physical_Thing",
+              "to": "E11_Modification",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_actor_found_or_acquired_by",
+      "label": "found or acquired by",
+      "domain_fc": "Thing",
+      "range_fc": "Actor",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E39_Actor",
+      "parent_fr": "thing_actor_by",
+      "paths": [
+        {
+          "description": "Thing was present at finding event with participant Actor",
+          "steps": [
+            {
+              "property": "P12i_was_present_at",
+              "from": "E77_Persistent_Item",
+              "to": "E5_Event",
+              "recursive": false
+            },
+            {
+              "property": "P11_had_participant",
+              "from": "E5_Event",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing has former or current owner",
+          "steps": [
+            {
+              "property": "P51_has_former_or_current_owner",
+              "from": "E18_Physical_Thing",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_actor_from",
+      "label": "from (keeper/owner)",
+      "domain_fc": "Thing",
+      "range_fc": "Actor",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E39_Actor",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Thing has former or current keeper",
+          "steps": [
+            {
+              "property": "P49_has_former_or_current_keeper",
+              "from": "E18_Physical_Thing",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing has former or current owner",
+          "steps": [
+            {
+              "property": "P51_has_former_or_current_owner",
+              "from": "E18_Physical_Thing",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_event_refers_to",
+      "label": "refers to or is about",
+      "domain_fc": "Thing",
+      "range_fc": "Event",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E5_Event",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Thing depicts Event",
+          "steps": [
+            {
+              "property": "P62_depicts",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E1_CRM_Entity",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing (propositional) refers to Event",
+          "steps": [
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E1_CRM_Entity",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing carries information that refers to Event",
+          "steps": [
+            {
+              "property": "P128_carries",
+              "from": "E18_Physical_Thing",
+              "to": "E90_Symbolic_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E1_CRM_Entity",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_event_has_met",
+      "label": "has met (from)",
+      "domain_fc": "Thing",
+      "range_fc": "Event",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E5_Event",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Thing was present at Event",
+          "steps": [
+            {
+              "property": "P12i_was_present_at",
+              "from": "E77_Persistent_Item",
+              "to": "E5_Event",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_event_destroyed_in",
+      "label": "destroyed in",
+      "domain_fc": "Thing",
+      "range_fc": "Event",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E5_Event",
+      "parent_fr": "thing_event_has_met",
+      "paths": [
+        {
+          "description": "Thing was taken out of existence by Event",
+          "steps": [
+            {
+              "property": "P93i_was_taken_out_of_existence_by",
+              "from": "E77_Persistent_Item",
+              "to": "E64_End_of_Existence",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_event_created_in",
+      "label": "created in",
+      "domain_fc": "Thing",
+      "range_fc": "Event",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E5_Event",
+      "parent_fr": "thing_event_has_met",
+      "paths": [
+        {
+          "description": "Thing was brought into existence by Event",
+          "steps": [
+            {
+              "property": "P92i_was_brought_into_existence_by",
+              "from": "E77_Persistent_Item",
+              "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_event_modified_in",
+      "label": "modified in",
+      "domain_fc": "Thing",
+      "range_fc": "Event",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E5_Event",
+      "parent_fr": "thing_event_has_met",
+      "paths": [
+        {
+          "description": "Thing was modified by Event",
+          "steps": [
+            {
+              "property": "P31i_was_modified_by",
+              "from": "E18_Physical_Thing",
+              "to": "E11_Modification",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_event_used_in",
+      "label": "used in",
+      "domain_fc": "Thing",
+      "range_fc": "Event",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E5_Event",
+      "parent_fr": "thing_event_has_met",
+      "paths": [
+        {
+          "description": "Thing was used for Activity",
+          "steps": [
+            {
+              "property": "P16i_was_used_for",
+              "from": "E70_Thing",
+              "to": "E7_Activity",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_concept_has_type",
+      "label": "has type",
+      "domain_fc": "Thing",
+      "range_fc": "Concept",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E55_Type",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Thing has type",
+          "steps": [
+            {
+              "property": "P2_has_type",
+              "from": "E1_CRM_Entity",
+              "to": "E55_Type",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing consists of Material",
+          "steps": [
+            {
+              "property": "P45_consists_of",
+              "from": "E18_Physical_Thing",
+              "to": "E57_Material",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created using technique that foresees use of Material",
+          "steps": [
+            {
+              "property": "P92i_was_brought_into_existence_by",
+              "from": "E77_Persistent_Item",
+              "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P33_used_specific_technique",
+              "from": "E7_Activity",
+              "to": "E29_Design_or_Procedure",
+              "recursive": false
+            },
+            {
+              "property": "P68_foresees_use_of",
+              "from": "E29_Design_or_Procedure",
+              "to": "E57_Material",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_concept_is_made_of",
+      "label": "is made of",
+      "domain_fc": "Thing",
+      "range_fc": "Concept",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E57_Material",
+      "parent_fr": "thing_concept_has_type",
+      "paths": [
+        {
+          "description": "Thing consists of Material",
+          "steps": [
+            {
+              "property": "P45_consists_of",
+              "from": "E18_Physical_Thing",
+              "to": "E57_Material",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing modified with employed Material",
+          "steps": [
+            {
+              "property": "P31i_was_modified_by",
+              "from": "E18_Physical_Thing",
+              "to": "E11_Modification",
+              "recursive": false
+            },
+            {
+              "property": "P126_employed",
+              "from": "E11_Modification",
+              "to": "E57_Material",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "place_place_has_part",
+      "label": "has part",
+      "domain_fc": "Place",
+      "range_fc": "Place",
+      "crm_domain": "E53_Place",
+      "crm_range": "E53_Place",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Place contains another Place",
+          "steps": [
+            {
+              "property": "P89i_contains",
+              "from": "E53_Place",
+              "to": "E53_Place",
+              "recursive": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "place_place_is_part_of",
+      "label": "is part of",
+      "domain_fc": "Place",
+      "range_fc": "Place",
+      "crm_domain": "E53_Place",
+      "crm_range": "E53_Place",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Place falls within another Place",
+          "steps": [
+            {
+              "property": "P89_falls_within",
+              "from": "E53_Place",
+              "to": "E53_Place",
+              "recursive": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "place_place_borders_or_overlaps",
+      "label": "borders or overlaps with",
+      "domain_fc": "Place",
+      "range_fc": "Place",
+      "crm_domain": "E53_Place",
+      "crm_range": "E53_Place",
+      "parent_fr": null,
+      "symmetric": true,
+      "paths": [
+        {
+          "description": "Place borders with another Place",
+          "steps": [
+            {
+              "property": "P122_borders_with",
+              "from": "E53_Place",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Place overlaps with another Place",
+          "steps": [
+            {
+              "property": "P121_overlaps_with",
+              "from": "E53_Place",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "place_thing_has_met",
+      "label": "has met",
+      "domain_fc": "Place",
+      "range_fc": "Thing",
+      "crm_domain": "E53_Place",
+      "crm_range": "E70_Thing",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Place is former or current location of Thing",
+          "steps": [
+            {
+              "property": "P53i_is_former_or_current_location_of",
+              "from": "E53_Place",
+              "to": "E18_Physical_Thing",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Place witnessed event that brought Thing into existence",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            },
+            {
+              "property": "P92_brought_into_existence",
+              "from": "E63_Beginning_of_Existence",
+              "to": "E77_Persistent_Item",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Place is residence of keeper/owner of Thing",
+          "steps": [
+            {
+              "property": "P74i_is_current_or_former_residence_of",
+              "from": "E53_Place",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P49i_is_former_or_current_keeper_of",
+              "from": "E39_Actor",
+              "to": "E18_Physical_Thing",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "place_thing_is_origin_of",
+      "label": "is origin of",
+      "domain_fc": "Place",
+      "range_fc": "Thing",
+      "crm_domain": "E53_Place",
+      "crm_range": "E70_Thing",
+      "parent_fr": "place_thing_has_met",
+      "paths": [
+        {
+          "description": "Place witnessed event that brought Thing into existence",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            },
+            {
+              "property": "P92_brought_into_existence",
+              "from": "E63_Beginning_of_Existence",
+              "to": "E77_Persistent_Item",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "place_actor_has_met",
+      "label": "has met",
+      "domain_fc": "Place",
+      "range_fc": "Actor",
+      "crm_domain": "E53_Place",
+      "crm_range": "E39_Actor",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Place is residence of Actor",
+          "steps": [
+            {
+              "property": "P74i_is_current_or_former_residence_of",
+              "from": "E53_Place",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Place witnessed event where Actor was present",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            },
+            {
+              "property": "P12_occurred_in_the_presence_of",
+              "from": "E5_Event",
+              "to": "E77_Persistent_Item",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "place_actor_is_origin_of",
+      "label": "is origin of",
+      "domain_fc": "Place",
+      "range_fc": "Actor",
+      "crm_domain": "E53_Place",
+      "crm_range": "E39_Actor",
+      "parent_fr": "place_actor_has_met",
+      "paths": [
+        {
+          "description": "Place witnessed event that brought Actor into life",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            },
+            {
+              "property": "P98_brought_into_life",
+              "from": "E67_Birth",
+              "to": "E21_Person",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "place_event_has_met",
+      "label": "has met",
+      "domain_fc": "Place",
+      "range_fc": "Event",
+      "crm_domain": "E53_Place",
+      "crm_range": "E5_Event",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Place witnessed Event",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "place_concept_has_type",
+      "label": "has type",
+      "domain_fc": "Place",
+      "range_fc": "Concept",
+      "crm_domain": "E53_Place",
+      "crm_range": "E55_Type",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Place has type",
+          "steps": [
+            {
+              "property": "P2_has_type",
+              "from": "E1_CRM_Entity",
+              "to": "E55_Type",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "actor_place_has_met",
+      "label": "has met",
+      "domain_fc": "Actor",
+      "range_fc": "Place",
+      "crm_domain": "E39_Actor",
+      "crm_range": "E53_Place",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Actor was present at event that took place at Place",
+          "steps": [
+            {
+              "property": "P12i_was_present_at",
+              "from": "E77_Persistent_Item",
+              "to": "E5_Event",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor has residence at Place",
+          "steps": [
+            {
+              "property": "P74_has_current_or_former_residence",
+              "from": "E39_Actor",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "actor_place_from",
+      "label": "from",
+      "domain_fc": "Actor",
+      "range_fc": "Place",
+      "crm_domain": "E39_Actor",
+      "crm_range": "E53_Place",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Actor has residence at Place",
+          "steps": [
+            {
+              "property": "P74_has_current_or_former_residence",
+              "from": "E39_Actor",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor was brought into existence at Place",
+          "steps": [
+            {
+              "property": "P92i_was_brought_into_existence_by",
+              "from": "E77_Persistent_Item",
+              "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "actor_thing_is_origin_of",
+      "label": "is origin of",
+      "domain_fc": "Actor",
+      "range_fc": "Thing",
+      "crm_domain": "E39_Actor",
+      "crm_range": "E70_Thing",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Actor performed activity that brought Thing into existence",
+          "steps": [
+            {
+              "property": "P14i_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P92_brought_into_existence",
+              "from": "E63_Beginning_of_Existence",
+              "to": "E77_Persistent_Item",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor is keeper or owner of Thing",
+          "steps": [
+            {
+              "property": "P49i_is_former_or_current_keeper_of",
+              "from": "E39_Actor",
+              "to": "E18_Physical_Thing",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor is owner of Thing",
+          "steps": [
+            {
+              "property": "P51i_is_former_or_current_owner_of",
+              "from": "E39_Actor",
+              "to": "E18_Physical_Thing",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "actor_thing_is_generator_of",
+      "label": "is generator of",
+      "domain_fc": "Actor",
+      "range_fc": "Thing",
+      "crm_domain": "E39_Actor",
+      "crm_range": "E70_Thing",
+      "parent_fr": "actor_thing_is_origin_of",
+      "paths": [
+        {
+          "description": "Actor performed activity that brought Thing into existence",
+          "steps": [
+            {
+              "property": "P14i_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P92_brought_into_existence",
+              "from": "E63_Beginning_of_Existence",
+              "to": "E77_Persistent_Item",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "actor_thing_has",
+      "label": "has (owns/keeps)",
+      "domain_fc": "Actor",
+      "range_fc": "Thing",
+      "crm_domain": "E39_Actor",
+      "crm_range": "E70_Thing",
+      "parent_fr": "actor_thing_is_origin_of",
+      "paths": [
+        {
+          "description": "Actor is keeper of Thing",
+          "steps": [
+            {
+              "property": "P49i_is_former_or_current_keeper_of",
+              "from": "E39_Actor",
+              "to": "E18_Physical_Thing",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor is owner of Thing",
+          "steps": [
+            {
+              "property": "P51i_is_former_or_current_owner_of",
+              "from": "E39_Actor",
+              "to": "E18_Physical_Thing",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "actor_thing_has_met",
+      "label": "has met",
+      "domain_fc": "Actor",
+      "range_fc": "Thing",
+      "crm_domain": "E39_Actor",
+      "crm_range": "E70_Thing",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Actor was present at event where Thing was also present",
+          "steps": [
+            {
+              "property": "P12i_was_present_at",
+              "from": "E77_Persistent_Item",
+              "to": "E5_Event",
+              "recursive": false
+            },
+            {
+              "property": "P12_occurred_in_the_presence_of",
+              "from": "E5_Event",
+              "to": "E77_Persistent_Item",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "actor_actor_has_met",
+      "label": "has met",
+      "domain_fc": "Actor",
+      "range_fc": "Actor",
+      "crm_domain": "E39_Actor",
+      "crm_range": "E39_Actor",
+      "parent_fr": null,
+      "symmetric": true,
+      "paths": [
+        {
+          "description": "Actor was present at event where another Actor was also present",
+          "steps": [
+            {
+              "property": "P12i_was_present_at",
+              "from": "E77_Persistent_Item",
+              "to": "E5_Event",
+              "recursive": false
+            },
+            {
+              "property": "P12_occurred_in_the_presence_of",
+              "from": "E5_Event",
+              "to": "E77_Persistent_Item",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "actor_actor_from",
+      "label": "from (has generator)",
+      "domain_fc": "Actor",
+      "range_fc": "Actor",
+      "crm_domain": "E39_Actor",
+      "crm_range": "E39_Actor",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Person born from father",
+          "steps": [
+            {
+              "property": "P98i_was_born",
+              "from": "E21_Person",
+              "to": "E67_Birth",
+              "recursive": false
+            },
+            {
+              "property": "P97_from_father",
+              "from": "E67_Birth",
+              "to": "E21_Person",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Person born by mother",
+          "steps": [
+            {
+              "property": "P98i_was_born",
+              "from": "E21_Person",
+              "to": "E67_Birth",
+              "recursive": false
+            },
+            {
+              "property": "P96_by_mother",
+              "from": "E67_Birth",
+              "to": "E21_Person",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Group was formed by activity carried out by Actor",
+          "steps": [
+            {
+              "property": "P95i_was_formed_by",
+              "from": "E74_Group",
+              "to": "E66_Formation",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "actor_actor_is_origin_of",
+      "label": "is origin of",
+      "domain_fc": "Actor",
+      "range_fc": "Actor",
+      "crm_domain": "E39_Actor",
+      "crm_range": "E39_Actor",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Person was father for birth that brought into life another Person",
+          "steps": [
+            {
+              "property": "P97i_was_father_for",
+              "from": "E21_Person",
+              "to": "E67_Birth",
+              "recursive": false
+            },
+            {
+              "property": "P98_brought_into_life",
+              "from": "E67_Birth",
+              "to": "E21_Person",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Person gave birth to another Person",
+          "steps": [
+            {
+              "property": "P96i_gave_birth",
+              "from": "E21_Person",
+              "to": "E67_Birth",
+              "recursive": false
+            },
+            {
+              "property": "P98_brought_into_life",
+              "from": "E67_Birth",
+              "to": "E21_Person",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor performed activity that formed Group",
+          "steps": [
+            {
+              "property": "P14i_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P95_has_formed",
+              "from": "E66_Formation",
+              "to": "E74_Group",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "actor_actor_has_member",
+      "label": "has member",
+      "domain_fc": "Actor",
+      "range_fc": "Actor",
+      "crm_domain": "E74_Group",
+      "crm_range": "E39_Actor",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Group has current or former member",
+          "steps": [
+            {
+              "property": "P107_has_current_or_former_member",
+              "from": "E74_Group",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Group gained member by Joining event",
+          "steps": [
+            {
+              "property": "P144i_gained_member_by",
+              "from": "E74_Group",
+              "to": "E85_Joining",
+              "recursive": false
+            },
+            {
+              "property": "P143_joined",
+              "from": "E85_Joining",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "actor_actor_is_member_of",
+      "label": "is member of",
+      "domain_fc": "Actor",
+      "range_fc": "Actor",
+      "crm_domain": "E39_Actor",
+      "crm_range": "E74_Group",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Actor is current or former member of Group",
+          "steps": [
+            {
+              "property": "P107i_is_current_or_former_member_of",
+              "from": "E39_Actor",
+              "to": "E74_Group",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor was joined by Joining event to Group",
+          "steps": [
+            {
+              "property": "P143i_was_joined_by",
+              "from": "E39_Actor",
+              "to": "E85_Joining",
+              "recursive": false
+            },
+            {
+              "property": "P144_joined_with",
+              "from": "E85_Joining",
+              "to": "E74_Group",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "actor_event_has_met",
+      "label": "has met",
+      "domain_fc": "Actor",
+      "range_fc": "Event",
+      "crm_domain": "E39_Actor",
+      "crm_range": "E5_Event",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Actor was present at Event",
+          "steps": [
+            {
+              "property": "P12i_was_present_at",
+              "from": "E77_Persistent_Item",
+              "to": "E5_Event",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "actor_event_performed_action_at",
+      "label": "performed action at",
+      "domain_fc": "Actor",
+      "range_fc": "Event",
+      "crm_domain": "E39_Actor",
+      "crm_range": "E5_Event",
+      "parent_fr": "actor_event_has_met",
+      "paths": [
+        {
+          "description": "Actor performed Activity",
+          "steps": [
+            {
+              "property": "P14i_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "actor_event_from",
+      "label": "from",
+      "domain_fc": "Actor",
+      "range_fc": "Event",
+      "crm_domain": "E39_Actor",
+      "crm_range": "E5_Event",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Group was formed by Formation event",
+          "steps": [
+            {
+              "property": "P95i_was_formed_by",
+              "from": "E74_Group",
+              "to": "E66_Formation",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Person was born in Birth event",
+          "steps": [
+            {
+              "property": "P98i_was_born",
+              "from": "E21_Person",
+              "to": "E67_Birth",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "actor_concept_has_type",
+      "label": "has type",
+      "domain_fc": "Actor",
+      "range_fc": "Concept",
+      "crm_domain": "E39_Actor",
+      "crm_range": "E55_Type",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Actor has type",
+          "steps": [
+            {
+              "property": "P2_has_type",
+              "from": "E1_CRM_Entity",
+              "to": "E55_Type",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_place_from",
+      "label": "from (took place at)",
+      "domain_fc": "Event",
+      "range_fc": "Place",
+      "crm_domain": "E5_Event",
+      "crm_range": "E53_Place",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Event took place at Place",
+          "steps": [
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_thing_has_met",
+      "label": "has met",
+      "domain_fc": "Event",
+      "range_fc": "Thing",
+      "crm_domain": "E5_Event",
+      "crm_range": "E70_Thing",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Event occurred in the presence of Thing",
+          "steps": [
+            {
+              "property": "P12_occurred_in_the_presence_of",
+              "from": "E5_Event",
+              "to": "E77_Persistent_Item",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_thing_created",
+      "label": "created",
+      "domain_fc": "Event",
+      "range_fc": "Thing",
+      "crm_domain": "E5_Event",
+      "crm_range": "E70_Thing",
+      "parent_fr": "event_thing_has_met",
+      "paths": [
+        {
+          "description": "Event brought Thing into existence",
+          "steps": [
+            {
+              "property": "P92_brought_into_existence",
+              "from": "E63_Beginning_of_Existence",
+              "to": "E77_Persistent_Item",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_thing_destroyed",
+      "label": "destroyed",
+      "domain_fc": "Event",
+      "range_fc": "Thing",
+      "crm_domain": "E5_Event",
+      "crm_range": "E70_Thing",
+      "parent_fr": "event_thing_has_met",
+      "paths": [
+        {
+          "description": "Event took Thing out of existence",
+          "steps": [
+            {
+              "property": "P93_took_out_of_existence",
+              "from": "E64_End_of_Existence",
+              "to": "E77_Persistent_Item",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_thing_modified",
+      "label": "modified",
+      "domain_fc": "Event",
+      "range_fc": "Thing",
+      "crm_domain": "E5_Event",
+      "crm_range": "E70_Thing",
+      "parent_fr": "event_thing_has_met",
+      "paths": [
+        {
+          "description": "Event modified Thing",
+          "steps": [
+            {
+              "property": "P31_has_modified",
+              "from": "E11_Modification",
+              "to": "E18_Physical_Thing",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_thing_used",
+      "label": "used",
+      "domain_fc": "Event",
+      "range_fc": "Thing",
+      "crm_domain": "E5_Event",
+      "crm_range": "E70_Thing",
+      "parent_fr": "event_thing_has_met",
+      "paths": [
+        {
+          "description": "Activity used specific object",
+          "steps": [
+            {
+              "property": "P16_used_specific_object",
+              "from": "E7_Activity",
+              "to": "E70_Thing",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Activity used object of type",
+          "steps": [
+            {
+              "property": "P125_used_object_of_type",
+              "from": "E7_Activity",
+              "to": "E55_Type",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_actor_by",
+      "label": "by",
+      "domain_fc": "Event",
+      "range_fc": "Actor",
+      "crm_domain": "E5_Event",
+      "crm_range": "E39_Actor",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Activity carried out by Actor",
+          "steps": [
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Activity was influenced by Actor",
+          "steps": [
+            {
+              "property": "P15_was_influenced_by",
+              "from": "E7_Activity",
+              "to": "E1_CRM_Entity",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_actor_has_met",
+      "label": "has met",
+      "domain_fc": "Event",
+      "range_fc": "Actor",
+      "crm_domain": "E5_Event",
+      "crm_range": "E39_Actor",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Event occurred in the presence of Actor",
+          "steps": [
+            {
+              "property": "P12_occurred_in_the_presence_of",
+              "from": "E5_Event",
+              "to": "E77_Persistent_Item",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_actor_brought_into_existence",
+      "label": "brought into existence",
+      "domain_fc": "Event",
+      "range_fc": "Actor",
+      "crm_domain": "E5_Event",
+      "crm_range": "E39_Actor",
+      "parent_fr": "event_actor_has_met",
+      "paths": [
+        {
+          "description": "Event brought Actor into existence",
+          "steps": [
+            {
+              "property": "P92_brought_into_existence",
+              "from": "E63_Beginning_of_Existence",
+              "to": "E77_Persistent_Item",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_actor_took_out_of_existence",
+      "label": "took out of existence",
+      "domain_fc": "Event",
+      "range_fc": "Actor",
+      "crm_domain": "E5_Event",
+      "crm_range": "E39_Actor",
+      "parent_fr": "event_actor_has_met",
+      "paths": [
+        {
+          "description": "Event took Actor out of existence",
+          "steps": [
+            {
+              "property": "P93_took_out_of_existence",
+              "from": "E64_End_of_Existence",
+              "to": "E77_Persistent_Item",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_event_from",
+      "label": "from (is part of)",
+      "domain_fc": "Event",
+      "range_fc": "Event",
+      "crm_domain": "E5_Event",
+      "crm_range": "E5_Event",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Event forms part of another Event",
+          "steps": [
+            {
+              "property": "P9i_forms_part_of",
+              "from": "E4_Period",
+              "to": "E4_Period",
+              "recursive": true
+            }
+          ]
+        },
+        {
+          "description": "Event falls within another Event (spatiotemporal)",
+          "steps": [
+            {
+              "property": "P10_falls_within",
+              "from": "E92_Spacetime_Volume",
+              "to": "E92_Spacetime_Volume",
+              "recursive": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_event_has_part",
+      "label": "has part",
+      "domain_fc": "Event",
+      "range_fc": "Event",
+      "crm_domain": "E5_Event",
+      "crm_range": "E5_Event",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Event consists of another Event",
+          "steps": [
+            {
+              "property": "P9_consists_of",
+              "from": "E4_Period",
+              "to": "E4_Period",
+              "recursive": true
+            }
+          ]
+        },
+        {
+          "description": "Event contains another Event (spatiotemporal)",
+          "steps": [
+            {
+              "property": "P10i_contains",
+              "from": "E92_Spacetime_Volume",
+              "to": "E92_Spacetime_Volume",
+              "recursive": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_concept_has_type",
+      "label": "has type",
+      "domain_fc": "Event",
+      "range_fc": "Concept",
+      "crm_domain": "E5_Event",
+      "crm_range": "E55_Type",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Event has type",
+          "steps": [
+            {
+              "property": "P2_has_type",
+              "from": "E1_CRM_Entity",
+              "to": "E55_Type",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "concept_place_is_type_of",
+      "label": "is type of",
+      "domain_fc": "Concept",
+      "range_fc": "Place",
+      "crm_domain": "E55_Type",
+      "crm_range": "E53_Place",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Type is type of Place",
+          "steps": [
+            {
+              "property": "P2i_is_type_of",
+              "from": "E55_Type",
+              "to": "E1_CRM_Entity",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Type has narrower term",
+          "steps": [
+            {
+              "property": "P127i_has_narrower_term",
+              "from": "E55_Type",
+              "to": "E55_Type",
+              "recursive": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "concept_thing_is_type_of",
+      "label": "is type of",
+      "domain_fc": "Concept",
+      "range_fc": "Thing",
+      "crm_domain": "E55_Type",
+      "crm_range": "E70_Thing",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Type is type of Thing",
+          "steps": [
+            {
+              "property": "P2i_is_type_of",
+              "from": "E55_Type",
+              "to": "E1_CRM_Entity",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Type has narrower term",
+          "steps": [
+            {
+              "property": "P127i_has_narrower_term",
+              "from": "E55_Type",
+              "to": "E55_Type",
+              "recursive": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "concept_actor_is_type_of",
+      "label": "is type of",
+      "domain_fc": "Concept",
+      "range_fc": "Actor",
+      "crm_domain": "E55_Type",
+      "crm_range": "E39_Actor",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Type is type of Actor",
+          "steps": [
+            {
+              "property": "P2i_is_type_of",
+              "from": "E55_Type",
+              "to": "E1_CRM_Entity",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Type has narrower term",
+          "steps": [
+            {
+              "property": "P127i_has_narrower_term",
+              "from": "E55_Type",
+              "to": "E55_Type",
+              "recursive": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "concept_event_is_type_of",
+      "label": "is type of",
+      "domain_fc": "Concept",
+      "range_fc": "Event",
+      "crm_domain": "E55_Type",
+      "crm_range": "E5_Event",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Type is type of Event",
+          "steps": [
+            {
+              "property": "P2i_is_type_of",
+              "from": "E55_Type",
+              "to": "E1_CRM_Entity",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Type has narrower term",
+          "steps": [
+            {
+              "property": "P127i_has_narrower_term",
+              "from": "E55_Type",
+              "to": "E55_Type",
+              "recursive": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "concept_concept_has_type",
+      "label": "has type (broader term)",
+      "domain_fc": "Concept",
+      "range_fc": "Concept",
+      "crm_domain": "E55_Type",
+      "crm_range": "E55_Type",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Type has broader term",
+          "steps": [
+            {
+              "property": "P127_has_broader_term",
+              "from": "E55_Type",
+              "to": "E55_Type",
+              "recursive": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "concept_concept_is_type_of",
+      "label": "is type of (narrower term)",
+      "domain_fc": "Concept",
+      "range_fc": "Concept",
+      "crm_domain": "E55_Type",
+      "crm_range": "E55_Type",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Type has narrower term",
+          "steps": [
+            {
+              "property": "P127i_has_narrower_term",
+              "from": "E55_Type",
+              "to": "E55_Type",
+              "recursive": true
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "total_frs": 76,
+    "total_unique_properties_used": 82,
+    "properties_missing_from_v7_1_3": []
+  }
+}

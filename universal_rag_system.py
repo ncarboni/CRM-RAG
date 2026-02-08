@@ -1590,9 +1590,12 @@ class UniversalRagSystem:
 
                     context_statements.append(statement)
 
-                    # NOTE: We do NOT traverse from incoming relationships.
-                    # Incoming relationships are "about" this entity from another entity's perspective.
-                    # Information flows FROM subject TO object, so we only traverse outgoing.
+                    # Traverse from incoming if the source is an event
+                    # Critical for CIDOC-CRM: Artist <- Production Event -> Artwork
+                    source_is_event = is_event(subj)
+                    if current_depth < depth and should_include:
+                        if start_is_event or source_is_event:
+                            traverse(subj, current_depth + 1)
 
             except Exception as e:
                 logger.error(f"Error traversing incoming relationships: {str(e)}")
@@ -2112,12 +2115,14 @@ class UniversalRagSystem:
                                 "object_label": obj_label
                             })
 
-                            # Track for next level traversal
+                            # Only traverse further through events (matching bulk script)
+                            target_is_event = bool(target_types & event_classes)
                             if current_depth < depth and obj not in visited:
-                                next_level.add(obj)
-                                if obj not in next_level_origins:
-                                    next_level_origins[obj] = set()
-                                next_level_origins[obj].add(start_uri)
+                                if starting_is_event.get(start_uri, False) or target_is_event:
+                                    next_level.add(obj)
+                                    if obj not in next_level_origins:
+                                        next_level_origins[obj] = set()
+                                    next_level_origins[obj].add(start_uri)
 
             # Process incoming relationships
             for uri, rels in incoming.items():
@@ -2177,7 +2182,17 @@ class UniversalRagSystem:
                                 "object_label": entity_label
                             })
 
-                            # NOTE: Don't traverse from incoming (matching single-entity behavior)
+                            # Traverse from incoming IF the source is an event
+                            # Critical for CIDOC-CRM: production events arrive as incoming
+                            # to actors/objects, traverse through them to discover artworks
+                            source_types = type_cache.get(subj, set())
+                            source_is_event = bool(source_types & event_classes)
+                            if current_depth < depth and subj not in visited:
+                                if starting_is_event.get(start_uri, False) or source_is_event:
+                                    next_level.add(subj)
+                                    if subj not in next_level_origins:
+                                        next_level_origins[subj] = set()
+                                    next_level_origins[subj].add(start_uri)
 
             # Update origins for next level
             for uri, origins in next_level_origins.items():

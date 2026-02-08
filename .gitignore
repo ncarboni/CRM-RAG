@@ -15,6 +15,7 @@ data/cache/
 data/documents/**/entity_documents/
 data/documents/**/edges.parquet
 data/exports/
+sample_entity_documents/
 
 # Cache and temporary pickle files
 *.pkl

@@ -20,7 +20,6 @@ import yaml
 
 # Third-party imports
 import numpy as np
-import networkx as nx
 from tqdm import tqdm
 from SPARQLWrapper import SPARQLWrapper, JSON, TSV, POST
 
@@ -44,12 +43,7 @@ class RetrievalConfig:
     """Configuration constants for the RAG retrieval system"""
 
     # Score combination weights
-    VECTOR_PAGERANK_ALPHA = 0.6  # Weight for combining vector similarity and PageRank scores
     RELEVANCE_CONNECTIVITY_ALPHA = 0.7  # Weight for combining relevance and connectivity scores
-
-    # PageRank parameters
-    PAGERANK_DAMPING = 0.85  # Damping factor for PageRank algorithm
-    PAGERANK_ITERATIONS = 20  # Number of iterations for PageRank computation
 
     # Rate limiting
     TOKENS_PER_MINUTE_LIMIT = 950_000  # Token limit for rate limiting (TPM)
@@ -3144,69 +3138,17 @@ Each file contains:
 
 
     def cidoc_aware_retrieval(self, query, k=20):
-        """Enhanced retrieval using CIDOC-CRM aware scoring.
+        """Retrieve candidate documents using FAISS vector similarity.
 
-        Uses pre-computed graph edges from document_store instead of
-        querying SPARQL at runtime. Edges are built during initialization
-        with relationship weights based on CIDOC-CRM semantics.
+        Returns (documents, scores) tuples preserving actual FAISS similarity
+        scores for use as initial relevance signal in coherent subgraph extraction.
         """
+        results_with_scores = self.document_store.retrieve(query, k=k)
 
-        # Initial vector search
-        vector_results = self.document_store.retrieve(query, k=k*2)
-
-        if not vector_results:
+        if not results_with_scores:
             return []
 
-        # Get entity URIs from results for filtering
-        entity_uris = set(doc.id for doc in vector_results)
-
-        # Create a graph representation from pre-computed edges (no SPARQL needed)
-        G = nx.DiGraph()
-
-        # Add nodes and edges from document store
-        for doc in vector_results:
-            G.add_node(doc.id, label=doc.metadata.get("label", ""))
-
-            # Add edges from pre-computed neighbors
-            for neighbor in doc.neighbors:
-                neighbor_id = neighbor["doc_id"]
-                # Only add edges to other retrieved documents
-                if neighbor_id in entity_uris:
-                    weight = neighbor.get("weight", 0.5)
-                    G.add_edge(doc.id, neighbor_id, weight=weight, predicate=neighbor.get("edge_type", ""))
-
-        # Compute PageRank if graph has edges
-        pagerank_scores = {}
-        if G.number_of_edges() > 0:
-            try:
-                pagerank_scores = nx.pagerank(
-                    G,
-                    alpha=RetrievalConfig.PAGERANK_DAMPING,
-                    max_iter=RetrievalConfig.PAGERANK_ITERATIONS
-                )
-            except Exception as e:
-                logger.warning(f"PageRank computation failed: {str(e)}")
-
-        # Re-rank documents by combined vector similarity and graph centrality
-        ranked_docs = []
-
-        for i, doc in enumerate(vector_results):
-            # Vector score (inversely proportional to rank)
-            vector_score = (len(vector_results) - i) / len(vector_results)
-
-            # Graph score (from PageRank)
-            graph_score = pagerank_scores.get(doc.id, 0.0)
-
-            # Combined score
-            combined_score = RetrievalConfig.VECTOR_PAGERANK_ALPHA * vector_score + (1 - RetrievalConfig.VECTOR_PAGERANK_ALPHA) * graph_score
-
-            ranked_docs.append((doc, combined_score))
-
-        # Sort by combined score
-        ranked_docs.sort(key=lambda x: x[1], reverse=True)
-
-        # Return top k documents
-        return [doc for doc, _ in ranked_docs[:k]]
+        return results_with_scores
 
     def get_cidoc_system_prompt(self):
         """Get a system prompt with CIDOC-CRM knowledge"""
@@ -3829,12 +3771,13 @@ Remember: Your audience wants accurate information. It's better to say "I don't 
         # Return selected documents in order
         return [candidates[idx] for idx in selected_indices]
 
-    def retrieve(self, query, k=RetrievalConfig.DEFAULT_RETRIEVAL_K, initial_pool_size=30, alpha=RetrievalConfig.RELEVANCE_CONNECTIVITY_ALPHA):
+    def retrieve(self, query, k=RetrievalConfig.DEFAULT_RETRIEVAL_K, initial_pool_size=60, alpha=RetrievalConfig.RELEVANCE_CONNECTIVITY_ALPHA):
         """
-        Retrieve documents for a query using coherent subgraph extraction:
-        1. CIDOC-CRM aware retrieval with relationship weights (initial pool)
-        2. Coherent subgraph extraction using greedy selection based on relevance + connectivity
-        
+        Retrieve documents using FAISS similarity + coherent subgraph extraction:
+        1. FAISS vector retrieval with actual similarity scores (initial pool)
+        2. Adjacency matrix with virtual 2-hop edges through full graph
+        3. Coherent subgraph extraction balancing relevance + connectivity
+
         Args:
             query: Query string
             k: Number of documents to return
@@ -3842,43 +3785,38 @@ Remember: Your audience wants accurate information. It's better to say "I don't 
             alpha: Balance between relevance (higher) and connectivity (lower)
         """
         logger.info(f"Retrieving documents for query: '{query}'")
-        
-        # First-stage retrieval with CIDOC-CRM aware retrieval
-        # Get more candidates than needed for subgraph extraction
-        initial_docs = self.cidoc_aware_retrieval(query, k=initial_pool_size)
-        
-        if not initial_docs:
-            logger.warning("No documents found in first-stage retrieval")
+
+        # FAISS retrieval with actual similarity scores
+        results_with_scores = self.cidoc_aware_retrieval(query, k=initial_pool_size)
+
+        if not results_with_scores:
+            logger.warning("No documents found in FAISS retrieval")
             return []
-        
+
+        initial_docs = [doc for doc, _ in results_with_scores]
+        faiss_scores = np.array([score for _, score in results_with_scores])
+
         # If we got fewer documents than requested, just return them
         if len(initial_docs) <= k:
             logger.info(f"Retrieved {len(initial_docs)} documents (less than k={k})")
             return initial_docs
-        
+
         # Create a subgraph of the retrieved documents
         doc_ids = [doc.id for doc in initial_docs]
-        
-        # Create weighted adjacency matrix with multi-hop connections
+
+        # Create weighted adjacency matrix with virtual 2-hop edges through full graph
         adjacency_matrix = self.document_store.create_adjacency_matrix(doc_ids, max_hops=RetrievalConfig.MAX_ADJACENCY_HOPS)
-        
-        # Compute initial relevance scores based on ranking position
-        # Higher rank = higher score (inverse of position)
-        initial_scores = np.array([
-            (len(initial_docs) - i) / len(initial_docs) 
-            for i in range(len(initial_docs))
-        ])
-        
-        # Extract coherent subgraph
+
+        # Extract coherent subgraph using actual FAISS similarity scores
         logger.info(f"Extracting coherent subgraph of size {k} from {len(initial_docs)} candidates")
         selected_docs = self.compute_coherent_subgraph(
             candidates=initial_docs,
             adjacency_matrix=adjacency_matrix,
-            initial_scores=initial_scores,
+            initial_scores=faiss_scores,
             k=k,
             alpha=alpha
         )
-        
+
         logger.info(f"Retrieved and selected {len(selected_docs)} coherent documents")
         return selected_docs
 

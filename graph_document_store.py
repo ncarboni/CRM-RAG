@@ -157,101 +157,124 @@ class GraphDocumentStore:
             return False
         
     def retrieve(self, query, k=10):
-        """First-stage retrieval using vector similarity"""
+        """First-stage retrieval using vector similarity.
+
+        Returns:
+            List of (GraphDocument, score) tuples, where score is the FAISS
+            similarity score (higher = more similar). FAISS returns L2 distances
+            (lower = better), so we convert to similarity via 1/(1+distance).
+        """
         if not self.vector_store:
             self.rebuild_vector_store()
-            
+
         logger.info(f"Retrieving documents for query: '{query}'")
-        results = self.vector_store.similarity_search(query, k=k)
-        retrieved_docs = []
-        
-        for doc in results:
+        results_with_scores = self.vector_store.similarity_search_with_score(query, k=k)
+        retrieved = []
+
+        for doc, distance in results_with_scores:
             doc_id = doc.metadata.get("doc_id")
             if doc_id in self.docs:
-                retrieved_docs.append(self.docs[doc_id])
-                
-        logger.info(f"Retrieved {len(retrieved_docs)} documents")
-        return retrieved_docs
+                similarity = 1.0 / (1.0 + distance)
+                retrieved.append((self.docs[doc_id], similarity))
+
+        logger.info(f"Retrieved {len(retrieved)} documents")
+        return retrieved
 
     def create_adjacency_matrix(self, doc_ids, max_hops=2):
-        """Create an adjacency matrix for a subgraph with multi-hop connections"""
-        # Create a mapping of doc IDs to indices
+        """Create an adjacency matrix with virtual 2-hop edges through the full graph.
+
+        Unlike the previous approach (A^2 within pool only), this discovers
+        connections between candidates through intermediate nodes anywhere in
+        the full document graph. This is critical for event-based ontologies
+        like CIDOC-CRM where entities connect through event intermediaries
+        (e.g., Artist -> E12_Production -> Artwork).
+
+        Args:
+            doc_ids: List of candidate document IDs
+            max_hops: Maximum hops (used for virtual edge discount factor)
+        """
         doc_to_idx = {doc_id: i for i, doc_id in enumerate(doc_ids)}
-        
-        # Create an empty adjacency matrix
         n = len(doc_ids)
         adj_matrix = np.zeros((n, n), dtype=np.float64)
-        
-        # Fill the adjacency matrix with direct connections (1-hop)
+
+        # 1-hop: direct edges between candidates
+        direct_edges = 0
         for i, doc_id in enumerate(doc_ids):
             if doc_id not in self.docs:
                 continue
-                
             doc = self.docs[doc_id]
             for neighbor in doc.neighbors:
                 neighbor_id = neighbor["doc_id"]
                 if neighbor_id in doc_to_idx:
                     j = doc_to_idx[neighbor_id]
                     adj_matrix[i, j] = neighbor["weight"]
-        
-        # Store the original 1-hop adjacency matrix
-        original_adj = adj_matrix.copy()
-        
-        # Compute multi-hop connections up to max_hops with numerical stability
-        current_power = original_adj.copy()
-        for hop in range(2, max_hops + 1):
-            # Compute next power by multiplying current power by original
-            # This is more stable than using np.linalg.matrix_power
-            with np.errstate(over='ignore', invalid='ignore', divide='ignore'):
-                current_power = np.matmul(current_power, original_adj)
-                
-                # Clip values to prevent overflow
-                current_power = np.clip(current_power, -1e10, 1e10)
-                
-                # Replace any NaN or Inf values with 0
-                current_power = np.nan_to_num(current_power, nan=0.0, posinf=0.0, neginf=0.0)
-                
-                # Add these connections to the adjacency matrix with reduced weight
-                # Scale by 1/hop to give closer connections more weight
-                adj_matrix += current_power * (1.0 / hop)
-        
+                    direct_edges += 1
+
+        # Virtual 2-hop: edges through intermediate nodes in the FULL graph
+        # Build inverted index: intermediate_node -> [(candidate_idx, weight)]
+        intermediate_index = {}
+        for i, doc_id in enumerate(doc_ids):
+            if doc_id not in self.docs:
+                continue
+            doc = self.docs[doc_id]
+            for neighbor in doc.neighbors:
+                neighbor_id = neighbor["doc_id"]
+                # Only consider intermediates OUTSIDE the candidate pool
+                if neighbor_id not in doc_to_idx:
+                    if neighbor_id not in intermediate_index:
+                        intermediate_index[neighbor_id] = []
+                    intermediate_index[neighbor_id].append((i, neighbor.get("weight", 0.5)))
+
+        # For each intermediate connecting 2+ candidates, add virtual edges
+        virtual_edges = 0
+        for intermediate_id, connections in intermediate_index.items():
+            if len(connections) < 2:
+                continue
+            # Add virtual edge between each pair of candidates through this intermediate
+            for ci in range(len(connections)):
+                idx_a, weight_a = connections[ci]
+                for cj in range(ci + 1, len(connections)):
+                    idx_b, weight_b = connections[cj]
+                    # Virtual edge weight: product of path weights, discounted by hop count
+                    virtual_weight = (weight_a * weight_b) * (1.0 / max_hops)
+                    # Keep the stronger connection if multiple paths exist
+                    if virtual_weight > adj_matrix[idx_a, idx_b]:
+                        adj_matrix[idx_a, idx_b] = virtual_weight
+                        adj_matrix[idx_b, idx_a] = virtual_weight
+                        virtual_edges += 1
+
+        logger.info(f"Adjacency: {direct_edges} direct edges, {virtual_edges} virtual 2-hop edges "
+                    f"(via {sum(1 for c in intermediate_index.values() if len(c) >= 2)} intermediates)")
+
         # Add self-loops to prevent isolated nodes
         adj_matrix = adj_matrix + np.eye(n)
 
         # Log adjacency matrix statistics before normalization
         non_zero_count = np.count_nonzero(adj_matrix - np.eye(n))  # Exclude self-loops
         total_possible = n * n - n  # Exclude diagonal
-        sparsity = 1.0 - (non_zero_count / total_possible) if total_possible > 0 else 0.0
+        density = (non_zero_count / total_possible) if total_possible > 0 else 0.0
 
         logger.info(f"=== Adjacency Matrix Statistics (before normalization) ===")
         logger.info(f"  Size: {n}x{n} nodes")
-        logger.info(f"  Non-zero edges: {non_zero_count} ({(1-sparsity)*100:.1f}% density)")
+        logger.info(f"  Non-zero edges: {non_zero_count} ({density*100:.1f}% density)")
         logger.info(f"  Value range: [{np.min(adj_matrix):.3f}, {np.max(adj_matrix):.3f}]")
         logger.info(f"  Mean weight: {np.mean(adj_matrix):.3f}")
         logger.info(f"  Std weight: {np.std(adj_matrix):.3f}")
 
-        # Normalize the adjacency matrix with numerical stability
+        # Symmetric normalization: D^(-1/2) * A * D^(-1/2)
         rowsum = np.array(adj_matrix.sum(1))
-        
-        # Handle zero or very small rows
         d_inv_sqrt = np.zeros_like(rowsum)
-        non_zero_mask = rowsum > 1e-10  # Use small threshold instead of exact zero
-        
+        non_zero_mask = rowsum > 1e-10
+
         if np.any(non_zero_mask):
             d_inv_sqrt[non_zero_mask] = np.power(rowsum[non_zero_mask], -0.5)
-            
-            # Replace any remaining inf or nan values
             d_inv_sqrt = np.nan_to_num(d_inv_sqrt, nan=0.0, posinf=0.0, neginf=0.0)
-            
             d_mat_inv_sqrt = np.diag(d_inv_sqrt)
-            
+
             with np.errstate(invalid='ignore', divide='ignore'):
                 adj_normalized = adj_matrix.dot(d_mat_inv_sqrt).transpose().dot(d_mat_inv_sqrt)
-                
-                # Clean up any remaining numerical issues
                 adj_normalized = np.nan_to_num(adj_normalized, nan=0.0, posinf=0.0, neginf=0.0)
         else:
-            # If all rows are zero (no connections), return identity matrix
             logger.warning("All rows in adjacency matrix are zero, using identity matrix")
             adj_normalized = np.eye(n)
 

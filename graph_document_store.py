@@ -6,11 +6,17 @@ Unified graph structure for document storage with weighted edges and vector retr
 import logging
 import os
 import pickle
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, field
 import numpy as np
 from langchain_core.documents import Document
 from langchain_community.vectorstores import FAISS
+
+try:
+    import bm25s
+    HAS_BM25S = True
+except ImportError:
+    HAS_BM25S = False
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +45,8 @@ class GraphDocumentStore:
         self.docs = {}  # Document ID to GraphDocument
         self.embeddings_model = embeddings_model
         self.vector_store = None
+        self.bm25_retriever = None  # BM25 sparse retrieval index
+        self._bm25_doc_ids = []     # Ordered doc IDs matching BM25 corpus order
         
     def add_document(self, doc_id, text, metadata=None):
         """Add a document to the store"""
@@ -286,4 +294,115 @@ class GraphDocumentStore:
         logger.info(f"  Row sum range: [{np.min(np.sum(adj_normalized, axis=1)):.3f}, {np.max(np.sum(adj_normalized, axis=1)):.3f}]")
 
         return adj_normalized
-    
+
+    # ==================== BM25 Sparse Retrieval ====================
+
+    def build_bm25_index(self) -> bool:
+        """Build a BM25 index over all documents in the store.
+
+        Uses bm25s for fast sparse retrieval. Tokenization uses simple
+        whitespace splitting (language-agnostic for European languages).
+
+        Returns:
+            True if index was built successfully, False otherwise.
+        """
+        if not HAS_BM25S:
+            logger.warning("bm25s not installed — BM25 retrieval disabled. Install with: pip install bm25s")
+            return False
+
+        if not self.docs:
+            logger.warning("No documents to index for BM25")
+            return False
+
+        # Build ordered corpus aligned with doc IDs
+        self._bm25_doc_ids = list(self.docs.keys())
+        corpus = [self.docs[did].text for did in self._bm25_doc_ids]
+
+        logger.info(f"Building BM25 index over {len(corpus)} documents...")
+        corpus_tokens = bm25s.tokenize(corpus, stopwords=None)
+
+        self.bm25_retriever = bm25s.BM25()
+        self.bm25_retriever.index(corpus_tokens)
+
+        logger.info(f"BM25 index built: {len(corpus)} docs, vocab={len(self.bm25_retriever.vocab_dict)} terms")
+        return True
+
+    def retrieve_bm25(self, query: str, k: int = 10) -> List[Tuple['GraphDocument', float]]:
+        """Retrieve documents using BM25 sparse scoring.
+
+        Args:
+            query: Query string.
+            k: Number of results to return.
+
+        Returns:
+            List of (GraphDocument, score) tuples sorted by BM25 score descending.
+        """
+        if not HAS_BM25S or self.bm25_retriever is None:
+            return []
+
+        query_tokens = bm25s.tokenize(query, stopwords=None)
+        results, scores = self.bm25_retriever.retrieve(query_tokens, k=min(k, len(self._bm25_doc_ids)))
+
+        retrieved = []
+        for idx, score in zip(results[0], scores[0]):
+            if score <= 0:
+                continue
+            doc_id = self._bm25_doc_ids[idx]
+            if doc_id in self.docs:
+                retrieved.append((self.docs[doc_id], float(score)))
+
+        logger.info(f"BM25 retrieved {len(retrieved)} documents (top score: {retrieved[0][1]:.3f})" if retrieved else "BM25 retrieved 0 documents")
+        return retrieved
+
+    def save_bm25_index(self, path: str) -> bool:
+        """Save BM25 index and doc ID mapping to disk.
+
+        Args:
+            path: Directory to save the BM25 index.
+
+        Returns:
+            True if saved successfully.
+        """
+        if not HAS_BM25S or self.bm25_retriever is None:
+            return False
+
+        os.makedirs(path, exist_ok=True)
+        self.bm25_retriever.save(path)
+
+        # Save doc ID ordering separately
+        ids_path = os.path.join(path, "bm25_doc_ids.pkl")
+        with open(ids_path, 'wb') as f:
+            pickle.dump(self._bm25_doc_ids, f)
+
+        logger.info(f"BM25 index saved to {path}")
+        return True
+
+    def load_bm25_index(self, path: str) -> bool:
+        """Load BM25 index and doc ID mapping from disk.
+
+        Args:
+            path: Directory containing the saved BM25 index.
+
+        Returns:
+            True if loaded successfully.
+        """
+        if not HAS_BM25S:
+            logger.warning("bm25s not installed — cannot load BM25 index")
+            return False
+
+        ids_path = os.path.join(path, "bm25_doc_ids.pkl")
+        if not os.path.exists(ids_path):
+            logger.info(f"BM25 index not found at {path}")
+            return False
+
+        try:
+            self.bm25_retriever = bm25s.BM25.load(path, mmap=True)
+            with open(ids_path, 'rb') as f:
+                self._bm25_doc_ids = pickle.load(f)
+            logger.info(f"BM25 index loaded from {path} ({len(self._bm25_doc_ids)} docs)")
+            return True
+        except Exception as e:
+            logger.error(f"Error loading BM25 index: {e}")
+            self.bm25_retriever = None
+            self._bm25_doc_ids = []
+            return False

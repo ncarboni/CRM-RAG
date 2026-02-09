@@ -45,6 +45,34 @@ from sparql_helpers import BatchSparqlClient
 
 logger = logging.getLogger(__name__)
 
+from dataclasses import dataclass
+
+@dataclass
+class QueryAnalysis:
+    """Result of LLM-based query analysis."""
+    query_type: str  # SPECIFIC, ENUMERATION, or AGGREGATION
+    categories: List[str]  # Target FC categories: Thing, Actor, Place, Event, Concept, Time
+
+QUERY_ANALYSIS_PROMPT = """Classify this question about cultural heritage data.
+
+Query type (pick one):
+- SPECIFIC: asks about a particular entity ("tell me about X", "where is X")
+- ENUMERATION: asks to list entities ("which paintings…", "list all…", "what artists…")
+- AGGREGATION: asks to count or rank ("how many…", "top 10…", "most…")
+
+Target categories (pick 1-3 from this list):
+- Thing (objects, artworks, buildings, features, inscriptions)
+- Actor (people, artists, groups, organizations)
+- Place (locations, cities, regions)
+- Event (activities, creation, production, exhibitions)
+- Concept (types, materials, techniques)
+- Time (dates, periods)
+
+Return ONLY valid JSON with no extra text: {{"query_type": "...", "categories": ["..."]}}
+
+Question: "{question}"
+"""
+
 
 class RetrievalConfig:
     """Configuration constants for the RAG retrieval system"""
@@ -57,6 +85,10 @@ class RetrievalConfig:
 
     # Retrieval parameters
     DEFAULT_RETRIEVAL_K = 10  # Default number of documents to retrieve
+    SPECIFIC_K = 10            # k for specific entity queries
+    ENUMERATION_K = 20         # k for listing/enumeration queries
+    AGGREGATION_K = 25         # k for counting/ranking queries
+    POOL_MULTIPLIER = 6        # initial_pool_size = k * POOL_MULTIPLIER
 
     # Processing parameters
     DEFAULT_BATCH_SIZE = 50  # Default batch size for processing entities
@@ -246,6 +278,10 @@ class UniversalRagSystem:
     def _get_vector_index_path(self) -> str:
         """Return the vector index file path for this dataset."""
         return f'{self._get_vector_index_dir()}/index.faiss'
+
+    def _get_bm25_index_dir(self) -> str:
+        """Return the BM25 index directory for this dataset."""
+        return f'{self._get_cache_dir()}/bm25_index'
 
     def _get_documents_dir(self) -> str:
         """Return the entity documents directory for this dataset."""
@@ -635,6 +671,12 @@ class UniversalRagSystem:
             if graph_loaded and vector_loaded:
                 logger.info("Successfully loaded existing document graph and vector store")
                 self._load_triples_index()
+                # Load or build BM25 index
+                bm25_dir = self._get_bm25_index_dir()
+                if not self.document_store.load_bm25_index(bm25_dir):
+                    logger.info("BM25 index not cached, building from loaded documents...")
+                    if self.document_store.build_bm25_index():
+                        self.document_store.save_bm25_index(bm25_dir)
                 return True
             else:
                 logger.warning("Failed to load saved data completely, rebuilding...")
@@ -659,6 +701,12 @@ class UniversalRagSystem:
         if self.document_store.vector_store:
             self.document_store.vector_store.save_local(vector_index_dir)
             logger.info(f"Vector store saved to {vector_index_dir}")
+
+        # Build and save BM25 index
+        if self.document_store.build_bm25_index():
+            bm25_dir = self._get_bm25_index_dir()
+            self.document_store.save_bm25_index(bm25_dir)
+
         return True
 
     def _identify_satellites_from_prefetched(
@@ -2385,6 +2433,69 @@ Each file contains:
 
         return results_with_scores
 
+    # ==================== Query Analysis ====================
+
+    _fc_class_mapping = None  # Class-level cache: FC name → list of CRM class URIs
+
+    @classmethod
+    def _load_fc_class_mapping(cls) -> Dict[str, List[str]]:
+        """Load FC class mapping from config/fc_class_mapping.json.
+
+        Returns dict mapping FC names (Thing, Actor, ...) to lists of CRM class
+        local names (E22_Human-Made_Object, etc.).
+        """
+        if cls._fc_class_mapping is not None:
+            return cls._fc_class_mapping
+
+        fc_path = os.path.join(os.path.dirname(__file__), 'config', 'fc_class_mapping.json')
+        if not os.path.exists(fc_path):
+            logger.warning(f"FC class mapping not found: {fc_path}")
+            cls._fc_class_mapping = {}
+            return cls._fc_class_mapping
+
+        with open(fc_path, 'r', encoding='utf-8') as f:
+            raw = json.load(f)
+
+        # Filter out comment keys
+        cls._fc_class_mapping = {k: v for k, v in raw.items() if not k.startswith('_')}
+        total = sum(len(v) for v in cls._fc_class_mapping.values())
+        logger.info(f"Loaded FC class mapping: {len(cls._fc_class_mapping)} categories, {total} classes")
+        return cls._fc_class_mapping
+
+    def _analyze_query(self, question: str) -> 'QueryAnalysis':
+        """Classify a user question using the LLM for query-type-aware retrieval.
+
+        Returns a QueryAnalysis with query_type and target FC categories.
+        Falls back to SPECIFIC with no categories on failure.
+        """
+        valid_types = {"SPECIFIC", "ENUMERATION", "AGGREGATION"}
+        valid_categories = {"Thing", "Actor", "Place", "Event", "Concept", "Time"}
+
+        try:
+            prompt = QUERY_ANALYSIS_PROMPT.format(question=question)
+            raw = self.llm_provider.generate("You are a query classifier. Return only valid JSON.", prompt)
+
+            # Extract JSON from response (handle markdown code blocks)
+            raw = raw.strip()
+            if raw.startswith("```"):
+                raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+
+            parsed = json.loads(raw)
+            qtype = parsed.get("query_type", "SPECIFIC").upper()
+            cats = parsed.get("categories", [])
+
+            if qtype not in valid_types:
+                qtype = "SPECIFIC"
+            cats = [c for c in cats if c in valid_categories]
+
+            result = QueryAnalysis(query_type=qtype, categories=cats)
+            logger.info(f"Query analysis: type={result.query_type}, categories={result.categories}")
+            return result
+
+        except Exception as e:
+            logger.warning(f"Query analysis failed ({e}), defaulting to SPECIFIC")
+            return QueryAnalysis(query_type="SPECIFIC", categories=[])
+
     def get_cidoc_system_prompt(self):
         """Get a system prompt with CIDOC-CRM knowledge"""
 
@@ -2749,7 +2860,7 @@ Rules:
         return None
 
 
-    def compute_coherent_subgraph(self, candidates, adjacency_matrix, initial_scores, k=RetrievalConfig.DEFAULT_RETRIEVAL_K, alpha=RetrievalConfig.RELEVANCE_CONNECTIVITY_ALPHA):
+    def compute_coherent_subgraph(self, candidates, adjacency_matrix, initial_scores, k=RetrievalConfig.DEFAULT_RETRIEVAL_K, alpha=RetrievalConfig.RELEVANCE_CONNECTIVITY_ALPHA, query_analysis=None):
         """
         Extract a coherent subgraph using greedy selection that balances individual relevance and connectivity.
 
@@ -2759,6 +2870,7 @@ Rules:
             initial_scores: Initial relevance scores for each candidate (n,)
             k: Number of documents to select
             alpha: Weight for individual relevance vs connectivity (0-1, higher = more emphasis on relevance)
+            query_analysis: Optional QueryAnalysis for FC-aware type boosting
 
         Returns:
             List of selected GraphDocument objects in order of selection
@@ -2797,6 +2909,24 @@ Rules:
                     if mod is not None:
                         break
             candidate_type_mods[i] = mod if mod is not None else 0.0
+
+        # FC-aware boosting: boost candidates whose types match query target categories
+        fc_boost_count = 0
+        FC_BOOST = 0.10  # +10% score boost for FC-matching candidates
+        if query_analysis and query_analysis.categories:
+            fc_mapping = self._load_fc_class_mapping()
+            target_classes = set()
+            for fc_name in query_analysis.categories:
+                target_classes.update(fc_mapping.get(fc_name, []))
+
+            if target_classes:
+                for i, c in enumerate(candidates):
+                    all_types = set(c.metadata.get('all_types', []))
+                    if all_types & target_classes:
+                        candidate_type_mods[i] += FC_BOOST
+                        fc_boost_count += 1
+                logger.info(f"FC-aware boosting: {fc_boost_count}/{n} candidates match "
+                            f"target categories {query_analysis.categories} (+{FC_BOOST})")
 
         logger.info(f"\n{'='*80}")
         logger.info(f"COHERENT SUBGRAPH EXTRACTION")
@@ -2940,10 +3070,43 @@ Rules:
         # Return selected documents in order
         return [candidates[idx] for idx in selected_indices]
 
-    def retrieve(self, query, k=RetrievalConfig.DEFAULT_RETRIEVAL_K, initial_pool_size=60, alpha=RetrievalConfig.RELEVANCE_CONNECTIVITY_ALPHA):
+    def _rrf_fuse(self, faiss_results, bm25_results, pool_size, k_rrf=60):
+        """Reciprocal Rank Fusion of FAISS and BM25 ranked lists.
+
+        Args:
+            faiss_results: List of (GraphDocument, score) from FAISS.
+            bm25_results: List of (GraphDocument, score) from BM25.
+            pool_size: Maximum number of fused results to return.
+            k_rrf: RRF smoothing constant (standard=60).
+
+        Returns:
+            List of (GraphDocument, rrf_score) sorted by fused score descending.
         """
-        Retrieve documents using FAISS similarity + coherent subgraph extraction:
-        1. FAISS vector retrieval with actual similarity scores (initial pool)
+        scores = {}
+        doc_map = {}
+        for rank, (doc, _) in enumerate(faiss_results):
+            scores[doc.id] = scores.get(doc.id, 0) + 1.0 / (k_rrf + rank + 1)
+            doc_map[doc.id] = doc
+        for rank, (doc, _) in enumerate(bm25_results):
+            scores[doc.id] = scores.get(doc.id, 0) + 1.0 / (k_rrf + rank + 1)
+            doc_map[doc.id] = doc
+
+        sorted_ids = sorted(scores, key=scores.get, reverse=True)[:pool_size]
+
+        # Log fusion stats
+        faiss_ids = {doc.id for doc, _ in faiss_results}
+        bm25_ids = {doc.id for doc, _ in bm25_results}
+        overlap = faiss_ids & bm25_ids
+        bm25_only = bm25_ids - faiss_ids
+        logger.info(f"RRF fusion: {len(faiss_ids)} FAISS + {len(bm25_ids)} BM25 → "
+                     f"{len(sorted_ids)} fused ({len(overlap)} overlap, {len(bm25_only)} BM25-only)")
+
+        return [(doc_map[did], scores[did]) for did in sorted_ids]
+
+    def retrieve(self, query, k=RetrievalConfig.DEFAULT_RETRIEVAL_K, initial_pool_size=60, alpha=RetrievalConfig.RELEVANCE_CONNECTIVITY_ALPHA, query_analysis=None):
+        """
+        Retrieve documents using hybrid FAISS+BM25 similarity + coherent subgraph extraction:
+        1. FAISS vector retrieval + BM25 sparse retrieval → RRF fusion (initial pool)
         2. Adjacency matrix with virtual 2-hop edges through full graph
         3. Coherent subgraph extraction balancing relevance + connectivity
 
@@ -2952,15 +3115,23 @@ Rules:
             k: Number of documents to return
             initial_pool_size: Size of initial candidate pool (should be > k)
             alpha: Balance between relevance (higher) and connectivity (lower)
+            query_analysis: Optional QueryAnalysis for FC-aware type boosting in subgraph extraction
         """
         logger.info(f"Retrieving documents for query: '{query}'")
 
         # FAISS retrieval with actual similarity scores
-        results_with_scores = self.cidoc_aware_retrieval(query, k=initial_pool_size)
+        faiss_results = self.cidoc_aware_retrieval(query, k=initial_pool_size)
 
-        if not results_with_scores:
+        if not faiss_results:
             logger.warning("No documents found in FAISS retrieval")
             return []
+
+        # BM25 retrieval and RRF fusion
+        bm25_results = self.document_store.retrieve_bm25(query, k=initial_pool_size)
+        if bm25_results:
+            results_with_scores = self._rrf_fuse(faiss_results, bm25_results, pool_size=initial_pool_size)
+        else:
+            results_with_scores = faiss_results
 
         initial_docs = [doc for doc, _ in results_with_scores]
         faiss_scores = np.array([score for _, score in results_with_scores])
@@ -2983,7 +3154,8 @@ Rules:
             adjacency_matrix=adjacency_matrix,
             initial_scores=faiss_scores,
             k=k,
-            alpha=alpha
+            alpha=alpha,
+            query_analysis=query_analysis
         )
 
         logger.info(f"Retrieved and selected {len(selected_docs)} coherent documents")
@@ -3350,7 +3522,18 @@ Rules:
 
         logger.info(f"Answering question directly: '{question}'")
 
-        k = RetrievalConfig.DEFAULT_RETRIEVAL_K
+        # LLM-based query analysis for dynamic k and FC-aware boosting
+        query_analysis = self._analyze_query(question)
+
+        # Dynamic k based on query type
+        k_map = {
+            "SPECIFIC": RetrievalConfig.SPECIFIC_K,
+            "ENUMERATION": RetrievalConfig.ENUMERATION_K,
+            "AGGREGATION": RetrievalConfig.AGGREGATION_K,
+        }
+        k = k_map.get(query_analysis.query_type, RetrievalConfig.DEFAULT_RETRIEVAL_K)
+        initial_pool_size = k * RetrievalConfig.POOL_MULTIPLIER
+        logger.info(f"Dynamic retrieval: type={query_analysis.query_type}, k={k}, pool={initial_pool_size}")
 
         if chat_history:
             # Dual retrieval: run contextualized query AND raw question separately,
@@ -3369,7 +3552,7 @@ Rules:
             logger.info(f"Dual retrieval — contextualized: '{contextualized_query[:200]}'")
             logger.info(f"Dual retrieval — raw: '{question}'")
 
-            ctx_docs = self.retrieve(contextualized_query, k=k)
+            ctx_docs = self.retrieve(contextualized_query, k=k, initial_pool_size=initial_pool_size, query_analysis=query_analysis)
 
             # Detect vague follow-ups: short questions dominated by pronouns/stopwords
             # For these, the raw FAISS query retrieves irrelevant results, so skip it
@@ -3388,7 +3571,7 @@ Rules:
             if is_vague:
                 retrieved_docs = ctx_docs[:k]
             else:
-                raw_docs = self.retrieve(question, k=k)
+                raw_docs = self.retrieve(question, k=k, initial_pool_size=initial_pool_size, query_analysis=query_analysis)
 
                 # Interleaved merge: alternate ctx and raw results so raw query
                 # gets fair representation instead of being pushed to the tail
@@ -3405,7 +3588,7 @@ Rules:
                 logger.info(f"Dual retrieval merged: {len(retrieved_docs)} unique docs "
                             f"(ctx={len(ctx_docs)}, raw={len(raw_docs)})")
         else:
-            retrieved_docs = self.retrieve(question, k=k)
+            retrieved_docs = self.retrieve(question, k=k, initial_pool_size=initial_pool_size, query_analysis=query_analysis)
 
         if not retrieved_docs:
             return {
@@ -3487,6 +3670,12 @@ Rules:
 
         # Get CIDOC-CRM system prompt
         system_prompt = self.get_cidoc_system_prompt()
+
+        # Query-type-aware prompt tuning
+        if query_analysis.query_type == "ENUMERATION":
+            system_prompt += "\nList ALL matching entities from the retrieved information. Be comprehensive."
+        elif query_analysis.query_type == "AGGREGATION":
+            system_prompt += "\nCount or rank entities based on the retrieved information. State if the count may be incomplete."
 
         # Add Wikidata instructions to system prompt
         if include_wikidata and wikidata_context:

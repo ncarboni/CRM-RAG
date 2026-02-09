@@ -311,6 +311,206 @@
               "recursive": false
             }
           ]
+        },
+        {
+          "description": "Thing was brought into existence by event that took place at Place (via P94i_was_created_by)",
+          "steps": [
+            {
+              "property": "P94i_was_created_by",
+              "from": "E28_Conceptual_Object",
+              "to": "E65_Creation",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by event that took place at Place (via P95i_was_formed_by)",
+          "steps": [
+            {
+              "property": "P95i_was_formed_by",
+              "from": "E74_Group",
+              "to": "E66_Formation",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by event that took place at Place (via P98i_was_born)",
+          "steps": [
+            {
+              "property": "P98i_was_born",
+              "from": "E21_Person",
+              "to": "E67_Birth",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by event that took place at Place (via P108i_was_produced_by)",
+          "steps": [
+            {
+              "property": "P108i_was_produced_by",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E12_Production",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by event that took place at Place (via P123i_resulted_from)",
+          "steps": [
+            {
+              "property": "P123i_resulted_from",
+              "from": "E18_Physical_Thing",
+              "to": "E81_Transformation",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created by actor who has residence at Place (via P94i_was_created_by)",
+          "steps": [
+            {
+              "property": "P94i_was_created_by",
+              "from": "E28_Conceptual_Object",
+              "to": "E65_Creation",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P74_has_current_or_former_residence",
+              "from": "E39_Actor",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created by actor who has residence at Place (via P95i_was_formed_by)",
+          "steps": [
+            {
+              "property": "P95i_was_formed_by",
+              "from": "E74_Group",
+              "to": "E66_Formation",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P74_has_current_or_former_residence",
+              "from": "E39_Actor",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created by actor who has residence at Place (via P98i_was_born)",
+          "steps": [
+            {
+              "property": "P98i_was_born",
+              "from": "E21_Person",
+              "to": "E67_Birth",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P74_has_current_or_former_residence",
+              "from": "E39_Actor",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created by actor who has residence at Place (via P108i_was_produced_by)",
+          "steps": [
+            {
+              "property": "P108i_was_produced_by",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E12_Production",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P74_has_current_or_former_residence",
+              "from": "E39_Actor",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created by actor who has residence at Place (via P123i_resulted_from)",
+          "steps": [
+            {
+              "property": "P123i_resulted_from",
+              "from": "E18_Physical_Thing",
+              "to": "E81_Transformation",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P74_has_current_or_former_residence",
+              "from": "E39_Actor",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
         }
       ]
     },
@@ -330,6 +530,91 @@
               "property": "P92i_was_brought_into_existence_by",
               "from": "E77_Persistent_Item",
               "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by event that took place at Place (via P94i_was_created_by)",
+          "steps": [
+            {
+              "property": "P94i_was_created_by",
+              "from": "E28_Conceptual_Object",
+              "to": "E65_Creation",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by event that took place at Place (via P95i_was_formed_by)",
+          "steps": [
+            {
+              "property": "P95i_was_formed_by",
+              "from": "E74_Group",
+              "to": "E66_Formation",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by event that took place at Place (via P98i_was_born)",
+          "steps": [
+            {
+              "property": "P98i_was_born",
+              "from": "E21_Person",
+              "to": "E67_Birth",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by event that took place at Place (via P108i_was_produced_by)",
+          "steps": [
+            {
+              "property": "P108i_was_produced_by",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E12_Production",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by event that took place at Place (via P123i_resulted_from)",
+          "steps": [
+            {
+              "property": "P123i_resulted_from",
+              "from": "E18_Physical_Thing",
+              "to": "E81_Transformation",
               "recursive": false
             },
             {
@@ -432,6 +717,411 @@
               "property": "P92i_was_brought_into_existence_by",
               "from": "E77_Persistent_Item",
               "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P74_has_current_or_former_residence",
+              "from": "E39_Actor",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created by actor born at Place (via P94i_was_created_by)",
+          "steps": [
+            {
+              "property": "P94i_was_created_by",
+              "from": "E28_Conceptual_Object",
+              "to": "E65_Creation",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P92i_was_brought_into_existence_by",
+              "from": "E77_Persistent_Item",
+              "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created by actor born at Place (via P95i_was_formed_by)",
+          "steps": [
+            {
+              "property": "P95i_was_formed_by",
+              "from": "E74_Group",
+              "to": "E66_Formation",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P92i_was_brought_into_existence_by",
+              "from": "E77_Persistent_Item",
+              "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created by actor born at Place (via P98i_was_born)",
+          "steps": [
+            {
+              "property": "P98i_was_born",
+              "from": "E21_Person",
+              "to": "E67_Birth",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P92i_was_brought_into_existence_by",
+              "from": "E77_Persistent_Item",
+              "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created by actor born at Place (via P108i_was_produced_by)",
+          "steps": [
+            {
+              "property": "P108i_was_produced_by",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E12_Production",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P92i_was_brought_into_existence_by",
+              "from": "E77_Persistent_Item",
+              "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created by actor born at Place (via P123i_resulted_from)",
+          "steps": [
+            {
+              "property": "P123i_resulted_from",
+              "from": "E18_Physical_Thing",
+              "to": "E81_Transformation",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P92i_was_brought_into_existence_by",
+              "from": "E77_Persistent_Item",
+              "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created by actor born at Place (via P94i_was_created_by)",
+          "steps": [
+            {
+              "property": "P92i_was_brought_into_existence_by",
+              "from": "E77_Persistent_Item",
+              "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P94i_was_created_by",
+              "from": "E28_Conceptual_Object",
+              "to": "E65_Creation",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created by actor born at Place (via P95i_was_formed_by)",
+          "steps": [
+            {
+              "property": "P92i_was_brought_into_existence_by",
+              "from": "E77_Persistent_Item",
+              "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P95i_was_formed_by",
+              "from": "E74_Group",
+              "to": "E66_Formation",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created by actor born at Place (via P98i_was_born)",
+          "steps": [
+            {
+              "property": "P92i_was_brought_into_existence_by",
+              "from": "E77_Persistent_Item",
+              "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P98i_was_born",
+              "from": "E21_Person",
+              "to": "E67_Birth",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created by actor born at Place (via P108i_was_produced_by)",
+          "steps": [
+            {
+              "property": "P92i_was_brought_into_existence_by",
+              "from": "E77_Persistent_Item",
+              "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P108i_was_produced_by",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E12_Production",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created by actor born at Place (via P123i_resulted_from)",
+          "steps": [
+            {
+              "property": "P92i_was_brought_into_existence_by",
+              "from": "E77_Persistent_Item",
+              "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P123i_resulted_from",
+              "from": "E18_Physical_Thing",
+              "to": "E81_Transformation",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created by actor with residence at Place (via P94i_was_created_by)",
+          "steps": [
+            {
+              "property": "P94i_was_created_by",
+              "from": "E28_Conceptual_Object",
+              "to": "E65_Creation",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P74_has_current_or_former_residence",
+              "from": "E39_Actor",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created by actor with residence at Place (via P95i_was_formed_by)",
+          "steps": [
+            {
+              "property": "P95i_was_formed_by",
+              "from": "E74_Group",
+              "to": "E66_Formation",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P74_has_current_or_former_residence",
+              "from": "E39_Actor",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created by actor with residence at Place (via P98i_was_born)",
+          "steps": [
+            {
+              "property": "P98i_was_born",
+              "from": "E21_Person",
+              "to": "E67_Birth",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P74_has_current_or_former_residence",
+              "from": "E39_Actor",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created by actor with residence at Place (via P108i_was_produced_by)",
+          "steps": [
+            {
+              "property": "P108i_was_produced_by",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E12_Production",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            },
+            {
+              "property": "P74_has_current_or_former_residence",
+              "from": "E39_Actor",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created by actor with residence at Place (via P123i_resulted_from)",
+          "steps": [
+            {
+              "property": "P123i_resulted_from",
+              "from": "E18_Physical_Thing",
+              "to": "E81_Transformation",
               "recursive": false
             },
             {
@@ -1056,6 +1746,91 @@
               "recursive": false
             }
           ]
+        },
+        {
+          "description": "Thing was brought into existence by activity carried out by Actor (via P94i_was_created_by)",
+          "steps": [
+            {
+              "property": "P94i_was_created_by",
+              "from": "E28_Conceptual_Object",
+              "to": "E65_Creation",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by activity carried out by Actor (via P95i_was_formed_by)",
+          "steps": [
+            {
+              "property": "P95i_was_formed_by",
+              "from": "E74_Group",
+              "to": "E66_Formation",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by activity carried out by Actor (via P98i_was_born)",
+          "steps": [
+            {
+              "property": "P98i_was_born",
+              "from": "E21_Person",
+              "to": "E67_Birth",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by activity carried out by Actor (via P108i_was_produced_by)",
+          "steps": [
+            {
+              "property": "P108i_was_produced_by",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E12_Production",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by activity carried out by Actor (via P123i_resulted_from)",
+          "steps": [
+            {
+              "property": "P123i_resulted_from",
+              "from": "E18_Physical_Thing",
+              "to": "E81_Transformation",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
         }
       ]
     },
@@ -1075,6 +1850,91 @@
               "property": "P92i_was_brought_into_existence_by",
               "from": "E77_Persistent_Item",
               "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by activity carried out by Actor (via P94i_was_created_by)",
+          "steps": [
+            {
+              "property": "P94i_was_created_by",
+              "from": "E28_Conceptual_Object",
+              "to": "E65_Creation",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by activity carried out by Actor (via P95i_was_formed_by)",
+          "steps": [
+            {
+              "property": "P95i_was_formed_by",
+              "from": "E74_Group",
+              "to": "E66_Formation",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by activity carried out by Actor (via P98i_was_born)",
+          "steps": [
+            {
+              "property": "P98i_was_born",
+              "from": "E21_Person",
+              "to": "E67_Birth",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by activity carried out by Actor (via P108i_was_produced_by)",
+          "steps": [
+            {
+              "property": "P108i_was_produced_by",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E12_Production",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by activity carried out by Actor (via P123i_resulted_from)",
+          "steps": [
+            {
+              "property": "P123i_resulted_from",
+              "from": "E18_Physical_Thing",
+              "to": "E81_Transformation",
               "recursive": false
             },
             {
@@ -1306,6 +2166,50 @@
               "recursive": false
             }
           ]
+        },
+        {
+          "description": "Thing was taken out of existence by Event (via P13i_was_destroyed_by)",
+          "steps": [
+            {
+              "property": "P13i_was_destroyed_by",
+              "from": "E18_Physical_Thing",
+              "to": "E6_Destruction",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was taken out of existence by Event (via P99i_was_dissolved_by)",
+          "steps": [
+            {
+              "property": "P99i_was_dissolved_by",
+              "from": "E74_Group",
+              "to": "E68_Dissolution",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was taken out of existence by Event (via P100i_died_in)",
+          "steps": [
+            {
+              "property": "P100i_died_in",
+              "from": "E21_Person",
+              "to": "E69_Death",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was taken out of existence by Event (via P124i_was_transformed_by)",
+          "steps": [
+            {
+              "property": "P124i_was_transformed_by",
+              "from": "E18_Physical_Thing",
+              "to": "E81_Transformation",
+              "recursive": false
+            }
+          ]
         }
       ]
     },
@@ -1325,6 +2229,61 @@
               "property": "P92i_was_brought_into_existence_by",
               "from": "E77_Persistent_Item",
               "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by Event (via P94i_was_created_by)",
+          "steps": [
+            {
+              "property": "P94i_was_created_by",
+              "from": "E28_Conceptual_Object",
+              "to": "E65_Creation",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by Event (via P95i_was_formed_by)",
+          "steps": [
+            {
+              "property": "P95i_was_formed_by",
+              "from": "E74_Group",
+              "to": "E66_Formation",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by Event (via P98i_was_born)",
+          "steps": [
+            {
+              "property": "P98i_was_born",
+              "from": "E21_Person",
+              "to": "E67_Birth",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by Event (via P108i_was_produced_by)",
+          "steps": [
+            {
+              "property": "P108i_was_produced_by",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E12_Production",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was brought into existence by Event (via P123i_resulted_from)",
+          "steps": [
+            {
+              "property": "P123i_resulted_from",
+              "from": "E18_Physical_Thing",
+              "to": "E81_Transformation",
               "recursive": false
             }
           ]
@@ -1413,6 +2372,121 @@
               "property": "P92i_was_brought_into_existence_by",
               "from": "E77_Persistent_Item",
               "to": "E63_Beginning_of_Existence",
+              "recursive": false
+            },
+            {
+              "property": "P33_used_specific_technique",
+              "from": "E7_Activity",
+              "to": "E29_Design_or_Procedure",
+              "recursive": false
+            },
+            {
+              "property": "P68_foresees_use_of",
+              "from": "E29_Design_or_Procedure",
+              "to": "E57_Material",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created using technique that foresees use of Material (via P94i_was_created_by)",
+          "steps": [
+            {
+              "property": "P94i_was_created_by",
+              "from": "E28_Conceptual_Object",
+              "to": "E65_Creation",
+              "recursive": false
+            },
+            {
+              "property": "P33_used_specific_technique",
+              "from": "E7_Activity",
+              "to": "E29_Design_or_Procedure",
+              "recursive": false
+            },
+            {
+              "property": "P68_foresees_use_of",
+              "from": "E29_Design_or_Procedure",
+              "to": "E57_Material",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created using technique that foresees use of Material (via P95i_was_formed_by)",
+          "steps": [
+            {
+              "property": "P95i_was_formed_by",
+              "from": "E74_Group",
+              "to": "E66_Formation",
+              "recursive": false
+            },
+            {
+              "property": "P33_used_specific_technique",
+              "from": "E7_Activity",
+              "to": "E29_Design_or_Procedure",
+              "recursive": false
+            },
+            {
+              "property": "P68_foresees_use_of",
+              "from": "E29_Design_or_Procedure",
+              "to": "E57_Material",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created using technique that foresees use of Material (via P98i_was_born)",
+          "steps": [
+            {
+              "property": "P98i_was_born",
+              "from": "E21_Person",
+              "to": "E67_Birth",
+              "recursive": false
+            },
+            {
+              "property": "P33_used_specific_technique",
+              "from": "E7_Activity",
+              "to": "E29_Design_or_Procedure",
+              "recursive": false
+            },
+            {
+              "property": "P68_foresees_use_of",
+              "from": "E29_Design_or_Procedure",
+              "to": "E57_Material",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created using technique that foresees use of Material (via P108i_was_produced_by)",
+          "steps": [
+            {
+              "property": "P108i_was_produced_by",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E12_Production",
+              "recursive": false
+            },
+            {
+              "property": "P33_used_specific_technique",
+              "from": "E7_Activity",
+              "to": "E29_Design_or_Procedure",
+              "recursive": false
+            },
+            {
+              "property": "P68_foresees_use_of",
+              "from": "E29_Design_or_Procedure",
+              "to": "E57_Material",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing created using technique that foresees use of Material (via P123i_resulted_from)",
+          "steps": [
+            {
+              "property": "P123i_resulted_from",
+              "from": "E18_Physical_Thing",
+              "to": "E81_Transformation",
               "recursive": false
             },
             {
@@ -1601,6 +2675,91 @@
               "recursive": false
             }
           ]
+        },
+        {
+          "description": "Place witnessed event that brought Thing into existence (via P94_has_created)",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            },
+            {
+              "property": "P94_has_created",
+              "from": "E65_Creation",
+              "to": "E28_Conceptual_Object",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Place witnessed event that brought Thing into existence (via P95_has_formed)",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            },
+            {
+              "property": "P95_has_formed",
+              "from": "E66_Formation",
+              "to": "E74_Group",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Place witnessed event that brought Thing into existence (via P98_brought_into_life)",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            },
+            {
+              "property": "P98_brought_into_life",
+              "from": "E67_Birth",
+              "to": "E21_Person",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Place witnessed event that brought Thing into existence (via P108_has_produced)",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            },
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Place witnessed event that brought Thing into existence (via P123_resulted_in)",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            },
+            {
+              "property": "P123_resulted_in",
+              "from": "E81_Transformation",
+              "to": "E18_Physical_Thing",
+              "recursive": false
+            }
+          ]
         }
       ]
     },
@@ -1626,6 +2785,91 @@
               "property": "P92_brought_into_existence",
               "from": "E63_Beginning_of_Existence",
               "to": "E77_Persistent_Item",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Place witnessed event that brought Thing into existence (via P94_has_created)",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            },
+            {
+              "property": "P94_has_created",
+              "from": "E65_Creation",
+              "to": "E28_Conceptual_Object",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Place witnessed event that brought Thing into existence (via P95_has_formed)",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            },
+            {
+              "property": "P95_has_formed",
+              "from": "E66_Formation",
+              "to": "E74_Group",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Place witnessed event that brought Thing into existence (via P98_brought_into_life)",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            },
+            {
+              "property": "P98_brought_into_life",
+              "from": "E67_Birth",
+              "to": "E21_Person",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Place witnessed event that brought Thing into existence (via P108_has_produced)",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            },
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Place witnessed event that brought Thing into existence (via P123_resulted_in)",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            },
+            {
+              "property": "P123_resulted_in",
+              "from": "E81_Transformation",
+              "to": "E18_Physical_Thing",
               "recursive": false
             }
           ]
@@ -1818,6 +3062,91 @@
               "recursive": false
             }
           ]
+        },
+        {
+          "description": "Actor was brought into existence at Place (via P94i_was_created_by)",
+          "steps": [
+            {
+              "property": "P94i_was_created_by",
+              "from": "E28_Conceptual_Object",
+              "to": "E65_Creation",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor was brought into existence at Place (via P95i_was_formed_by)",
+          "steps": [
+            {
+              "property": "P95i_was_formed_by",
+              "from": "E74_Group",
+              "to": "E66_Formation",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor was brought into existence at Place (via P98i_was_born)",
+          "steps": [
+            {
+              "property": "P98i_was_born",
+              "from": "E21_Person",
+              "to": "E67_Birth",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor was brought into existence at Place (via P108i_was_produced_by)",
+          "steps": [
+            {
+              "property": "P108i_was_produced_by",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E12_Production",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor was brought into existence at Place (via P123i_resulted_from)",
+          "steps": [
+            {
+              "property": "P123i_resulted_from",
+              "from": "E18_Physical_Thing",
+              "to": "E81_Transformation",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
         }
       ]
     },
@@ -1868,6 +3197,91 @@
               "recursive": false
             }
           ]
+        },
+        {
+          "description": "Actor performed activity that brought Thing into existence (via P94_has_created)",
+          "steps": [
+            {
+              "property": "P14i_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P94_has_created",
+              "from": "E65_Creation",
+              "to": "E28_Conceptual_Object",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor performed activity that brought Thing into existence (via P95_has_formed)",
+          "steps": [
+            {
+              "property": "P14i_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P95_has_formed",
+              "from": "E66_Formation",
+              "to": "E74_Group",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor performed activity that brought Thing into existence (via P98_brought_into_life)",
+          "steps": [
+            {
+              "property": "P14i_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P98_brought_into_life",
+              "from": "E67_Birth",
+              "to": "E21_Person",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor performed activity that brought Thing into existence (via P108_has_produced)",
+          "steps": [
+            {
+              "property": "P14i_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor performed activity that brought Thing into existence (via P123_resulted_in)",
+          "steps": [
+            {
+              "property": "P14i_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P123_resulted_in",
+              "from": "E81_Transformation",
+              "to": "E18_Physical_Thing",
+              "recursive": false
+            }
+          ]
         }
       ]
     },
@@ -1893,6 +3307,91 @@
               "property": "P92_brought_into_existence",
               "from": "E63_Beginning_of_Existence",
               "to": "E77_Persistent_Item",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor performed activity that brought Thing into existence (via P94_has_created)",
+          "steps": [
+            {
+              "property": "P14i_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P94_has_created",
+              "from": "E65_Creation",
+              "to": "E28_Conceptual_Object",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor performed activity that brought Thing into existence (via P95_has_formed)",
+          "steps": [
+            {
+              "property": "P14i_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P95_has_formed",
+              "from": "E66_Formation",
+              "to": "E74_Group",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor performed activity that brought Thing into existence (via P98_brought_into_life)",
+          "steps": [
+            {
+              "property": "P14i_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P98_brought_into_life",
+              "from": "E67_Birth",
+              "to": "E21_Person",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor performed activity that brought Thing into existence (via P108_has_produced)",
+          "steps": [
+            {
+              "property": "P14i_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor performed activity that brought Thing into existence (via P123_resulted_in)",
+          "steps": [
+            {
+              "property": "P14i_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P123_resulted_in",
+              "from": "E81_Transformation",
+              "to": "E18_Physical_Thing",
               "recursive": false
             }
           ]
@@ -2353,6 +3852,61 @@
               "recursive": false
             }
           ]
+        },
+        {
+          "description": "Event brought Thing into existence (via P94_has_created)",
+          "steps": [
+            {
+              "property": "P94_has_created",
+              "from": "E65_Creation",
+              "to": "E28_Conceptual_Object",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event brought Thing into existence (via P95_has_formed)",
+          "steps": [
+            {
+              "property": "P95_has_formed",
+              "from": "E66_Formation",
+              "to": "E74_Group",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event brought Thing into existence (via P98_brought_into_life)",
+          "steps": [
+            {
+              "property": "P98_brought_into_life",
+              "from": "E67_Birth",
+              "to": "E21_Person",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event brought Thing into existence (via P108_has_produced)",
+          "steps": [
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event brought Thing into existence (via P123_resulted_in)",
+          "steps": [
+            {
+              "property": "P123_resulted_in",
+              "from": "E81_Transformation",
+              "to": "E18_Physical_Thing",
+              "recursive": false
+            }
+          ]
         }
       ]
     },
@@ -2372,6 +3926,50 @@
               "property": "P93_took_out_of_existence",
               "from": "E64_End_of_Existence",
               "to": "E77_Persistent_Item",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event took Thing out of existence (via P13_destroyed)",
+          "steps": [
+            {
+              "property": "P13_destroyed",
+              "from": "E6_Destruction",
+              "to": "E18_Physical_Thing",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event took Thing out of existence (via P99_dissolved)",
+          "steps": [
+            {
+              "property": "P99_dissolved",
+              "from": "E68_Dissolution",
+              "to": "E74_Group",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event took Thing out of existence (via P100_was_death_of)",
+          "steps": [
+            {
+              "property": "P100_was_death_of",
+              "from": "E69_Death",
+              "to": "E21_Person",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event took Thing out of existence (via P124_transformed)",
+          "steps": [
+            {
+              "property": "P124_transformed",
+              "from": "E81_Transformation",
+              "to": "E18_Physical_Thing",
               "recursive": false
             }
           ]
@@ -2507,6 +4105,61 @@
               "recursive": false
             }
           ]
+        },
+        {
+          "description": "Event brought Actor into existence (via P94_has_created)",
+          "steps": [
+            {
+              "property": "P94_has_created",
+              "from": "E65_Creation",
+              "to": "E28_Conceptual_Object",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event brought Actor into existence (via P95_has_formed)",
+          "steps": [
+            {
+              "property": "P95_has_formed",
+              "from": "E66_Formation",
+              "to": "E74_Group",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event brought Actor into existence (via P98_brought_into_life)",
+          "steps": [
+            {
+              "property": "P98_brought_into_life",
+              "from": "E67_Birth",
+              "to": "E21_Person",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event brought Actor into existence (via P108_has_produced)",
+          "steps": [
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event brought Actor into existence (via P123_resulted_in)",
+          "steps": [
+            {
+              "property": "P123_resulted_in",
+              "from": "E81_Transformation",
+              "to": "E18_Physical_Thing",
+              "recursive": false
+            }
+          ]
         }
       ]
     },
@@ -2526,6 +4179,50 @@
               "property": "P93_took_out_of_existence",
               "from": "E64_End_of_Existence",
               "to": "E77_Persistent_Item",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event took Actor out of existence (via P13_destroyed)",
+          "steps": [
+            {
+              "property": "P13_destroyed",
+              "from": "E6_Destruction",
+              "to": "E18_Physical_Thing",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event took Actor out of existence (via P99_dissolved)",
+          "steps": [
+            {
+              "property": "P99_dissolved",
+              "from": "E68_Dissolution",
+              "to": "E74_Group",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event took Actor out of existence (via P100_was_death_of)",
+          "steps": [
+            {
+              "property": "P100_was_death_of",
+              "from": "E69_Death",
+              "to": "E21_Person",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event took Actor out of existence (via P124_transformed)",
+          "steps": [
+            {
+              "property": "P124_transformed",
+              "from": "E81_Transformation",
+              "to": "E18_Physical_Thing",
               "recursive": false
             }
           ]
@@ -2799,7 +4496,8 @@
   ],
   "validation": {
     "total_frs": 76,
-    "total_unique_properties_used": 82,
-    "properties_missing_from_v7_1_3": []
+    "total_unique_properties_used": 92,
+    "properties_missing_from_v7_1_3": [],
+    "total_paths": 237
   }
 }

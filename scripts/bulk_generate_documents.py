@@ -89,6 +89,8 @@ def _process_entity_worker(args):
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from fr_traversal import FRTraversal, classify_satellite, build_target_enrichments
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -147,6 +149,9 @@ class BulkDocumentGenerator:
         # Load image configuration for this dataset
         self.image_config = self._get_image_config()
 
+        # Initialize FR traversal
+        self.fr_traversal = self._init_fr_traversal()
+
     def _load_datasets_config(self) -> dict:
         """Load datasets configuration from YAML."""
         config_path = self.base_dir / "config" / "datasets.yaml"
@@ -191,6 +196,29 @@ class BulkDocumentGenerator:
         if self.dataset_id in datasets:
             return datasets[self.dataset_id].get("image", {})
         return {}
+
+    def _init_fr_traversal(self) -> FRTraversal:
+        """Initialize FR traversal module with required config files."""
+        fr_json = self.base_dir / "fundamental_relationships_cidoc_crm.json"
+        inverse_props = self.base_dir / "data" / "labels" / "inverse_properties.json"
+        fc_mapping = self.base_dir / "config" / "fc_class_mapping.json"
+
+        if not fr_json.exists():
+            logger.warning(f"FR JSON not found: {fr_json} — FR traversal disabled")
+            return None
+        if not inverse_props.exists():
+            logger.warning(f"Inverse properties not found: {inverse_props} — FR traversal disabled")
+            return None
+        if not fc_mapping.exists():
+            logger.warning(f"FC class mapping not found: {fc_mapping} — FR traversal disabled")
+            return None
+
+        return FRTraversal(
+            fr_json_path=str(fr_json),
+            inverse_properties_path=str(inverse_props),
+            fc_mapping_path=str(fc_mapping),
+            property_labels=self.property_labels
+        )
 
     def _build_image_index(self):
         """Build image index using SPARQL pattern from dataset configuration.
@@ -379,6 +407,44 @@ class BulkDocumentGenerator:
         self._build_image_index()
         logger.info(f"Entities with images: {len(self.entity_images)}")
 
+    def _identify_satellites(self):
+        """Identify satellite entities and map them to their parents.
+
+        Satellite entities are MINIMAL_DOC_CLASSES instances (appellations, types,
+        dimensions, time-spans) that exist only to describe a parent entity.
+        Instead of generating standalone documents, their content is absorbed
+        into the parent's document.
+
+        Two-pass approach: first identify all satellites, then find parents
+        (so we can check that a potential parent is not itself a satellite).
+        """
+        if not self.fr_traversal:
+            self.satellite_uris = set()
+            self.parent_satellites = {}
+            return
+
+        # Pass 1: identify all satellite URIs
+        self.satellite_uris = set()
+        for uri, types in self.entity_types.items():
+            if self.fr_traversal.is_minimal_doc_entity(types):
+                self.satellite_uris.add(uri)
+
+        # Pass 2: find parent for each satellite and collect labels
+        self.parent_satellites = defaultdict(lambda: defaultdict(list))
+
+        for sat_uri in self.satellite_uris:
+            sat_label = self.get_entity_label(sat_uri)
+            sat_kind = classify_satellite(self.entity_types.get(sat_uri, set()))
+
+            # Find parent: non-satellite entity with an outgoing edge TO this satellite
+            for pred, subj in self.incoming.get(sat_uri, []):
+                if subj not in self.satellite_uris:
+                    self.parent_satellites[subj][sat_kind].append(sat_label)
+                    break  # one parent is enough
+
+        logger.info(f"Satellite absorption: {len(self.satellite_uris)} satellites → "
+                    f"{len(self.parent_satellites)} parent entities enriched")
+
     def get_entity_label(self, uri: str) -> str:
         """Get label for an entity."""
         if uri in self.entity_labels:
@@ -463,6 +529,9 @@ class BulkDocumentGenerator:
 
     def get_entity_context(self, entity_uri: str, depth: int = 2, max_statements: int = 50) -> list:
         """Get context statements for an entity using event-aware traversal.
+
+        DEPRECATED: Kept for backwards compatibility. New code should use
+        create_fr_document() which produces FR-organized documents.
 
         Args:
             entity_uri: The entity to get context for
@@ -568,38 +637,43 @@ class BulkDocumentGenerator:
         return statements
 
     def create_document(self, entity_uri: str, context_depth: int = 2) -> tuple:
-        """Create document for an entity. Returns (text, label, types)."""
-        # Get label
-        entity_label = self.get_entity_label(entity_uri)
+        """Create FR-organized document for an entity. Returns (text, label, types).
 
-        # Get types
-        entity_types = []
-        for type_uri in self.entity_types.get(entity_uri, []):
+        Uses Fundamental Relationship path traversal for identity-focused documents.
+        Falls back to legacy BFS if FR traversal is not available.
+        """
+        entity_label = self.get_entity_label(entity_uri)
+        raw_types = self.entity_types.get(entity_uri, set())
+        literals = self.entity_literals.get(entity_uri, {})
+
+        # Build human-readable type labels
+        entity_type_labels = []
+        for type_uri in raw_types:
             type_label = self.class_labels.get(type_uri)
             if not type_label:
                 type_label = type_uri.split('/')[-1].split('#')[-1]
-            entity_types.append(type_label)
+            entity_type_labels.append(type_label)
 
-        # Get literals
-        literals = self.entity_literals.get(entity_uri, {})
+        # Use FR traversal if available
+        if self.fr_traversal:
+            return self._create_fr_document(
+                entity_uri, entity_label, raw_types, entity_type_labels, literals
+            )
 
-        # Get relationships
+        # Legacy fallback: BFS-based document
         context_statements = self.get_entity_context(entity_uri, depth=context_depth)
 
-        # Build document text
         text = f"# {entity_label}\n\n"
         text += f"URI: {entity_uri}\n\n"
 
-        # Add types (filter technical ones)
-        if entity_types:
-            human_readable = [t for t in entity_types if not self.is_technical_class_name(t)]
+        if entity_type_labels:
+            human_readable = [t for t in entity_type_labels if not self.is_technical_class_name(t)]
             if human_readable:
                 text += "## Types\n\n"
                 for t in human_readable:
                     text += f"- {t}\n"
                 text += "\n"
 
-        # Add literals
         if literals:
             text += "## Properties\n\n"
             for prop_name, values in sorted(literals.items()):
@@ -616,13 +690,98 @@ class BulkDocumentGenerator:
                         text += f"  - {v_str}\n"
             text += "\n"
 
-        # Add relationships
         if context_statements:
             text += "## Relationships\n\n"
             for stmt in context_statements:
                 text += f"- {stmt}\n"
 
-        return text, entity_label, entity_types
+        return text, entity_label, entity_type_labels
+
+    def _create_fr_document(self, entity_uri: str, entity_label: str,
+                            raw_types: set, entity_type_labels: list,
+                            literals: dict) -> tuple:
+        """Create FR-organized document for an entity.
+
+        Args:
+            entity_uri: Entity URI
+            entity_label: Entity label
+            raw_types: Set of rdf:type URIs
+            entity_type_labels: Human-readable type label strings
+            literals: prop_name -> [values] dict
+
+        Returns:
+            (text, label, type_labels)
+        """
+        # Filter display types
+        types_display = [t for t in entity_type_labels if not self.is_technical_class_name(t)]
+
+        # Minimal doc for vocabulary entities
+        if self.fr_traversal.is_minimal_doc_entity(raw_types):
+            text = self.fr_traversal.format_minimal_document(
+                entity_uri, entity_label, types_display, literals
+            )
+            return text, entity_label, entity_type_labels
+
+        # Full FR traversal
+        fc = self.fr_traversal.get_fc(raw_types)
+
+        fr_results = self.fr_traversal.match_fr_paths(
+            entity_uri=entity_uri,
+            entity_types=raw_types,
+            outgoing=self.outgoing,
+            incoming=self.incoming,
+            entity_labels=self.entity_labels,
+            entity_types_map=self.entity_types
+        )
+
+        # Collect direct non-FR predicates (VIR extensions etc.)
+        direct_preds = self.fr_traversal.collect_direct_predicates(
+            entity_uri=entity_uri,
+            outgoing=self.outgoing,
+            incoming=self.incoming,
+            entity_labels=self.entity_labels,
+            entity_types=raw_types,
+            schema_filter=self.is_schema_predicate
+        )
+
+        # Absorbed satellite info (name variants, dimensions, dates)
+        absorbed_lines = None
+        sat_info = getattr(self, 'parent_satellites', {}).get(entity_uri)
+        if sat_info:
+            absorbed_lines = self.fr_traversal.format_absorbed_satellites(
+                dict(sat_info), entity_label
+            )
+
+        # Build target enrichments (type tags + attributes for FR targets)
+        all_target_uris = set()
+        for fr in fr_results:
+            for uri, _lbl in fr["targets"]:
+                all_target_uris.add(uri)
+        for dp in (direct_preds or []):
+            for uri, _lbl in dp["targets"]:
+                all_target_uris.add(uri)
+
+        target_enrichments = build_target_enrichments(
+            target_uris=all_target_uris,
+            outgoing=self.outgoing,
+            entity_labels=self.entity_labels,
+            entity_types_map=self.entity_types,
+            class_labels=self.class_labels,
+        )
+
+        text = self.fr_traversal.format_fr_document(
+            entity_uri=entity_uri,
+            label=entity_label,
+            types_display=types_display,
+            literals=literals,
+            fr_results=fr_results,
+            direct_predicates=direct_preds,
+            fc=fc,
+            absorbed_lines=absorbed_lines,
+            target_enrichments=target_enrichments,
+        )
+
+        return text, entity_label, entity_type_labels
 
     def save_document(self, entity_uri: str, text: str, label: str,
                       entity_type: str = None, all_types: list = None,
@@ -723,7 +882,7 @@ class BulkDocumentGenerator:
     def _get_picklable_state(self):
         """Get state dict that can be pickled for multiprocessing."""
         # Only include the data needed for document generation (not the rdflib Graph)
-        return {
+        state = {
             'dataset_id': self.dataset_id,
             'base_dir': self.base_dir,
             'output_dir': self.output_dir,
@@ -739,7 +898,11 @@ class BulkDocumentGenerator:
             'wikidata_ids': self.wikidata_ids,
             'entity_images': dict(self.entity_images),  # Image URLs per entity
             'image_config': self.image_config,
+            'fr_traversal': self.fr_traversal,  # FRTraversal is pickle-safe (plain dicts/lists)
+            'satellite_uris': getattr(self, 'satellite_uris', set()),
+            'parent_satellites': {k: dict(v) for k, v in getattr(self, 'parent_satellites', {}).items()},
         }
+        return state
 
     def generate_all_documents(self, context_depth: int = 2, workers: int = 1):
         """Generate documents for all entities.
@@ -751,10 +914,15 @@ class BulkDocumentGenerator:
         """
         import time
 
-        # Get entities with literals (same as original logic)
-        entities = list(self.entity_literals.keys())
+        # Identify and absorb satellite entities before document generation
+        self._identify_satellites()
+
+        # Get entities with literals, excluding satellites
+        all_entities = list(self.entity_literals.keys())
+        entities = [uri for uri in all_entities if uri not in self.satellite_uris]
         total = len(entities)
-        logger.info(f"Generating documents for {total} entities (context_depth={context_depth}, workers={workers})...")
+        logger.info(f"Skipping {len(self.satellite_uris)} satellite entities, "
+                    f"processing {total} document-worthy entities (context_depth={context_depth}, workers={workers})...")
 
         # Clean output directory
         if self.output_dir.exists():
@@ -861,6 +1029,7 @@ class BulkDocumentGenerator:
 
         logger.info("Collecting triples for edges file...")
         entity_set = set(entity_uris)
+        satellite_set = getattr(self, 'satellite_uris', set())
         seen = set()
         subjects, subject_labels = [], []
         predicates, predicate_labels = [], []
@@ -872,6 +1041,9 @@ class BulkDocumentGenerator:
             # Outgoing: (uri) --pred--> (obj)
             for pred, obj in self.outgoing.get(uri, []):
                 if self.is_schema_predicate(pred):
+                    continue
+                # Skip edges to/from satellite entities
+                if obj in satellite_set:
                     continue
                 triple_key = (uri, pred, obj)
                 if triple_key not in seen:
@@ -894,6 +1066,9 @@ class BulkDocumentGenerator:
             # Incoming: (subj) --pred--> (uri)
             for pred, subj in self.incoming.get(uri, []):
                 if self.is_schema_predicate(pred):
+                    continue
+                # Skip edges to/from satellite entities
+                if subj in satellite_set:
                     continue
                 triple_key = (subj, pred, uri)
                 if triple_key not in seen:

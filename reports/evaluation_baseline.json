@@ -1,0 +1,761 @@
+[
+  {
+    "question_number": 1,
+    "question": "Which pieces from Swiss Artists are in the Musée d'art et d'histoire in Geneva ?",
+    "answer": "The Musée d'art et d'histoire in Geneva features works by Swiss artists, including:\n\n1. **Le Lac Léman et le Mont-Blanc à l'aube (octobre)** - This artwork by Ferdinand Hodler is part of the collection and depicts the scenic view of Lake Geneva and Mont Blanc at dawn.\n\n2. **Orphée** - This piece is linked to the museum's focus on art and design, as it is associated with exhibitions like \"Décor, design et industrie. Les arts appliqués à Genève\" and \"Gioielli d'arte in Svizzera.\"\n\nThese works highlight the contribution of Swiss artists to the museum's collection.",
+    "elapsed_seconds": 14.5,
+    "num_sources": 10,
+    "sources": [
+      {
+        "entity_label": "Des artistes genevois au Musée d'art et d'histoire",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2199521",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 11
+      },
+      {
+        "entity_label": "Au Musée d'art et d'histoire. Peintres et sculpteurs genevois",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2200362",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 11
+      },
+      {
+        "entity_label": "Exposition de la Section de Genève de la Société des peintres, sculpteurs et architectes suisses au Musée d'art et d'histoire",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2200362/description",
+        "entity_type": "Linguistic Object",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Expositions à l'occasion du XIVe congrès international d'histoire de l'art. Exposition de peintres genevois des XVIIIe et XIXe siècles au Musée d'art et d'histoire, exposition de dessins d'Alexandre Calame à l'Athénée et exposition Ferdinand Hodler à la Galerie Moos",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2199521/description",
+        "entity_type": "Linguistic Object",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "MUSEE D'ART ET D'HISTOIRE/GENEVE",
+        "entity_uri": "https://data.mahmah.ch/work/155317/inscription/22079394-C7B7-3512-BCF8-DA779F95A1DF",
+        "entity_type": "Inscription",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "En 1910, les fonds du Musée des arts décoratifs et des Musées archéologique et académique sont réunis au sein du nouveau Musée d’art et d’histoire. La présentation au public de ces objets encourage les artisans et le développement des industries d’art, car elle façonne l’image de marque de la ville en se comparant aux productions européennes d’alors. En 1929, la ligne des acquisitions est resserrée au profit des présentations temporaires: il s’agit «(…) d’augmenter, compléter les collections genevoises, seules intéressantes pour les visiteurs étrangers, et (de) n’acquérir des œuvres de l’étranger qu’à titre exceptionnel et lorsqu’une occasion avantageuse se présente.» [Séance de la commission du 29 août 1929]. Les bijoutiers Alexandre-Louis Ruchonnet et Armand Pochelon, Alfred Jacot Guillarmod ou encore Marie Bedot-Diodati sont alors membres de la commission, avec le graveur et dessinateur lausannois Eugène Grasset, figure de l’Art Nouveau. Ces personnages animent le milieu créatif genevois, avec les Louis Vallot, Charles Dunant, Jean Duvoisin, André Lambert devenu chef d’atelier de la maison Gallopin et Germaine Glitsch de Siebenthal, chez Baszanger.",
+        "entity_uri": "https://data.mahmah.ch/work/285033/abstract",
+        "entity_type": "Linguistic Object",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Peintres et sculpteurs genevois",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2200160",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 11
+      },
+      {
+        "entity_label": "L'art à Genève",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2199620",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 11
+      },
+      {
+        "entity_label": "Exposition René Guinand, A. Welti, A. Jallard et R. Juillerat au Musée Rath, exposition Dujardin, B. Guberti, A.-L. Roche, L. Salzmann, L. Schwaiger et C. Zwahlen à la Galerie Moos.",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2199620/description",
+        "entity_type": "Linguistic Object",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Au Musée d'art et d'histoire. Peintres et sculpteurs genevois",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2200362/appellation",
+        "entity_type": "E41_E33_Linguistic_Appellation",
+        "raw_triples_count": 2
+      }
+    ]
+  },
+  {
+    "question_number": 2,
+    "question": "Which paintings depict geneva?",
+    "answer": "The paintings that depict Geneva are:\n\n1. **Vue de Genève** - This painting depicts the places of Geneva, Lake Geneva, and the Rhône River.\n\n2. **Genève vue de la campagne** - This artwork has dimensions suggesting it depicts a scene related to Geneva.\n\n3. **Genève vue de Cologny** - This painting includes depictions of Geneva, the Léman, Salève, and Cologny.",
+    "elapsed_seconds": 2.74,
+    "num_sources": 10,
+    "sources": [
+      {
+        "entity_label": "Au Musée d'art et d'histoire. Peintres et sculpteurs genevois",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2200362",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 11
+      },
+      {
+        "entity_label": "Vue de Genève",
+        "entity_uri": "https://data.mahmah.ch/work/232250",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 73
+      },
+      {
+        "entity_label": "Exposition de la Section de Genève de la Société des peintres, sculpteurs et architectes suisses au Musée d'art et d'histoire",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2200362/description",
+        "entity_type": "Linguistic Object",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Genève vue de la campagne",
+        "entity_uri": "https://data.mahmah.ch/work/390807",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 34
+      },
+      {
+        "entity_label": "Des artistes genevois au Musée d'art et d'histoire",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2199521",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 11
+      },
+      {
+        "entity_label": "Genève vue de Cologny",
+        "entity_uri": "https://data.mahmah.ch/work/231521",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 46
+      },
+      {
+        "entity_label": "Expositions à l'occasion du XIVe congrès international d'histoire de l'art. Exposition de peintres genevois des XVIIIe et XIXe siècles au Musée d'art et d'histoire, exposition de dessins d'Alexandre Calame à l'Athénée et exposition Ferdinand Hodler à la Galerie Moos",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2199521/description",
+        "entity_type": "Linguistic Object",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "De quelques peintures à Genève avant la Réforme",
+        "entity_uri": "https://data.mahmah.ch/archive/item/gen-001_1946_24__228_d",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 7
+      },
+      {
+        "entity_label": "Peintres et sculpteurs genevois",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2200160",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 11
+      },
+      {
+        "entity_label": "Le Quai des Pâquis à Genève",
+        "entity_uri": "https://data.mahmah.ch/work/202195",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 258
+      }
+    ]
+  },
+  {
+    "question_number": 3,
+    "question": "Tell me more about Ferdinand Hodler and its paintings",
+    "answer": "Ferdinand Hodler was a Swiss painter known for his significant contributions to art, particularly in landscape and historical painting. His work is celebrated for pursuing a synthesis of realistic landscapes and idealistic representation. One of his notable pieces is **Le Lac Léman et le Mont-Blanc, avec cygnes**, which depicts Lake Geneva and Mont Blanc. This painting was created following his participation in the 1904 Secession Exhibition in Vienna, marking a period where his landscape work intensified and gained popularity.\n\nHodler's paintings often exclude human figures, focusing instead on the natural world, a style evident in his \"Paysages planétaires\" series. His work often conveys a profound emotional charge, as seen in **Le Lac Léman et le Mont-Blanc, à l'aube**, painted in 1918 from his apartment window shortly before his death. This piece exemplifies his exploration of light and color, approaching abstraction while expressing deep emotional sentiments.\n\nHodler's influence extends beyond landscapes, as he also produced historical works such as **Le serment du Grütli** and **La Retraite de Marignan**. His self-portraits and studies, like **Etude pour \"L'Historien\" (autoportrait)**, showcase his introspective exploration through art. His work has been exhibited in various prestigious venues, including the Hayward Gallery in London and the Kunsthaus Zürich, underscoring his lasting impact on Swiss and international art.",
+    "elapsed_seconds": 7.99,
+    "num_sources": 10,
+    "sources": [
+      {
+        "entity_label": "Ferdinand Hodler et Genève. Collection du Musée d'art et d'histoire",
+        "entity_uri": "https://data.mahmah.ch/exhibition/5377",
+        "entity_type": "Activity",
+        "raw_triples_count": 211
+      },
+      {
+        "entity_label": "Ferdinand Hodler, 1853-1918 : Hayward Gallery, London, 20 May-27 June 1971. Londres; Zürich, 1971.",
+        "entity_uri": "https://data.mahmah.ch/document/15648",
+        "entity_type": "Document",
+        "raw_triples_count": 8
+      },
+      {
+        "entity_label": "L'Esprit de Hodler dans la peinture genevoise",
+        "entity_uri": "https://data.mahmah.ch/exhibition/129548",
+        "entity_type": "Activity",
+        "raw_triples_count": 35
+      },
+      {
+        "entity_label": "Ferdinand Hodler, 1853-1918",
+        "entity_uri": "https://data.mahmah.ch/exhibition/6519",
+        "entity_type": "Activity",
+        "raw_triples_count": 23
+      },
+      {
+        "entity_label": "Le Lac Léman et le Mont-Blanc, avec cygnes",
+        "entity_uri": "https://data.mahmah.ch/work/54050",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 150
+      },
+      {
+        "entity_label": "Ferdinand Hodler, Kunsthaus Zürich, 14. Juni bis 5. August 1917",
+        "entity_uri": "https://data.mahmah.ch/work/380765",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 10
+      },
+      {
+        "entity_label": "À la suite de la participation de Ferdinand Hodler en 1904 à la XIXe Exposition de la Sécession à Vienne, sa production de paysages se densifie, tandis que l'artiste remporte un succès croissant. Le genevois d'adoption poursuit alors sa quête d'une synthèse d'un paysage réaliste et de la représentation idéaliste. Ses compositions se caractérisent désormais par l'absence de la figure humaine et de manière générale, en réaction au positivisme de son siècle, par un refus de la civilisation. C'est ainsi qu'apparaissent ce qu'il est convenu d'appeler ses Paysages planétaires. Ces derniers représentent le plus souvent le lac Léman, comme en témoigne de manière emblématique l'admirable Rade de Genève et le Mont-Blanc à l'aube. Ce tableau a été peint en 1918, quelques semaines avant la mort de l'artiste, depuis la fenêtre de son appartement, situé 29 quai du Mont-Blanc. L'artiste y articule horizontalement chaque registre, tout en redéfinissant les rapports entre la lumière et la couleur. À la frontière de l'abstraction, ce testament pictural exprime sereinement mais avec une grande charge émotive un sentiment de déréliction.",
+        "entity_uri": "https://data.mahmah.ch/work/54050/abstract",
+        "entity_type": "Linguistic Object",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Ferdinand Hodler, Kunsthaus Zürich, 14. Juni bis 5. August 1917",
+        "entity_uri": "https://data.mahmah.ch/work/380765/appellation",
+        "entity_type": "E41_E33_Linguistic_Appellation",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Ferdinand Hodler, peintre de l'histoire suisse",
+        "entity_uri": "https://data.mahmah.ch/exhibition/5369",
+        "entity_type": "Activity",
+        "raw_triples_count": 112
+      },
+      {
+        "entity_label": "Ferdinand Hodler. Selbstbildnisse als Selbstbiographie",
+        "entity_uri": "https://data.mahmah.ch/exhibition/6239",
+        "entity_type": "Activity",
+        "raw_triples_count": 12
+      }
+    ]
+  },
+  {
+    "question_number": 4,
+    "question": "Tell me more about Guerrier au morgenstern",
+    "answer": "\"Guerrier au morgenstern\" is a painting by Ferdinand Hodler. It is known for its impressive dimensions, measuring 320.5 cm in height and 106.5 cm in width. This artwork is part of the collection at the Musée d'art et d'histoire in Geneva. The painting has been referenced in various exhibitions and publications, including an article by Corinne Borel discussing the theme of arms and armor in the context of Geneva's identity. It was also featured in the exhibition \"Carte blanche à Ugo Rondinone: when the sun goes down and the moon comes up\" at the Musée d'art et d'histoire in 2023.",
+    "elapsed_seconds": 3.99,
+    "num_sources": 10,
+    "sources": [
+      {
+        "entity_label": "Ferdinand Hodler, peintre de l'histoire suisse",
+        "entity_uri": "https://data.mahmah.ch/exhibition/5369",
+        "entity_type": "Activity",
+        "raw_triples_count": 112
+      },
+      {
+        "entity_label": "Guerrier au morgenstern",
+        "entity_uri": "https://data.mahmah.ch/work/49580",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 44
+      },
+      {
+        "entity_label": "Guerrier au morgenstern",
+        "entity_uri": "https://data.mahmah.ch/work/49580/appellation",
+        "entity_type": "E41_E33_Linguistic_Appellation",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Le Guerrier furieux",
+        "entity_uri": "https://data.mahmah.ch/work/43971",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 74
+      },
+      {
+        "entity_label": "Borel Corinne, \\\"Armes & Armures : Hallebardes et morgensterns : Lorsque Genève se créait une identité suisse\\\", MAGMAH, n° 1, 2021. p. 55",
+        "entity_uri": "https://data.mahmah.ch/document/928261",
+        "entity_type": "Document",
+        "raw_triples_count": 4
+      },
+      {
+        "entity_label": "Si le premier succès international de Ferdinand Hodler est parisien – l’exposition de \\\"La Nuit\\\" au Salon du Champ-de-Mars en 1891 – c’est dans les pays germaniques qu’il jouit de la plus grande renommée. Entre 1897 et 1903, il intègre ainsi les Sécessions de Munich, Berlin et Vienne, et s’y impose comme l’un des chefs de file de la peinture moderne. En 1904, il est l’invité d’honneur de l’exposition de la Sécession viennoise, dont il signe l’affiche, et où il retrouve ses camarades Gustav Klimt (1862-1918) et Emil Orlik (1870-1932).",
+        "entity_uri": "https://data.mahmah.ch/work/844205/abstract",
+        "entity_type": "Linguistic Object",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Guerrier à la hallebarde",
+        "entity_uri": "https://data.mahmah.ch/work/135296",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 22
+      },
+      {
+        "entity_label": "Guerrier à la hallebarde",
+        "entity_uri": "https://data.mahmah.ch/work/238266",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 30
+      },
+      {
+        "entity_label": "Portrait de Ferdinand Hodler (1853-1918)",
+        "entity_uri": "https://data.mahmah.ch/work/312061",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 70
+      },
+      {
+        "entity_label": "Guerrier à la hallebarde",
+        "entity_uri": "https://data.mahmah.ch/work/45532",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 34
+      }
+    ]
+  },
+  {
+    "question_number": 5,
+    "question": "Guerrier au morgenstern and Fondation Pierre Gianadda, it has been exhibited in which exhibition?",
+    "answer": "\"Guerrier au morgenstern\" by Ferdinand Hodler has been exhibited in the \"Carte blanche à Ugo Rondinone: when the sun goes down and the moon comes up\" exhibition at the Musée d'art et d'histoire in Geneva in 2023. The painting is also associated with the \"Ferdinand Hodler, peintre de l'histoire suisse\" exhibition.",
+    "elapsed_seconds": 4.1,
+    "num_sources": 10,
+    "sources": [
+      {
+        "entity_label": "Guerrier au morgenstern",
+        "entity_uri": "https://data.mahmah.ch/work/49580",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 44
+      },
+      {
+        "entity_label": "Guerrier à la hallebarde",
+        "entity_uri": "https://data.mahmah.ch/work/45532",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 34
+      },
+      {
+        "entity_label": "Guerrier à la hallebarde",
+        "entity_uri": "https://data.mahmah.ch/work/135296",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 22
+      },
+      {
+        "entity_label": "Fondation Pierre Gianadda",
+        "entity_uri": "https://data.mahmah.ch/vocab/institution/D21274C8-6031-3B6E-A20C-F00E28CC9FB2",
+        "entity_type": "Actor",
+        "raw_triples_count": 12
+      },
+      {
+        "entity_label": "Guerrier à la hallebarde",
+        "entity_uri": "https://data.mahmah.ch/work/238266",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 30
+      },
+      {
+        "entity_label": "Guerrier à la hallebarde",
+        "entity_uri": "https://data.mahmah.ch/work/276642",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 34
+      },
+      {
+        "entity_label": "Exposition de la Fondation Gottfried Keller",
+        "entity_uri": "https://data.mahmah.ch/exhibition/2008",
+        "entity_type": "Activity",
+        "raw_triples_count": 71
+      },
+      {
+        "entity_label": "Le Guerrier furieux",
+        "entity_uri": "https://data.mahmah.ch/work/43971",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 74
+      },
+      {
+        "entity_label": "Wahler Marc-Olivier (dir.), Carte blanche à Ugo Rondinone : when the sun goes dows and the moon comes up, catalogue d'exposition, Genève, Musée d'art et d'histoire, 26 janvier 2023-18 juin 2023, Milan: 5 Continents Edition, 2023",
+        "entity_uri": "https://data.mahmah.ch/document/1076262",
+        "entity_type": "Document",
+        "raw_triples_count": 280
+      },
+      {
+        "entity_label": "Le Guerrier Dietegen luttant à l'épée",
+        "entity_uri": "https://data.mahmah.ch/work/149645",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 41
+      }
+    ]
+  },
+  {
+    "question_number": 6,
+    "question": "When it happened and with which other pieces?",
+    "answer": "The exhibition \"Carte blanche à Ugo Rondinone: when the sun goes down and the moon comes up,\" featuring \"Guerrier au morgenstern,\" took place at the Musée d'art et d'histoire in Geneva from January 26, 2023, to June 18, 2023. Other pieces featured in this exhibition included \"Guerrier à la hallebarde,\" \"Statue agenouillée d'un homme tenant une stèle,\" \"Der Ritt des Todes,\" \"Allégorie du Temps [figure faîtière],\" and \"Deux études de têtes de Valentine Godé-Darel malade, de trois quarts à gauche.\"",
+    "elapsed_seconds": 7.37,
+    "num_sources": 10,
+    "sources": [
+      {
+        "entity_label": "Guerrier au morgenstern",
+        "entity_uri": "https://data.mahmah.ch/work/49580",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 44
+      },
+      {
+        "entity_label": "Midi-Minuit \\\\ 12, Pierre Courtin - Mikhail Karasik",
+        "entity_uri": "https://data.mahmah.ch/exhibition/849",
+        "entity_type": "Activity",
+        "raw_triples_count": 15
+      },
+      {
+        "entity_label": "Guerrier à la hallebarde",
+        "entity_uri": "https://data.mahmah.ch/work/45532",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 34
+      },
+      {
+        "entity_label": "23 Pieces",
+        "entity_uri": "https://data.mahmah.ch/work/174873",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 13
+      },
+      {
+        "entity_label": "Guerrier à la hallebarde",
+        "entity_uri": "https://data.mahmah.ch/work/276642",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 34
+      },
+      {
+        "entity_label": "23 Pieces",
+        "entity_uri": "https://data.mahmah.ch/work/174873/appellation",
+        "entity_type": "E41_E33_Linguistic_Appellation",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Carte blanche à Ugo Rondinone : when the sun goes down and the moon comes up",
+        "entity_uri": "https://data.mahmah.ch/exhibition/506551",
+        "entity_type": "Activity",
+        "raw_triples_count": 779
+      },
+      {
+        "entity_label": "Martin Disler und Gerhard Altenbourg",
+        "entity_uri": "https://data.mahmah.ch/exhibition/6829",
+        "entity_type": "Activity",
+        "raw_triples_count": 61
+      },
+      {
+        "entity_label": "Guerrier à la hallebarde",
+        "entity_uri": "https://data.mahmah.ch/work/135296",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 22
+      },
+      {
+        "entity_label": "Only in Geneva - unica et rarissimes du Cabinet des estampes de Genève - unica & exceptional pieces from the Print Room Geneva",
+        "entity_uri": "https://data.mahmah.ch/exhibition/3409",
+        "entity_type": "Activity",
+        "raw_triples_count": 277
+      }
+    ]
+  },
+  {
+    "question_number": 7,
+    "question": "In which exhibitions and where the work of hodler has been featured?",
+    "answer": "The work of Ferdinand Hodler has been featured in several exhibitions:\n\n1. **Hodler Gedächtnis-Ausstellung** in Bern, which took place at the Kunstmuseum and Kunsthalle from August 20 to October 23, 1921. The exhibition included works like \"Le Faucheur,\" an étude for the 100 francs banknote, and \"Etude pour le portrait de David Schmidt.\"\n\n2. **Hodler. Oeuvres sur papier** in Geneva, organized by the Musée d'art et d'histoire, Cabinet d'arts graphiques. This exhibition included pieces such as \"Autoportrait, de face,\" \"Trois femmes nues debout, vues de dos, étude pour 'Floraison',\" and \"Etude de composition pour 'La Bataille de Morat'.\"\n\n3. **L'exposition Hodler à la Galerie Moos**, which featured works like \"Répétition de chant dans la sacristie,\" \"Salève, montagne,\" \"Jungfrau,\" and \"Le Regard dans l'Infini, figure isolée.\"\n\n4. **Hodler-Gedächtnis-Ausstellung** in Bern, at the Kunstmuseum, which included works such as \"Autoportrait\" and \"Le Porte-Drapeau Hans Baer blessé, lunette gauche de 'La Retraite de Marignan'.\"\n\nThese exhibitions took place in various locations, including Bern and Geneva, showcasing a range of Hodler's works on paper and other significant pieces.",
+    "elapsed_seconds": 9.6,
+    "num_sources": 10,
+    "sources": [
+      {
+        "entity_label": "Hodler Gedächtnis-Ausstellung",
+        "entity_uri": "https://data.mahmah.ch/exhibition/344",
+        "entity_type": "Activity",
+        "raw_triples_count": 15
+      },
+      {
+        "entity_label": "Hodler Gedächtnis-Ausstellung,, [Exposition Berne, Kunstmuseum et Kunsthalle, 20 août - 23 octobre 1921], Berne, 1921",
+        "entity_uri": "https://data.mahmah.ch/document/784261",
+        "entity_type": "Document",
+        "raw_triples_count": 8
+      },
+      {
+        "entity_label": "Hodler. Oeuvres sur papier",
+        "entity_uri": "https://data.mahmah.ch/exhibition/6211",
+        "entity_type": "Activity",
+        "raw_triples_count": 291
+      },
+      {
+        "entity_label": "Hodler-Gedächtnis-Austellung",
+        "entity_uri": "https://data.mahmah.ch/exhibition/6030",
+        "entity_type": "Activity",
+        "raw_triples_count": 37
+      },
+      {
+        "entity_label": "L'exposition Hodler à la Galerie Moos",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2198761",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 11
+      },
+      {
+        "entity_label": "Hodler",
+        "entity_uri": "https://data.mahmah.ch/work/46619/inscription/284A7452-6348-3CF6-B679-6B4E45B2C68C",
+        "entity_type": "Inscription",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Une exposition Hodler",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2198481",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 11
+      },
+      {
+        "entity_label": "\\\"Collection H. Hodler\\\"",
+        "entity_uri": "https://data.mahmah.ch/work/379670/inscription/D620E727-9795-3712-A819-92769A5AFFAF",
+        "entity_type": "Inscription",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Acquisition d'un Hodler au Musée d'art et d'histoire. Lié à l'œuvre 1931-0010",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2199994/description",
+        "entity_type": "Linguistic Object",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "L'exposition Hodler à la Galerie Moos",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2200207",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 11
+      }
+    ]
+  },
+  {
+    "question_number": 8,
+    "question": "When they took place?",
+    "answer": "The exhibitions featuring the work of Ferdinand Hodler took place as follows:\n\n1. **Hodler Gedächtnis-Ausstellung** in Bern at the Kunstmuseum and Kunsthalle from August 20 to October 23, 1921.\n\n2. **Hodler. Oeuvres sur papier** in Geneva, organized by the Musée d'art et d'histoire, Cabinet d'arts graphiques. The exact dates are not specified in the provided context.\n\n3. **L'exposition Hodler à la Galerie Moos** in Geneva. The exact dates are not specified in the provided context.\n\n4. **Exposition commémorative F. Hodler 1918-1938** in Geneva. The exact dates are not specified in the provided context.\n\n5. **Hodler-Gedächtnis-Ausstellung** in Bern at the Kunstmuseum. The exact dates are not specified in the provided context.\n\n6. **Hodler et ses épigones** in Geneva at Hôtel des Bergues. The exact dates are not specified in the provided context.",
+    "elapsed_seconds": 5.25,
+    "num_sources": 10,
+    "sources": [
+      {
+        "entity_label": "Hodler Gedächtnis-Ausstellung",
+        "entity_uri": "https://data.mahmah.ch/exhibition/344",
+        "entity_type": "Activity",
+        "raw_triples_count": 15
+      },
+      {
+        "entity_label": "Congrès de Vienne",
+        "entity_uri": "https://data.mahmah.ch/event/12047",
+        "entity_type": "Event",
+        "raw_triples_count": 7
+      },
+      {
+        "entity_label": "Hodler-Gedächtnis-Austellung",
+        "entity_uri": "https://data.mahmah.ch/exhibition/6030",
+        "entity_type": "Activity",
+        "raw_triples_count": 37
+      },
+      {
+        "entity_label": "Byzantium 330-1453",
+        "entity_uri": "https://data.mahmah.ch/exhibition/8094",
+        "entity_type": "Activity",
+        "raw_triples_count": 25
+      },
+      {
+        "entity_label": "Hodler. Oeuvres sur papier",
+        "entity_uri": "https://data.mahmah.ch/exhibition/6211",
+        "entity_type": "Activity",
+        "raw_triples_count": 291
+      },
+      {
+        "entity_label": "Voir Jérusalem : pèlerins, conquérants, voyageurs (à travers l'espace et le temps)",
+        "entity_uri": "https://data.mahmah.ch/exhibition/6767",
+        "entity_type": "Activity",
+        "raw_triples_count": 13
+      },
+      {
+        "entity_label": "Exposition commémorative F. Hodler 1918-1938",
+        "entity_uri": "https://data.mahmah.ch/exhibition/196",
+        "entity_type": "Activity",
+        "raw_triples_count": 45
+      },
+      {
+        "entity_label": "1848, L'Europe des images",
+        "entity_uri": "https://data.mahmah.ch/exhibition/272",
+        "entity_type": "Activity",
+        "raw_triples_count": 14
+      },
+      {
+        "entity_label": "Hodler et ses épigones",
+        "entity_uri": "https://data.mahmah.ch/exhibition/991",
+        "entity_type": "Activity",
+        "raw_triples_count": 13
+      },
+      {
+        "entity_label": "1848, L'Europe des images",
+        "entity_uri": "https://data.mahmah.ch/exhibition/6538",
+        "entity_type": "Activity",
+        "raw_triples_count": 11
+      }
+    ]
+  },
+  {
+    "question_number": 9,
+    "question": "Aside from Hodler, are there any relevant Swiss Artist?",
+    "answer": "Aside from Ferdinand Hodler, the context does not provide the names of other specific Swiss artists. However, it mentions that Hodler was involved in the Société des peintures, sculpteurs et architectes suisses (SPSAS), which implies there were other artists in that organization. The context also refers to the event \"Kunstszene Schweiz: Künstler der ersten nationalen Kunstausstellung im Jahr der Entstehung von Hodlers 'Nacht',\" which suggests that other Swiss artists participated in the first national art exhibition, but their names are not specified in the provided context.",
+    "elapsed_seconds": 12.39,
+    "num_sources": 10,
+    "sources": [
+      {
+        "entity_label": "Kunstszene Schweiz: Künstler der ersten nationalen Kunstausstellung im Jahr der Entstehung von Hodlers 'Nacht'",
+        "entity_uri": "https://data.mahmah.ch/exhibition/75",
+        "entity_type": "Activity",
+        "raw_triples_count": 57
+      },
+      {
+        "entity_label": "L'esprit de Hodler dans la peinture genevoise",
+        "entity_uri": "https://data.mahmah.ch/archive/item/gen-001_2017_65__219_d",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 7
+      },
+      {
+        "entity_label": "Hodler-Gedächtnis-Austellung",
+        "entity_uri": "https://data.mahmah.ch/exhibition/6030",
+        "entity_type": "Activity",
+        "raw_triples_count": 37
+      },
+      {
+        "entity_label": "Hodler s’engage énergiquement dans la vie et les réseaux culturels de son temps. Il participe à la promotion et à la défense de l’art de l’époque, présidant notamment la Société des peintures, sculpteurs et architectes suisses (SPSAS) de 1910 à sa mort.",
+        "entity_uri": "https://data.mahmah.ch/work/845200/abstract",
+        "entity_type": "Linguistic Object",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Hodler Gedächtnis-Ausstellung",
+        "entity_uri": "https://data.mahmah.ch/exhibition/344",
+        "entity_type": "Activity",
+        "raw_triples_count": 15
+      },
+      {
+        "entity_label": "Carnet n° 196 | Page 32 [Ordre du jour de la séance du 6 mars 1912 du Comité de la Société des peintres, sculpteurs, et architectes suisses (SPSAS)]",
+        "entity_uri": "https://data.mahmah.ch/work/845200",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 8
+      },
+      {
+        "entity_label": "Ferdinand Hodler, peintre de l'histoire suisse",
+        "entity_uri": "https://data.mahmah.ch/exhibition/5369",
+        "entity_type": "Activity",
+        "raw_triples_count": 112
+      },
+      {
+        "entity_label": "Carnet n° 68 | Page 2 [Notes au sujet de l'exécution de \\\"La Retraite de Marignan\\\" au Musée national suisse à Zurich]",
+        "entity_uri": "https://data.mahmah.ch/work/402048",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 20
+      },
+      {
+        "entity_label": "L'Esprit de Hodler dans la peinture genevoise",
+        "entity_uri": "https://data.mahmah.ch/exhibition/129548",
+        "entity_type": "Activity",
+        "raw_triples_count": 35
+      },
+      {
+        "entity_label": "La proposition avec laquelle Hodler remporte le concours pour la décoration du Musée national suisse ne fait pas l'unanimité. Si le jury, composé de peintres et de l’architecte du Musée, est enthousiaste, les autorités et le directeur de l’institution, Heinrich Angst (1847-1922), dénoncent la crudité et la malséance de cette représentation sanglante de la guerre, son manque d’idéalisation et la grossièreté de ses personnages. La « querelle des fresques » plus de trois ans, au cours desquels Hodler multiplie les études, les esquisses et les variantes. Après d’innombrables manœuvres dilatoires, il reçoit le contrat d’exécution des fresques le 25 juin 1899, ce qui n’empêchera pas Angst de s’acharner jusqu’au dernier moment, comme en témoigne cette page.",
+        "entity_uri": "https://data.mahmah.ch/work/402048/abstract",
+        "entity_type": "Linguistic Object",
+        "raw_triples_count": 2
+      }
+    ]
+  },
+  {
+    "question_number": 10,
+    "question": "What Hans Schweizer did?",
+    "answer": "Hans Schweizer is identified as an artist from Herisau. The context does not provide specific details about his works or contributions beyond this identification.",
+    "elapsed_seconds": 8.81,
+    "num_sources": 10,
+    "sources": [
+      {
+        "entity_label": "Hodler s’engage énergiquement dans la vie et les réseaux culturels de son temps. Il participe à la promotion et à la défense de l’art de l’époque, présidant notamment la Société des peintures, sculpteurs et architectes suisses (SPSAS) de 1910 à sa mort.",
+        "entity_uri": "https://data.mahmah.ch/work/845200/abstract",
+        "entity_type": "Linguistic Object",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Hans Schweizer",
+        "entity_uri": "https://data.mahmah.ch/agent/86600/appellation",
+        "entity_type": "E41_E33_Linguistic_Appellation",
+        "raw_triples_count": 3
+      },
+      {
+        "entity_label": "Hans Schweizer",
+        "entity_uri": "https://data.mahmah.ch/agent/86600",
+        "entity_type": "Actor",
+        "raw_triples_count": 14
+      },
+      {
+        "entity_label": "Hans Schweizer",
+        "entity_uri": "http://www.wikidata.org/entity/Q95325111",
+        "entity_type": "human",
+        "raw_triples_count": 3
+      },
+      {
+        "entity_label": "L'esprit de Hodler dans la peinture genevoise",
+        "entity_uri": "https://data.mahmah.ch/archive/item/gen-001_2017_65__219_d",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 7
+      },
+      {
+        "entity_label": "Schweizer",
+        "entity_uri": "https://data.mahmah.ch/work/507623/inscription/9912C933-0E20-3D0D-8109-BF7E74E09E51",
+        "entity_type": "Inscription",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Carnet n° 196 | Page 32 [Ordre du jour de la séance du 6 mars 1912 du Comité de la Société des peintres, sculpteurs, et architectes suisses (SPSAS)]",
+        "entity_uri": "https://data.mahmah.ch/work/845200",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 8
+      },
+      {
+        "entity_label": "Schweizer",
+        "entity_uri": "https://data.mahmah.ch/work/505111/inscription/9912C933-0E20-3D0D-8109-BF7E74E09E51",
+        "entity_type": "Inscription",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Schweizer",
+        "entity_uri": "https://data.mahmah.ch/work/507905/inscription/9912C933-0E20-3D0D-8109-BF7E74E09E51",
+        "entity_type": "Inscription",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Carnet n° 68 | Page 2 [Notes au sujet de l'exécution de \\\"La Retraite de Marignan\\\" au Musée national suisse à Zurich]",
+        "entity_uri": "https://data.mahmah.ch/work/402048",
+        "entity_type": "E22_Man-Made_Object",
+        "raw_triples_count": 20
+      }
+    ]
+  },
+  {
+    "question_number": 11,
+    "question": "Which are the top 10 Swiss Artist in the Musée d'art et d'histoire?",
+    "answer": "The retrieved context does not specify a list of the top 10 Swiss artists in the Musée d'art et d'histoire. However, it does mention several artists associated with the museum and Swiss art exhibitions, including Ferdinand Hodler, Alexandre Calame, Aloys Samuel Hugonnet, Benjamin Vautier, and René Auberjonois.",
+    "elapsed_seconds": 14.44,
+    "num_sources": 10,
+    "sources": [
+      {
+        "entity_label": "Les peintres et les sculpteurs suisses au Musée de Zurich",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2198867",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 9
+      },
+      {
+        "entity_label": "Des artistes genevois au Musée d'art et d'histoire",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2199521",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 11
+      },
+      {
+        "entity_label": "Expositions à l'occasion du XIVe congrès international d'histoire de l'art. Exposition de peintres genevois des XVIIIe et XIXe siècles au Musée d'art et d'histoire, exposition de dessins d'Alexandre Calame à l'Athénée et exposition Ferdinand Hodler à la Galerie Moos",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2199521/description",
+        "entity_type": "Linguistic Object",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "L'art en Suisse et ses rapports avec l'histoire",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2198576",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 9
+      },
+      {
+        "entity_label": "Peintres et sculpteurs genevois",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2200160",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 11
+      },
+      {
+        "entity_label": "Peintres et sculpteurs vaudois",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2198971",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 9
+      },
+      {
+        "entity_label": "Artistes et décorateurs",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2199736",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 9
+      },
+      {
+        "entity_label": "Au Musée d'art et d'histoire. La section suisse à l'exposition des arts appliqués de Paris",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2198619",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 9
+      },
+      {
+        "entity_label": "Les tendances actuelles de l'art en Suisse",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2198569",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 9
+      },
+      {
+        "entity_label": "Les bénéficiaires des bourses Lissignol et Chevalier",
+        "entity_uri": "https://data.mahmah.ch/archive/item/2199403",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 11
+      }
+    ]
+  }
+]

@@ -35,6 +35,7 @@ from graph_document_store import GraphDocumentStore
 from llm_providers import get_llm_provider, get_embedding_provider
 from embedding_cache import EmbeddingCache
 from scripts.extract_ontology_labels import run_extraction
+from fr_traversal import FRTraversal, classify_satellite
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +61,13 @@ class RetrievalConfig:
     BATCH_QUERY_SIZE = 1000  # Number of URIs per VALUES clause in batch queries
     BATCH_QUERY_TIMEOUT = 60000  # Timeout for batch queries in ms (60 seconds)
     BATCH_QUERY_RETRY_SIZE = 100  # Smaller batch size for retry on timeout
+
+    # Diversity penalty (MMR-style) for coherent subgraph extraction
+    DIVERSITY_PENALTY = 0.2  # Weight for penalizing embedding similarity to already-selected docs
+
+    # Graph context enrichment for LLM prompt
+    GRAPH_CONTEXT_MAX_NEIGHBORS = 5   # Max neighbor relationships to show per entity
+    GRAPH_CONTEXT_MAX_LINES = 50      # Total line cap for graph context section
 
 
 class UniversalRagSystem:
@@ -161,6 +169,9 @@ class UniversalRagSystem:
         if UniversalRagSystem._inverse_properties is None:
             UniversalRagSystem._inverse_properties = self._load_inverse_properties()
 
+        # Initialize FR traversal for FR-based document generation
+        self.fr_traversal = self._init_fr_traversal()
+
     # ==================== Path Helper Methods ====================
     # These methods return dataset-specific paths for multi-dataset support
 
@@ -214,6 +225,35 @@ class UniversalRagSystem:
             logger.warning(f"Inverse properties file not found at {inverse_file}")
             logger.info("Run: python scripts/extract_ontology_labels.py to generate it")
             return {}
+
+    def _init_fr_traversal(self) -> Optional[FRTraversal]:
+        """Initialize FR traversal module with required config files.
+
+        Returns FRTraversal instance or None if config files are missing.
+        """
+        base_dir = os.path.dirname(__file__)
+        fr_json = os.path.join(base_dir, 'fundamental_relationships_cidoc_crm.json')
+        inverse_props = os.path.join(base_dir, 'data', 'labels', 'inverse_properties.json')
+        fc_mapping = os.path.join(base_dir, 'config', 'fc_class_mapping.json')
+
+        if not os.path.exists(fr_json):
+            logger.warning(f"FR JSON not found: {fr_json} — FR traversal disabled")
+            return None
+        if not os.path.exists(inverse_props):
+            logger.warning(f"Inverse properties not found: {inverse_props} — FR traversal disabled")
+            return None
+        if not os.path.exists(fc_mapping):
+            logger.warning(f"FC class mapping not found: {fc_mapping} — FR traversal disabled")
+            return None
+
+        traversal = FRTraversal(
+            fr_json_path=fr_json,
+            inverse_properties_path=inverse_props,
+            fc_mapping_path=fc_mapping,
+            property_labels=UniversalRagSystem._property_labels
+        )
+        logger.info("FR traversal initialized for document generation")
+        return traversal
 
     def _load_property_labels(self, force_extract=False):
         """
@@ -624,7 +664,14 @@ class UniversalRagSystem:
             return self._generate_documents_individual(entities, output_dir)
 
     def _generate_documents_individual(self, entities: List[Dict], output_dir: str) -> bool:
-        """Legacy per-entity document generation (slow but reliable)."""
+        """Legacy per-entity document generation (slow but reliable).
+
+        Note: FR traversal is NOT supported in individual mode because FR needs
+        batch-built graph indexes. Use batch mode (default) for FR documents.
+        """
+        if self.fr_traversal:
+            logger.warning("FR traversal requires batch mode — falling back to BFS for individual generation")
+
         success_count = 0
         error_count = 0
         all_triples = []
@@ -634,12 +681,11 @@ class UniversalRagSystem:
 
             try:
                 doc_text, entity_label, entity_types, raw_triples = self.create_enhanced_document(entity_uri)
-                filepath = self.save_entity_document(entity_uri, doc_text, entity_label)
+                self.save_entity_document(entity_uri, doc_text, entity_label)
                 success_count += 1
 
                 # Collect triples for edges file
-                for triple in raw_triples:
-                    all_triples.append(triple)
+                all_triples.extend(raw_triples)
 
             except Exception as e:
                 logger.error(f"Error processing entity {entity_uri}: {str(e)}")
@@ -653,18 +699,66 @@ class UniversalRagSystem:
         self._log_generation_complete(success_count, error_count, output_dir)
         return True
 
+    def _identify_satellites_from_prefetched(
+        self,
+        all_types: Dict[str, set],
+        fr_incoming: Dict[str, List[Tuple[str, str]]],
+        entity_labels_map: Dict[str, str],
+    ) -> Tuple[set, Dict[str, Dict[str, list]]]:
+        """Identify satellite entities and map them to parents using pre-fetched data.
+
+        Two-pass: first identify all satellites, then find parents.
+
+        Args:
+            all_types: entity_uri -> set of type URIs
+            fr_incoming: entity_uri -> [(pred, subj), ...] (incoming edges)
+            entity_labels_map: entity_uri -> label
+
+        Returns:
+            (satellite_uris, parent_satellites) where parent_satellites is
+            parent_uri -> {kind: [label, ...]}
+        """
+        from collections import defaultdict
+
+        if not self.fr_traversal:
+            return set(), {}
+
+        # Pass 1: identify all satellites
+        satellite_uris = set()
+        for uri, types in all_types.items():
+            if self.fr_traversal.is_minimal_doc_entity(types):
+                satellite_uris.add(uri)
+
+        # Pass 2: find parent for each satellite
+        parent_satellites = defaultdict(lambda: defaultdict(list))
+
+        for sat_uri in satellite_uris:
+            sat_label = entity_labels_map.get(sat_uri, sat_uri.split('/')[-1])
+            sat_kind = classify_satellite(all_types.get(sat_uri, set()))
+
+            for pred, subj in fr_incoming.get(sat_uri, []):
+                if subj not in satellite_uris:
+                    parent_satellites[subj][sat_kind].append(sat_label)
+                    break
+
+        logger.info(f"Satellite absorption: {len(satellite_uris)} satellites → "
+                    f"{len(parent_satellites)} parent entities enriched")
+
+        return satellite_uris, parent_satellites
+
     def _generate_documents_batch(self, entities: List[Dict], output_dir: str) -> bool:
         """
         Fast batch document generation using batch SPARQL queries.
-        Achieves 400-1600x speedup over individual queries.
+        Uses FR traversal when available, falls back to BFS otherwise.
         """
         start_time = time.time()
+        use_fr = self.fr_traversal is not None
 
         entity_uris = [e["entity"] for e in entities]
         batch_size = RetrievalConfig.BATCH_QUERY_SIZE
 
         # Phase 1: Batch pre-fetch all entity data
-        logger.info("Phase 1: Pre-fetching entity data in batches...")
+        logger.info(f"Phase 1: Pre-fetching entity data in batches{' (FR)' if use_fr else ' (BFS)'}...")
 
         logger.info(f"  Fetching literals for {len(entity_uris)} entities...")
         all_literals = self._batch_fetch_literals(entity_uris, batch_size)
@@ -683,46 +777,93 @@ class UniversalRagSystem:
         type_labels = self._batch_fetch_type_labels(all_type_uris, batch_size)
         logger.info(f"  Fetched labels for {len(type_labels)} types")
 
-        logger.info(f"  Fetching relationship context for {len(entity_uris)} entities...")
-        all_contexts = self.get_entities_context_batch(entity_uris, batch_size=batch_size)
-        logger.info(f"  Fetched context for {len(all_contexts)} entities")
+        all_triples = []
+        fr_outgoing = fr_incoming = entity_labels_map = entity_types_map = None
+        all_contexts = None
+
+        if use_fr:
+            # FR-based: build graph indexes (chunked to manage memory)
+            fr_outgoing, fr_incoming, entity_labels_map, entity_types_map, chunk_raw_triples = \
+                self._build_fr_graph_for_chunk(entity_uris, all_types, all_literals)
+            all_triples.extend(chunk_raw_triples)
+            logger.info(f"  FR graph built: {len(chunk_raw_triples)} raw triples")
+        else:
+            logger.info(f"  Fetching relationship context for {len(entity_uris)} entities...")
+            all_contexts = self.get_entities_context_batch(entity_uris, batch_size=batch_size)
+            logger.info(f"  Fetched context for {len(all_contexts)} entities")
+
+        # Identify and absorb satellite entities
+        satellite_uris = set()
+        parent_satellites = {}
+        if use_fr and fr_incoming is not None and entity_labels_map is not None:
+            satellite_uris, parent_satellites = self._identify_satellites_from_prefetched(
+                all_types, fr_incoming, entity_labels_map,
+            )
 
         prefetch_time = time.time() - start_time
         logger.info(f"Phase 1 complete in {prefetch_time:.2f}s")
 
         # Phase 2: Generate documents from pre-fetched data (no SPARQL in loop)
-        logger.info("Phase 2: Generating documents from pre-fetched data...")
+        # Filter out satellite entities
+        doc_entities = [e for e in entities if e["entity"] not in satellite_uris]
+        logger.info(f"Phase 2: Generating {len(doc_entities)} documents "
+                    f"(skipping {len(satellite_uris)} satellites)"
+                    f"{' (FR)' if use_fr else ' (BFS)'}...")
         phase2_start = time.time()
 
         success_count = 0
         error_count = 0
-        all_triples = []
 
-        for entity in tqdm(entities, desc="Generating documents (batch)", unit="entity"):
+        for entity in tqdm(doc_entities, desc="Generating documents (batch)", unit="entity"):
             entity_uri = entity["entity"]
 
             try:
-                # Get pre-fetched data
                 literals = all_literals.get(entity_uri, {})
                 types = all_types.get(entity_uri, set())
-                context = all_contexts.get(entity_uri, ([], []))
 
-                # Create document without any SPARQL calls
-                doc_text, entity_label, entity_types, raw_triples = self._create_document_from_prefetched(
-                    entity_uri,
-                    literals,
-                    types,
-                    context,
-                    type_labels
-                )
+                if use_fr:
+                    # Build type labels for this entity
+                    entity_type_labels = []
+                    for type_uri in types:
+                        type_label = None
+                        if UniversalRagSystem._class_labels:
+                            type_label = UniversalRagSystem._class_labels.get(type_uri)
+                        if not type_label:
+                            type_label = type_labels.get(type_uri)
+                        if not type_label:
+                            type_label = type_uri.split('/')[-1].split('#')[-1]
+                        entity_type_labels.append(type_label)
 
-                # Save document
-                filepath = self.save_entity_document(entity_uri, doc_text, entity_label)
+                    # Extract entity label
+                    entity_label = entity_uri.split('/')[-1]
+                    for label_prop in ['label', 'prefLabel', 'name', 'title']:
+                        if label_prop in literals and literals[label_prop]:
+                            entity_label = literals[label_prop][0]
+                            break
+
+                    # Get absorbed satellite info for this parent entity
+                    sat_info = parent_satellites.get(entity_uri)
+                    absorbed_lines = None
+                    if sat_info:
+                        absorbed_lines = self.fr_traversal.format_absorbed_satellites(
+                            dict(sat_info), entity_label
+                        )
+
+                    doc_text, entity_label, entity_types = self._create_fr_document_from_prefetched(
+                        entity_uri, entity_label, types, entity_type_labels,
+                        literals, fr_outgoing, fr_incoming,
+                        entity_labels_map, entity_types_map,
+                        absorbed_lines=absorbed_lines,
+                    )
+                else:
+                    context = all_contexts.get(entity_uri, ([], []))
+                    doc_text, entity_label, entity_types, raw_triples = self._create_document_from_prefetched(
+                        entity_uri, literals, types, context, type_labels
+                    )
+                    all_triples.extend(raw_triples)
+
+                self.save_entity_document(entity_uri, doc_text, entity_label)
                 success_count += 1
-
-                # Collect triples for edges file
-                for triple in raw_triples:
-                    all_triples.append(triple)
 
             except Exception as e:
                 logger.error(f"Error processing entity {entity_uri}: {str(e)}")
@@ -734,7 +875,16 @@ class UniversalRagSystem:
 
         logger.info(f"Phase 2 complete in {phase2_time:.2f}s")
         logger.info(f"Total batch generation time: {total_time:.2f}s")
-        logger.info(f"Throughput: {len(entities) / total_time:.1f} entities/second")
+        logger.info(f"Throughput: {len(doc_entities) / total_time:.1f} entities/second")
+
+        # Filter satellite triples from edges before saving
+        if satellite_uris and all_triples:
+            pre_filter = len(all_triples)
+            all_triples = [
+                t for t in all_triples
+                if t["subject"] not in satellite_uris and t["object"] not in satellite_uris
+            ]
+            logger.info(f"Filtered {pre_filter - len(all_triples)} satellite triples from edges")
 
         # Save edges to Parquet file
         if all_triples:
@@ -2371,6 +2521,249 @@ class UniversalRagSystem:
 
     # ==================== End Batch SPARQL Query Methods ====================
 
+    # ==================== FR-based Document Generation ====================
+
+    def _build_fr_graph_for_chunk(
+        self,
+        chunk_uris: List[str],
+        chunk_types: Dict[str, set],
+        chunk_literals: Dict[str, Dict[str, List[str]]],
+    ) -> Tuple[Dict, Dict, Dict, Dict, List[Dict]]:
+        """Build the outgoing/incoming/entity_labels indexes that FR traversal needs.
+
+        Uses SPARQL batch queries. Fetches 2 hops: direct edges from chunk entities
+        plus edges from intermediate URIs reached at step 1 (events, types, etc.).
+
+        Args:
+            chunk_uris: Entity URIs in this chunk
+            chunk_types: Pre-fetched entity types (uri -> set of type URIs)
+            chunk_literals: Pre-fetched literals (for extracting labels)
+
+        Returns:
+            (fr_outgoing, fr_incoming, entity_labels, entity_types_map, raw_triples)
+            where fr_outgoing/fr_incoming use 2-tuple format (pred, target) per FR spec.
+        """
+        from collections import defaultdict
+
+        chunk_set = set(chunk_uris)
+
+        # Step 1: Batch query outgoing and incoming for chunk entities
+        raw_outgoing = self._batch_query_outgoing(chunk_uris)
+        raw_incoming = self._batch_query_incoming(chunk_uris)
+
+        # Build FR-format indexes (2-tuple: pred, target) and collect labels
+        fr_outgoing = defaultdict(list)  # uri -> [(pred, obj)]
+        fr_incoming = defaultdict(list)  # uri -> [(pred, subj)]
+        entity_labels = {}
+        raw_triples = []
+
+        # Extract labels from chunk_literals
+        for uri in chunk_uris:
+            literals = chunk_literals.get(uri, {})
+            label = uri.split('/')[-1]
+            for label_prop in ['label', 'prefLabel', 'name', 'title']:
+                if label_prop in literals and literals[label_prop]:
+                    label = literals[label_prop][0]
+                    break
+            entity_labels[uri] = label
+
+        # Process outgoing: raw format is (pred, obj, obj_label)
+        intermediate_uris = set()
+        for uri, rels in raw_outgoing.items():
+            for pred, obj, obj_label in rels:
+                if self.is_schema_predicate(pred):
+                    continue
+                fr_outgoing[uri].append((pred, obj))
+                if obj_label:
+                    entity_labels[obj] = obj_label
+                elif obj not in entity_labels:
+                    entity_labels[obj] = obj.split('/')[-1].split('#')[-1]
+                # Collect intermediates not in our chunk (events, places reached at step 1)
+                if obj not in chunk_set:
+                    intermediate_uris.add(obj)
+                # Collect raw triple for edges.parquet
+                pred_label = ""
+                if UniversalRagSystem._property_labels:
+                    simple_pred = pred.split('/')[-1].split('#')[-1]
+                    pred_label = (
+                        UniversalRagSystem._property_labels.get(pred) or
+                        UniversalRagSystem._property_labels.get(simple_pred) or ""
+                    )
+                raw_triples.append({
+                    "subject": uri,
+                    "subject_label": entity_labels.get(uri, ""),
+                    "predicate": pred,
+                    "predicate_label": pred_label,
+                    "object": obj,
+                    "object_label": entity_labels.get(obj, ""),
+                })
+
+        # Process incoming: raw format is (subj, pred, subj_label)
+        for uri, rels in raw_incoming.items():
+            for subj, pred, subj_label in rels:
+                if self.is_schema_predicate(pred):
+                    continue
+                fr_incoming[uri].append((pred, subj))
+                if subj_label:
+                    entity_labels[subj] = subj_label
+                elif subj not in entity_labels:
+                    entity_labels[subj] = subj.split('/')[-1].split('#')[-1]
+                if subj not in chunk_set:
+                    intermediate_uris.add(subj)
+                # Collect raw triple for edges.parquet
+                pred_label = ""
+                if UniversalRagSystem._property_labels:
+                    simple_pred = pred.split('/')[-1].split('#')[-1]
+                    pred_label = (
+                        UniversalRagSystem._property_labels.get(pred) or
+                        UniversalRagSystem._property_labels.get(simple_pred) or ""
+                    )
+                raw_triples.append({
+                    "subject": subj,
+                    "subject_label": entity_labels.get(subj, ""),
+                    "predicate": pred,
+                    "predicate_label": pred_label,
+                    "object": uri,
+                    "object_label": entity_labels.get(uri, ""),
+                })
+
+        # Step 2: Fetch edges for intermediate URIs (2-hop coverage for FR paths)
+        if intermediate_uris:
+            intermediate_list = list(intermediate_uris)
+            logger.info(f"    FR: fetching edges for {len(intermediate_list)} intermediate URIs...")
+
+            inter_outgoing = self._batch_query_outgoing(intermediate_list)
+            inter_incoming = self._batch_query_incoming(intermediate_list)
+
+            for uri, rels in inter_outgoing.items():
+                for pred, obj, obj_label in rels:
+                    if self.is_schema_predicate(pred):
+                        continue
+                    fr_outgoing[uri].append((pred, obj))
+                    if obj_label:
+                        entity_labels[obj] = obj_label
+                    elif obj not in entity_labels:
+                        entity_labels[obj] = obj.split('/')[-1].split('#')[-1]
+
+            for uri, rels in inter_incoming.items():
+                for subj, pred, subj_label in rels:
+                    if self.is_schema_predicate(pred):
+                        continue
+                    fr_incoming[uri].append((pred, subj))
+                    if subj_label:
+                        entity_labels[subj] = subj_label
+                    elif subj not in entity_labels:
+                        entity_labels[subj] = subj.split('/')[-1].split('#')[-1]
+
+            # Fetch types for intermediates (needed for FR range-FC filtering)
+            inter_types = self._batch_fetch_types(intermediate_list)
+            chunk_types.update(inter_types)
+
+        # entity_types_map = chunk_types (already updated with intermediates)
+        entity_types_map = chunk_types
+
+        logger.info(f"    FR graph: {len(fr_outgoing)} outgoing, {len(fr_incoming)} incoming, "
+                    f"{len(entity_labels)} labels, {len(raw_triples)} raw triples")
+
+        return dict(fr_outgoing), dict(fr_incoming), entity_labels, entity_types_map, raw_triples
+
+    def _create_fr_document_from_prefetched(
+        self,
+        entity_uri: str,
+        entity_label: str,
+        raw_types: set,
+        entity_type_labels: List[str],
+        literals: Dict[str, List[str]],
+        fr_outgoing: Dict,
+        fr_incoming: Dict,
+        entity_labels: Dict[str, str],
+        entity_types_map: Dict[str, set],
+        absorbed_lines: List[str] = None,
+    ) -> Tuple[str, str, List[str]]:
+        """Create FR-organized document from pre-fetched data.
+
+        Same pattern as bulk_generate_documents.py:_create_fr_document.
+
+        Args:
+            entity_uri: Entity URI
+            entity_label: Entity label
+            raw_types: Set of rdf:type URIs
+            entity_type_labels: Human-readable type label strings
+            literals: prop_name -> [values] dict
+            fr_outgoing: Full graph outgoing index (uri -> [(pred, obj)])
+            fr_incoming: Full graph incoming index (uri -> [(pred, subj)])
+            entity_labels: Full graph label index
+            entity_types_map: Full graph entity types (uri -> set of type URIs)
+            absorbed_lines: Lines from absorbed satellite entities
+
+        Returns:
+            (text, label, type_labels)
+        """
+        types_display = [t for t in entity_type_labels if not self.is_technical_class_name(t)]
+
+        # Minimal doc for vocabulary entities
+        if self.fr_traversal.is_minimal_doc_entity(raw_types):
+            text = self.fr_traversal.format_minimal_document(
+                entity_uri, entity_label, types_display, literals
+            )
+            return text, entity_label, entity_type_labels
+
+        # Full FR traversal
+        fc = self.fr_traversal.get_fc(raw_types)
+
+        fr_results = self.fr_traversal.match_fr_paths(
+            entity_uri=entity_uri,
+            entity_types=raw_types,
+            outgoing=fr_outgoing,
+            incoming=fr_incoming,
+            entity_labels=entity_labels,
+            entity_types_map=entity_types_map,
+        )
+
+        # Collect direct non-FR predicates (VIR extensions etc.)
+        direct_preds = self.fr_traversal.collect_direct_predicates(
+            entity_uri=entity_uri,
+            outgoing=fr_outgoing,
+            incoming=fr_incoming,
+            entity_labels=entity_labels,
+            entity_types=raw_types,
+            schema_filter=self.is_schema_predicate,
+        )
+
+        # Build target enrichments (type tags + attributes for FR targets)
+        all_target_uris = set()
+        for fr in fr_results:
+            for uri, _lbl in fr["targets"]:
+                all_target_uris.add(uri)
+        for dp in (direct_preds or []):
+            for uri, _lbl in dp["targets"]:
+                all_target_uris.add(uri)
+
+        from fr_traversal import build_target_enrichments
+        target_enrichments = build_target_enrichments(
+            target_uris=all_target_uris,
+            outgoing=fr_outgoing,
+            entity_labels=entity_labels,
+            entity_types_map=entity_types_map,
+            class_labels=UniversalRagSystem._class_labels,
+        )
+
+        text = self.fr_traversal.format_fr_document(
+            entity_uri=entity_uri,
+            label=entity_label,
+            types_display=types_display,
+            literals=literals,
+            fr_results=fr_results,
+            direct_predicates=direct_preds,
+            fc=fc,
+            absorbed_lines=absorbed_lines,
+            target_enrichments=target_enrichments,
+        )
+
+        return text, entity_label, entity_type_labels
+
+    # ==================== End FR-based Document Generation ====================
+
     def create_enhanced_document(self, entity_uri):
         """Create an enhanced document with natural language interpretation of CIDOC-CRM relationships"""
 
@@ -2775,19 +3168,40 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         logger.info(f"Entity documents will be saved to: {output_dir}/")
 
         # Create README for entity_documents directory
-        readme_content = """# Entity Documents
+        use_fr_docs = self.fr_traversal is not None
+        if use_fr_docs:
+            readme_content = """# Entity Documents (FR-based)
 
-This directory contains individual markdown files for each entity processed from the RDF data.
-
-## Purpose
-- **Transparency**: View exactly what the system extracts and processes for each entity
-- **Debugging**: Identify issues with relationship extraction or label processing
-- **Reuse**: These documents can be reused for other purposes or analyses
+This directory contains individual markdown files for each entity processed from the RDF data
+using Fundamental Relationship (FR) path traversal (Tzompanaki & Doerr, 2012).
 
 ## File Naming Convention
 Files are named: `{label}_{hash}.md`
 - `label`: Cleaned entity label (special chars removed, spaces replaced with underscores)
 - `hash`: 8-character MD5 hash of the entity URI (ensures uniqueness)
+
+## File Structure
+Each file contains:
+1. **Metadata header**: URI, label, generation timestamp
+2. **[FC] Label** header line with fundamental category (Thing, Actor, Place, Event, Concept, Time)
+3. **Literal properties**: labels, descriptions, dates (priority-ordered)
+4. **FR relationships**: grouped by Fundamental Relationship type (e.g. "was produced by", "has current location")
+5. **Direct predicates**: non-FR predicates like VIR extensions (K24_portray etc.)
+
+Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
+
+## Notes
+- Schema-level predicates (rdf:type, rdfs:subClassOf, etc.) are filtered
+- Files are regenerated on each rebuild
+"""
+        else:
+            readme_content = """# Entity Documents (BFS-based)
+
+This directory contains individual markdown files for each entity processed from the RDF data
+using BFS relationship traversal.
+
+## File Naming Convention
+Files are named: `{label}_{hash}.md`
 
 ## File Structure
 Each file contains:
@@ -2829,6 +3243,8 @@ Each file contains:
 
         # Collect all triples for edges file
         all_triples = []
+        # Accumulate satellite URIs across all chunks
+        all_satellite_uris = set()
 
         # SPARQL pre-fetch chunk size (matches existing batch query infrastructure)
         chunk_size = RetrievalConfig.BATCH_QUERY_SIZE
@@ -2842,7 +3258,7 @@ Each file contains:
 
             logger.info(f"=== Chunk {chunk_num}/{total_chunks} ({len(chunk_uris)} entities) ===")
 
-            # Phase A: Batch pre-fetch all data for this chunk (5-6 SPARQL batch queries)
+            # Phase A: Batch pre-fetch all data for this chunk
             logger.info(f"  Phase A: Batch pre-fetching data for {len(chunk_uris)} entities...")
 
             chunk_literals = self._batch_fetch_literals(chunk_uris)
@@ -2858,35 +3274,94 @@ Each file contains:
             chunk_type_labels = self._batch_fetch_type_labels(chunk_type_uris)
             logger.info(f"    Type labels: {len(chunk_type_labels)} types")
 
-            chunk_contexts = self.get_entities_context_batch(chunk_uris)
-            logger.info(f"    Contexts: {len(chunk_contexts)} entities")
+            use_fr = self.fr_traversal is not None
+            fr_outgoing = fr_incoming = entity_labels_map = entity_types_map = None
+            chunk_contexts = None
+
+            # Satellite identification variables (set per-chunk)
+            chunk_satellite_uris = set()
+            chunk_parent_satellites = {}
+
+            if use_fr:
+                # FR-based: build graph indexes for FR traversal (replaces BFS context)
+                fr_outgoing, fr_incoming, entity_labels_map, entity_types_map, chunk_raw_triples = \
+                    self._build_fr_graph_for_chunk(chunk_uris, chunk_types, chunk_literals)
+                all_triples.extend(chunk_raw_triples)
+                logger.info(f"    FR graph built: {len(chunk_raw_triples)} raw triples")
+
+                # Identify satellites for this chunk
+                chunk_satellite_uris, chunk_parent_satellites = self._identify_satellites_from_prefetched(
+                    chunk_types, fr_incoming, entity_labels_map,
+                )
+                all_satellite_uris.update(chunk_satellite_uris)
+            else:
+                # Legacy BFS context
+                chunk_contexts = self.get_entities_context_batch(chunk_uris)
+                logger.info(f"    Contexts: {len(chunk_contexts)} entities")
 
             chunk_wikidata = self._batch_fetch_wikidata_ids(chunk_uris)
             logger.info(f"    Wikidata IDs: {len(chunk_wikidata)} entities")
 
             # Phase B: Generate docs from pre-fetched data (zero SPARQL queries)
-            logger.info(f"  Phase B: Generating documents from pre-fetched data...")
+            # Filter out satellite entities
+            doc_entities = [e for e in chunk_entities if e["entity"] not in chunk_satellite_uris]
+            logger.info(f"  Phase B: Generating {len(doc_entities)} documents "
+                        f"(skipping {len(chunk_satellite_uris)} satellites)"
+                        f"{' (FR)' if use_fr else ' (BFS)'}...")
             chunk_docs = []  # List of (entity_uri, doc_text, metadata, cached_embedding)
 
-            for entity in tqdm(chunk_entities, desc=f"Chunk {chunk_num}", unit="entity"):
+            for entity in tqdm(doc_entities, desc=f"Chunk {chunk_num}", unit="entity"):
                 entity_uri = entity["entity"]
 
                 try:
-                    # Get pre-fetched data for this entity
                     literals = chunk_literals.get(entity_uri, {})
                     types = chunk_types.get(entity_uri, set())
-                    context = chunk_contexts.get(entity_uri, ([], []))
 
-                    # Create document without any SPARQL calls
-                    doc_text, entity_label, entity_types, raw_triples = self._create_document_from_prefetched(
-                        entity_uri, literals, types, context, chunk_type_labels
-                    )
+                    if use_fr:
+                        # FR-based document creation
+                        # Build type labels for this entity
+                        entity_type_labels = []
+                        for type_uri in types:
+                            type_label = None
+                            if UniversalRagSystem._class_labels:
+                                type_label = UniversalRagSystem._class_labels.get(type_uri)
+                            if not type_label:
+                                type_label = chunk_type_labels.get(type_uri)
+                            if not type_label:
+                                type_label = type_uri.split('/')[-1].split('#')[-1]
+                            entity_type_labels.append(type_label)
+
+                        # Extract entity label
+                        entity_label = entity_uri.split('/')[-1]
+                        for label_prop in ['label', 'prefLabel', 'name', 'title']:
+                            if label_prop in literals and literals[label_prop]:
+                                entity_label = literals[label_prop][0]
+                                break
+
+                        # Get absorbed satellite info
+                        sat_info = chunk_parent_satellites.get(entity_uri)
+                        absorbed_lines = None
+                        if sat_info:
+                            absorbed_lines = self.fr_traversal.format_absorbed_satellites(
+                                dict(sat_info), entity_label
+                            )
+
+                        doc_text, entity_label, entity_types = self._create_fr_document_from_prefetched(
+                            entity_uri, entity_label, types, entity_type_labels,
+                            literals, fr_outgoing, fr_incoming,
+                            entity_labels_map, entity_types_map,
+                            absorbed_lines=absorbed_lines,
+                        )
+                    else:
+                        # Legacy BFS document creation
+                        context = chunk_contexts.get(entity_uri, ([], []))
+                        doc_text, entity_label, entity_types, raw_triples = self._create_document_from_prefetched(
+                            entity_uri, literals, types, context, chunk_type_labels
+                        )
+                        all_triples.extend(raw_triples)
 
                     # Save document to disk for transparency and reuse
                     self.save_entity_document(entity_uri, doc_text, entity_label)
-
-                    # Collect triples for edges file
-                    all_triples.extend(raw_triples)
 
                     # Determine primary entity type
                     primary_type = "Unknown"
@@ -2922,7 +3397,11 @@ Each file contains:
                     continue
 
             # Phase C: Free pre-fetched data before embedding
-            del chunk_literals, chunk_types, chunk_type_uris, chunk_type_labels, chunk_contexts, chunk_wikidata
+            del chunk_literals, chunk_types, chunk_type_uris, chunk_type_labels, chunk_wikidata
+            if fr_outgoing is not None:
+                del fr_outgoing, fr_incoming, entity_labels_map, entity_types_map
+            if chunk_contexts is not None:
+                del chunk_contexts
 
             # Phase D: Embed in sub-batches
             logger.info(f"  Phase D: Embedding {len(chunk_docs)} documents...")
@@ -2946,6 +3425,15 @@ Each file contains:
 
         if cached_count > 0:
             logger.info(f"Used {cached_count} cached embeddings")
+
+        # Filter satellite triples from edges before saving
+        if all_satellite_uris and all_triples:
+            pre_filter = len(all_triples)
+            all_triples = [
+                t for t in all_triples
+                if t["subject"] not in all_satellite_uris and t["object"] not in all_satellite_uris
+            ]
+            logger.info(f"Filtered {pre_filter - len(all_triples)} satellite triples from edges")
 
         # Save triples and build edges from Parquet (avoids redundant SPARQL queries)
         if all_triples:
@@ -3168,41 +3656,16 @@ Each file contains:
     def get_cidoc_system_prompt(self):
         """Get a system prompt with CIDOC-CRM knowledge"""
 
-        return """You are a cultural heritage expert who provides clear, accessible answers about cultural heritage.
+        return """You are a cultural heritage expert who provides clear, accessible answers about artworks, churches, frescoes, and historical figures.
 
-CRITICAL - Only Use Provided Information:
-- You MUST ONLY use information explicitly provided in the retrieved context below
-- NEVER invent, guess, or hallucinate information that is not in the provided data
-- If asked about something not covered in the provided context, clearly state "Based on the available data, I don't have information about [topic]"
-- Do NOT supplement with your general knowledge - only use what is explicitly provided
-- If the retrieved data only mentions a few entities, only discuss those entities
-- Do NOT list entities that are not explicitly described in the retrieved information
-
-IMPORTANT - Natural Language Output:
-- Write in clear, natural language suitable for general audiences
-- NEVER use technical ontology identifiers (like E22_Man-Made_Object, E53_Place, IC9_Representation, D1_Digital_Object)
-- Use everyday terms: instead of "E22_Man-Made_Object" say "church", "building", "artwork", "object"
-- Instead of "E53_Place" say "place" or "location"
-- Instead of "IC9_Representation" say "depiction", "image", or "representation"
-- Focus on the actual entities and their meaningful relationships
-
-Understanding the Data:
-The data comes from a structured cultural heritage database (CIDOC-CRM) which organizes information about:
-- Physical objects (churches, artworks, buildings)
-- Places and locations
-- Visual representations (paintings, icons, frescoes)
-- People, events, and historical contexts
-- Relationships between these entities
-
-When answering questions:
-1. ONLY use information from the provided context - never add external knowledge
-2. If the context doesn't contain enough information to fully answer, acknowledge the limitation
-3. Present information in natural, flowing language
-4. Focus on what matters to the user, not technical classifications
-5. Use specific entity names (like "Panagia Phorbiottisa") rather than generic terms
-6. If information is missing or unclear, say so plainly - do NOT make things up
-
-Remember: Your audience wants accurate information. It's better to say "I don't have information about that" than to provide fabricated details.
+Rules:
+- ONLY use information from the retrieved context provided below. Never invent or guess.
+- Write in clear, natural language. Translate ontological vocabulary into everyday words: "denotes" → "depicts", "is composed of" → "consists of", "bears feature" → "has". Never use ontology codes (E22_, IC9_, D1_, P62_, etc.) or raw Wikidata codes.
+- Use specific entity names (e.g. "Panagia Phorbiottisa") not generic terms.
+- When describing a panel or artwork, explain WHO is depicted in it and WHAT ROLE each figure has (saint, donor, founder, etc.). If a panel depicts multiple figures, explicitly state that they appear together and describe each one.
+- When asked about "other" entities of a type, list ALL matching entities from the context, even if they are from different locations. Include entities even if you cannot determine their exact location — state what you know and note what is unclear. Do not say "no other" unless you have truly found none in the context.
+- Answer directly and concisely. Do not add disclaimers about data limitations unless you truly have no relevant information at all.
+- If conversation history is provided, use it to understand what the user is referring to (e.g. "the church" = the church discussed earlier).
 """
 
     def get_entity_literals(self, entity_uri):
@@ -3669,10 +4132,23 @@ Remember: Your audience wants accurate information. It's better to say "I don't 
         # Normalize initial scores to [0, 1] using min-max normalization
         normalized_scores = self.normalize_scores(initial_scores)
 
+        # Pre-compute cosine similarity matrix for MMR diversity penalty
+        diversity_penalty_weight = RetrievalConfig.DIVERSITY_PENALTY
+        embeddings = []
+        for c in candidates:
+            if c.embedding is not None:
+                embeddings.append(c.embedding)
+            else:
+                embeddings.append(np.zeros(1))
+        embeddings = np.array(embeddings, dtype=np.float32)
+        norms = np.linalg.norm(embeddings, axis=1, keepdims=True) + 1e-10
+        emb_normalized = embeddings / norms
+        sim_matrix = emb_normalized @ emb_normalized.T
+
         logger.info(f"\n{'='*80}")
         logger.info(f"COHERENT SUBGRAPH EXTRACTION")
         logger.info(f"{'='*80}")
-        logger.info(f"Parameters: k={k}, alpha={alpha} (relevance weight)")
+        logger.info(f"Parameters: k={k}, alpha={alpha} (relevance weight), diversity_penalty={diversity_penalty_weight}")
         logger.info(f"Candidates: {n} documents")
         logger.info(f"\n--- Initial Relevance Scores (normalized to [0,1]) ---")
         logger.info(f"  Min: {np.min(normalized_scores):.3f}")
@@ -3746,23 +4222,27 @@ Remember: Your audience wants accurate information. It's better to say "I don't 
             for i, idx in enumerate(candidate_indices):
                 relevance = normalized_scores[idx]
                 connectivity_norm = normalized_connectivity[i]
-                combined_score = alpha * relevance + (1 - alpha) * connectivity_norm
-                all_scores.append((idx, combined_score, relevance, connectivity_norm))
+                # MMR diversity penalty: penalize similarity to most-similar already-selected doc
+                max_sim = max(sim_matrix[idx, sel_idx] for sel_idx in selected_indices)
+                div_penalty = diversity_penalty_weight * max_sim
+                combined_score = alpha * relevance + (1 - alpha) * connectivity_norm - div_penalty
+                all_scores.append((idx, combined_score, relevance, connectivity_norm, div_penalty))
 
             # Sort by combined score
             all_scores.sort(key=lambda x: x[1], reverse=True)
 
             # Show top 3 candidates for this iteration
             logger.info(f"\n--- Top 3 Candidates for Round {iteration+1} ---")
-            for rank, (idx, combined, rel, conn) in enumerate(all_scores[:3], 1):
+            for rank, (idx, combined, rel, conn, div_pen) in enumerate(all_scores[:3], 1):
                 label = candidates[idx].metadata.get('label', 'Unknown')
                 logger.info(f"  {rank}. {label}")
                 logger.info(f"      Relevance: {rel:.3f} (weight={alpha:.1f}) → contrib={alpha*rel:.3f}")
                 logger.info(f"      Connectivity: {conn:.3f} (weight={1-alpha:.1f}) → contrib={(1-alpha)*conn:.3f}")
+                logger.info(f"      Diversity penalty: -{div_pen:.3f}")
                 logger.info(f"      Combined: {combined:.3f}")
 
             # Select the best
-            best_idx, best_score, best_rel, best_connectivity_norm = all_scores[0]
+            best_idx, best_score, best_rel, best_connectivity_norm, best_div_penalty = all_scores[0]
 
             if best_idx == -1:
                 logger.warning(f"Could not find more connected documents after {len(selected_indices)} selections")
@@ -3771,7 +4251,7 @@ Remember: Your audience wants accurate information. It's better to say "I don't 
             selected_indices.append(best_idx)
             selected_mask[best_idx] = True
             logger.info(f"\n✓ SELECTED: {candidates[best_idx].metadata.get('label', 'Unknown')}")
-            logger.info(f"  Final score: {best_score:.3f} = {alpha:.1f}×{best_rel:.3f} + {1-alpha:.1f}×{best_connectivity_norm:.3f}")
+            logger.info(f"  Final score: {best_score:.3f} = {alpha:.1f}×{best_rel:.3f} + {1-alpha:.1f}×{best_connectivity_norm:.3f} - {best_div_penalty:.3f}")
 
         # Log final summary
         logger.info(f"\n{'='*80}")
@@ -3835,8 +4315,358 @@ Remember: Your audience wants accurate information. It's better to say "I don't 
         logger.info(f"Retrieved and selected {len(selected_docs)} coherent documents")
         return selected_docs
 
-    def answer_question(self, question, include_wikidata=True):
-        """Answer a question using the universal RAG system with CIDOC-CRM knowledge and optional Wikidata context"""
+    def _get_entity_label_from_triples(self, uri):
+        """Find a human-readable label for a URI from the triples index."""
+        triples = getattr(self, '_triples_index', {}).get(uri, [])
+        for t in triples:
+            if t.get('subject') == uri and t.get('subject_label'):
+                return t['subject_label']
+            if t.get('object') == uri and t.get('object_label'):
+                return t['object_label']
+        return uri.split('/')[-1]
+
+    def _build_triples_enrichment(self, retrieved_docs):
+        """Build structured triple enrichment text from _triples_index for retrieved documents.
+
+        For each retrieved document, pulls its raw triples and formats them as
+        human-readable relationship lines. Prioritizes inter-document triples and
+        key CIDOC-CRM predicates (temporal, creator, location, exhibition, depiction).
+        Does 1-hop enrichment for time-span entities to inline date values.
+
+        Args:
+            retrieved_docs: List of GraphDocument objects from retrieval.
+
+        Returns:
+            Formatted string with structured relationships, or empty string.
+        """
+        triples_index = getattr(self, '_triples_index', None)
+        if not triples_index:
+            return ""
+
+        retrieved_uris = {doc.id for doc in retrieved_docs}
+
+        # Predicates to skip: labels and technical metadata already in doc.text
+        SKIP_PREDICATES = {
+            "http://www.w3.org/2000/01/rdf-schema#label",
+            "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
+            "http://www.w3.org/2000/01/rdf-schema#subClassOf",
+            "http://www.w3.org/2000/01/rdf-schema#subPropertyOf",
+            "http://www.w3.org/2002/07/owl#equivalentClass",
+            "http://www.w3.org/2002/07/owl#inverseOf",
+            "http://www.w3.org/2000/01/rdf-schema#comment",
+            "http://www.w3.org/2000/01/rdf-schema#domain",
+            "http://www.w3.org/2000/01/rdf-schema#range",
+        }
+
+        # Predicate label fragments to skip (case-insensitive check)
+        SKIP_LABEL_FRAGMENTS = {"label", "type", "same as", "see also"}
+
+        # High-priority predicate URI fragments (partial match on local name)
+        HIGH_PRIORITY_FRAGMENTS = {
+            "P4_has_time-span", "P82a_begin_of_the_begin", "P82b_end_of_the_end",
+            "P14_carried_out_by", "P14i_performed", "P108_has_produced",
+            "P108i_was_produced_by", "P7_took_place_at", "P55_has_current_location",
+            "P53_has_former_or_current_location", "P89_falls_within",
+            "P16_used_specific_object", "P16i_was_used_for",
+            "P12_occurred_in_the_presence_of", "P12i_was_present_at",
+            "P62_depicts", "P62i_is_depicted_by",
+            "P46_is_composed_of", "P46i_forms_part_of",
+            "P56_bears_feature", "P56i_is_found_on",
+            "K24_portray", "K24i_portrayed_by",
+            "P9_consists_of", "P9i_forms_part_of",
+        }
+
+        # Time-span predicates for 1-hop enrichment
+        TIME_SPAN_PREDICATES = {
+            "http://www.cidoc-crm.org/cidoc-crm/P4_has_time-span",
+            "http://www.cidoc-crm.org/cidoc-crm/P4i_is_time-span_of",
+        }
+        DATE_PREDICATES = {
+            "P82a_begin_of_the_begin",
+            "P82b_end_of_the_end",
+            "P82_at_some_time_within",
+        }
+
+        MAX_TRIPLES_PER_ENTITY = 15
+        MAX_TOTAL_CHARS = 5000
+
+        def _is_skip_label(pred_label):
+            """Check if predicate label is too generic to be useful."""
+            if not pred_label:
+                return True
+            lower = pred_label.strip().lower()
+            if lower in SKIP_LABEL_FRAGMENTS:
+                return True
+            return False
+
+        def _is_blank_or_hash(value):
+            """Check if a value looks like a blank node or non-informative hash URI."""
+            if not value:
+                return True
+            if value.startswith("_:"):
+                return True
+            # Hash URIs with no meaningful label
+            if "#" in value and "/" not in value.split("#")[-1]:
+                return True
+            return False
+
+        def _predicate_priority(triple, entity_uri):
+            """Return priority score: 0 = highest (inter-doc), 1 = high, 2 = medium, 3 = low."""
+            other_uri = triple["object"] if triple["subject"] == entity_uri else triple["subject"]
+            # Highest: connects to another retrieved document
+            if other_uri in retrieved_uris:
+                return 0
+
+            pred = triple.get("predicate", "")
+            local_name = pred.split("/")[-1].split("#")[-1]
+
+            # High: key CIDOC-CRM predicates
+            for frag in HIGH_PRIORITY_FRAGMENTS:
+                if frag in local_name:
+                    return 1
+
+            # Medium: other named predicates
+            if triple.get("predicate_label"):
+                return 2
+
+            return 3
+
+        def _resolve_time_span(time_span_uri):
+            """Follow a time-span URI to extract begin/end date values."""
+            ts_triples = triples_index.get(time_span_uri, [])
+            dates = {}
+            for t in ts_triples:
+                if t["subject"] != time_span_uri:
+                    continue
+                pred_local = t["predicate"].split("/")[-1].split("#")[-1]
+                for dp in DATE_PREDICATES:
+                    if dp in pred_local:
+                        obj_val = t.get("object_label") or t.get("object", "")
+                        if obj_val and not obj_val.startswith("http"):
+                            # Use a short key for output
+                            if "begin" in dp:
+                                dates["began"] = obj_val
+                            elif "end" in dp:
+                                dates["ended"] = obj_val
+                            else:
+                                dates["date"] = obj_val
+            return dates
+
+        # Build per-entity enrichment
+        entity_sections = []
+        total_chars = 0
+
+        for doc in retrieved_docs:
+            entity_uri = doc.id
+            entity_label = doc.metadata.get("label", entity_uri.split("/")[-1])
+            raw_triples = triples_index.get(entity_uri, [])
+            if not raw_triples:
+                continue
+
+            # Filter and sort triples
+            scored_triples = []
+            for t in raw_triples:
+                pred = t.get("predicate", "")
+                pred_label = t.get("predicate_label", "")
+
+                # Skip blacklisted predicates
+                if pred in SKIP_PREDICATES:
+                    continue
+                if _is_skip_label(pred_label):
+                    continue
+
+                # Determine the "other" side of the triple relative to this entity
+                if t["subject"] == entity_uri:
+                    other_label = t.get("object_label", "")
+                    other_uri = t.get("object", "")
+                    direction = "outgoing"
+                else:
+                    other_label = t.get("subject_label", "")
+                    other_uri = t.get("subject", "")
+                    direction = "incoming"
+
+                # Skip blank nodes / empty labels
+                if _is_blank_or_hash(other_label) and _is_blank_or_hash(other_uri):
+                    continue
+
+                priority = _predicate_priority(t, entity_uri)
+                scored_triples.append((priority, t, other_label, other_uri, direction))
+
+            # Sort by priority (lower = better)
+            scored_triples.sort(key=lambda x: x[0])
+
+            # Format lines
+            lines = []
+            seen_lines = set()
+            for priority, t, other_label, other_uri, direction in scored_triples[:MAX_TRIPLES_PER_ENTITY * 2]:
+                if len(lines) >= MAX_TRIPLES_PER_ENTITY:
+                    break
+
+                pred_label = t.get("predicate_label", "")
+                pred = t.get("predicate", "")
+
+                # Use label if available, otherwise extract local name from URI
+                display_label = other_label
+                if not display_label or display_label.startswith("http"):
+                    # Try to extract a readable local name
+                    display_label = other_uri.split("/")[-1].split("#")[-1]
+                    if not display_label or display_label == other_uri:
+                        continue
+
+                # Format the line depending on direction
+                if direction == "outgoing":
+                    line = f"  - {pred_label}: {display_label}"
+                else:
+                    # Incoming: show who/what points to this entity
+                    line = f"  - [{display_label}] {pred_label}"
+
+                # Deduplicate
+                if line in seen_lines:
+                    continue
+                seen_lines.add(line)
+                lines.append(line)
+
+                # 1-hop enrichment for time-span targets
+                if direction == "outgoing" and t.get("predicate") in TIME_SPAN_PREDICATES:
+                    dates = _resolve_time_span(other_uri)
+                    for date_key, date_val in dates.items():
+                        date_line = f"  - {date_key}: {date_val}"
+                        if date_line not in seen_lines:
+                            seen_lines.add(date_line)
+                            lines.append(date_line)
+
+            if not lines:
+                continue
+
+            section = f"{entity_label}:\n" + "\n".join(lines)
+
+            # Check total character budget
+            if total_chars + len(section) + 2 > MAX_TOTAL_CHARS:
+                # Try to fit a truncated version
+                remaining = MAX_TOTAL_CHARS - total_chars - 2
+                if remaining > 100:  # Only add if we can fit something meaningful
+                    section = section[:remaining] + "..."
+                    entity_sections.append(section)
+                break
+
+            entity_sections.append(section)
+            total_chars += len(section) + 2  # +2 for the \n\n separator
+
+        if not entity_sections:
+            return ""
+
+        result = "\n\n".join(entity_sections)
+        logger.info(f"Triples enrichment: {len(entity_sections)} entities, "
+                    f"{sum(s.count(chr(10)) + 1 for s in entity_sections)} lines, "
+                    f"{len(result)} chars")
+        return result
+
+    def _build_graph_context(self, selected_docs):
+        """Walk graph edges from selected docs and build structured context about neighboring entities.
+
+        Returns a text block describing relationships to entities NOT in the selected set,
+        giving the LLM visibility into the broader knowledge graph without including full documents.
+        """
+        selected_uris = {doc.id for doc in selected_docs}
+        selected_labels = {doc.id: doc.metadata.get('label', doc.id.split('/')[-1]) for doc in selected_docs}
+
+        # Collect neighbor info: {neighbor_uri: {label, type, connections, max_weight}}
+        neighbor_info = {}
+
+        for doc in selected_docs:
+            doc_label = selected_labels[doc.id]
+            graph_doc = self.document_store.docs.get(doc.id)
+            if not graph_doc:
+                continue
+
+            sorted_neighbors = sorted(graph_doc.neighbors, key=lambda n: n.get('weight', 0), reverse=True)
+
+            for neighbor in sorted_neighbors:
+                nb_id = neighbor.get('doc_id', '')
+                if nb_id in selected_uris or not nb_id:
+                    continue
+
+                edge_type = neighbor.get('edge_type', 'related_to')
+                weight = neighbor.get('weight', 0.5)
+
+                nb_doc = self.document_store.docs.get(nb_id)
+                if nb_doc:
+                    nb_label = nb_doc.metadata.get('label', nb_id.split('/')[-1])
+                    nb_type = nb_doc.metadata.get('type', '')
+                else:
+                    nb_label = self._get_entity_label_from_triples(nb_id)
+                    nb_type = ''
+
+                if nb_id not in neighbor_info:
+                    neighbor_info[nb_id] = {
+                        'label': nb_label,
+                        'type': nb_type,
+                        'connections': [],
+                        'max_weight': 0
+                    }
+                neighbor_info[nb_id]['connections'].append((doc_label, edge_type))
+                neighbor_info[nb_id]['max_weight'] = max(neighbor_info[nb_id]['max_weight'], weight)
+
+        if not neighbor_info:
+            return ""
+
+        # Sort: most connections first (bridge entities), then by max weight
+        sorted_neighbors = sorted(
+            neighbor_info.items(),
+            key=lambda x: (len(x[1]['connections']), x[1]['max_weight']),
+            reverse=True
+        )
+
+        lines = []
+        max_neighbors = RetrievalConfig.GRAPH_CONTEXT_MAX_NEIGHBORS
+        max_lines = RetrievalConfig.GRAPH_CONTEXT_MAX_LINES
+
+        for nb_uri, info in sorted_neighbors:
+            if len(lines) >= max_lines:
+                break
+
+            type_suffix = f" [{info['type']}]" if info['type'] else ""
+
+            # Show how this neighbor connects to selected entities
+            for from_label, edge_type in info['connections'][:max_neighbors]:
+                lines.append(f"- {from_label} -> {edge_type} -> {info['label']}{type_suffix}")
+                if len(lines) >= max_lines:
+                    break
+
+            if len(lines) >= max_lines:
+                break
+
+            # 2nd hop: show this neighbor's own key relationships (from graph)
+            nb_graph_doc = self.document_store.docs.get(nb_uri)
+            if nb_graph_doc:
+                hop2_neighbors = sorted(nb_graph_doc.neighbors, key=lambda n: n.get('weight', 0), reverse=True)
+                for hop2 in hop2_neighbors[:3]:
+                    hop2_id = hop2.get('doc_id', '')
+                    if not hop2_id or hop2_id == nb_uri:
+                        continue
+                    hop2_doc = self.document_store.docs.get(hop2_id)
+                    if hop2_doc:
+                        hop2_label = hop2_doc.metadata.get('label', '')
+                        if hop2_label:
+                            lines.append(f"  -> {info['label']} -> {hop2['edge_type']} -> {hop2_label}")
+                            if len(lines) >= max_lines:
+                                break
+
+        if not lines:
+            return ""
+
+        logger.info(f"Graph context: {len(lines)} lines from {len(neighbor_info)} neighbor entities")
+        return "\n".join(lines[:max_lines])
+
+    def answer_question(self, question, include_wikidata=True, chat_history=None):
+        """Answer a question using the universal RAG system with CIDOC-CRM knowledge and optional Wikidata context.
+
+        Args:
+            question: The user's question
+            include_wikidata: Whether to fetch Wikidata context
+            chat_history: Optional list of {"role": "user"|"assistant", "content": str} dicts
+                         for conversation context (most recent last)
+        """
         # Validate input
         if not question or not question.strip():
             return {
@@ -3846,8 +4676,62 @@ Remember: Your audience wants accurate information. It's better to say "I don't 
 
         logger.info(f"Answering question directly: '{question}'")
 
-        # Retrieve relevant documents
-        retrieved_docs = self.retrieve(question, k=RetrievalConfig.DEFAULT_RETRIEVAL_K)
+        k = RetrievalConfig.DEFAULT_RETRIEVAL_K
+
+        if chat_history:
+            # Dual retrieval: run contextualized query AND raw question separately,
+            # then merge.  The contextualized query uses only the immediately
+            # previous user message (not the current one, which is already the raw
+            # query).  This avoids two bugs:
+            #   1. Current question was duplicated (already in chat_history + appended)
+            #   2. Multiple previous topics polluted the embedding
+            prev_user_msgs = [
+                m["content"] for m in chat_history[:-1] if m["role"] == "user"
+            ]
+            if prev_user_msgs:
+                contextualized_query = f"{prev_user_msgs[-1]} {question}"
+            else:
+                contextualized_query = question
+            logger.info(f"Dual retrieval — contextualized: '{contextualized_query[:200]}'")
+            logger.info(f"Dual retrieval — raw: '{question}'")
+
+            ctx_docs = self.retrieve(contextualized_query, k=k)
+
+            # Detect vague follow-ups: short questions dominated by pronouns/stopwords
+            # For these, the raw FAISS query retrieves irrelevant results, so skip it
+            q_words = set(re.findall(r'\b[a-z]+\b', question.lower()))
+            stopwords = {'it', 'they', 'them', 'this', 'that', 'these', 'those',
+                         'the', 'a', 'an', 'is', 'are', 'was', 'were', 'has', 'have',
+                         'had', 'do', 'did', 'does', 'when', 'where', 'what', 'how',
+                         'and', 'or', 'with', 'which', 'other', 'more', 'its', 'of',
+                         'in', 'to', 'for', 'about', 'me', 'tell', 'happened', 'took',
+                         'place', 'there', 'any'}
+            content_words = q_words - stopwords
+            is_vague = len(content_words) == 0 and len(question.split()) <= 10
+            if is_vague:
+                logger.info(f"Vague follow-up detected, skipping raw retrieval: '{question}'")
+
+            if is_vague:
+                retrieved_docs = ctx_docs[:k]
+            else:
+                raw_docs = self.retrieve(question, k=k)
+
+                # Interleaved merge: alternate ctx and raw results so raw query
+                # gets fair representation instead of being pushed to the tail
+                seen_uris = set()
+                retrieved_docs = []
+                for i in range(max(len(ctx_docs), len(raw_docs))):
+                    if i < len(ctx_docs) and ctx_docs[i].id not in seen_uris:
+                        seen_uris.add(ctx_docs[i].id)
+                        retrieved_docs.append(ctx_docs[i])
+                    if i < len(raw_docs) and raw_docs[i].id not in seen_uris:
+                        seen_uris.add(raw_docs[i].id)
+                        retrieved_docs.append(raw_docs[i])
+                retrieved_docs = retrieved_docs[:k]
+                logger.info(f"Dual retrieval merged: {len(retrieved_docs)} unique docs "
+                            f"(ctx={len(ctx_docs)}, raw={len(raw_docs)})")
+        else:
+            retrieved_docs = self.retrieve(question, k=k)
 
         if not retrieved_docs:
             return {
@@ -3875,7 +4759,9 @@ Remember: Your audience wants accurate information. It's better to say "I don't 
             doc_text = doc.text
             if len(doc_text) > MAX_DOC_CHARS:
                 doc_text = doc_text[:MAX_DOC_CHARS] + "...[truncated]"
-            context += doc_text + "\n\n"
+            context += doc_text + "\n"
+
+            context += "\n"
 
             # Get Wikidata info if available and requested
             if include_wikidata:
@@ -3886,6 +4772,18 @@ Remember: Your audience wants accurate information. It's better to say "I don't 
                         "entity_label": entity_label,
                         "wikidata_id": wikidata_id
                     })
+
+        # Add graph context: relationships to entities beyond the selected documents
+        graph_context = self._build_graph_context(retrieved_docs)
+        if graph_context:
+            context += "\n## Graph Context (relationships beyond retrieved documents)\n"
+            context += graph_context + "\n"
+
+        # Add structured triples enrichment from edges.parquet
+        triples_enrichment = self._build_triples_enrichment(retrieved_docs)
+        if triples_enrichment:
+            context += "\n## Structured Relationships\n\n"
+            context += triples_enrichment + "\n"
 
         # If requested, fetch Wikidata information for top 2 most relevant entities
         if include_wikidata and entities_with_wikidata:
@@ -3921,9 +4819,17 @@ Remember: Your audience wants accurate information. It's better to say "I don't 
             system_prompt += "\n\nI have also provided Wikidata information for some entities. When appropriate, incorporate this Wikidata information to enhance your answer with additional context, especially for factual details not present in the RDF data."
 
         # Create enhanced prompt
-        prompt = f"""Answer the following question based on the retrieved information about cultural heritage entities:
+        prompt = ""
 
-Retrieved information:
+        # Include conversation history for follow-up context
+        if chat_history:
+            prompt += "Conversation so far:\n"
+            for msg in chat_history[-6:]:  # Last 3 exchanges
+                role = "User" if msg["role"] == "user" else "Assistant"
+                prompt += f"{role}: {msg['content']}\n"
+            prompt += "\n"
+
+        prompt += f"""Retrieved information:
 {context}
 """
 
@@ -3934,17 +4840,7 @@ Retrieved information:
         prompt += f"""
 Question: {question}
 
-IMPORTANT INSTRUCTIONS:
-- ONLY use information from the "Retrieved information" section above to answer the question
-- Do NOT add any information from your general knowledge - only use what is explicitly provided above
-- If the retrieved information doesn't contain enough details to answer fully, say so clearly
-- Only mention entities that are explicitly described in the retrieved information above
-
-Provide a clear answer in natural language:
-- Use the entities' actual names (like "Panagia Phorbiottisa", "Nikitari") not document numbers
-- Write in accessible language - avoid technical ontology codes (E22_, IC9_, D1_, etc.)
-- Focus on meaningful information that answers the question
-- If the data is limited, acknowledge what you can and cannot answer based on the available information
+Answer directly using only the retrieved information above. Use entity names, not codes.
 """
 
         # Generate answer using the provider
@@ -3983,20 +4879,20 @@ Provide a clear answer in natural language:
 
             sources.append(source_entry)
 
-        # Add Wikidata sources with image info
-        # Skip image fetch for entities that have local images
+        # Enrich existing graph sources with Wikidata info (images, IDs)
+        # Build URI→source index for fast lookup
+        source_by_uri = {s["entity_uri"]: s for s in sources}
+
         for entity_info in entities_with_wikidata:
             entity_uri = entity_info["entity_uri"]
-            has_local_images = entity_uri in entities_with_local_images
+            existing = source_by_uri.get(entity_uri)
+            if not existing:
+                continue
 
-            wikidata_source = {
-                "id": f"wikidata_{entity_info['wikidata_id']}",
-                "entity_uri": entity_uri,
-                "entity_label": entity_info["entity_label"],
-                "type": "wikidata",
-                "wikidata_id": entity_info["wikidata_id"],
-                "wikidata_url": f"https://www.wikidata.org/wiki/{entity_info['wikidata_id']}"
-            }
+            existing["wikidata_id"] = entity_info["wikidata_id"]
+            existing["wikidata_url"] = f"https://www.wikidata.org/wiki/{entity_info['wikidata_id']}"
+
+            has_local_images = entity_uri in entities_with_local_images
 
             # Only fetch Wikidata image if no local images exist
             if has_local_images:
@@ -4009,24 +4905,20 @@ Provide a clear answer in natural language:
                     if image_value:
                         try:
                             # Handle both single image and array of images
-                            # Wikidata P18 can return multiple images as a list
                             if isinstance(image_value, list):
-                                # Use the first image from the list
                                 image_filename = image_value[0] if image_value else None
                             else:
                                 image_filename = image_value
 
                             if image_filename:
-                                # Ensure filename is a proper string for URL encoding
                                 if isinstance(image_filename, bytes):
                                     image_filename_str = image_filename.decode('utf-8')
                                 else:
                                     image_filename_str = str(image_filename)
 
-                                # URL encode the filename for safe use in URLs
                                 encoded_filename = quote(image_filename_str, safe='')
 
-                                wikidata_source["image"] = {
+                                existing["image"] = {
                                     "url": f"https://commons.wikimedia.org/wiki/File:{encoded_filename}",
                                     "thumbnail_url": f"https://commons.wikimedia.org/wiki/Special:FilePath/{encoded_filename}?width=300",
                                     "full_url": f"https://commons.wikimedia.org/wiki/Special:FilePath/{encoded_filename}",
@@ -4036,8 +4928,6 @@ Provide a clear answer in natural language:
                                 logger.info(f"Found Wikidata image for {entity_info['entity_label']}: {image_filename_str}")
                         except Exception as e:
                             logger.warning(f"Error processing image filename for {entity_info['entity_label']}: {e}")
-
-            sources.append(wikidata_source)
 
         return {
             "answer": answer,

@@ -328,8 +328,9 @@ def chat_api():
     except RuntimeError as e:
         return jsonify({"error": str(e)}), 500
 
-    # Use the RAG system to answer the question
-    result = current_rag.answer_question(question)
+    # Pass conversation history for follow-up context
+    chat_history = request.json.get('chat_history', None)
+    result = current_rag.answer_question(question, chat_history=chat_history)
     return jsonify(result)
 
 @app.route('/api/info', methods=['GET'])

@@ -6,6 +6,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Dataset management state
     let currentDatasetId = null;
+    // Conversation history for follow-up context
+    let chatHistory = [];
     const datasetSelect = document.getElementById('dataset-select');
     const datasetStatus = document.getElementById('dataset-status');
 
@@ -444,7 +446,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // Separate sources into internal and external
                 const internalSources = sources.filter(s => s.type === "graph" || s.type === "rdf_data" || s.type === "ontology_documentation");
-                const externalSources = sources.filter(s => s.type === "wikidata");
+                const externalSources = sources.filter(s => s.wikidata_id);
 
                 // Create collapsible toggle
                 const toggleDiv = document.createElement('div');
@@ -473,12 +475,19 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <i class="fas fa-code"></i> Show statements (${tripleCount})
                                 </button>` : '';
 
+                            const wikidataBtnHtml = source.wikidata_id ?
+                                `<button class="btn btn-sm btn-outline-success show-wikidata-btn ms-2"
+                                        data-entity="${source.entity_uri}"
+                                        data-wikidata-id="${source.wikidata_id}">
+                                    <i class="fas fa-info-circle"></i> Wikidata
+                                </button>` : '';
+
                             contentHtml += `<li class="source-item graph-source" data-source-id="${source.id}">
                                 <i class="fas fa-project-diagram me-1"></i>
                                 <strong>Graph:</strong> ${source.entity_label}
                                 <br/>
                                 <small class="text-muted ms-3">URI: <code>${source.entity_uri}</code></small>
-                                ${triplesBtnHtml}
+                                ${triplesBtnHtml}${wikidataBtnHtml}
                             </li>`;
                         } else if (source.type === "rdf_data") {
                             contentHtml += `<li class="source-item rdf-source">
@@ -768,11 +777,18 @@ document.addEventListener('DOMContentLoaded', function() {
         questionInput.value = '';
         sendButton.disabled = true;
 
+        // Track user message in history
+        chatHistory.push({ role: 'user', content: question });
+
         try {
-            // Build request body with dataset_id if available
+            // Build request body with dataset_id and conversation history
             const requestBody = { question };
             if (currentDatasetId) {
                 requestBody.dataset_id = currentDatasetId;
+            }
+            // Send last 6 messages (3 exchanges) for context
+            if (chatHistory.length > 1) {
+                requestBody.chat_history = chatHistory.slice(-6);
             }
 
             // Send request to server
@@ -790,6 +806,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             const data = await response.json();
+
+            // Track assistant response in history
+            chatHistory.push({ role: 'assistant', content: data.answer });
 
             // Add assistant response to chat
             addAssistantMessage(data.answer, data.sources);

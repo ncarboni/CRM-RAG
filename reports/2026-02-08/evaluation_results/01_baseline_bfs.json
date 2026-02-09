@@ -1,0 +1,446 @@
+[
+  {
+    "question_number": 1,
+    "question": "Where is Asinou located?",
+    "answer": "Asinou, also known as Panagia Phorbiottisa, is located in Cyprus. The coordinates are approximately latitude 35.0463 and longitude 32.9725.",
+    "elapsed_seconds": 3.76,
+    "num_sources": 11,
+    "sources": [
+      {
+        "entity_label": "Construction of Asinou",
+        "entity_uri": "http://map.cnrs.fr/semantics/appellation/1181919e-fb2f-4cc5-8098-6e6d5021810c/",
+        "entity_type": "Appellation",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Construction of Asinou",
+        "entity_uri": "http://map.cnrs.fr/semantics/production/1181919e-fb2f-4cc5-8098-6e6d5021810c",
+        "entity_type": "Production",
+        "raw_triples_count": 19
+      },
+      {
+        "entity_label": "Panagia Phorbiottisa",
+        "entity_uri": "http://map.cnrs.fr/semantics/physical/0062f461-2dc8-4830-b53a-c3ad0f8d65a4",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 109
+      },
+      {
+        "entity_label": "Bema",
+        "entity_uri": "http://map.cnrs.fr/semantics/physical/222b6052-7543-4399-8900-f82cd4327cf5",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 9
+      },
+      {
+        "entity_label": "South lunette",
+        "entity_uri": "http://map.cnrs.fr/semantics/physical/de49f3db-2863-4c66-8fe3-5cb7c6a7f985",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 22
+      },
+      {
+        "entity_label": "Anastasias",
+        "entity_uri": "http://map.cnrs.fr/semantics/visual/atom/11b9e1a0-ed77-4080-8daa-4aa6d230ebb9",
+        "entity_type": "Human-Made Feature",
+        "raw_triples_count": 19
+      },
+      {
+        "entity_label": "Narthex",
+        "entity_uri": "http://map.cnrs.fr/semantics/physical/11b8568b-14cb-47f1-8a1d-10da7edb0473",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 28
+      },
+      {
+        "entity_label": "west lunette",
+        "entity_uri": "http://map.cnrs.fr/semantics/physical/44bcfbfb-edf2-454a-85dc-dd52fcc529a5",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 18
+      },
+      {
+        "entity_label": "Painting of Anastasias",
+        "entity_uri": "http://map.cnrs.fr/semantics/production/afbfb9ea-560e-4e83-806c-499baf0965bc",
+        "entity_type": "Production",
+        "raw_triples_count": 15
+      },
+      {
+        "entity_label": "Naos",
+        "entity_uri": "http://map.cnrs.fr/semantics/physical/5a5609a8-2ef0-447f-9a72-7b5a8b089755",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 14
+      },
+      {
+        "entity_label": "Panagia Phorbiottisa",
+        "entity_uri": "http://map.cnrs.fr/semantics/physical/0062f461-2dc8-4830-b53a-c3ad0f8d65a4",
+        "entity_type": "",
+        "raw_triples_count": 0
+      }
+    ]
+  },
+  {
+    "question_number": 2,
+    "question": "Tell me more about the panel of Saint Anastasia",
+    "answer": "The panel of Saint Anastasia, also known as Anastasias, is located in the South lunette of the Narthex at Panagia Phorbiottisa, also known as Asinou, in Cyprus. This mural painting, created during the Lusignan period, depicts Saint Anastasia and is part of the broader artistic works within the church. The painting also references the headdress of Anastasia Saramalina, indicating a connection or attribution to this historical figure.",
+    "elapsed_seconds": 1.84,
+    "num_sources": 11,
+    "sources": [
+      {
+        "entity_label": "Anastasias",
+        "entity_uri": "http://map.cnrs.fr/semantics/visual/atom/11b9e1a0-ed77-4080-8daa-4aa6d230ebb9",
+        "entity_type": "Human-Made Feature",
+        "raw_triples_count": 19
+      },
+      {
+        "entity_label": "South lunette",
+        "entity_uri": "http://map.cnrs.fr/semantics/physical/de49f3db-2863-4c66-8fe3-5cb7c6a7f985",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 22
+      },
+      {
+        "entity_label": "Painting of Anastasias",
+        "entity_uri": "http://map.cnrs.fr/semantics/production/afbfb9ea-560e-4e83-806c-499baf0965bc",
+        "entity_type": "Production",
+        "raw_triples_count": 15
+      },
+      {
+        "entity_label": "Panagia Phorbiottisa",
+        "entity_uri": "http://map.cnrs.fr/semantics/physical/0062f461-2dc8-4830-b53a-c3ad0f8d65a4",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 109
+      },
+      {
+        "entity_label": "Construction of Asinou",
+        "entity_uri": "http://map.cnrs.fr/semantics/production/1181919e-fb2f-4cc5-8098-6e6d5021810c",
+        "entity_type": "Production",
+        "raw_triples_count": 19
+      },
+      {
+        "entity_label": "Construction of Asinou",
+        "entity_uri": "http://map.cnrs.fr/semantics/appellation/1181919e-fb2f-4cc5-8098-6e6d5021810c/",
+        "entity_type": "Appellation",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Saint Mamas",
+        "entity_uri": "http://map.cnrs.fr/semantics/visual/atom/9c46dd87-e49a-4c4c-986f-dc30364058d0",
+        "entity_type": "Human-Made Feature",
+        "raw_triples_count": 11
+      },
+      {
+        "entity_label": "Narthex",
+        "entity_uri": "http://map.cnrs.fr/semantics/physical/11b8568b-14cb-47f1-8a1d-10da7edb0473",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 28
+      },
+      {
+        "entity_label": "Saint George",
+        "entity_uri": "http://map.cnrs.fr/semantics/visual/atom/a477c47b-6939-46db-99c0-97a9aa1025bb",
+        "entity_type": "Human-Made Feature",
+        "raw_triples_count": 15
+      },
+      {
+        "entity_label": "Panagia Phorbiottisa",
+        "entity_uri": "http://map.cnrs.fr/semantics/spatial/0062f461-2dc8-4830-b53a-c3ad0f8d65a4/",
+        "entity_type": "Place",
+        "raw_triples_count": 31
+      },
+      {
+        "entity_label": "Panagia Phorbiottisa",
+        "entity_uri": "http://map.cnrs.fr/semantics/physical/0062f461-2dc8-4830-b53a-c3ad0f8d65a4",
+        "entity_type": "",
+        "raw_triples_count": 0
+      }
+    ]
+  },
+  {
+    "question_number": 3,
+    "question": "Who is Anastasia Saramalina?",
+    "answer": "Anastasia Saramalina is identified as a donor associated with the panel of Saint Anastasia in the Panagia Phorbiottisa church in Cyprus. She is depicted with specific attributes such as a T-shaped garment, porphyria, a headdress, and neck rectangular patches. Her headdress is notably denoted in the painting and is composed of elements like a barbette and crespine.",
+    "elapsed_seconds": 2.26,
+    "num_sources": 11,
+    "sources": [
+      {
+        "entity_label": "Anastasias",
+        "entity_uri": "http://map.cnrs.fr/semantics/visual/atom/11b9e1a0-ed77-4080-8daa-4aa6d230ebb9",
+        "entity_type": "Human-Made Feature",
+        "raw_triples_count": 19
+      },
+      {
+        "entity_label": "Painting of Anastasias",
+        "entity_uri": "http://map.cnrs.fr/semantics/production/afbfb9ea-560e-4e83-806c-499baf0965bc",
+        "entity_type": "Production",
+        "raw_triples_count": 15
+      },
+      {
+        "entity_label": "Panagia Phorbiottisa",
+        "entity_uri": "http://map.cnrs.fr/semantics/physical/0062f461-2dc8-4830-b53a-c3ad0f8d65a4",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 109
+      },
+      {
+        "entity_label": "South lunette",
+        "entity_uri": "http://map.cnrs.fr/semantics/physical/de49f3db-2863-4c66-8fe3-5cb7c6a7f985",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 22
+      },
+      {
+        "entity_label": "Construction of Asinou",
+        "entity_uri": "http://map.cnrs.fr/semantics/production/1181919e-fb2f-4cc5-8098-6e6d5021810c",
+        "entity_type": "Production",
+        "raw_triples_count": 19
+      },
+      {
+        "entity_label": "Saint Mamas",
+        "entity_uri": "http://map.cnrs.fr/semantics/visual/atom/9c46dd87-e49a-4c4c-986f-dc30364058d0",
+        "entity_type": "Human-Made Feature",
+        "raw_triples_count": 11
+      },
+      {
+        "entity_label": "Anastasia Saramalina",
+        "entity_uri": "http://map.cnrs.fr/semantics/appellation/7eb6aaa7-78fa-425d-a907-b30d524ada17/",
+        "entity_type": "Appellation",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Anastasia Saramalina",
+        "entity_uri": "http://map.cnrs.fr/semantics/character/7eb6aaa7-78fa-425d-a907-b30d524ada17",
+        "entity_type": "Character",
+        "raw_triples_count": 4
+      },
+      {
+        "entity_label": "Anastasia Saramalina",
+        "entity_uri": "http://map.cnrs.fr/semantics/icon/e1ce4ed8-24b1-4dff-8922-8ae984457ed7",
+        "entity_type": "Visual Item",
+        "raw_triples_count": 18
+      },
+      {
+        "entity_label": "Anastasia Saramalina",
+        "entity_uri": "http://map.cnrs.fr/semantics/appellation/e1ce4ed8-24b1-4dff-8922-8ae984457ed7/",
+        "entity_type": "Appellation",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Panagia Phorbiottisa",
+        "entity_uri": "http://map.cnrs.fr/semantics/physical/0062f461-2dc8-4830-b53a-c3ad0f8d65a4",
+        "entity_type": "",
+        "raw_triples_count": 0
+      }
+    ]
+  },
+  {
+    "question_number": 4,
+    "question": "Are there any other donors in the church?",
+    "answer": "The retrieved information does not mention any other donors in the church besides Anastasia Saramalina.",
+    "elapsed_seconds": 1.76,
+    "num_sources": 10,
+    "sources": [
+      {
+        "entity_label": "Anastasias",
+        "entity_uri": "http://map.cnrs.fr/semantics/visual/atom/11b9e1a0-ed77-4080-8daa-4aa6d230ebb9",
+        "entity_type": "Human-Made Feature",
+        "raw_triples_count": 19
+      },
+      {
+        "entity_label": "Anastasia Saramalina",
+        "entity_uri": "http://map.cnrs.fr/semantics/icon/e1ce4ed8-24b1-4dff-8922-8ae984457ed7",
+        "entity_type": "Visual Item",
+        "raw_triples_count": 18
+      },
+      {
+        "entity_label": "Anastasia Saramalina",
+        "entity_uri": "http://map.cnrs.fr/semantics/character/7eb6aaa7-78fa-425d-a907-b30d524ada17",
+        "entity_type": "Character",
+        "raw_triples_count": 4
+      },
+      {
+        "entity_label": "Anastasia Saramalina",
+        "entity_uri": "http://map.cnrs.fr/semantics/appellation/7eb6aaa7-78fa-425d-a907-b30d524ada17/",
+        "entity_type": "Appellation",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Headdress of Anastasia Saramalina",
+        "entity_uri": "http://map.cnrs.fr/semantics/icon/5f9d7a0d-4918-462e-8192-9e5980697f7d",
+        "entity_type": "Visual Item",
+        "raw_triples_count": 10
+      },
+      {
+        "entity_label": "d7aead4c-d13d-435f-9d06-3661de41bc8c",
+        "entity_uri": "http://map.cnrs.fr/semantics/inscription/d7aead4c-d13d-435f-9d06-3661de41bc8c",
+        "entity_type": "Inscription",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Painting of Anastasias",
+        "entity_uri": "http://map.cnrs.fr/semantics/production/afbfb9ea-560e-4e83-806c-499baf0965bc",
+        "entity_type": "Production",
+        "raw_triples_count": 15
+      },
+      {
+        "entity_label": "Anastasia Saramalina",
+        "entity_uri": "http://map.cnrs.fr/semantics/appellation/e1ce4ed8-24b1-4dff-8922-8ae984457ed7/",
+        "entity_type": "Appellation",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Saint Anastasia",
+        "entity_uri": "http://map.cnrs.fr/semantics/icon/40142634-bebe-4f33-ada2-6ad277a39cc5",
+        "entity_type": "Visual Item",
+        "raw_triples_count": 12
+      },
+      {
+        "entity_label": "Saint Anastasia",
+        "entity_uri": "http://map.cnrs.fr/semantics/appellation/40142634-bebe-4f33-ada2-6ad277a39cc5/",
+        "entity_type": "Appellation",
+        "raw_triples_count": 2
+      }
+    ]
+  },
+  {
+    "question_number": 5,
+    "question": "Are there any other depictions of donor aside from the ones in Asinou?",
+    "answer": "The retrieved information does not mention any other depictions of donors aside from those in Asinou, specifically Anastasia Saramalina and a donor in the Naos denoted by Nikephoros Ischyrios.",
+    "elapsed_seconds": 1.32,
+    "num_sources": 11,
+    "sources": [
+      {
+        "entity_label": "Anastasias",
+        "entity_uri": "http://map.cnrs.fr/semantics/visual/atom/11b9e1a0-ed77-4080-8daa-4aa6d230ebb9",
+        "entity_type": "Human-Made Feature",
+        "raw_triples_count": 19
+      },
+      {
+        "entity_label": "Anastasia Saramalina",
+        "entity_uri": "http://map.cnrs.fr/semantics/icon/e1ce4ed8-24b1-4dff-8922-8ae984457ed7",
+        "entity_type": "Visual Item",
+        "raw_triples_count": 18
+      },
+      {
+        "entity_label": "Anastasia Saramalina",
+        "entity_uri": "http://map.cnrs.fr/semantics/character/7eb6aaa7-78fa-425d-a907-b30d524ada17",
+        "entity_type": "Character",
+        "raw_triples_count": 4
+      },
+      {
+        "entity_label": "Donor",
+        "entity_uri": "http://map.cnrs.fr/semantics/visual/atom/d3ec821e-1a10-40d9-a987-90e025b32bd5",
+        "entity_type": "Human-Made Feature",
+        "raw_triples_count": 13
+      },
+      {
+        "entity_label": "Panagia Phorbiottisa",
+        "entity_uri": "http://map.cnrs.fr/semantics/physical/0062f461-2dc8-4830-b53a-c3ad0f8d65a4",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 109
+      },
+      {
+        "entity_label": "Painting of Anastasias",
+        "entity_uri": "http://map.cnrs.fr/semantics/production/afbfb9ea-560e-4e83-806c-499baf0965bc",
+        "entity_type": "Production",
+        "raw_triples_count": 15
+      },
+      {
+        "entity_label": "Donor couple",
+        "entity_uri": "http://map.cnrs.fr/semantics/visual/atom/d32fe83d-e3ad-4f92-a044-2f88a7951249",
+        "entity_type": "Human-Made Feature",
+        "raw_triples_count": 8
+      },
+      {
+        "entity_label": "Donor Michael Katzouroumpos and wife",
+        "entity_uri": "http://map.cnrs.fr/semantics/visual/atom/d05036ba-b70c-4fc4-b525-95bee14ab953",
+        "entity_type": "Human-Made Feature",
+        "raw_triples_count": 8
+      },
+      {
+        "entity_label": "Saint Dimitrianos",
+        "entity_uri": "http://map.cnrs.fr/semantics/physical/6717c9ac-6b8e-44b0-9c1f-b526021a007d",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 16
+      },
+      {
+        "entity_label": "Virgin of Mercy",
+        "entity_uri": "http://map.cnrs.fr/semantics/visual/atom/a91fc27d-1793-457c-b0ba-14abd048eb12",
+        "entity_type": "Human-Made Feature",
+        "raw_triples_count": 17
+      },
+      {
+        "entity_label": "Panagia Phorbiottisa",
+        "entity_uri": "http://map.cnrs.fr/semantics/physical/0062f461-2dc8-4830-b53a-c3ad0f8d65a4",
+        "entity_type": "",
+        "raw_triples_count": 0
+      }
+    ]
+  },
+  {
+    "question_number": 6,
+    "question": "What's the headdress of Anastasia Saramalina?",
+    "answer": "The headdress of Anastasia Saramalina is composed of a barbette and a crespine.",
+    "elapsed_seconds": 1.34,
+    "num_sources": 11,
+    "sources": [
+      {
+        "entity_label": "Anastasia Saramalina",
+        "entity_uri": "http://map.cnrs.fr/semantics/icon/e1ce4ed8-24b1-4dff-8922-8ae984457ed7",
+        "entity_type": "Visual Item",
+        "raw_triples_count": 18
+      },
+      {
+        "entity_label": "Anastasias",
+        "entity_uri": "http://map.cnrs.fr/semantics/visual/atom/11b9e1a0-ed77-4080-8daa-4aa6d230ebb9",
+        "entity_type": "Human-Made Feature",
+        "raw_triples_count": 19
+      },
+      {
+        "entity_label": "Headdress of Anastasia Saramalina",
+        "entity_uri": "http://map.cnrs.fr/semantics/icon/5f9d7a0d-4918-462e-8192-9e5980697f7d",
+        "entity_type": "Visual Item",
+        "raw_triples_count": 10
+      },
+      {
+        "entity_label": "Headdress of Anastasia Saramalina",
+        "entity_uri": "http://map.cnrs.fr/semantics/appellation/5f9d7a0d-4918-462e-8192-9e5980697f7d/",
+        "entity_type": "Appellation",
+        "raw_triples_count": 2
+      },
+      {
+        "entity_label": "Anastasia Saramalina",
+        "entity_uri": "http://map.cnrs.fr/semantics/character/7eb6aaa7-78fa-425d-a907-b30d524ada17",
+        "entity_type": "Character",
+        "raw_triples_count": 4
+      },
+      {
+        "entity_label": "Painting of Anastasias",
+        "entity_uri": "http://map.cnrs.fr/semantics/production/afbfb9ea-560e-4e83-806c-499baf0965bc",
+        "entity_type": "Production",
+        "raw_triples_count": 15
+      },
+      {
+        "entity_label": "Panagia Phorbiottisa",
+        "entity_uri": "http://map.cnrs.fr/semantics/physical/0062f461-2dc8-4830-b53a-c3ad0f8d65a4",
+        "entity_type": "Human-Made Object",
+        "raw_triples_count": 109
+      },
+      {
+        "entity_label": "Donor",
+        "entity_uri": "http://map.cnrs.fr/semantics/visual/atom/d3ec821e-1a10-40d9-a987-90e025b32bd5",
+        "entity_type": "Human-Made Feature",
+        "raw_triples_count": 13
+      },
+      {
+        "entity_label": "Donor couple",
+        "entity_uri": "http://map.cnrs.fr/semantics/visual/atom/d32fe83d-e3ad-4f92-a044-2f88a7951249",
+        "entity_type": "Human-Made Feature",
+        "raw_triples_count": 8
+      },
+      {
+        "entity_label": "Donor Ioannes and Irene",
+        "entity_uri": "http://map.cnrs.fr/semantics/visual/atom/e679b3f8-2d47-43a7-9661-f2f175f7d951",
+        "entity_type": "Human-Made Feature",
+        "raw_triples_count": 16
+      },
+      {
+        "entity_label": "Panagia Phorbiottisa",
+        "entity_uri": "http://map.cnrs.fr/semantics/physical/0062f461-2dc8-4830-b53a-c3ad0f8d65a4",
+        "entity_type": "",
+        "raw_triples_count": 0
+      }
+    ]
+  }
+]

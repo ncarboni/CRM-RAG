@@ -250,10 +250,11 @@ This enables:
 
 | Component | File | Key Functions |
 |-----------|------|---------------|
-| Document generation | `scripts/bulk_generate_documents.py` | `create_document()`, `build_indexes()` |
-| Image indexing | `scripts/bulk_generate_documents.py` | `_build_image_index()` |
+| Document generation | `universal_rag_system.py` | `process_rdf_data()`, `_create_fr_document_from_prefetched()` |
+| Image indexing | `sparql_helpers.py` | `BatchSparqlClient.build_image_index()` |
+| Batch SPARQL queries | `sparql_helpers.py` | `BatchSparqlClient` class |
+| Document formatting | `document_formatter.py` | `is_schema_predicate()`, `get_relationship_weight()` |
 | Dynamic batching | `llm_providers.py` | `get_embeddings_batch()`, `_get_effective_batch_size()` |
 | Embedding cache | `llm_providers.py` | `EmbeddingCache` class |
 | Document graph | `graph_document_store.py` | `GraphDocumentStore`, `create_adjacency_matrix()` |
-| Retrieval | `universal_rag_system.py` | `cidoc_aware_retrieve()`, `extract_coherent_subgraph()` |
-| Statistics | `universal_rag_system.py` | `embed_from_documents()` |
+| Retrieval | `universal_rag_system.py` | `cidoc_aware_retrieval()`, `compute_coherent_subgraph()` |

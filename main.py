@@ -14,7 +14,6 @@ import logging
 import sys
 import argparse
 import shutil
-import yaml
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_from_directory, abort
 from logging.handlers import RotatingFileHandler
@@ -45,14 +44,6 @@ parser.add_argument('--no-embedding-cache', action='store_true',
                     help='Disable embedding cache (force re-embedding all documents)')
 parser.add_argument('--dataset', type=str, default=None,
                     help='Dataset ID to process (from datasets.yaml). Use with --rebuild to process a specific dataset.')
-parser.add_argument('--process-only', action='store_true',
-                    help='Process the dataset and exit without starting the web server. Use with --dataset.')
-parser.add_argument('--generate-docs-only', action='store_true',
-                    help='Generate entity documents from SPARQL without computing embeddings. Use this locally, then transfer docs to cluster for embedding.')
-parser.add_argument('--no-batch', action='store_true',
-                    help='Disable batch SPARQL queries for document generation. Use legacy per-entity queries (slower but useful for debugging).')
-parser.add_argument('--embed-from-docs', action='store_true',
-                    help='Generate embeddings from existing document files (no SPARQL needed). Use on cluster after transferring docs.')
 parser.add_argument('--debug', action='store_true',
                     help='Enable debug logging for detailed traversal tracing.')
 args = parser.parse_args()
@@ -86,53 +77,7 @@ if args.no_embedding_cache:
     config['use_embedding_cache'] = False
     logger.info("Embedding cache disabled via CLI")
 
-# Document generation / embedding modes
-if args.generate_docs_only:
-    config['generate_docs_only'] = True
-    config['use_batch_queries'] = not args.no_batch
-    batch_mode = "batch" if config['use_batch_queries'] else "individual"
-    logger.info(f"Generate docs only mode: will create documents without embeddings ({batch_mode} queries)")
-if args.embed_from_docs:
-    config['embed_from_docs'] = True
-    logger.info("Embed from docs mode: will generate embeddings from existing documents")
-
-# Load interface customization from YAML
-def load_interface_config():
-    """Load interface customization from config/interface.yaml"""
-    interface_config_path = 'config/interface.yaml'
-
-    # Default configuration if file doesn't exist
-    default_config = {
-        'page_title': 'RAG Chat Interface',
-        'header_title': 'RAG Chatbot',
-        'welcome_message': 'Hello! How can I help you today?',
-        'input_placeholder': 'Ask a question...',
-        'example_questions': [
-            'What is this dataset about?',
-            'Tell me about the main entities'
-        ],
-        'about': {
-            'title': 'About This Chat',
-            'description': 'This chat interface uses RAG.',
-            'features': [],
-            'footer': ''
-        }
-    }
-
-    try:
-        if os.path.exists(interface_config_path):
-            with open(interface_config_path, 'r', encoding='utf-8') as f:
-                loaded_config = yaml.safe_load(f)
-                logger.info(f"Loaded interface configuration from {interface_config_path}")
-                return loaded_config if loaded_config else default_config
-        else:
-            logger.warning(f"Interface config not found at {interface_config_path}, using defaults")
-            return default_config
-    except Exception as e:
-        logger.error(f"Error loading interface config: {str(e)}, using defaults")
-        return default_config
-
-interface_config = load_interface_config()
+interface_config = ConfigLoader.load_interface_config()
 
 # Flask application setup
 app = Flask(__name__)
@@ -390,11 +335,6 @@ if __name__ == '__main__':
             dataset_manager.get_dataset(target_dataset)
             logger.info(f"Successfully processed dataset: {target_dataset}")
 
-            # If --process-only, exit without starting server
-            if args.process_only:
-                print(f"Dataset '{target_dataset}' processed successfully.")
-                print("Exiting (--process-only mode).")
-                sys.exit(0)
         else:
             # Lazy loading, no initialization needed at startup
             logger.info("Datasets will be loaded on first access")

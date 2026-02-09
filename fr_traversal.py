@@ -5,7 +5,7 @@ Based on Tzompanaki & Doerr (2012), this module walks curated multi-step propert
 paths between fundamental categories (Thing, Actor, Place, Event, Concept, Time)
 to produce identity-focused entity documents for FAISS embedding.
 
-Used by both bulk_generate_documents.py (offline) and universal_rag_system.py (runtime).
+Used by universal_rag_system.py for document generation.
 """
 
 import json

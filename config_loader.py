@@ -167,3 +167,39 @@ class ConfigLoader:
         except Exception as e:
             logger.error(f"Error loading datasets config: {str(e)}")
             return default_config
+
+    @staticmethod
+    def load_interface_config() -> Dict[str, Any]:
+        """Load interface customization from config/interface.yaml"""
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        interface_config_path = os.path.join(base_dir, 'config', 'interface.yaml')
+
+        default_config = {
+            'page_title': 'RAG Chat Interface',
+            'header_title': 'RAG Chatbot',
+            'welcome_message': 'Hello! How can I help you today?',
+            'input_placeholder': 'Ask a question...',
+            'example_questions': [
+                'What is this dataset about?',
+                'Tell me about the main entities'
+            ],
+            'about': {
+                'title': 'About This Chat',
+                'description': 'This chat interface uses RAG.',
+                'features': [],
+                'footer': ''
+            }
+        }
+
+        try:
+            if os.path.exists(interface_config_path):
+                with open(interface_config_path, 'r', encoding='utf-8') as f:
+                    loaded_config = yaml.safe_load(f)
+                    logger.info(f"Loaded interface configuration from {interface_config_path}")
+                    return loaded_config if loaded_config else default_config
+            else:
+                logger.warning(f"Interface config not found at {interface_config_path}, using defaults")
+                return default_config
+        except Exception as e:
+            logger.error(f"Error loading interface config: {str(e)}, using defaults")
+            return default_config

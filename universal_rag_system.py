@@ -75,6 +75,47 @@ class RetrievalConfig:
     GRAPH_CONTEXT_MAX_NEIGHBORS = 5   # Max neighbor relationships to show per entity
     GRAPH_CONTEXT_MAX_LINES = 50      # Total line cap for graph context section
 
+    # Type-based score modifiers for retrieval ranking
+    # Positive = boost, negative = penalty. Applied as multiplier: score * (1 + modifier)
+    # Keys match the human-readable type stored in doc.metadata["type"]
+    # and also checked against doc.metadata["all_types"] for E-coded variants
+    TYPE_SCORE_MODIFIERS = {
+        # Primary entity types - slight boost
+        "E22_Man-Made_Object": 0.05,
+        "E22_Human-Made_Object": 0.05,
+        "Human-Made Object": 0.05,
+        "Man-Made Object": 0.05,
+        "E24_Physical_Human-Made_Thing": 0.05,
+        "Physical Human-Made Thing": 0.05,
+        "Physical Man-Made Thing": 0.05,
+        "E39_Actor": 0.05,
+        "Actor": 0.05,
+        "E21_Person": 0.05,
+        "Person": 0.05,
+        "E74_Group": 0.05,
+        "Group": 0.05,
+        "E7_Activity": 0.03,
+        "Activity": 0.03,
+        "E5_Event": 0.03,
+        "Event": 0.03,
+        "E53_Place": 0.03,
+        "Place": 0.03,
+        "E18_Physical_Thing": 0.03,
+        "Physical Thing": 0.03,
+        # Non-informative types - penalty
+        "Linguistic Object": -0.15,
+        "E33_Linguistic_Object": -0.15,
+        "E33_E41_Linguistic_Appellation": -0.15,
+        "E41_E33_Linguistic_Appellation": -0.15,
+        "Linguistic Appellation": -0.15,
+        "Inscription": -0.15,
+        "E34_Inscription": -0.15,
+        "E31_Document": -0.10,
+        "Document": -0.10,
+        "Appellation": -0.10,
+        "E41_Appellation": -0.10,
+    }
+
 
 class UniversalRagSystem:
     """Universal RAG system with graph-based document retrieval"""
@@ -625,6 +666,7 @@ class UniversalRagSystem:
         all_types: Dict[str, set],
         fr_incoming: Dict[str, List[Tuple[str, str]]],
         entity_labels_map: Dict[str, str],
+        all_literals: Dict[str, Dict[str, List[str]]] = None,
     ) -> Tuple[set, Dict[str, Dict[str, list]]]:
         """Identify satellite entities and map them to parents using pre-fetched data.
 
@@ -634,15 +676,26 @@ class UniversalRagSystem:
             all_types: entity_uri -> set of type URIs
             fr_incoming: entity_uri -> [(pred, subj), ...] (incoming edges)
             entity_labels_map: entity_uri -> label
+            all_literals: entity_uri -> {prop_name: [values]} for looking up
+                time-span date values (P82a, P82b, P82)
 
         Returns:
             (satellite_uris, parent_satellites) where parent_satellites is
-            parent_uri -> {kind: [label, ...]}
+            parent_uri -> {kind: [label_or_dict, ...]}
+            For time satellites, entries are dicts: {"label": str, "begin": str|None,
+            "end": str|None, "within": str|None}
         """
         from collections import defaultdict
 
         if not self.fr_traversal:
             return set(), {}
+
+        # Date property local names to look for on E52_Time-Span entities
+        _TIME_PROPS = {
+            "P82a_begin_of_the_begin": "begin",
+            "P82b_end_of_the_end": "end",
+            "P82_at_some_time_within": "within",
+        }
 
         # Pass 1: identify all satellites
         satellite_uris = set()
@@ -657,9 +710,21 @@ class UniversalRagSystem:
             sat_label = entity_labels_map.get(sat_uri, sat_uri.split('/')[-1])
             sat_kind = classify_satellite(all_types.get(sat_uri, set()))
 
+            # For time satellites, look up actual date values from literals
+            if sat_kind == "time" and all_literals:
+                sat_lits = all_literals.get(sat_uri, {})
+                date_info = {"label": sat_label, "begin": None, "end": None, "within": None}
+                for prop_name, key in _TIME_PROPS.items():
+                    vals = sat_lits.get(prop_name, [])
+                    if vals:
+                        date_info[key] = vals[0]
+                sat_entry = date_info
+            else:
+                sat_entry = sat_label
+
             for pred, subj in fr_incoming.get(sat_uri, []):
                 if subj not in satellite_uris:
-                    parent_satellites[subj][sat_kind].append(sat_label)
+                    parent_satellites[subj][sat_kind].append(sat_entry)
                     break
 
         logger.info(f"Satellite absorption: {len(satellite_uris)} satellites → "
@@ -1950,6 +2015,7 @@ Each file contains:
                 # Identify satellites for this chunk
                 chunk_satellite_uris, chunk_parent_satellites = self._identify_satellites_from_prefetched(
                     chunk_types, fr_incoming, entity_labels_map,
+                    all_literals=chunk_literals,
                 )
                 all_satellite_uris.update(chunk_satellite_uris)
             else:
@@ -2717,6 +2783,21 @@ Rules:
         emb_normalized = embeddings / norms
         sim_matrix = emb_normalized @ emb_normalized.T
 
+        # Pre-compute type-based score modifiers for all candidates
+        type_modifiers = RetrievalConfig.TYPE_SCORE_MODIFIERS
+        candidate_type_mods = np.zeros(n)
+        for i, c in enumerate(candidates):
+            primary_type = c.metadata.get('type', '')
+            all_types = c.metadata.get('all_types', [])
+            # Check primary type first, then fall back to all_types
+            mod = type_modifiers.get(primary_type, None)
+            if mod is None and all_types:
+                for t in all_types:
+                    mod = type_modifiers.get(t)
+                    if mod is not None:
+                        break
+            candidate_type_mods[i] = mod if mod is not None else 0.0
+
         logger.info(f"\n{'='*80}")
         logger.info(f"COHERENT SUBGRAPH EXTRACTION")
         logger.info(f"{'='*80}")
@@ -2728,22 +2809,34 @@ Rules:
         logger.info(f"  Mean: {np.mean(normalized_scores):.3f}")
         logger.info(f"  Std: {np.std(normalized_scores):.3f}")
 
+        # Log type modifier distribution
+        boosted = np.sum(candidate_type_mods > 0)
+        penalized = np.sum(candidate_type_mods < 0)
+        neutral = np.sum(candidate_type_mods == 0)
+        logger.info(f"\n--- Type-Based Score Modifiers ---")
+        logger.info(f"  Boosted: {boosted}, Penalized: {penalized}, Neutral: {neutral}")
+
         # Show top 5 initial candidates
         logger.info(f"\n--- Top 5 Initial Candidates (by relevance) ---")
         top_indices = np.argsort(normalized_scores)[::-1][:5]
         for rank, idx in enumerate(top_indices, 1):
             label = candidates[idx].metadata.get('label', 'Unknown')
-            logger.info(f"  {rank}. {label}: {normalized_scores[idx]:.3f}")
+            etype = candidates[idx].metadata.get('type', '')
+            mod_str = f" [type_mod={candidate_type_mods[idx]:+.2f}]" if candidate_type_mods[idx] != 0 else ""
+            logger.info(f"  {rank}. {label} ({etype}): {normalized_scores[idx]:.3f}{mod_str}")
 
-        # First selection: pick the highest-scoring document
-        first_idx = np.argmax(normalized_scores)
+        # First selection: pick the highest-scoring document (with type modifier applied)
+        first_round_scores = normalized_scores * (1.0 + candidate_type_mods)
+        first_idx = np.argmax(first_round_scores)
         selected_indices.append(first_idx)
         selected_mask[first_idx] = True
         logger.info(f"\n{'='*80}")
         logger.info(f"SELECTION ROUND 1/{k}")
         logger.info(f"{'='*80}")
-        logger.info(f"Strategy: Select highest relevance score")
-        logger.info(f"Selected: {candidates[first_idx].metadata.get('label', 'Unknown')} (score={normalized_scores[first_idx]:.3f})")
+        logger.info(f"Strategy: Select highest relevance score (with type modifier)")
+        first_mod = candidate_type_mods[first_idx]
+        first_mod_str = f", type_mod={first_mod:+.2f}" if first_mod != 0 else ""
+        logger.info(f"Selected: {candidates[first_idx].metadata.get('label', 'Unknown')} (score={first_round_scores[first_idx]:.3f}{first_mod_str})")
 
         # Iteratively select remaining documents
         for iteration in range(1, k):
@@ -2797,24 +2890,29 @@ Rules:
                 # MMR diversity penalty: penalize similarity to most-similar already-selected doc
                 max_sim = max(sim_matrix[idx, sel_idx] for sel_idx in selected_indices)
                 div_penalty = diversity_penalty_weight * max_sim
-                combined_score = alpha * relevance + (1 - alpha) * connectivity_norm - div_penalty
-                all_scores.append((idx, combined_score, relevance, connectivity_norm, div_penalty))
+                base_score = alpha * relevance + (1 - alpha) * connectivity_norm - div_penalty
+                # Apply type-based modifier
+                type_mod = candidate_type_mods[idx]
+                combined_score = base_score * (1.0 + type_mod)
+                all_scores.append((idx, combined_score, relevance, connectivity_norm, div_penalty, type_mod))
 
             # Sort by combined score
             all_scores.sort(key=lambda x: x[1], reverse=True)
 
             # Show top 3 candidates for this iteration
             logger.info(f"\n--- Top 3 Candidates for Round {iteration+1} ---")
-            for rank, (idx, combined, rel, conn, div_pen) in enumerate(all_scores[:3], 1):
+            for rank, (idx, combined, rel, conn, div_pen, t_mod) in enumerate(all_scores[:3], 1):
                 label = candidates[idx].metadata.get('label', 'Unknown')
-                logger.info(f"  {rank}. {label}")
+                etype = candidates[idx].metadata.get('type', '')
+                logger.info(f"  {rank}. {label} ({etype})")
                 logger.info(f"      Relevance: {rel:.3f} (weight={alpha:.1f}) → contrib={alpha*rel:.3f}")
                 logger.info(f"      Connectivity: {conn:.3f} (weight={1-alpha:.1f}) → contrib={(1-alpha)*conn:.3f}")
                 logger.info(f"      Diversity penalty: -{div_pen:.3f}")
-                logger.info(f"      Combined: {combined:.3f}")
+                type_mod_str = f", type_mod={t_mod:+.2f}" if t_mod != 0 else ""
+                logger.info(f"      Combined: {combined:.3f}{type_mod_str}")
 
             # Select the best
-            best_idx, best_score, best_rel, best_connectivity_norm, best_div_penalty = all_scores[0]
+            best_idx, best_score, best_rel, best_connectivity_norm, best_div_penalty, best_type_mod = all_scores[0]
 
             if best_idx == -1:
                 logger.warning(f"Could not find more connected documents after {len(selected_indices)} selections")
@@ -2822,8 +2920,9 @@ Rules:
 
             selected_indices.append(best_idx)
             selected_mask[best_idx] = True
+            best_type_mod_str = f" * (1{best_type_mod:+.2f})" if best_type_mod != 0 else ""
             logger.info(f"\n✓ SELECTED: {candidates[best_idx].metadata.get('label', 'Unknown')}")
-            logger.info(f"  Final score: {best_score:.3f} = {alpha:.1f}×{best_rel:.3f} + {1-alpha:.1f}×{best_connectivity_norm:.3f} - {best_div_penalty:.3f}")
+            logger.info(f"  Final score: {best_score:.3f} = ({alpha:.1f}×{best_rel:.3f} + {1-alpha:.1f}×{best_connectivity_norm:.3f} - {best_div_penalty:.3f}){best_type_mod_str}")
 
         # Log final summary
         logger.info(f"\n{'='*80}")
@@ -2832,7 +2931,10 @@ Rules:
         logger.info(f"Selected {len(selected_indices)}/{k} documents:")
         for i, idx in enumerate(selected_indices, 1):
             label = candidates[idx].metadata.get('label', 'Unknown')
-            logger.info(f"  {i}. {label} (relevance={normalized_scores[idx]:.3f})")
+            etype = candidates[idx].metadata.get('type', '')
+            mod = candidate_type_mods[idx]
+            mod_str = f", type_mod={mod:+.2f}" if mod != 0 else ""
+            logger.info(f"  {i}. {label} [{etype}] (relevance={normalized_scores[idx]:.3f}{mod_str})")
         logger.info(f"{'='*80}\n")
 
         # Return selected documents in order

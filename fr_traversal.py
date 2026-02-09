@@ -241,7 +241,7 @@ class FRTraversal:
                        incoming: Dict[str, List[Tuple[str, str]]],
                        entity_labels: Dict[str, str],
                        entity_types_map: Dict[str, Set[str]] = None,
-                       max_results_per_fr: int = 5) -> List[dict]:
+                       max_results_per_fr: int = 10) -> List[dict]:
         """Match FR paths from an entity and return reached targets.
 
         Args:
@@ -254,7 +254,8 @@ class FRTraversal:
             max_results_per_fr: Max target entities per FR to prevent explosion
 
         Returns:
-            List of dicts: [{"fr_id": ..., "fr_label": ..., "targets": [(uri, label), ...]}]
+            List of dicts: [{"fr_id": ..., "fr_label": ..., "targets": [(uri, label), ...],
+                            "total_count": int}]
         """
         entity_fc = self.get_fc(entity_types)
         if not entity_fc:
@@ -333,6 +334,7 @@ class FRTraversal:
             # After processing all paths for this FR, collect results
             all_targets = seen_targets.get(fr_id, set())
             if all_targets:
+                total_count = len(all_targets)
                 # Limit targets per FR
                 target_list = []
                 for t in list(all_targets)[:max_results_per_fr]:
@@ -342,7 +344,8 @@ class FRTraversal:
                 results.append({
                     "fr_id": fr_id,
                     "fr_label": fr_label,
-                    "targets": target_list
+                    "targets": target_list,
+                    "total_count": total_count,
                 })
 
         return results
@@ -379,7 +382,7 @@ class FRTraversal:
                                   entity_labels: Dict[str, str],
                                   entity_types: Set[str] = None,
                                   schema_filter=None,
-                                  max_per_predicate: int = 5) -> List[dict]:
+                                  max_per_predicate: int = 10) -> List[dict]:
         """Collect direct (1-hop) non-FR, non-schema predicates for VIR extensions etc.
 
         Only filters predicates that appear as step-0 of FR paths for this entity's
@@ -437,10 +440,12 @@ class FRTraversal:
         # Convert to list, cap per predicate
         output = []
         for pred_label, target_set in results.items():
+            total_count = len(target_set)
             targets = list(target_set)[:max_per_predicate]
             output.append({
                 "predicate_label": pred_label,
-                "targets": targets
+                "targets": targets,
+                "total_count": total_count,
             })
         return output
 
@@ -458,12 +463,44 @@ class FRTraversal:
         stripped = re.sub(r'^[A-Z]\d+[a-z]?_', '', local_name)
         return stripped.replace('_', ' ')
 
-    def format_absorbed_satellites(self, satellite_info: Dict[str, List[str]],
+    @staticmethod
+    def _format_time_entry(entry) -> str:
+        """Format a single time-span satellite entry as a human-readable string.
+
+        Args:
+            entry: Either a plain label string (legacy) or a dict with keys
+                   "label", "begin", "end", "within" from date literal lookup.
+
+        Returns:
+            Formatted date string, e.g. "2023-01-26 to 2023-06-18" or the label.
+        """
+        if isinstance(entry, str):
+            return entry
+
+        # Dict with date values from _identify_satellites_from_prefetched
+        begin = entry.get("begin")
+        end = entry.get("end")
+        within = entry.get("within")
+        label = entry.get("label", "")
+
+        if begin and end:
+            return f"{begin} to {end}"
+        if begin:
+            return f"from {begin}"
+        if end:
+            return f"until {end}"
+        if within:
+            return str(within)
+        # Fall back to the label if no date values were found
+        return label
+
+    def format_absorbed_satellites(self, satellite_info: Dict[str, list],
                                    parent_label: str) -> List[str]:
         """Format absorbed satellite info as compact lines for a parent document.
 
         Args:
-            satellite_info: kind -> [label, ...] dict from _identify_satellites
+            satellite_info: kind -> [label_or_dict, ...] dict from _identify_satellites.
+                For time satellites, entries may be dicts with date values.
             parent_label: The parent entity's label (to deduplicate)
 
         Returns:
@@ -490,10 +527,11 @@ class FRTraversal:
         if dim_labels:
             lines.append(f"Dimensions: {', '.join(dim_labels[:5])}")
 
-        # Time-spans -> "Time-span: ..."
-        time_labels = satellite_info.get("time", [])
-        if time_labels:
-            lines.append(f"Time-span: {', '.join(time_labels[:5])}")
+        # Time-spans -> "Time-span: ..." with actual date values when available
+        time_entries = satellite_info.get("time", [])
+        if time_entries:
+            formatted = [self._format_time_entry(e) for e in time_entries[:5]]
+            lines.append(f"Time-span: {', '.join(formatted)}")
 
         # Types are intentionally omitted — already captured by "Has type:" from FR traversal
 
@@ -576,6 +614,10 @@ class FRTraversal:
             include_attrs = fr_label.lower() in _DEPICTION_LABELS
             formatted = self._format_targets(
                 fr_result["targets"], target_enrichments, include_attrs)
+            total = fr_result.get("total_count", len(fr_result["targets"]))
+            shown = len(fr_result["targets"])
+            if total > shown:
+                formatted += f" ... and {total - shown} more"
             lines.append(f"{fr_label_cap}: {formatted}")
             fr_line_count += 1
 
@@ -589,6 +631,10 @@ class FRTraversal:
                 include_attrs = pred_label.lower() in _DEPICTION_LABELS
                 formatted = self._format_targets(
                     dp["targets"], target_enrichments, include_attrs)
+                total = dp.get("total_count", len(dp["targets"]))
+                shown = len(dp["targets"])
+                if total > shown:
+                    formatted += f" ... and {total - shown} more"
                 lines.append(f"{pred_cap}: {formatted}")
                 fr_line_count += 1
 

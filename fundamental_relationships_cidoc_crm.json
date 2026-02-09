@@ -3267,6 +3267,23 @@
           ]
         },
         {
+          "description": "Actor performed activity that used Thing (via P16_used_specific_object)",
+          "steps": [
+            {
+              "property": "P14i_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P16_used_specific_object",
+              "from": "E7_Activity",
+              "to": "E70_Thing",
+              "recursive": false
+            }
+          ]
+        },
+        {
           "description": "Actor performed activity that brought Thing into existence (via P123_resulted_in)",
           "steps": [
             {
@@ -3375,6 +3392,23 @@
               "property": "P108_has_produced",
               "from": "E12_Production",
               "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor performed activity that used Thing (via P16_used_specific_object)",
+          "steps": [
+            {
+              "property": "P14i_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P16_used_specific_object",
+              "from": "E7_Activity",
+              "to": "E70_Thing",
               "recursive": false
             }
           ]

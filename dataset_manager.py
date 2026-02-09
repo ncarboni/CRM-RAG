@@ -103,7 +103,8 @@ class DatasetManager:
         rag_system = UniversalRagSystem(
             endpoint_url=endpoint,
             config=config,
-            dataset_id=dataset_id
+            dataset_id=dataset_id,
+            dataset_config=dataset_config
         )
 
         # Initialize the system (load or build cache)

@@ -83,7 +83,7 @@ class UniversalRagSystem:
     _missing_properties = set()  # Track properties that couldn't be found
     _missing_classes = set()  # Track classes that couldn't be found in ontology files
 
-    def __init__(self, endpoint_url, config=None, dataset_id=None, data_dir=None):
+    def __init__(self, endpoint_url, config=None, dataset_id=None, data_dir=None, dataset_config=None):
         """
         Initialize the universal RAG system.
 
@@ -94,10 +94,13 @@ class UniversalRagSystem:
                         Used to create dataset-specific cache directories.
             data_dir: Optional override for data directory (e.g., for cluster storage).
                       If not provided, uses 'data/' relative to current directory.
+            dataset_config: Optional dataset configuration dict from datasets.yaml.
+                           Used to access dataset-specific settings like image SPARQL queries.
         """
         self.endpoint_url = endpoint_url
         self.dataset_id = dataset_id or "default"
         self.data_dir = data_dir  # None means use default 'data/' directory
+        self.dataset_config = dataset_config or {}
         self.sparql = SPARQLWrapper(endpoint_url)
         self.sparql.setReturnFormat(JSON)
         self.sparql.setMethod(POST)
@@ -672,6 +675,11 @@ class UniversalRagSystem:
         if self.fr_traversal:
             logger.warning("FR traversal requires batch mode — falling back to BFS for individual generation")
 
+        # Pre-fetch image index and wikidata IDs (single SPARQL queries)
+        image_index = self._build_image_index()
+        entity_uris = [e["entity"] for e in entities]
+        wikidata_ids = self._batch_fetch_wikidata_ids(entity_uris)
+
         success_count = 0
         error_count = 0
         all_triples = []
@@ -681,7 +689,25 @@ class UniversalRagSystem:
 
             try:
                 doc_text, entity_label, entity_types, raw_triples = self.create_enhanced_document(entity_uri)
-                self.save_entity_document(entity_uri, doc_text, entity_label)
+
+                # Determine primary type
+                primary_type = None
+                if entity_types:
+                    human_readable_types = [
+                        t for t in entity_types
+                        if not self.is_technical_class_name(t)
+                    ]
+                    primary_type = human_readable_types[0] if human_readable_types else None
+                else:
+                    human_readable_types = []
+
+                self.save_entity_document(
+                    entity_uri, doc_text, entity_label,
+                    entity_type=primary_type,
+                    all_types=human_readable_types or None,
+                    wikidata_id=wikidata_ids.get(entity_uri),
+                    images=image_index.get(entity_uri) or None,
+                )
                 success_count += 1
 
                 # Collect triples for edges file
@@ -800,6 +826,10 @@ class UniversalRagSystem:
                 all_types, fr_incoming, entity_labels_map,
             )
 
+        # Pre-fetch image index and wikidata IDs (single SPARQL queries each)
+        image_index = self._build_image_index()
+        wikidata_ids = self._batch_fetch_wikidata_ids(entity_uris, batch_size)
+
         prefetch_time = time.time() - start_time
         logger.info(f"Phase 1 complete in {prefetch_time:.2f}s")
 
@@ -862,7 +892,23 @@ class UniversalRagSystem:
                     )
                     all_triples.extend(raw_triples)
 
-                self.save_entity_document(entity_uri, doc_text, entity_label)
+                # Determine primary type for frontmatter
+                primary_type = None
+                human_readable_types = None
+                if entity_types:
+                    human_readable_types = [
+                        t for t in entity_types
+                        if not self.is_technical_class_name(t)
+                    ]
+                    primary_type = human_readable_types[0] if human_readable_types else None
+
+                self.save_entity_document(
+                    entity_uri, doc_text, entity_label,
+                    entity_type=primary_type,
+                    all_types=human_readable_types or None,
+                    wikidata_id=wikidata_ids.get(entity_uri),
+                    images=image_index.get(entity_uri) or None,
+                )
                 success_count += 1
 
             except Exception as e:
@@ -2519,6 +2565,68 @@ class UniversalRagSystem:
 
         return result
 
+    def _build_image_index(self) -> Dict[str, List[str]]:
+        """Build image index using SPARQL pattern from dataset configuration.
+
+        Reads the 'image.sparql' graph pattern from self.dataset_config, wraps it
+        in a SELECT ?entity ?url query, and runs it against the SPARQL endpoint.
+
+        Returns:
+            Dict mapping entity URI -> list of image URLs. Empty dict if no
+            image config is present.
+        """
+        image_config = self.dataset_config.get("image")
+        if not image_config:
+            return {}
+
+        sparql_pattern = image_config.get("sparql")
+        if not sparql_pattern:
+            logger.warning("Image config exists but has no 'sparql' pattern")
+            return {}
+
+        logger.info("Indexing images via SPARQL query...")
+
+        # Separate PREFIX declarations from the graph pattern body
+        lines = sparql_pattern.strip().split('\n')
+        prefixes = []
+        pattern_lines = []
+
+        for line in lines:
+            stripped = line.strip()
+            if stripped.upper().startswith('PREFIX'):
+                prefixes.append(stripped)
+            elif stripped:
+                pattern_lines.append(line)
+
+        prefix_block = '\n'.join(prefixes)
+        pattern_block = '\n'.join(pattern_lines)
+
+        query = f"""
+        {prefix_block}
+        SELECT ?entity ?url WHERE {{
+            {pattern_block}
+        }}
+        """
+
+        result: Dict[str, List[str]] = {}
+        try:
+            rows = self._batch_query_tsv(query)
+            for row in rows:
+                if len(row) >= 2:
+                    entity_uri, url = row[0], row[1]
+                    if url.startswith("http"):
+                        result.setdefault(entity_uri, []).append(url)
+
+            entity_count = len(result)
+            image_count = sum(len(v) for v in result.values())
+            logger.info(f"Found {image_count} images for {entity_count} entities")
+
+        except Exception as e:
+            logger.error(f"Error executing image SPARQL query: {e}")
+            logger.debug(f"Query was: {query}")
+
+        return result
+
     # ==================== End Batch SPARQL Query Methods ====================
 
     # ==================== FR-based Document Generation ====================
@@ -2895,8 +3003,21 @@ class UniversalRagSystem:
             # Return minimal document to prevent complete failure
             return f"Entity: {entity_uri}", entity_uri, [], []
 
-    def save_entity_document(self, entity_uri, document_text, entity_label, output_dir=None):
-        """Save entity document to disk for transparency and reuse"""
+    def save_entity_document(self, entity_uri, document_text, entity_label,
+                             output_dir=None, entity_type=None, all_types=None,
+                             wikidata_id=None, images=None):
+        """Save entity document to disk for transparency and reuse.
+
+        Args:
+            entity_uri: The entity URI
+            document_text: Document text content
+            entity_label: Entity label
+            output_dir: Override for output directory
+            entity_type: Primary entity type (e.g. "E22_Human-Made_Object")
+            all_types: List of all human-readable entity types
+            wikidata_id: Wikidata Q-ID if available
+            images: List of image URLs
+        """
 
         try:
             # Use dataset-specific output directory if not specified
@@ -2919,16 +3040,34 @@ class UniversalRagSystem:
             filename = f"{safe_label}_{uri_hash}.md"
             filepath = os.path.join(output_dir, filename)
 
-            # Add metadata header to document
+            # Build metadata header (source of truth for all metadata)
             # Quote label to handle values containing colons (YAML special char)
             safe_entity_label = entity_label.replace('"', '\\"')
-            metadata = f"""---
-URI: {entity_uri}
-Label: "{safe_entity_label}"
-Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
----
+            metadata_lines = [
+                "---",
+                f"URI: {entity_uri}",
+                f'Label: "{safe_entity_label}"',
+            ]
 
-"""
+            if entity_type:
+                metadata_lines.append(f"Type: {entity_type}")
+
+            if all_types:
+                metadata_lines.append("Types:")
+                for t in all_types:
+                    metadata_lines.append(f"  - {t}")
+
+            if wikidata_id:
+                metadata_lines.append(f"Wikidata: {wikidata_id}")
+
+            if images:
+                metadata_lines.append("Images:")
+                for img_url in images:
+                    metadata_lines.append(f"  - {img_url}")
+
+            metadata_lines.append("---")
+            metadata_lines.append("")
+            metadata = "\n".join(metadata_lines) + "\n"
 
             # Write document to file
             with open(filepath, 'w', encoding='utf-8') as f:
@@ -3246,6 +3385,9 @@ Each file contains:
         # Accumulate satellite URIs across all chunks
         all_satellite_uris = set()
 
+        # Pre-fetch image index (single SPARQL query, shared across all chunks)
+        image_index = self._build_image_index()
+
         # SPARQL pre-fetch chunk size (matches existing batch query infrastructure)
         chunk_size = RetrievalConfig.BATCH_QUERY_SIZE
         total_chunks = (total_entities + chunk_size - 1) // chunk_size
@@ -3360,11 +3502,9 @@ Each file contains:
                         )
                         all_triples.extend(raw_triples)
 
-                    # Save document to disk for transparency and reuse
-                    self.save_entity_document(entity_uri, doc_text, entity_label)
-
                     # Determine primary entity type
                     primary_type = "Unknown"
+                    human_readable_types = []
                     if entity_types:
                         human_readable_types = [
                             t for t in entity_types
@@ -3375,12 +3515,22 @@ Each file contains:
                     # Get Wikidata ID from pre-fetched batch data
                     wikidata_id = chunk_wikidata.get(entity_uri)
 
+                    # Save document to disk with rich frontmatter
+                    self.save_entity_document(
+                        entity_uri, doc_text, entity_label,
+                        entity_type=primary_type,
+                        all_types=human_readable_types or None,
+                        wikidata_id=wikidata_id,
+                        images=image_index.get(entity_uri) or None,
+                    )
+
                     metadata = {
                         "label": entity_label,
                         "type": primary_type,
                         "uri": entity_uri,
                         "all_types": entity_types,
-                        "wikidata_id": wikidata_id  # May be None
+                        "wikidata_id": wikidata_id,  # May be None
+                        "images": image_index.get(entity_uri, [])
                     }
 
                     # Check embedding cache

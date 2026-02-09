@@ -377,6 +377,11 @@ if __name__ == '__main__':
         else:
             logger.warning("No dataset specified and no default_dataset configured")
 
+    # Override default dataset if --dataset was specified
+    if target_dataset:
+        datasets_config['default_dataset'] = target_dataset
+        logger.info(f"Default dataset overridden to: {target_dataset}")
+
     # Initialize the system
     try:
         if target_dataset:

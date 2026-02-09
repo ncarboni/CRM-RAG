@@ -275,7 +275,7 @@ wheels = [
 [[package]]
 name = "crm-rag"
 version = "0.5.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "bm25s" },
     { name = "faiss-cpu" },

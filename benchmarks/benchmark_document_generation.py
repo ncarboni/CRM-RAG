@@ -43,12 +43,9 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 import statistics
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
 import requests
 from SPARQLWrapper import SPARQLWrapper, JSON, TSV, POST
-from config_loader import ConfigLoader
+from crm_rag.config_loader import ConfigLoader
 
 logging.basicConfig(
     level=logging.INFO,

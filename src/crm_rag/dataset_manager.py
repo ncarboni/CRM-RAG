@@ -7,6 +7,8 @@ import logging
 import os
 from typing import Dict, List, Any
 
+from crm_rag import PROJECT_ROOT
+
 logger = logging.getLogger(__name__)
 
 
@@ -74,7 +76,7 @@ class DatasetManager:
         dataset_config = self.datasets[dataset_id]
 
         # Import here to avoid circular imports
-        from universal_rag_system import UniversalRagSystem
+        from crm_rag.rag_system import UniversalRagSystem
 
         # Create config with dataset-specific settings
         config = self.llm_config.copy()
@@ -155,13 +157,14 @@ class DatasetManager:
         Returns:
             Dictionary with paths for 'cache_dir', 'document_graph', 'vector_index', 'documents_dir'
         """
-        cache_dir = f'data/cache/{dataset_id}'
+        data_dir = str(PROJECT_ROOT / 'data')
+        cache_dir = f'{data_dir}/cache/{dataset_id}'
         return {
             'cache_dir': cache_dir,
             'document_graph': f'{cache_dir}/document_graph.pkl',
             'vector_index': f'{cache_dir}/vector_index/index.faiss',
             'vector_index_dir': f'{cache_dir}/vector_index',
-            'documents_dir': f'data/documents/{dataset_id}/entity_documents'
+            'documents_dir': f'{data_dir}/documents/{dataset_id}/entity_documents'
         }
 
     def get_interface_config(self, dataset_id: str, default_interface: Dict[str, Any]) -> Dict[str, Any]:

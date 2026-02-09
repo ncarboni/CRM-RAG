@@ -9,14 +9,11 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 import json
 import logging
-import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from config_loader import ConfigLoader
-from dataset_manager import DatasetManager
+from crm_rag.config_loader import ConfigLoader
+from crm_rag.dataset_manager import DatasetManager
 
 logging.basicConfig(
     level=logging.INFO,

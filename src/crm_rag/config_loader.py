@@ -9,6 +9,8 @@ from typing import Dict, Any
 from dotenv import load_dotenv
 import yaml
 
+from crm_rag import PROJECT_ROOT
+
 logger = logging.getLogger(__name__)
 
 class ConfigLoader:
@@ -18,7 +20,7 @@ class ConfigLoader:
     def load_config(env_file: str = None) -> Dict[str, Any]:
         """Load configuration from environment file"""
         # Determine base directory (repo root)
-        base_dir = os.path.dirname(os.path.abspath(__file__))
+        base_dir = str(PROJECT_ROOT)
         config_dir = os.path.join(base_dir, "config")
 
         if env_file:
@@ -139,7 +141,7 @@ class ConfigLoader:
         Returns:
             dict: Datasets configuration with 'datasets' dict and optional 'default_dataset'
         """
-        base_dir = os.path.dirname(os.path.abspath(__file__))
+        base_dir = str(PROJECT_ROOT)
         config_path = os.path.join(base_dir, "config", "datasets.yaml")
 
         # Default configuration if file doesn't exist (backward compatibility)
@@ -171,7 +173,7 @@ class ConfigLoader:
     @staticmethod
     def load_interface_config() -> Dict[str, Any]:
         """Load interface customization from config/interface.yaml"""
-        base_dir = os.path.dirname(os.path.abspath(__file__))
+        base_dir = str(PROJECT_ROOT)
         interface_config_path = os.path.join(base_dir, 'config', 'interface.yaml')
 
         default_config = {

@@ -10,24 +10,20 @@ Example:
     python scripts/test_entity_context.py --entity "http://example.org/inscription/05b72a27" --endpoint "http://localhost:3030/asinou/sparql"
 """
 
-import sys
 import os
 import argparse
 import logging
 
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from crm_rag.config_loader import ConfigLoader
 
-from config_loader import ConfigLoader
-
-# Set up debug logging BEFORE importing universal_rag_system
+# Set up debug logging BEFORE importing crm_rag.rag_system
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-from universal_rag_system import UniversalRagSystem
+from crm_rag.rag_system import UniversalRagSystem
 
 
 def main():

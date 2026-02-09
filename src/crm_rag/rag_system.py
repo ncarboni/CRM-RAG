@@ -31,17 +31,18 @@ from langchain_community.vectorstores import FAISS
 import requests
 
 # Local imports
-from graph_document_store import GraphDocumentStore
-from llm_providers import get_llm_provider, get_embedding_provider
-from embedding_cache import EmbeddingCache
+from crm_rag import PROJECT_ROOT
+from crm_rag.document_store import GraphDocumentStore
+from crm_rag.llm_providers import get_llm_provider, get_embedding_provider
+from crm_rag.embedding_cache import EmbeddingCache
 from scripts.extract_ontology_labels import run_extraction
-from fr_traversal import FRTraversal, classify_satellite
-from document_formatter import (
+from crm_rag.fr_traversal import FRTraversal, classify_satellite
+from crm_rag.document_formatter import (
     is_schema_predicate as _is_schema_predicate,
     is_technical_class_name as _is_technical_class_name,
     get_relationship_weight as _get_relationship_weight,
 )
-from sparql_helpers import BatchSparqlClient
+from crm_rag.sparql_helpers import BatchSparqlClient
 
 logger = logging.getLogger(__name__)
 
@@ -260,7 +261,7 @@ class UniversalRagSystem:
 
     def _get_cache_dir(self) -> str:
         """Return the cache directory for this dataset."""
-        base = self.data_dir if self.data_dir else 'data'
+        base = self.data_dir if self.data_dir else str(PROJECT_ROOT / 'data')
         return f'{base}/cache/{self.dataset_id}'
 
     def _get_document_graph_path(self) -> str:
@@ -285,7 +286,7 @@ class UniversalRagSystem:
 
     def _get_documents_dir(self) -> str:
         """Return the entity documents directory for this dataset."""
-        base = self.data_dir if self.data_dir else 'data'
+        base = self.data_dir if self.data_dir else str(PROJECT_ROOT / 'data')
         return f'{base}/documents/{self.dataset_id}/entity_documents'
 
     # ==================== End Path Helper Methods ====================
@@ -297,7 +298,7 @@ class UniversalRagSystem:
         Returns:
             dict: Inverse property mappings (property URI -> inverse URI)
         """
-        inverse_file = 'data/labels/inverse_properties.json'
+        inverse_file = str(PROJECT_ROOT / 'data' / 'labels' / 'inverse_properties.json')
 
         if os.path.exists(inverse_file):
             try:
@@ -318,10 +319,9 @@ class UniversalRagSystem:
 
         Returns FRTraversal instance or None if config files are missing.
         """
-        base_dir = os.path.dirname(__file__)
-        fr_json = os.path.join(base_dir, 'fundamental_relationships_cidoc_crm.json')
-        inverse_props = os.path.join(base_dir, 'data', 'labels', 'inverse_properties.json')
-        fc_mapping = os.path.join(base_dir, 'config', 'fc_class_mapping.json')
+        fr_json = str(PROJECT_ROOT / 'config' / 'fundamental_relationships_cidoc_crm.json')
+        inverse_props = str(PROJECT_ROOT / 'data' / 'labels' / 'inverse_properties.json')
+        fc_mapping = str(PROJECT_ROOT / 'config' / 'fc_class_mapping.json')
 
         if not os.path.exists(fr_json):
             logger.warning(f"FR JSON not found: {fr_json} — FR traversal disabled")
@@ -353,8 +353,8 @@ class UniversalRagSystem:
         Returns:
             dict: Property labels mapping
         """
-        labels_file = 'data/labels/property_labels.json'
-        ontology_dir = 'data/ontologies'
+        labels_file = str(PROJECT_ROOT / 'data' / 'labels' / 'property_labels.json')
+        ontology_dir = str(PROJECT_ROOT / 'data' / 'ontologies')
 
         # Check if we need to extract
         should_extract = force_extract or not os.path.exists(labels_file)
@@ -414,8 +414,8 @@ class UniversalRagSystem:
         Returns:
             set: Set of ontology class names (both URIs and local names)
         """
-        classes_file = 'data/labels/ontology_classes.json'
-        ontology_dir = 'data/ontologies'
+        classes_file = str(PROJECT_ROOT / 'data' / 'labels' / 'ontology_classes.json')
+        ontology_dir = str(PROJECT_ROOT / 'data' / 'ontologies')
 
         # Check if we need to extract (the extraction is done together with properties)
         should_extract = force_extract or not os.path.exists(classes_file)
@@ -440,7 +440,8 @@ class UniversalRagSystem:
 
             try:
                 # This will extract both properties and classes
-                success = run_extraction(ontology_dir, 'data/labels/property_labels.json', classes_file)
+                labels_file = str(PROJECT_ROOT / 'data' / 'labels' / 'property_labels.json')
+                success = run_extraction(ontology_dir, labels_file, classes_file)
                 if not success:
                     logger.error("Failed to extract ontology classes from ontologies")
                     return set()
@@ -476,8 +477,8 @@ class UniversalRagSystem:
         Returns:
             dict: Class labels mapping (URI -> English label)
         """
-        labels_file = 'data/labels/class_labels.json'
-        ontology_dir = 'data/ontologies'
+        labels_file = str(PROJECT_ROOT / 'data' / 'labels' / 'class_labels.json')
+        ontology_dir = str(PROJECT_ROOT / 'data' / 'ontologies')
 
         # Check if we need to extract (the extraction is done together with classes)
         should_extract = force_extract or not os.path.exists(labels_file)
@@ -501,7 +502,9 @@ class UniversalRagSystem:
             logger.info(f"Found {len(ontology_files)} ontology files: {', '.join(ontology_files)}")
 
             try:
-                success = run_extraction(ontology_dir, 'data/labels/property_labels.json', 'data/labels/ontology_classes.json', labels_file)
+                prop_labels = str(PROJECT_ROOT / 'data' / 'labels' / 'property_labels.json')
+                ont_classes = str(PROJECT_ROOT / 'data' / 'labels' / 'ontology_classes.json')
+                success = run_extraction(ontology_dir, prop_labels, ont_classes, labels_file)
                 if not success:
                     logger.error("Failed to extract class labels from ontologies")
                     return {}
@@ -536,7 +539,7 @@ class UniversalRagSystem:
         Returns:
             set: Set of event class URIs
         """
-        config_file = os.path.join(os.path.dirname(__file__), 'config', 'event_classes.json')
+        config_file = str(PROJECT_ROOT / 'config' / 'event_classes.json')
 
         if not os.path.exists(config_file):
             logger.warning(f"Event classes config not found at {config_file}")
@@ -2447,7 +2450,7 @@ Each file contains:
         if cls._fc_class_mapping is not None:
             return cls._fc_class_mapping
 
-        fc_path = os.path.join(os.path.dirname(__file__), 'config', 'fc_class_mapping.json')
+        fc_path = str(PROJECT_ROOT / 'config' / 'fc_class_mapping.json')
         if not os.path.exists(fc_path):
             logger.warning(f"FC class mapping not found: {fc_path}")
             cls._fc_class_mapping = {}

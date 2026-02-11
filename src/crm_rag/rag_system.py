@@ -135,18 +135,22 @@ class RetrievalConfig:
         "Place": 0.03,
         "E18_Physical_Thing": 0.03,
         "Physical Thing": 0.03,
-        # Non-informative types - penalty
-        "Linguistic Object": -0.15,
-        "E33_Linguistic_Object": -0.15,
-        "E33_E41_Linguistic_Appellation": -0.15,
-        "E41_E33_Linguistic_Appellation": -0.15,
-        "Linguistic Appellation": -0.15,
-        "Inscription": -0.15,
-        "E34_Inscription": -0.15,
-        "E31_Document": -0.10,
-        "Document": -0.10,
-        "Appellation": -0.10,
-        "E41_Appellation": -0.10,
+        # Non-informative types - stronger penalty
+        "Linguistic Object": -0.35,
+        "E33_Linguistic_Object": -0.35,
+        "E33_E41_Linguistic_Appellation": -0.35,
+        "E41_E33_Linguistic_Appellation": -0.35,
+        "Linguistic Appellation": -0.35,
+        "Inscription": -0.40,
+        "E34_Inscription": -0.40,
+        "E31_Document": -0.20,
+        "Document": -0.20,
+        "Appellation": -0.25,
+        "E41_Appellation": -0.25,
+        # Reference and visual item types - moderate penalty
+        "PC67_refers_to": -0.25,
+        "Representation": -0.15,
+        "Visual Item": -0.15,
     }
 
 
@@ -2449,9 +2453,29 @@ Each file contains:
             raw = json.load(f)
 
         # Filter out comment keys
-        cls._fc_class_mapping = {k: v for k, v in raw.items() if not k.startswith('_')}
+        filtered = {k: v for k, v in raw.items() if not k.startswith('_')}
+
+        # Expand each FC category to include both E-coded and human-readable names
+        # so that matching works against doc.metadata["all_types"] which stores labels
+        class_labels = cls._class_labels or {}
+        local_to_label = {}
+        for uri, label in class_labels.items():
+            local_name = uri.split('/')[-1].split('#')[-1]
+            local_to_label[local_name] = label
+
+        expanded = {}
+        for fc_name, class_list in filtered.items():
+            expanded_set = set(class_list)
+            for cls_name in class_list:
+                label = local_to_label.get(cls_name)
+                if label:
+                    expanded_set.add(label)
+            expanded[fc_name] = list(expanded_set)
+
+        cls._fc_class_mapping = expanded
         total = sum(len(v) for v in cls._fc_class_mapping.values())
-        logger.info(f"Loaded FC class mapping: {len(cls._fc_class_mapping)} categories, {total} classes")
+        logger.info(f"Loaded FC class mapping: {len(cls._fc_class_mapping)} categories, {total} classes "
+                    f"(expanded with human-readable labels)")
         return cls._fc_class_mapping
 
     def _analyze_query(self, question: str) -> 'QueryAnalysis':
@@ -3125,8 +3149,42 @@ Rules:
         else:
             results_with_scores = faiss_results
 
-        initial_docs = [doc for doc, _ in results_with_scores]
-        faiss_scores = np.array([score for _, score in results_with_scores])
+        # Pre-filter non-informative types from candidate pool
+        NON_INFORMATIVE_TYPES = {
+            "Linguistic Object", "E33_Linguistic_Object",
+            "E33_E41_Linguistic_Appellation", "E41_E33_Linguistic_Appellation",
+            "Linguistic Appellation", "Inscription", "E34_Inscription",
+            "Appellation", "E41_Appellation", "PC67_refers_to",
+            "Representation", "Visual Item",
+        }
+        MAX_NON_INFORMATIVE_RATIO = 0.25  # At most 25% of pool can be non-informative
+
+        informative = []
+        non_informative = []
+        for doc, score in results_with_scores:
+            doc_type = doc.metadata.get('type', '')
+            all_types = set(doc.metadata.get('all_types', []))
+            is_non_informative = doc_type in NON_INFORMATIVE_TYPES or bool(all_types & NON_INFORMATIVE_TYPES)
+            if is_non_informative:
+                non_informative.append((doc, score))
+            else:
+                informative.append((doc, score))
+
+        max_non_informative = max(1, int(len(results_with_scores) * MAX_NON_INFORMATIVE_RATIO))
+        if len(non_informative) > max_non_informative:
+            non_informative.sort(key=lambda x: x[1], reverse=True)
+            removed = len(non_informative) - max_non_informative
+            non_informative = non_informative[:max_non_informative]
+            logger.info(f"Pool filtering: removed {removed} non-informative entities, keeping {max_non_informative}")
+        else:
+            logger.info(f"Pool filtering: {len(non_informative)} non-informative entities within limit "
+                        f"({max_non_informative} max of {len(results_with_scores)} total)")
+
+        filtered_candidates = informative + non_informative
+        filtered_candidates.sort(key=lambda x: x[1], reverse=True)
+
+        initial_docs = [doc for doc, _ in filtered_candidates]
+        faiss_scores = np.array([score for _, score in filtered_candidates])
 
         # If we got fewer documents than requested, just return them
         if len(initial_docs) <= k:
@@ -3290,11 +3348,26 @@ Rules:
                                 dates["date"] = obj_val
             return dates
 
+        # Sort docs so informative types get budget priority for triples enrichment
+        PRIORITY_TYPES = {
+            "Actor", "E39_Actor", "E21_Person", "Person", "Group",
+            "Human-Made Object", "E22_Human-Made_Object", "E22_Man-Made_Object",
+            "Man-Made Object", "Physical Human-Made Thing",
+            "Activity", "E7_Activity", "Event", "E5_Event",
+            "Place", "E53_Place",
+        }
+
+        def _type_priority(doc):
+            doc_type = doc.metadata.get('type', '')
+            return 0 if doc_type in PRIORITY_TYPES else 1
+
+        sorted_docs = sorted(retrieved_docs, key=_type_priority)
+
         # Build per-entity enrichment
         entity_sections = []
         total_chars = 0
 
-        for doc in retrieved_docs:
+        for doc in sorted_docs:
             entity_uri = doc.id
             entity_label = doc.metadata.get("label", entity_uri.split("/")[-1])
             raw_triples = triples_index.get(entity_uri, [])

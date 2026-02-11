@@ -3508,6 +3508,17 @@ Rules:
                     nb_label = self._get_entity_label_from_triples(nb_id)
                     nb_type = ''
 
+                # Skip non-informative entity types in graph context
+                _GRAPH_CONTEXT_SKIP_TYPES = {
+                    'E41_E33_Linguistic_Appellation', 'Linguistic Appellation',
+                    'E33_Linguistic_Object', 'Linguistic Object',
+                    'E34_Inscription', 'Inscription',
+                    'E41_Appellation', 'Appellation',
+                    'Visual Item', 'Representation', 'PC67_refers_to',
+                }
+                if nb_type in _GRAPH_CONTEXT_SKIP_TYPES:
+                    continue
+
                 if nb_id not in neighbor_info:
                     neighbor_info[nb_id] = {
                         'label': nb_label,
@@ -3600,58 +3611,97 @@ Rules:
         initial_pool_size = k * RetrievalConfig.POOL_MULTIPLIER
         logger.info(f"Dynamic retrieval: type={query_analysis.query_type}, k={k}, pool={initial_pool_size}")
 
+        # Detect topic-pivot / exclusion patterns (e.g. "aside from X", "other than X")
+        _EXCLUSION_PATTERNS = [
+            r'\b(?:aside\s+from|other\s+than|besides|apart\s+from|excluding|except(?:\s+for)?)\s+([^,?.!]+)',
+        ]
+        excluded_entities = []
+        is_pivot_query = False
+        for pat in _EXCLUSION_PATTERNS:
+            match = re.search(pat, question, re.IGNORECASE)
+            if match:
+                is_pivot_query = True
+                excluded_name = match.group(1).strip()
+                # Split on "and"/"or" to handle "aside from Hodler and Amiet"
+                for part in re.split(r'\s+(?:and|or)\s+', excluded_name):
+                    part = part.strip().rstrip(',')
+                    if part:
+                        excluded_entities.append(part)
+                break
+
+        clean_query = question
+        if is_pivot_query:
+            logger.info(f"Topic pivot detected — excluded entities: {excluded_entities}")
+            # Build clean query: remove the exclusion clause and entity names
+            for pat in _EXCLUSION_PATTERNS:
+                clean_query = re.sub(pat, '', clean_query, flags=re.IGNORECASE)
+            # Also remove any remaining mentions of excluded entity names
+            for entity in excluded_entities:
+                clean_query = re.sub(r'\b' + re.escape(entity) + r'\b', '', clean_query, flags=re.IGNORECASE)
+            clean_query = re.sub(r'\s+', ' ', clean_query).strip().rstrip(',').strip()
+            if not clean_query:
+                clean_query = question  # fallback if cleaning removed everything
+            logger.info(f"Cleaned pivot query: '{clean_query}'")
+
         if chat_history:
-            # Dual retrieval: run contextualized query AND raw question separately,
-            # then merge.  The contextualized query uses only the immediately
-            # previous user message (not the current one, which is already the raw
-            # query).  This avoids two bugs:
-            #   1. Current question was duplicated (already in chat_history + appended)
-            #   2. Multiple previous topics polluted the embedding
-            prev_user_msgs = [
-                m["content"] for m in chat_history[:-1] if m["role"] == "user"
-            ]
-            if prev_user_msgs:
-                contextualized_query = f"{prev_user_msgs[-1]} {question}"
+            if is_pivot_query:
+                # Topic pivot: skip contextualized retrieval entirely — user is
+                # explicitly moving away from the previous topic, so prepending
+                # the last question would pollute the embedding with the excluded entity
+                logger.info(f"Pivot query: using cleaned raw retrieval only ('{clean_query}')")
+                retrieved_docs = self.retrieve(clean_query, k=k, initial_pool_size=initial_pool_size, query_analysis=query_analysis)
             else:
-                contextualized_query = question
-            logger.info(f"Dual retrieval — contextualized: '{contextualized_query[:200]}'")
-            logger.info(f"Dual retrieval — raw: '{question}'")
+                # Dual retrieval: run contextualized query AND raw question separately,
+                # then merge.  The contextualized query uses only the immediately
+                # previous user message (not the current one, which is already the raw
+                # query).  This avoids two bugs:
+                #   1. Current question was duplicated (already in chat_history + appended)
+                #   2. Multiple previous topics polluted the embedding
+                prev_user_msgs = [
+                    m["content"] for m in chat_history[:-1] if m["role"] == "user"
+                ]
+                if prev_user_msgs:
+                    contextualized_query = f"{prev_user_msgs[-1]} {question}"
+                else:
+                    contextualized_query = question
+                logger.info(f"Dual retrieval — contextualized: '{contextualized_query[:200]}'")
+                logger.info(f"Dual retrieval — raw: '{question}'")
 
-            ctx_docs = self.retrieve(contextualized_query, k=k, initial_pool_size=initial_pool_size, query_analysis=query_analysis)
+                ctx_docs = self.retrieve(contextualized_query, k=k, initial_pool_size=initial_pool_size, query_analysis=query_analysis)
 
-            # Detect vague follow-ups: short questions dominated by pronouns/stopwords
-            # For these, the raw FAISS query retrieves irrelevant results, so skip it
-            q_words = set(re.findall(r'\b[a-z]+\b', question.lower()))
-            stopwords = {'it', 'they', 'them', 'this', 'that', 'these', 'those',
-                         'the', 'a', 'an', 'is', 'are', 'was', 'were', 'has', 'have',
-                         'had', 'do', 'did', 'does', 'when', 'where', 'what', 'how',
-                         'and', 'or', 'with', 'which', 'other', 'more', 'its', 'of',
-                         'in', 'to', 'for', 'about', 'me', 'tell', 'happened', 'took',
-                         'place', 'there', 'any'}
-            content_words = q_words - stopwords
-            is_vague = len(content_words) == 0 and len(question.split()) <= 10
-            if is_vague:
-                logger.info(f"Vague follow-up detected, skipping raw retrieval: '{question}'")
+                # Detect vague follow-ups: short questions dominated by pronouns/stopwords
+                # For these, the raw FAISS query retrieves irrelevant results, so skip it
+                q_words = set(re.findall(r'\b[a-z]+\b', question.lower()))
+                stopwords = {'it', 'they', 'them', 'this', 'that', 'these', 'those',
+                             'the', 'a', 'an', 'is', 'are', 'was', 'were', 'has', 'have',
+                             'had', 'do', 'did', 'does', 'when', 'where', 'what', 'how',
+                             'and', 'or', 'with', 'which', 'other', 'more', 'its', 'of',
+                             'in', 'to', 'for', 'about', 'me', 'tell', 'happened', 'took',
+                             'place', 'there', 'any'}
+                content_words = q_words - stopwords
+                is_vague = len(content_words) == 0 and len(question.split()) <= 10
+                if is_vague:
+                    logger.info(f"Vague follow-up detected, skipping raw retrieval: '{question}'")
 
-            if is_vague:
-                retrieved_docs = ctx_docs[:k]
-            else:
-                raw_docs = self.retrieve(question, k=k, initial_pool_size=initial_pool_size, query_analysis=query_analysis)
+                if is_vague:
+                    retrieved_docs = ctx_docs[:k]
+                else:
+                    raw_docs = self.retrieve(question, k=k, initial_pool_size=initial_pool_size, query_analysis=query_analysis)
 
-                # Interleaved merge: alternate ctx and raw results so raw query
-                # gets fair representation instead of being pushed to the tail
-                seen_uris = set()
-                retrieved_docs = []
-                for i in range(max(len(ctx_docs), len(raw_docs))):
-                    if i < len(ctx_docs) and ctx_docs[i].id not in seen_uris:
-                        seen_uris.add(ctx_docs[i].id)
-                        retrieved_docs.append(ctx_docs[i])
-                    if i < len(raw_docs) and raw_docs[i].id not in seen_uris:
-                        seen_uris.add(raw_docs[i].id)
-                        retrieved_docs.append(raw_docs[i])
-                retrieved_docs = retrieved_docs[:k]
-                logger.info(f"Dual retrieval merged: {len(retrieved_docs)} unique docs "
-                            f"(ctx={len(ctx_docs)}, raw={len(raw_docs)})")
+                    # Interleaved merge: alternate ctx and raw results so raw query
+                    # gets fair representation instead of being pushed to the tail
+                    seen_uris = set()
+                    retrieved_docs = []
+                    for i in range(max(len(ctx_docs), len(raw_docs))):
+                        if i < len(ctx_docs) and ctx_docs[i].id not in seen_uris:
+                            seen_uris.add(ctx_docs[i].id)
+                            retrieved_docs.append(ctx_docs[i])
+                        if i < len(raw_docs) and raw_docs[i].id not in seen_uris:
+                            seen_uris.add(raw_docs[i].id)
+                            retrieved_docs.append(raw_docs[i])
+                    retrieved_docs = retrieved_docs[:k]
+                    logger.info(f"Dual retrieval merged: {len(retrieved_docs)} unique docs "
+                                f"(ctx={len(ctx_docs)}, raw={len(raw_docs)})")
         else:
             retrieved_docs = self.retrieve(question, k=k, initial_pool_size=initial_pool_size, query_analysis=query_analysis)
 

@@ -1,0 +1,173 @@
+[
+  {
+    "id": "Q1",
+    "question": "Which pieces from Swiss Artists are in the Musée d'art et d'histoire in Geneva?",
+    "type": "ENUMERATION",
+    "expected_answer_type": "List of artworks by Swiss artists",
+    "reference_data": {
+      "method": "birthplace_search",
+      "top_artists": [
+        {"name": "Ferdinand Hodler", "uri": "https://data.mahmah.ch/agent/8679", "works": 66},
+        {"name": "Markus Raetz", "uri": "https://data.mahmah.ch/agent/3848", "works": 43},
+        {"name": "Franz Heger", "uri": "https://data.mahmah.ch/agent/1926", "works": 26},
+        {"name": "Henri Presset", "uri": "https://data.mahmah.ch/agent/4167", "works": 26},
+        {"name": "John Michael Armleder", "uri": "https://data.mahmah.ch/agent/4544", "works": 22}
+      ],
+      "total_artists": 100,
+      "note": "Swiss artists identified by birthplace in Swiss cities (Geneva, Bern, Zürich, Lausanne, Basel, etc.)"
+    }
+  },
+  {
+    "id": "Q2",
+    "question": "Which paintings depict Geneva?",
+    "type": "ENUMERATION",
+    "expected_answer_type": "List of paintings with Geneva as subject",
+    "reference_data": {
+      "count": 200,
+      "sample_works": [
+        {"title": "Autoportrait (recto); La Rade de Genève (verso)", "uri": "https://data.mahmah.ch/work/186708"},
+        {"title": "Le Lac Léman et le Mont-Blanc, avec cygnes", "uri": "https://data.mahmah.ch/work/54050"},
+        {"title": "Genève et le Salève vus des fortifications", "uri": "https://data.mahmah.ch/work/371539"},
+        {"title": "L'Escalade de Genève, 1602. Vue aux banderoles", "uri": "https://data.mahmah.ch/work/281873"},
+        {"title": "Vue de Genève", "uri": "https://data.mahmah.ch/work/232250"}
+      ],
+      "note": "Works that have P62_depicts or K24_portray relationship to Geneva"
+    }
+  },
+  {
+    "id": "Q3",
+    "question": "Tell me more about Ferdinand Hodler and his paintings",
+    "type": "SPECIFIC",
+    "expected_answer_type": "Biographical info and list of Hodler's paintings",
+    "reference_data": {
+      "artist_uri": "https://data.mahmah.ch/agent/8679",
+      "works_count": 38,
+      "sample_works": [
+        {"title": "Rückzug von Marignano, rechter Flügel- Retraite de Marignan, panneau de droite", "uri": "https://data.mahmah.ch/work/498137"},
+        {"title": "Jungfrau Mönch Eiger über den Nebeln - Jungfrau Mönch Eiger au dessus du brouillard", "uri": "https://data.mahmah.ch/work/495250"},
+        {"title": "Die Reformation - Adhésion de Hanovre à la Réforme", "uri": "https://data.mahmah.ch/work/498668"},
+        {"title": "Was die Blumen sagen - Ce que disent les fleurs", "uri": "https://data.mahmah.ch/work/497480"},
+        {"title": "Der Holzfäller - Le Bucheron", "uri": "https://data.mahmah.ch/work/495661"}
+      ],
+      "note": "Swiss artist (born in Geneva according to dataset), 66 creation activities (editions) producing 38 distinct works"
+    }
+  },
+  {
+    "id": "Q4",
+    "question": "Tell me more about Guerrier au morgenstern",
+    "type": "SPECIFIC",
+    "expected_answer_type": "Detailed info about this specific work",
+    "reference_data": {
+      "work_uri": "https://data.mahmah.ch/work/49580",
+      "title": "Guerrier au morgenstern",
+      "type": "E22_Human-Made_Object (painting)",
+      "domain": "Beaux-arts",
+      "category": "Peinture",
+      "technique": "Oil painting",
+      "exhibitions": 3,
+      "has_image": true,
+      "has_dimensions": true,
+      "referenced_by_documents": 8,
+      "note": "36 total properties found in dataset"
+    }
+  },
+  {
+    "id": "Q5",
+    "question": "Was Guerrier au morgenstern featured in a Fondation Pierre Gianadda exhibition?",
+    "type": "SPECIFIC",
+    "expected_answer_type": "Yes/No and exhibition details if applicable",
+    "reference_data": {
+      "work_uri": "https://data.mahmah.ch/work/49580",
+      "gianadda_found": false,
+      "total_exhibitions": 15,
+      "note": "NO Fondation Pierre Gianadda exhibitions found in the dataset. All 15 exhibitions appear to be in Geneva. This may indicate incomplete data or the work was not exhibited at Gianadda according to MAH records."
+    }
+  },
+  {
+    "id": "Q6",
+    "question": "When did the Gianadda exhibition happen and which other pieces were featured?",
+    "type": "SPECIFIC",
+    "expected_answer_type": "Exhibition dates and other works",
+    "reference_data": {
+      "gianadda_found": false,
+      "note": "Cannot answer - no Gianadda exhibition found in Q5. Data appears incomplete for this question."
+    }
+  },
+  {
+    "id": "Q7",
+    "question": "In which exhibitions and where has Hodler's work been featured?",
+    "type": "ENUMERATION",
+    "expected_answer_type": "List of exhibitions featuring Hodler's works with locations",
+    "reference_data": {
+      "artist_uri": "https://data.mahmah.ch/agent/8679",
+      "exhibitions_count": 6,
+      "sample_exhibitions": [
+        {"title": "Ferdinand Hodler, peintre de l'histoire suisse", "place": "Geneva", "dates": "1991-06-13 to 1991-10-20"},
+        {"title": "La Course du temps", "place": "Geneva", "dates": "2022-06-03 to 2022-10-02"}
+      ],
+      "note": "Only 6 exhibitions found - likely incomplete data. May only include MAH-organized exhibitions."
+    }
+  },
+  {
+    "id": "Q8",
+    "question": "When did those exhibitions take place?",
+    "type": "SPECIFIC",
+    "expected_answer_type": "Dates for exhibitions from Q7",
+    "reference_data": {
+      "note": "See Q7 reference data - dates range from 1991 to 2022"
+    }
+  },
+  {
+    "id": "Q9",
+    "question": "Other Swiss artists aside from Hodler?",
+    "type": "ENUMERATION",
+    "expected_answer_type": "List of other Swiss artists in the collection",
+    "reference_data": {
+      "artists_count": 50,
+      "top_10": [
+        {"name": "Markus Raetz", "uri": "https://data.mahmah.ch/agent/3848", "works": 43},
+        {"name": "Franz Heger", "uri": "https://data.mahmah.ch/agent/1926", "works": 26},
+        {"name": "Henri Presset", "uri": "https://data.mahmah.ch/agent/4167", "works": 26},
+        {"name": "Johann Friedrich Maehly", "uri": "https://data.mahmah.ch/agent/86965", "works": 23},
+        {"name": "John Michael Armleder", "uri": "https://data.mahmah.ch/agent/4544", "works": 22},
+        {"name": "Charles-Louis Guigon", "uri": "https://data.mahmah.ch/agent/29635", "works": 21},
+        {"name": "Gustav Adolf Feh", "uri": "https://data.mahmah.ch/agent/84024", "works": 18},
+        {"name": "Jakob Samuel Weibel", "uri": "https://data.mahmah.ch/agent/62887", "works": 17},
+        {"name": "Théophile-Alexandre Steinlen", "uri": "https://data.mahmah.ch/agent/1415", "works": 16},
+        {"name": "Jean-Antoine Linck", "uri": "https://data.mahmah.ch/agent/19463", "works": 16}
+      ],
+      "notable_names": ["Liotard", "Töpffer", "Vallotton", "Böcklin", "Steinlen", "Armleder", "Raetz"]
+    }
+  },
+  {
+    "id": "Q10",
+    "question": "What did Hans Schweizer do?",
+    "type": "SPECIFIC",
+    "expected_answer_type": "Information about Hans Schweizer and their works/activities",
+    "reference_data": {
+      "schweizers_found": 9,
+      "note": "9 people with 'Schweizer' in their name found. Need to check full JSON for specific 'Hans Schweizer' results."
+    }
+  },
+  {
+    "id": "Q11",
+    "question": "Top 10 Swiss Artists in the MAH?",
+    "type": "AGGREGATION",
+    "expected_answer_type": "Ranked list of top 10 Swiss artists by work count",
+    "reference_data": {
+      "top_10": [
+        {"rank": 1, "name": "Ferdinand Hodler", "uri": "https://data.mahmah.ch/agent/8679", "works": 66},
+        {"rank": 2, "name": "Markus Raetz", "uri": "https://data.mahmah.ch/agent/3848", "works": 43},
+        {"rank": 3, "name": "Franz Heger", "uri": "https://data.mahmah.ch/agent/1926", "works": 26},
+        {"rank": 4, "name": "Henri Presset", "uri": "https://data.mahmah.ch/agent/4167", "works": 26},
+        {"rank": 5, "name": "Johann Friedrich Maehly", "uri": "https://data.mahmah.ch/agent/86965", "works": 23},
+        {"rank": 6, "name": "John Michael Armleder", "uri": "https://data.mahmah.ch/agent/4544", "works": 22},
+        {"rank": 7, "name": "Charles-Louis Guigon", "uri": "https://data.mahmah.ch/agent/29635", "works": 21},
+        {"rank": 8, "name": "Gustav Adolf Feh", "uri": "https://data.mahmah.ch/agent/84024", "works": 18},
+        {"rank": 9, "name": "Jakob Samuel Weibel", "uri": "https://data.mahmah.ch/agent/62887", "works": 17},
+        {"rank": 10, "name": "Théophile-Alexandre Steinlen", "uri": "https://data.mahmah.ch/agent/1415", "works": 16}
+      ],
+      "note": "Work counts based on distinct editions/activities. Each agent may have multiple label variants in the data."
+    }
+  }
+]

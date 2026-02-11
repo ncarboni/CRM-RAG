@@ -199,6 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Collect all images from sources (deduplicate by URL)
         const imageMap = new Map();
         sources.forEach(source => {
+            // Handle Wikidata images (source.image — singular, has thumbnail_url)
             if (source.image && source.image.thumbnail_url) {
                 // Validate the URL - skip if it looks malformed (e.g., array stringified)
                 const thumbnailUrl = source.image.thumbnail_url;
@@ -218,6 +219,23 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                     }
                 }
+            }
+            // Handle dataset images (source.images — plural, array of {url, source})
+            if (source.images && Array.isArray(source.images)) {
+                source.images.forEach(img => {
+                    const imgUrl = img.url;
+                    if (typeof imgUrl === 'string' &&
+                        imgUrl.startsWith('http') &&
+                        !imageMap.has(imgUrl)) {
+                        imageMap.set(imgUrl, {
+                            thumbnailUrl: imgUrl,
+                            fullUrl: imgUrl,
+                            linkUrl: imgUrl,
+                            label: source.entity_label || 'Image',
+                            source: img.source || 'dataset'
+                        });
+                    }
+                });
             }
         });
         const images = Array.from(imageMap.values());

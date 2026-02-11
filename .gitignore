@@ -15,11 +15,9 @@ data/cache/
 data/documents/**/entity_documents/
 data/documents/**/edges.parquet
 data/exports/
-sample_entity_documents/
 
 # Cache and temporary pickle files
 *.pkl
-document_graph_temp.pkl
 
 # Python
 __pycache__/
@@ -68,14 +66,12 @@ htmlcov/
 # User-specific SLURM job scripts
 scripts/pipeline.sbatch
 
-
-#Benchmark
+# Benchmarks
 benchmarks/
 
-#report
+# Reports (evaluation outputs)
 reports/
-evaluation_report.md
 
-#articles
+# Articles
 CIDOC2VEC.pdf
 TZOMPANAKI_2012_Fundamental_Categories_and_Relationships_for_intuitive_querying_CIDOC-CRM_based_repo.pdf

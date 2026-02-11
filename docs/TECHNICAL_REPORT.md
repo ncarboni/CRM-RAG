@@ -250,11 +250,11 @@ This enables:
 
 | Component | File | Key Functions |
 |-----------|------|---------------|
-| Document generation | `universal_rag_system.py` | `process_rdf_data()`, `_create_fr_document_from_prefetched()` |
-| Image indexing | `sparql_helpers.py` | `BatchSparqlClient.build_image_index()` |
-| Batch SPARQL queries | `sparql_helpers.py` | `BatchSparqlClient` class |
-| Document formatting | `document_formatter.py` | `is_schema_predicate()`, `get_relationship_weight()` |
-| Dynamic batching | `llm_providers.py` | `get_embeddings_batch()`, `_get_effective_batch_size()` |
-| Embedding cache | `llm_providers.py` | `EmbeddingCache` class |
-| Document graph | `graph_document_store.py` | `GraphDocumentStore`, `create_adjacency_matrix()` |
-| Retrieval | `universal_rag_system.py` | `cidoc_aware_retrieval()`, `compute_coherent_subgraph()` |
+| Document generation | `src/crm_rag/rag_system.py` | `process_rdf_data()`, `_create_fr_document_from_prefetched()` |
+| Image indexing | `src/crm_rag/sparql_helpers.py` | `BatchSparqlClient.build_image_index()` |
+| Batch SPARQL queries | `src/crm_rag/sparql_helpers.py` | `BatchSparqlClient` class |
+| Document formatting | `src/crm_rag/document_formatter.py` | `is_schema_predicate()`, `get_relationship_weight()` |
+| Dynamic batching | `src/crm_rag/llm_providers.py` | `get_embeddings_batch()`, `_get_effective_batch_size()` |
+| Embedding cache | `src/crm_rag/embedding_cache.py` | `EmbeddingCache` class |
+| Document graph | `src/crm_rag/document_store.py` | `GraphDocumentStore`, `create_adjacency_matrix()` |
+| Retrieval | `src/crm_rag/rag_system.py` | `cidoc_aware_retrieval()`, `compute_coherent_subgraph()` |

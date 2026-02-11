@@ -583,30 +583,19 @@ class UniversalRagSystem:
     @property
     def embeddings(self):
         """
-        Return an embedding object compatible with FAISS and the rest of the code.
-        This property maintains backward compatibility with existing code.
+        Return an Embeddings object compatible with FAISS and the rest of the code.
         Uses the embedding_provider (which may be different from llm_provider).
         """
-        class EmbeddingFunction:
+        from langchain_core.embeddings import Embeddings
+
+        class EmbeddingFunction(Embeddings):
             def __init__(self, provider):
                 self.provider = provider
 
-            def __call__(self, text):
-                """Make the object callable for FAISS"""
+            def embed_query(self, text: str) -> list[float]:
                 return self.provider.get_embeddings(text)
 
-            def embed_query(self, text):
-                """For code that explicitly calls embed_query"""
-                return self.provider.get_embeddings(text)
-
-            def embed_documents(self, texts):
-                """For code that needs to embed multiple documents"""
-                if hasattr(self.provider, 'get_embeddings_batch'):
-                    return self.provider.get_embeddings_batch(texts)
-                return [self.provider.get_embeddings(text) for text in texts]
-
-            def get_embeddings_batch(self, texts):
-                """Batch embedding for efficiency"""
+            def embed_documents(self, texts: list[str]) -> list[list[float]]:
                 if hasattr(self.provider, 'get_embeddings_batch'):
                     return self.provider.get_embeddings_batch(texts)
                 return [self.provider.get_embeddings(text) for text in texts]
@@ -1610,7 +1599,7 @@ class UniversalRagSystem:
             for uri, _lbl in dp["targets"]:
                 all_target_uris.add(uri)
 
-        from fr_traversal import build_target_enrichments
+        from crm_rag.fr_traversal import build_target_enrichments
         target_enrichments = build_target_enrichments(
             target_uris=all_target_uris,
             outgoing=fr_outgoing,

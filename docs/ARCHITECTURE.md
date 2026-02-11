@@ -62,7 +62,7 @@ This system implements a **Retrieval-Augmented Generation (RAG)** pipeline speci
                                     ▼
         ┌───────────────────────────────────────────────┐
         │  1. ONTOLOGY EXTRACTION LAYER                 │
-        │  (extract_ontology_labels.py)                 │
+        │  (scripts/extract_ontology_labels.py)          │
         │                                               │
         │  Input:  data/ontologies/*.ttl, *.rdf, *.owl  │
         │  Output: property_labels.json                 │
@@ -73,7 +73,7 @@ This system implements a **Retrieval-Augmented Generation (RAG)** pipeline speci
                                     ▼
         ┌───────────────────────────────────────────────┐
         │  2. RDF DATA PROCESSING LAYER                 │
-        │  (universal_rag_system.py)                    │
+        │  (src/crm_rag/rag_system.py)                  │
         │                                               │
         │  • Query SPARQL endpoint for entities         │
         │  • Get entity types, properties, relations    │
@@ -84,7 +84,7 @@ This system implements a **Retrieval-Augmented Generation (RAG)** pipeline speci
                                     ▼
         ┌───────────────────────────────────────────────┐
         │  3. GRAPH CONSTRUCTION LAYER                  │
-        │  (graph_document_store.py)                    │
+        │  (src/crm_rag/document_store.py)               │
         │                                               │
         │  • Create GraphDocument nodes                 │
         │  • Build edges with CIDOC-CRM weights         │
@@ -172,7 +172,7 @@ This system implements a **Retrieval-Augmented Generation (RAG)** pipeline speci
 
 ### 1. Ontology Extraction Layer
 
-**File**: `extract_ontology_labels.py`
+**File**: `scripts/extract_ontology_labels.py`
 
 **Purpose**: Extract English labels and class definitions from ontology files to enable proper natural language generation.
 
@@ -204,7 +204,7 @@ class_labels.json          # URI → English label (classes)
 
 ### 2. RDF Data Processing Layer
 
-**File**: `universal_rag_system.py`
+**File**: `src/crm_rag/rag_system.py`
 
 **Purpose**: Core RAG system that processes RDF data, builds graph documents, and handles retrieval.
 
@@ -277,7 +277,7 @@ class_labels.json          # URI → English label (classes)
 
 ### 3. Graph Document Store
 
-**File**: `graph_document_store.py`
+**File**: `src/crm_rag/document_store.py`
 
 **Purpose**: Manage graph-structured documents with vector retrieval capabilities.
 
@@ -309,7 +309,7 @@ class_labels.json          # URI → English label (classes)
 
 ### 4. LLM Provider Abstraction
 
-**File**: `llm_providers.py`
+**File**: `src/crm_rag/llm_providers.py`
 
 **Purpose**: Unified interface for multiple LLM and embedding providers.
 
@@ -351,7 +351,7 @@ config = {
 
 ### 5. Dataset Manager
 
-**File**: `dataset_manager.py`
+**File**: `src/crm_rag/dataset_manager.py`
 
 **Purpose**: Manage multiple RAG system instances with lazy loading.
 
@@ -382,7 +382,7 @@ datasets:
 
 ### 6. Embedding Cache
 
-**File**: `embedding_cache.py`
+**File**: `src/crm_rag/embedding_cache.py`
 
 **Purpose**: Disk-based embedding cache for resumable processing.
 
@@ -676,57 +676,55 @@ C [0.75 1.0  1.0 ]
 
 ```
 CRM_RAG/
-├── main.py                          # Flask web application
-├── universal_rag_system.py          # Core RAG orchestrator
-├── graph_document_store.py          # Graph-based document storage
-├── llm_providers.py                 # LLM abstraction layer
-├── dataset_manager.py               # Multi-dataset management
-├── embedding_cache.py               # Disk-based embedding cache
-├── config_loader.py                 # Configuration loading
+├── main.py                              # Thin entry point
+├── pyproject.toml                       # Project metadata & dependencies
 │
-├── config/                          # Configuration files
-│   ├── .env.openai                  # OpenAI provider config
-│   ├── .env.local                   # Local embeddings config
-│   ├── .env.cluster                 # GPU cluster config
-│   ├── .env.secrets                 # API keys (git-ignored)
-│   ├── datasets.yaml                # Multi-dataset configuration
-│   ├── interface.yaml               # Chat UI customization
-│   └── event_classes.json           # CIDOC-CRM event classes
+├── src/crm_rag/                         # Python package
+│   ├── __init__.py                      # Package marker + PROJECT_ROOT
+│   ├── app.py                           # Flask app, routes, security
+│   ├── rag_system.py                    # Core RAG orchestrator
+│   ├── document_store.py               # Graph-based document storage
+│   ├── llm_providers.py                 # LLM abstraction layer
+│   ├── dataset_manager.py              # Multi-dataset management
+│   ├── embedding_cache.py              # Disk-based embedding cache
+│   ├── config_loader.py                # Configuration loading
+│   ├── fr_traversal.py                 # Fundamental Relationship traversal
+│   ├── document_formatter.py           # Predicate/class formatting utils
+│   └── sparql_helpers.py               # Batch SPARQL client
 │
-├── data/                            # All data files
-│   ├── ontologies/                  # Ontology files
-│   │   ├── CIDOC_CRM_v7.1.3.rdf
-│   │   ├── vir.ttl
-│   │   └── CRMdig_v3.2.1.rdf
-│   │
-│   ├── labels/                      # Extracted ontology labels (shared)
-│   │   ├── property_labels.json
-│   │   ├── class_labels.json
-│   │   └── ontology_classes.json
-│   │
-│   ├── exports/                     # RDF bulk exports
-│   │   └── <dataset>_dump.ttl
-│   │
-│   ├── cache/                       # Per-dataset caches
-│   │   └── <dataset>/
-│   │       ├── document_graph.pkl
-│   │       ├── vector_index/
-│   │       └── embeddings/
-│   │
-│   └── documents/                   # Per-dataset entity documents
-│       └── <dataset>/
-│           └── entity_documents/*.md
+├── config/                              # Configuration files
+│   ├── .env.openai                      # OpenAI provider config
+│   ├── .env.local                       # Local embeddings config
+│   ├── .env.cluster                     # GPU cluster config
+│   ├── .env.secrets                     # API keys (git-ignored)
+│   ├── datasets.yaml                    # Multi-dataset configuration
+│   ├── interface.yaml                   # Chat UI customization
+│   ├── event_classes.json               # CIDOC-CRM event classes
+│   ├── fc_class_mapping.json            # CRM class → FC mapping
+│   └── fundamental_relationships_cidoc_crm.json  # FR paths
 │
-├── scripts/                         # Utility scripts
-│   ├── extract_ontology_labels.py   # Ontology label extraction
-│   ├── bulk_generate_documents.py   # Fast bulk RDF export
-│   ├── cluster_pipeline.py          # Unified cluster workflow
-│   └── test_entity_context.py       # Debug utility
+├── data/                                # All data files
+│   ├── ontologies/                      # Ontology files
+│   ├── labels/                          # Extracted ontology labels (shared)
+│   ├── cache/<dataset>/                 # Per-dataset caches
+│   │   ├── document_graph.pkl
+│   │   ├── vector_index/
+│   │   ├── bm25_index/
+│   │   └── embeddings/
+│   └── documents/<dataset>/
+│       ├── entity_documents/*.md
+│       └── edges.parquet
 │
-├── static/                          # Web interface assets
-├── templates/                       # Flask HTML templates
-├── logs/                            # Application logs
-└── docs/                            # Documentation
+├── scripts/                             # Utility scripts
+│   ├── extract_ontology_labels.py
+│   ├── evaluate_pipeline.py
+│   └── test_entity_context.py
+│
+├── static/                              # Web interface assets
+├── templates/                           # Flask HTML templates
+├── logs/                                # Application logs
+├── reports/                             # Evaluation outputs (timestamped)
+└── docs/                                # Documentation
 ```
 
 ### Data Files
@@ -915,7 +913,7 @@ example_questions:
 
 ### System Configuration
 
-In `universal_rag_system.py`:
+In `src/crm_rag/rag_system.py`:
 
 ```python
 class RetrievalConfig:
@@ -952,14 +950,14 @@ class RetrievalConfig:
 3. Run `python scripts/extract_ontology_labels.py`
 4. Delete caches and rebuild:
    ```bash
-   rm -rf document_graph.pkl vector_index/ entity_documents/
+   rm -rf data/cache/<dataset>/
    ```
 5. Re-initialize RAG system
 
 ### 2. Adding New LLM Providers
 
 **Steps**:
-1. Create new provider class in `llm_providers.py`:
+1. Create new provider class in `src/crm_rag/llm_providers.py`:
    ```python
    class MyProvider(BaseLLMProvider):
        def __init__(self, api_key, model, **kwargs):
@@ -993,7 +991,7 @@ class RetrievalConfig:
 
 ### 3. Custom Relationship Weights
 
-In `cidoc_aware_retrieval()`, modify:
+In `src/crm_rag/document_formatter.py`, modify `get_relationship_weight()`:
 
 ```python
 relationship_weights = {
@@ -1006,7 +1004,7 @@ relationship_weights = {
 
 ### 4. Custom Document Formatting
 
-Override `create_enhanced_document()`:
+Override `_create_fr_document_from_prefetched()` in `src/crm_rag/rag_system.py`:
 
 ```python
 def create_enhanced_document(self, entity_uri):

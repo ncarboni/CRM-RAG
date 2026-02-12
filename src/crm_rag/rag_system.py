@@ -741,10 +741,14 @@ class UniversalRagSystem:
             return set(), {}
 
         # Date property local names to look for on E52_Time-Span entities
+        # P82a/P82b = outer bounds, P81a/P81b = inner bounds (used by MAH)
+        # If both exist, first match wins (P82a before P81a)
         _TIME_PROPS = {
             "P82a_begin_of_the_begin": "begin",
             "P82b_end_of_the_end": "end",
             "P82_at_some_time_within": "within",
+            "P81a_end_of_the_begin": "begin",
+            "P81b_begin_of_the_end": "end",
         }
 
         # Pass 1: identify all satellites
@@ -3526,6 +3530,8 @@ Rules:
             "P82a_begin_of_the_begin",
             "P82b_end_of_the_end",
             "P82_at_some_time_within",
+            "P81a_end_of_the_begin",
+            "P81b_begin_of_the_end",
         }
 
         MAX_TRIPLES_PER_ENTITY = 15

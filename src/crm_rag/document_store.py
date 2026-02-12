@@ -188,64 +188,63 @@ class GraphDocumentStore:
         logger.info(f"Retrieved {len(retrieved)} documents")
         return retrieved
 
-    def create_adjacency_matrix(self, doc_ids, max_hops=2):
-        """Create an adjacency matrix with virtual 2-hop edges through the full graph.
+    def create_adjacency_matrix(self, doc_ids, triples_index, weight_fn, max_hops=2):
+        """Create an adjacency matrix with virtual 2-hop edges through the full RDF graph.
 
-        Unlike the previous approach (A^2 within pool only), this discovers
-        connections between candidates through intermediate nodes anywhere in
-        the full document graph. This is critical for event-based ontologies
-        like CIDOC-CRM where entities connect through event intermediaries
+        Uses the triples index (built from edges.parquet) rather than in-memory
+        document neighbor lists.  This ensures the adjacency matrix reflects the
+        full knowledge-graph topology — including entities removed by thin-doc
+        chaining that still serve as valid intermediaries for 2-hop paths
         (e.g., Artist -> E12_Production -> Artwork).
 
         Args:
-            doc_ids: List of candidate document IDs
+            doc_ids: List of candidate document IDs (entity URIs)
+            triples_index: Dict mapping entity_uri -> [triple_dicts] from Parquet.
+                Each triple dict has keys: subject, predicate, object (+ labels).
+            weight_fn: Callable(predicate_uri) -> float for CIDOC-CRM semantic weights.
             max_hops: Maximum hops (used for virtual edge discount factor)
         """
         doc_to_idx = {doc_id: i for i, doc_id in enumerate(doc_ids)}
         n = len(doc_ids)
         adj_matrix = np.zeros((n, n), dtype=np.float64)
 
-        # 1-hop: direct edges between candidates
+        # 1-hop: direct edges between candidates (from full RDF graph)
         direct_edges = 0
-        for i, doc_id in enumerate(doc_ids):
-            if doc_id not in self.docs:
-                continue
-            doc = self.docs[doc_id]
-            for neighbor in doc.neighbors:
-                neighbor_id = neighbor["doc_id"]
-                if neighbor_id in doc_to_idx:
-                    j = doc_to_idx[neighbor_id]
-                    adj_matrix[i, j] = neighbor["weight"]
-                    direct_edges += 1
-
-        # Virtual 2-hop: edges through intermediate nodes in the FULL graph
-        # Build inverted index: intermediate_node -> [(candidate_idx, weight)]
+        # Virtual 2-hop: intermediate_node -> [(candidate_idx, weight)]
         intermediate_index = {}
+
         for i, doc_id in enumerate(doc_ids):
-            if doc_id not in self.docs:
-                continue
-            doc = self.docs[doc_id]
-            for neighbor in doc.neighbors:
-                neighbor_id = neighbor["doc_id"]
-                # Only consider intermediates OUTSIDE the candidate pool
-                if neighbor_id not in doc_to_idx:
-                    if neighbor_id not in intermediate_index:
-                        intermediate_index[neighbor_id] = []
-                    intermediate_index[neighbor_id].append((i, neighbor.get("weight", 0.5)))
+            for triple in triples_index.get(doc_id, []):
+                # Determine the other endpoint
+                if triple["subject"] == doc_id:
+                    other = triple["object"]
+                else:
+                    other = triple["subject"]
+
+                weight = weight_fn(triple["predicate"])
+
+                if other in doc_to_idx:
+                    # 1-hop: both endpoints are candidates
+                    j = doc_to_idx[other]
+                    if weight > adj_matrix[i, j]:
+                        adj_matrix[i, j] = weight
+                    direct_edges += 1
+                else:
+                    # Intermediate outside the candidate pool — collect for 2-hop
+                    if other not in intermediate_index:
+                        intermediate_index[other] = []
+                    intermediate_index[other].append((i, weight))
 
         # For each intermediate connecting 2+ candidates, add virtual edges
         virtual_edges = 0
         for intermediate_id, connections in intermediate_index.items():
             if len(connections) < 2:
                 continue
-            # Add virtual edge between each pair of candidates through this intermediate
             for ci in range(len(connections)):
                 idx_a, weight_a = connections[ci]
                 for cj in range(ci + 1, len(connections)):
                     idx_b, weight_b = connections[cj]
-                    # Virtual edge weight: product of path weights, discounted by hop count
                     virtual_weight = (weight_a * weight_b) * (1.0 / max_hops)
-                    # Keep the stronger connection if multiple paths exist
                     if virtual_weight > adj_matrix[idx_a, idx_b]:
                         adj_matrix[idx_a, idx_b] = virtual_weight
                         adj_matrix[idx_b, idx_a] = virtual_weight

@@ -798,19 +798,24 @@ class UniversalRagSystem:
         return satellite_uris, parent_satellites
 
     def _chain_thin_documents(self) -> Dict[str, str]:
-        """Chain thin documents into their richest graph neighbor.
+        """Chain thin documents into ALL graph neighbors.
 
         After edges are built, scans for documents below THIN_DOC_THRESHOLD
-        characters.  For each, finds the neighbor with the longest text and
-        appends the thin doc's body as a "Related entity" section.  The thin
-        doc is then removed from the store so it won't be embedded or indexed.
+        characters.  For each, appends the thin doc's body as a "Related
+        entity" section to **every** neighbor that won't exceed
+        MAX_CHAINED_DOC_SIZE.  The thin doc is then removed from the store
+        so it won't be embedded or indexed.
+
+        Replicating into all neighbors ensures that queries in any
+        neighborhood of the thin entity find its information, regardless
+        of which neighbor is retrieved.
 
         Processing order is ascending by text length so that the smallest docs
         are absorbed first (cascading: a thin doc absorbed into another thin
         doc may push the target above threshold).
 
         Returns:
-            Dict mapping chained doc_id → target doc_id it was merged into.
+            Dict mapping chained doc_id → first target doc_id it was merged into.
         """
         store = self.document_store
         threshold = RetrievalConfig.THIN_DOC_THRESHOLD
@@ -829,7 +834,7 @@ class UniversalRagSystem:
         # Process smallest first for cascading
         candidates.sort(key=lambda x: x[1])
 
-        chained_map: Dict[str, str] = {}  # thin_id → target_id
+        chained_map: Dict[str, str] = {}  # thin_id → first target_id
 
         for doc_id, _ in candidates:
             if doc_id not in store.docs:
@@ -837,24 +842,7 @@ class UniversalRagSystem:
 
             doc = store.docs[doc_id]
 
-            # Find richest neighbor still in the store that won't exceed size cap
-            thin_doc_len = len(doc.text)
-            best_target = None
-            best_len = -1
-            for neighbor_info in doc.neighbors:
-                n_id = neighbor_info["doc_id"]
-                if n_id in store.docs and n_id != doc_id:
-                    n_len = len(store.docs[n_id].text)
-                    if n_len + thin_doc_len > max_target_size:
-                        continue  # would exceed size cap
-                    if n_len > best_len:
-                        best_len = n_len
-                        best_target = n_id
-
-            if best_target is None:
-                continue
-
-            # Build compact section to append
+            # Build compact section to append (once per thin doc)
             label = doc.metadata.get("label", doc_id.split("/")[-1])
             primary_type = doc.metadata.get("type", "Entity")
 
@@ -866,17 +854,37 @@ class UniversalRagSystem:
                     body = body[end_idx + 3:].strip()
 
             chain_section = f"\n\nRelated entity — {label} ({primary_type}):\n{body}"
-            store.docs[best_target].text += chain_section
+            chain_len = len(chain_section)
 
-            # Propagate metadata for source tracking
-            target_meta = store.docs[best_target].metadata
-            chained_entities = target_meta.get("chained_entities", [])
-            chained_entities.append({
-                "uri": doc.metadata.get("uri", doc_id),
-                "label": label,
-                "type": primary_type,
-            })
-            target_meta["chained_entities"] = chained_entities
+            # Absorb into ALL unique neighbors that won't exceed size cap
+            absorbed_into: list[str] = []
+            seen_neighbors: set[str] = set()
+            for neighbor_info in doc.neighbors:
+                n_id = neighbor_info["doc_id"]
+                if n_id in seen_neighbors:
+                    continue  # skip duplicate neighbor entries (different edge types)
+                seen_neighbors.add(n_id)
+                if n_id not in store.docs or n_id == doc_id:
+                    continue
+                if len(store.docs[n_id].text) + chain_len > max_target_size:
+                    continue  # would exceed size cap
+
+                store.docs[n_id].text += chain_section
+
+                # Propagate metadata for source tracking
+                target_meta = store.docs[n_id].metadata
+                chained_entities = target_meta.get("chained_entities", [])
+                chained_entities.append({
+                    "uri": doc.metadata.get("uri", doc_id),
+                    "label": label,
+                    "type": primary_type,
+                })
+                target_meta["chained_entities"] = chained_entities
+
+                absorbed_into.append(n_id)
+
+            if not absorbed_into:
+                continue  # no neighbor could accept it
 
             # Remove thin doc from store
             del store.docs[doc_id]
@@ -890,7 +898,7 @@ class UniversalRagSystem:
                         if n["doc_id"] != doc_id
                     ]
 
-            chained_map[doc_id] = best_target
+            chained_map[doc_id] = absorbed_into[0]
 
         logger.info(
             f"Thin-doc chaining: {len(chained_map)} docs absorbed into neighbors "
@@ -3513,8 +3521,13 @@ Rules:
         # Create a subgraph of the retrieved documents
         doc_ids = [doc.id for doc in initial_docs]
 
-        # Create weighted adjacency matrix with virtual 2-hop edges through full graph
-        adjacency_matrix = self.document_store.create_adjacency_matrix(doc_ids, max_hops=RetrievalConfig.MAX_ADJACENCY_HOPS)
+        # Create weighted adjacency matrix with virtual 2-hop edges through full RDF graph
+        adjacency_matrix = self.document_store.create_adjacency_matrix(
+            doc_ids,
+            triples_index=getattr(self, '_triples_index', {}),
+            weight_fn=self.get_relationship_weight,
+            max_hops=RetrievalConfig.MAX_ADJACENCY_HOPS,
+        )
 
         # Extract coherent subgraph using actual FAISS similarity scores
         logger.info(f"Extracting coherent subgraph of size {k} from {len(initial_docs)} candidates")

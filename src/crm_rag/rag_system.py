@@ -238,6 +238,7 @@ class UniversalRagSystem:
 
         # Initialize document store
         self.document_store = None
+        self._aggregation_index = {}
 
         # Create a secure session for HTTP requests (e.g., Wikidata API)
         # Disable trust_env to prevent .netrc credential leaks (CVE fix)
@@ -287,6 +288,10 @@ class UniversalRagSystem:
     def _get_bm25_index_dir(self) -> str:
         """Return the BM25 index directory for this dataset."""
         return f'{self._get_cache_dir()}/bm25_index'
+
+    def _get_aggregation_index_path(self) -> str:
+        """Return the aggregation index JSON file path for this dataset."""
+        return f'{self._get_cache_dir()}/aggregation_index.json'
 
     def _get_documents_dir(self) -> str:
         """Return the entity documents directory for this dataset."""
@@ -667,6 +672,7 @@ class UniversalRagSystem:
             if graph_loaded and vector_loaded:
                 logger.info("Successfully loaded existing document graph and vector store")
                 self._load_triples_index()
+                self._load_aggregation_index()
                 # Load or build BM25 index
                 bm25_dir = self._get_bm25_index_dir()
                 if not self.document_store.load_bm25_index(bm25_dir):
@@ -855,6 +861,141 @@ class UniversalRagSystem:
         self._triples_index = index
         logger.info(f"Loaded triples index from {edges_path}: "
                     f"{len(table)} triples, {len(index)} entities indexed")
+
+    def _build_aggregation_index(self, all_fr_stats=None):
+        """Build pre-computed aggregation metrics from FR traversal stats.
+
+        Uses the FR traversal results accumulated during document generation
+        to count multi-hop CIDOC-CRM relationships (e.g. Actor→Event→Thing).
+        Falls back to empty index if no FR stats provided and no cached index.
+
+        Args:
+            all_fr_stats: List of (entity_uri, entity_label, fr_stats_dict)
+                accumulated during process_rdf_data(). Each fr_stats_dict has
+                "fc" (str) and "fr_results" (list of FR match dicts).
+        """
+        if not all_fr_stats:
+            logger.info("No FR stats provided — skipping aggregation index build")
+            self._aggregation_index = {}
+            return
+
+        logger.info(f"Building FR-based aggregation index from {len(all_fr_stats)} entities...")
+
+        # --- 1. Entity type counts from document store ---
+        type_counts: Dict[str, int] = {}
+        if self.document_store:
+            for doc in self.document_store.docs.values():
+                doc_type = doc.metadata.get("type", "Unknown")
+                type_counts[doc_type] = type_counts.get(doc_type, 0) + 1
+
+        # --- 2. FC entity counts ---
+        fc_counts: Dict[str, int] = {}
+        for _uri, _label, stats in all_fr_stats:
+            fc = stats.get("fc")
+            if fc:
+                fc_counts[fc] = fc_counts.get(fc, 0) + 1
+
+        # --- 3. FR summaries — single pass over accumulated FR results ---
+        # Per-FR accumulators
+        source_counts: Dict[str, Dict[str, int]] = {}   # fr_id → {entity_uri → target_count}
+        source_labels: Dict[str, Dict[str, str]] = {}   # fr_id → {entity_uri → label}
+        target_counts: Dict[str, Dict[str, int]] = {}   # fr_id → {target_uri → appearance_count}
+        target_labels: Dict[str, Dict[str, str]] = {}   # fr_id → {target_uri → label}
+
+        for entity_uri, entity_label, stats in all_fr_stats:
+            for fr in stats.get("fr_results", []):
+                fr_id = fr["fr_id"]
+
+                if fr_id not in source_counts:
+                    source_counts[fr_id] = {}
+                    source_labels[fr_id] = {}
+                    target_counts[fr_id] = {}
+                    target_labels[fr_id] = {}
+
+                source_counts[fr_id][entity_uri] = \
+                    source_counts[fr_id].get(entity_uri, 0) + fr["total_count"]
+                source_labels[fr_id][entity_uri] = entity_label
+
+                for t_uri, t_label in fr["targets"]:
+                    target_counts[fr_id][t_uri] = target_counts[fr_id].get(t_uri, 0) + 1
+                    target_labels[fr_id][t_uri] = t_label
+
+        # Build FR metadata lookup from fr_traversal
+        fr_meta = {}
+        if self.fr_traversal:
+            for fr in self.fr_traversal.fr_list:
+                fr_meta[fr["id"]] = {
+                    "label": fr["label"],
+                    "domain_fc": fr["domain_fc"],
+                    "range_fc": fr["range_fc"],
+                }
+
+        def _top_n(counts_dict, labels_dict, n=50):
+            sorted_items = sorted(counts_dict.items(), key=lambda x: x[1], reverse=True)[:n]
+            return [
+                {"uri": uri, "label": labels_dict.get(uri, uri.rsplit("/", 1)[-1]), "count": count}
+                for uri, count in sorted_items
+            ]
+
+        # Build per-FR summary
+        fr_summaries = {}
+        for fr_id in source_counts:
+            meta = fr_meta.get(fr_id, {})
+            total_connections = sum(source_counts[fr_id].values())
+            fr_summaries[fr_id] = {
+                "label": meta.get("label", fr_id),
+                "domain_fc": meta.get("domain_fc", ""),
+                "range_fc": meta.get("range_fc", ""),
+                "total_connections": total_connections,
+                "unique_sources": len(source_counts[fr_id]),
+                "unique_targets": len(target_counts[fr_id]),
+                "top_sources": _top_n(source_counts[fr_id], source_labels[fr_id]),
+                "top_targets": _top_n(target_counts[fr_id], target_labels[fr_id]),
+            }
+
+        agg_index = {
+            "entity_type_counts": type_counts,
+            "fc_counts": fc_counts,
+            "fr_summaries": fr_summaries,
+            "total_entities": len(self.document_store.docs) if self.document_store else 0,
+        }
+
+        # Save to JSON
+        out_path = self._get_aggregation_index_path()
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(agg_index, f, ensure_ascii=False, indent=2)
+
+        self._aggregation_index = agg_index
+        active_frs = [fid for fid, s in fr_summaries.items() if s["total_connections"] > 0]
+        logger.info(
+            f"Built FR-based aggregation index: {len(type_counts)} types, "
+            f"{len(fc_counts)} FCs, {len(active_frs)} active FRs — saved to {out_path}"
+        )
+
+    def _load_aggregation_index(self):
+        """Load pre-computed aggregation index from JSON.
+
+        Graceful fallback: if file missing or corrupt, sets empty dict.
+        """
+        path = self._get_aggregation_index_path()
+        if not os.path.exists(path):
+            logger.info("No aggregation index found — AGGREGATION queries will work without pre-computed stats")
+            self._aggregation_index = {}
+            return
+
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                self._aggregation_index = json.load(f)
+            fr_count = len(self._aggregation_index.get('fr_summaries', {}))
+            logger.info(
+                f"Loaded aggregation index from {path}: "
+                f"{self._aggregation_index.get('total_entities', '?')} entities, "
+                f"{fr_count} FRs"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to load aggregation index from {path}: {e}")
+            self._aggregation_index = {}
 
     def _build_edges_from_parquet(self):
         """Build edges from Parquet edges file. O(n*r) where r is number of triples.
@@ -1545,7 +1686,7 @@ class UniversalRagSystem:
         entity_labels: Dict[str, str],
         entity_types_map: Dict[str, set],
         absorbed_lines: List[str] = None,
-    ) -> Tuple[str, str, List[str]]:
+    ) -> Tuple[str, str, List[str], dict]:
         """Create FR-organized document from pre-fetched data.
 
         Args:
@@ -1561,7 +1702,8 @@ class UniversalRagSystem:
             absorbed_lines: Lines from absorbed satellite entities
 
         Returns:
-            (text, label, type_labels)
+            (text, label, type_labels, fr_stats) where fr_stats contains
+            the entity's FC and FR traversal results for aggregation indexing.
         """
         types_display = [t for t in entity_type_labels if not self.is_technical_class_name(t)]
 
@@ -1570,7 +1712,7 @@ class UniversalRagSystem:
             text = self.fr_traversal.format_minimal_document(
                 entity_uri, entity_label, types_display, literals
             )
-            return text, entity_label, entity_type_labels
+            return text, entity_label, entity_type_labels, {}
 
         # Full FR traversal
         fc = self.fr_traversal.get_fc(raw_types)
@@ -1624,7 +1766,13 @@ class UniversalRagSystem:
             target_enrichments=target_enrichments,
         )
 
-        return text, entity_label, entity_type_labels
+        # FR stats for aggregation index (piggyback on existing traversal)
+        fr_stats = {
+            "fc": fc,
+            "fr_results": fr_results,
+        }
+
+        return text, entity_label, entity_type_labels, fr_stats
 
     # ==================== End FR-based Document Generation ====================
 
@@ -2009,6 +2157,8 @@ Each file contains:
         all_triples = []
         # Accumulate satellite URIs across all chunks
         all_satellite_uris = set()
+        # Accumulate FR stats across all chunks for aggregation index
+        all_fr_stats = []  # [(entity_uri, entity_label, fr_stats_dict), ...]
 
         # Pre-fetch image index (single SPARQL query, shared across all chunks)
         image_index = self._build_image_index()
@@ -2114,12 +2264,14 @@ Each file contains:
                                 dict(sat_info), entity_label
                             )
 
-                        doc_text, entity_label, entity_types = self._create_fr_document_from_prefetched(
+                        doc_text, entity_label, entity_types, fr_stats = self._create_fr_document_from_prefetched(
                             entity_uri, entity_label, types, entity_type_labels,
                             literals, fr_outgoing, fr_incoming,
                             entity_labels_map, entity_types_map,
                             absorbed_lines=absorbed_lines,
                         )
+                        if fr_stats:
+                            all_fr_stats.append((entity_uri, entity_label, fr_stats))
                     else:
                         # Legacy BFS document creation
                         context = chunk_contexts.get(entity_uri, ([], []))
@@ -2229,6 +2381,9 @@ Each file contains:
 
         # Build triples index from Parquet for query-time lookup
         self._load_triples_index()
+
+        # Build aggregation index for pre-computed counts/rankings
+        self._build_aggregation_index(all_fr_stats)
 
         # Generate validation report for missing classes and properties
         self.generate_validation_report()
@@ -3221,6 +3376,96 @@ Rules:
                 return t['object_label']
         return uri.split('/')[-1]
 
+    def _build_aggregation_context(self, query_analysis, retrieved_docs):
+        """Build pre-computed aggregation statistics context for the LLM prompt.
+
+        Uses FR-based aggregation index with multi-hop relationship summaries.
+        Returns a formatted string (capped at ~3000 chars) with entity type counts,
+        FC counts, and per-category FR summaries (top sources and targets).
+        Returns "" if no aggregation index is available.
+        """
+        if not self._aggregation_index:
+            return ""
+
+        categories = set(query_analysis.categories) if query_analysis.categories else set()
+        lines = []
+
+        # --- Compact entity type counts ---
+        type_counts = self._aggregation_index.get("entity_type_counts", {})
+        total_entities = self._aggregation_index.get("total_entities", 0)
+        fc_counts = self._aggregation_index.get("fc_counts", {})
+        if type_counts:
+            lines.append(f"**Dataset overview**: {total_entities} entities")
+            sorted_types = sorted(type_counts.items(), key=lambda x: x[1], reverse=True)[:15]
+            type_parts = [f"{t}: {c}" for t, c in sorted_types]
+            lines.append(f"Entity types: {', '.join(type_parts)}")
+
+        # FC counts summary
+        if fc_counts:
+            fc_parts = [f"{fc}: {c}" for fc, c in sorted(fc_counts.items(), key=lambda x: x[1], reverse=True)]
+            lines.append(f"Fundamental Categories: {', '.join(fc_parts)}")
+        lines.append("")
+
+        # --- FR summaries filtered by query categories ---
+        fr_summaries = self._aggregation_index.get("fr_summaries", {})
+        if not fr_summaries:
+            result = "\n".join(lines)
+            if len(result) > 3000:
+                result = result[:3000] + "\n...[truncated]"
+            return result
+
+        # Sort FRs by total_connections descending for consistent output
+        sorted_frs = sorted(
+            fr_summaries.items(),
+            key=lambda x: x[1].get("total_connections", 0),
+            reverse=True,
+        )
+
+        shown_frs = 0
+        max_frs = 8  # Limit to avoid flooding the prompt
+
+        for fr_id, summary in sorted_frs:
+            if summary.get("total_connections", 0) == 0:
+                continue
+
+            domain_fc = summary.get("domain_fc", "")
+            range_fc = summary.get("range_fc", "")
+
+            # Show FR if its domain or range matches a query category, or if no categories
+            if categories and domain_fc not in categories and range_fc not in categories:
+                continue
+
+            if shown_frs >= max_frs:
+                break
+            shown_frs += 1
+
+            fr_label = summary.get("label", fr_id)
+            total = summary["total_connections"]
+            lines.append(
+                f"**{fr_label}** ({domain_fc} -> {range_fc}, "
+                f"{total} connections, "
+                f"{summary.get('unique_sources', 0)} sources, "
+                f"{summary.get('unique_targets', 0)} targets):"
+            )
+
+            top_sources = summary.get("top_sources", [])
+            if top_sources:
+                source_parts = [f"{e['label']} ({e['count']})" for e in top_sources[:15]]
+                lines.append(f"  Top {domain_fc}s: {', '.join(source_parts)}")
+
+            top_targets = summary.get("top_targets", [])
+            if top_targets:
+                target_parts = [f"{e['label']} ({e['count']})" for e in top_targets[:15]]
+                lines.append(f"  Top {range_fc}s: {', '.join(target_parts)}")
+
+            lines.append("")
+
+        # Cap total output
+        result = "\n".join(lines)
+        if len(result) > 3000:
+            result = result[:3000] + "\n...[truncated]"
+        return result
+
     def _build_triples_enrichment(self, retrieved_docs):
         """Build structured triple enrichment text from _triples_index for retrieved documents.
 
@@ -3757,6 +4002,13 @@ Rules:
             context += "\n## Structured Relationships\n\n"
             context += triples_enrichment + "\n"
 
+        # Add pre-computed aggregation statistics for AGGREGATION queries
+        if query_analysis.query_type == "AGGREGATION":
+            agg_context = self._build_aggregation_context(query_analysis, retrieved_docs)
+            if agg_context:
+                context += "\n## Dataset Statistics (pre-computed from full knowledge graph)\n\n"
+                context += agg_context + "\n"
+
         # If requested, fetch Wikidata information for top 2 most relevant entities
         if include_wikidata and entities_with_wikidata:
             wikidata_context += "\nWikidata Context:\n"
@@ -3790,7 +4042,12 @@ Rules:
         if query_analysis.query_type == "ENUMERATION":
             system_prompt += "\nList ALL matching entities from the retrieved information. Be comprehensive."
         elif query_analysis.query_type == "AGGREGATION":
-            system_prompt += "\nCount or rank entities based on the retrieved information. State if the count may be incomplete."
+            system_prompt += (
+                "\nCount or rank entities based on the retrieved information. "
+                "A 'Dataset Statistics' section with pre-computed counts and rankings "
+                "from the full knowledge graph is included when available — use these "
+                "statistics for accurate counts. State if the count may be incomplete."
+            )
 
         # Add Wikidata instructions to system prompt
         if include_wikidata and wikidata_context:

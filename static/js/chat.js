@@ -259,6 +259,7 @@ document.addEventListener('DOMContentLoaded', function() {
                        data-full-url="${img.fullUrl}"
                        data-commons-url="${img.linkUrl}"
                        data-label="${img.label}"
+                       data-source="${img.source}"
                        onclick="openLightbox(event, this)">
                         <img src="${img.thumbnailUrl}"
                              alt="${img.label}"
@@ -352,11 +353,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const fullUrl = element.getAttribute('data-full-url');
         const commonsUrl = element.getAttribute('data-commons-url');
         const label = element.getAttribute('data-label');
+        const source = element.getAttribute('data-source') || 'wikidata';
 
         if (lightbox && lightboxImage) {
             lightboxImage.src = fullUrl;
             lightboxLabel.textContent = label;
             lightboxCommonsLink.href = commonsUrl;
+            const linkText = lightboxCommonsLink.querySelector('.lightbox-link-text');
+            if (linkText) {
+                linkText.textContent = source === 'dataset' ? 'View image' : 'View on Wikimedia Commons';
+            }
             lightbox.style.display = 'flex';
             document.body.style.overflow = 'hidden';
         }

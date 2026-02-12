@@ -23,19 +23,23 @@ MINIMAL_DOC_CLASSES = {
     "E55_Type", "E56_Language", "E57_Material", "E58_Measurement_Unit",
     "E98_Currency", "E30_Right", "E41_Appellation", "E42_Identifier",
     "E35_Title", "E54_Dimension", "E97_Monetary_Amount", "E52_Time-Span",
+    "E41_E33_Linguistic_Appellation", "E33_E41_Linguistic_Appellation",
+    "PC67_refers_to",
 }
 
 # Satellite classification subsets
-_APPELLATION_CLASSES = {"E41_Appellation", "E42_Identifier", "E35_Title"}
+_APPELLATION_CLASSES = {"E41_Appellation", "E42_Identifier", "E35_Title",
+                        "E41_E33_Linguistic_Appellation", "E33_E41_Linguistic_Appellation"}
 _TYPE_CLASSES = {"E55_Type", "E56_Language", "E57_Material", "E58_Measurement_Unit", "E98_Currency"}
 _DIMENSION_CLASSES = {"E54_Dimension", "E97_Monetary_Amount"}
 _TIME_CLASSES = {"E52_Time-Span"}
+_REFERENCE_CLASSES = {"PC67_refers_to"}
 
 
 def classify_satellite(entity_types: Set[str]) -> str:
     """Classify a satellite entity's kind from its type URIs.
 
-    Returns one of: 'appellation', 'type', 'dimension', 'time', 'other'.
+    Returns one of: 'appellation', 'type', 'dimension', 'time', 'reference', 'other'.
     """
     for type_uri in entity_types:
         local = type_uri.split('/')[-1].split('#')[-1]
@@ -47,6 +51,8 @@ def classify_satellite(entity_types: Set[str]) -> str:
             return "dimension"
         if local in _TIME_CLASSES:
             return "time"
+        if local in _REFERENCE_CLASSES:
+            return "reference"
     return "other"
 
 
@@ -532,6 +538,12 @@ class FRTraversal:
         if time_entries:
             formatted = [self._format_time_entry(e) for e in time_entries[:5]]
             lines.append(f"Time-span: {', '.join(formatted)}")
+
+        # References (PC67_refers_to reification nodes) -> "Referenced in: ..."
+        ref_labels = satellite_info.get("reference", [])
+        if ref_labels:
+            for ref in ref_labels[:5]:
+                lines.append(f"Referenced in: {ref}")
 
         # Types are intentionally omitted — already captured by "Has type:" from FR traversal
 

@@ -354,6 +354,108 @@ class GraphDocumentStore:
         logger.info(f"BM25 retrieved {len(retrieved)} documents (top score: {retrieved[0][1]:.3f})" if retrieved else "BM25 retrieved 0 documents")
         return retrieved
 
+    # ==================== FC Type Index ====================
+
+    def build_fc_type_index(self, fc_class_mapping: Dict[str, List[str]]) -> None:
+        """Build an inverted index from FC category to document IDs.
+
+        Scans all documents once and maps each FC name to the set of doc IDs
+        whose ``metadata["all_types"]`` overlaps with that FC's class list.
+
+        Args:
+            fc_class_mapping: FC name → list of CRM class names (E-coded and
+                human-readable labels, already expanded).
+        """
+        self._fc_doc_ids: Dict[str, set] = {fc: set() for fc in fc_class_mapping}
+
+        # Build lookup: class_name → set of FC names it belongs to
+        class_to_fc: Dict[str, set] = {}
+        for fc_name, class_list in fc_class_mapping.items():
+            for cls_name in class_list:
+                class_to_fc.setdefault(cls_name, set()).add(fc_name)
+
+        for doc_id, doc in self.docs.items():
+            all_types = doc.metadata.get('all_types', [])
+            for t in all_types:
+                for fc_name in class_to_fc.get(t, ()):
+                    self._fc_doc_ids[fc_name].add(doc_id)
+
+        summary = ", ".join(f"{fc}: {len(ids)}" for fc, ids in sorted(self._fc_doc_ids.items()))
+        logger.info(f"FC type index built — {summary}")
+
+    def retrieve_faiss_typed(self, query: str, k: int,
+                             allowed_doc_ids: set,
+                             fetch_k: int = 10000) -> List[Tuple['GraphDocument', float]]:
+        """FAISS retrieval restricted to a set of allowed document IDs.
+
+        Uses the native ``filter`` parameter of LangChain FAISS to pre-screen
+        candidates before ranking.
+
+        Args:
+            query: Query string.
+            k: Number of results to return.
+            allowed_doc_ids: Set of doc IDs to consider.
+            fetch_k: Raw FAISS results to scan before applying the filter.
+
+        Returns:
+            List of (GraphDocument, similarity_score) sorted descending.
+        """
+        if not self.vector_store:
+            return []
+
+        results_with_scores = self.vector_store.similarity_search_with_score(
+            query, k=k,
+            filter=lambda meta: meta.get("doc_id") in allowed_doc_ids,
+            fetch_k=fetch_k,
+        )
+
+        retrieved = []
+        for doc, distance in results_with_scores:
+            doc_id = doc.metadata.get("doc_id")
+            if doc_id in self.docs:
+                similarity = 1.0 / (1.0 + distance)
+                retrieved.append((self.docs[doc_id], similarity))
+
+        logger.info(f"Type-filtered FAISS: {len(retrieved)} results "
+                    f"(from {len(allowed_doc_ids)} allowed docs, fetch_k={fetch_k})")
+        return retrieved
+
+    def retrieve_bm25_typed(self, query: str, k: int,
+                            allowed_doc_ids: set) -> List[Tuple['GraphDocument', float]]:
+        """BM25 retrieval restricted to a set of allowed document IDs.
+
+        Retrieves an over-sized BM25 pool and post-filters to ``allowed_doc_ids``.
+
+        Args:
+            query: Query string.
+            k: Number of results to return.
+            allowed_doc_ids: Set of doc IDs to consider.
+
+        Returns:
+            List of (GraphDocument, score) sorted descending, at most k items.
+        """
+        if not HAS_BM25S or self.bm25_retriever is None:
+            return []
+
+        # Retrieve a large pool and post-filter
+        oversized_k = min(k * 5, len(self._bm25_doc_ids))
+        query_tokens = bm25s.tokenize(query, stopwords=None)
+        results, scores = self.bm25_retriever.retrieve(query_tokens, k=oversized_k)
+
+        retrieved = []
+        for idx, score in zip(results[0], scores[0]):
+            if score <= 0:
+                continue
+            doc_id = self._bm25_doc_ids[idx]
+            if doc_id in allowed_doc_ids and doc_id in self.docs:
+                retrieved.append((self.docs[doc_id], float(score)))
+                if len(retrieved) >= k:
+                    break
+
+        logger.info(f"Type-filtered BM25: {len(retrieved)} results "
+                    f"(from {len(allowed_doc_ids)} allowed docs)")
+        return retrieved
+
     def save_bm25_index(self, path: str) -> bool:
         """Save BM25 index and doc ID mapping to disk.
 

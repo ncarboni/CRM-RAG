@@ -62,8 +62,8 @@ Query type (pick one):
 - AGGREGATION: asks to count or rank ("how many…", "top 10…", "most…")
 
 Target categories (pick 1-3 from this list):
-- Thing (objects, artworks, buildings, features, inscriptions)
-- Actor (people, artists, groups, organizations)
+- Thing (objects, artworks, buildings, features, inscriptions, visual representations, iconographic subjects, characters depicted)
+- Actor (people, artists, groups, organizations, donors, saints, historical figures)
 - Place (locations, cities, regions)
 - Event (activities, creation, production, exhibitions)
 - Concept (types, materials, techniques)
@@ -103,6 +103,14 @@ class RetrievalConfig:
 
     # Diversity penalty (MMR-style) for coherent subgraph extraction
     DIVERSITY_PENALTY = 0.2  # Weight for penalizing embedding similarity to already-selected docs
+
+    # Type-filtered retrieval channel (for ENUMERATION/AGGREGATION queries)
+    TYPE_FILTERED_FETCH_K = 10000   # Raw FAISS results scanned before type filtering
+    TYPE_CHANNEL_POOL_FRACTION = 0.5  # Fraction of pool reserved for type-matching docs
+
+    # Thin document chaining: absorb thin docs into their richest neighbor
+    THIN_DOC_THRESHOLD = 400  # Docs with fewer chars are candidates for chaining
+    MAX_CHAINED_DOC_SIZE = 5000  # Stop absorbing into a target that would exceed this
 
     # Graph context enrichment for LLM prompt
     GRAPH_CONTEXT_MAX_NEIGHBORS = 5   # Max neighbor relationships to show per entity
@@ -147,10 +155,8 @@ class RetrievalConfig:
         "Document": -0.20,
         "Appellation": -0.25,
         "E41_Appellation": -0.25,
-        # Reference and visual item types - moderate penalty
+        # Reference types - moderate penalty
         "PC67_refers_to": -0.25,
-        "Representation": -0.15,
-        "Visual Item": -0.15,
     }
 
 
@@ -679,6 +685,8 @@ class UniversalRagSystem:
                     logger.info("BM25 index not cached, building from loaded documents...")
                     if self.document_store.build_bm25_index():
                         self.document_store.save_bm25_index(bm25_dir)
+                # Build FC type index for type-filtered retrieval
+                self._build_fc_type_index()
                 return True
             else:
                 logger.warning("Failed to load saved data completely, rebuilding...")
@@ -708,6 +716,9 @@ class UniversalRagSystem:
         if self.document_store.build_bm25_index():
             bm25_dir = self._get_bm25_index_dir()
             self.document_store.save_bm25_index(bm25_dir)
+
+        # Build FC type index for type-filtered retrieval
+        self._build_fc_type_index()
 
         return True
 
@@ -785,6 +796,108 @@ class UniversalRagSystem:
                     f"{len(parent_satellites)} parent entities enriched")
 
         return satellite_uris, parent_satellites
+
+    def _chain_thin_documents(self) -> Dict[str, str]:
+        """Chain thin documents into their richest graph neighbor.
+
+        After edges are built, scans for documents below THIN_DOC_THRESHOLD
+        characters.  For each, finds the neighbor with the longest text and
+        appends the thin doc's body as a "Related entity" section.  The thin
+        doc is then removed from the store so it won't be embedded or indexed.
+
+        Processing order is ascending by text length so that the smallest docs
+        are absorbed first (cascading: a thin doc absorbed into another thin
+        doc may push the target above threshold).
+
+        Returns:
+            Dict mapping chained doc_id → target doc_id it was merged into.
+        """
+        store = self.document_store
+        threshold = RetrievalConfig.THIN_DOC_THRESHOLD
+        max_target_size = RetrievalConfig.MAX_CHAINED_DOC_SIZE
+
+        # Collect candidates: thin docs that have at least one neighbor
+        candidates = []
+        for doc_id, doc in store.docs.items():
+            if len(doc.text) < threshold and doc.neighbors:
+                candidates.append((doc_id, len(doc.text)))
+
+        if not candidates:
+            logger.info("Thin-doc chaining: no candidates found")
+            return {}
+
+        # Process smallest first for cascading
+        candidates.sort(key=lambda x: x[1])
+
+        chained_map: Dict[str, str] = {}  # thin_id → target_id
+
+        for doc_id, _ in candidates:
+            if doc_id not in store.docs:
+                continue  # already removed by earlier iteration
+
+            doc = store.docs[doc_id]
+
+            # Find richest neighbor still in the store that won't exceed size cap
+            thin_doc_len = len(doc.text)
+            best_target = None
+            best_len = -1
+            for neighbor_info in doc.neighbors:
+                n_id = neighbor_info["doc_id"]
+                if n_id in store.docs and n_id != doc_id:
+                    n_len = len(store.docs[n_id].text)
+                    if n_len + thin_doc_len > max_target_size:
+                        continue  # would exceed size cap
+                    if n_len > best_len:
+                        best_len = n_len
+                        best_target = n_id
+
+            if best_target is None:
+                continue
+
+            # Build compact section to append
+            label = doc.metadata.get("label", doc_id.split("/")[-1])
+            primary_type = doc.metadata.get("type", "Entity")
+
+            # Strip YAML frontmatter from thin doc text
+            body = doc.text
+            if body.startswith("---"):
+                end_idx = body.find("---", 3)
+                if end_idx != -1:
+                    body = body[end_idx + 3:].strip()
+
+            chain_section = f"\n\nRelated entity — {label} ({primary_type}):\n{body}"
+            store.docs[best_target].text += chain_section
+
+            # Propagate metadata for source tracking
+            target_meta = store.docs[best_target].metadata
+            chained_entities = target_meta.get("chained_entities", [])
+            chained_entities.append({
+                "uri": doc.metadata.get("uri", doc_id),
+                "label": label,
+                "type": primary_type,
+            })
+            target_meta["chained_entities"] = chained_entities
+
+            # Remove thin doc from store
+            del store.docs[doc_id]
+
+            # Clean up neighbor lists pointing to the removed doc
+            for neighbor_info in doc.neighbors:
+                n_id = neighbor_info["doc_id"]
+                if n_id in store.docs:
+                    store.docs[n_id].neighbors = [
+                        n for n in store.docs[n_id].neighbors
+                        if n["doc_id"] != doc_id
+                    ]
+
+            chained_map[doc_id] = best_target
+
+        logger.info(
+            f"Thin-doc chaining: {len(chained_map)} docs absorbed into neighbors "
+            f"({len(store.docs)} docs remaining)"
+        )
+
+        return chained_map
 
     def _save_edges_parquet(self, all_triples: List[Dict]) -> None:
         """Save collected triples to a Parquet edges file alongside entity_documents/.
@@ -2372,13 +2485,16 @@ Each file contains:
             self._save_edges_parquet(all_triples)
         logger.info("Creating document graph edges...")
         self._build_edges_from_parquet()
-        
+
+        # Chain thin documents into their richest neighbors (before FAISS/BM25 indexing)
+        self._chain_thin_documents()
+
         # Rename temp file to final
         temp_path = self._get_document_graph_temp_path()
         final_path = self._get_document_graph_path()
         if os.path.exists(temp_path):
             os.replace(temp_path, final_path)
-        
+
         # Build vector store with batched embedding requests
         logger.info("Building vector store...")
         self.build_vector_store_batched()
@@ -2636,6 +2752,12 @@ Each file contains:
         logger.info(f"Loaded FC class mapping: {len(cls._fc_class_mapping)} categories, {total} classes "
                     f"(expanded with human-readable labels)")
         return cls._fc_class_mapping
+
+    def _build_fc_type_index(self):
+        """Load FC class mapping and build the FC type index on the document store."""
+        fc_mapping = self._load_fc_class_mapping()
+        if fc_mapping and self.document_store:
+            self.document_store.build_fc_type_index(fc_mapping)
 
     def _analyze_query(self, question: str) -> 'QueryAnalysis':
         """Classify a user question using the LLM for query-type-aware retrieval.
@@ -3281,13 +3403,78 @@ Rules:
         else:
             results_with_scores = faiss_results
 
+        # Type-filtered retrieval channel for ENUMERATION/AGGREGATION queries
+        fc_doc_ids = getattr(self.document_store, '_fc_doc_ids', None)
+        if (query_analysis
+                and query_analysis.query_type in ("ENUMERATION", "AGGREGATION")
+                and query_analysis.categories
+                and fc_doc_ids):
+            # Collect allowed doc IDs from target FC categories
+            allowed_doc_ids = set()
+            for fc_name in query_analysis.categories:
+                allowed_doc_ids |= fc_doc_ids.get(fc_name, set())
+
+            if allowed_doc_ids:
+                logger.info(f"Type-filtered channel: {len(allowed_doc_ids)} docs in target FCs "
+                            f"{query_analysis.categories}")
+
+                # Run type-filtered FAISS + BM25
+                typed_faiss = self.document_store.retrieve_faiss_typed(
+                    query, k=initial_pool_size,
+                    allowed_doc_ids=allowed_doc_ids,
+                    fetch_k=RetrievalConfig.TYPE_FILTERED_FETCH_K,
+                )
+                typed_bm25 = self.document_store.retrieve_bm25_typed(
+                    query, k=initial_pool_size,
+                    allowed_doc_ids=allowed_doc_ids,
+                )
+
+                # RRF-fuse typed results
+                if typed_faiss and typed_bm25:
+                    typed_fused = self._rrf_fuse(typed_faiss, typed_bm25, pool_size=initial_pool_size)
+                elif typed_faiss:
+                    typed_fused = typed_faiss
+                else:
+                    typed_fused = typed_bm25
+
+                if typed_fused:
+                    # Merge: reserve slots for type-matching docs
+                    typed_slots = int(initial_pool_size * RetrievalConfig.TYPE_CHANNEL_POOL_FRACTION)
+                    main_slots = initial_pool_size - typed_slots
+
+                    # IDs already in the main pool
+                    main_ids = {doc.id for doc, _ in results_with_scores}
+
+                    # Take top main_slots from unfiltered channel
+                    main_pool = results_with_scores[:main_slots]
+
+                    # Fill typed slots with new typed docs not already in main pool
+                    typed_new = [(doc, score) for doc, score in typed_fused
+                                 if doc.id not in main_ids]
+                    typed_pool = typed_fused[:typed_slots]  # May include overlap — that's fine for scoring
+
+                    # Combine and deduplicate
+                    merged = {}
+                    for doc, score in main_pool:
+                        merged[doc.id] = (doc, score)
+                    for doc, score in typed_pool:
+                        if doc.id not in merged:
+                            merged[doc.id] = (doc, score)
+
+                    results_with_scores = sorted(merged.values(), key=lambda x: x[1], reverse=True)
+                    results_with_scores = results_with_scores[:initial_pool_size]
+
+                    logger.info(f"Type-filtered channel injected {len(typed_new)} new typed docs "
+                                f"into pool (pool now {len(results_with_scores)})")
+                else:
+                    logger.info("Type-filtered channel: no typed results found")
+
         # Pre-filter non-informative types from candidate pool
         NON_INFORMATIVE_TYPES = {
             "Linguistic Object", "E33_Linguistic_Object",
             "E33_E41_Linguistic_Appellation", "E41_E33_Linguistic_Appellation",
             "Linguistic Appellation", "Inscription", "E34_Inscription",
             "Appellation", "E41_Appellation", "PC67_refers_to",
-            "Representation", "Visual Item",
         }
         MAX_NON_INFORMATIVE_RATIO = 0.25  # At most 25% of pool can be non-informative
 

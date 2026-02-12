@@ -1085,6 +1085,11 @@ class UniversalRagSystem:
             "total_entities": len(self.document_store.docs) if self.document_store else 0,
         }
 
+        # Compute PageRank on the FR graph
+        pagerank_data = self._compute_pagerank(all_fr_stats, top_n=500)
+        if pagerank_data:
+            agg_index["pagerank"] = pagerank_data
+
         # Save to JSON
         out_path = self._get_aggregation_index_path()
         os.makedirs(os.path.dirname(out_path), exist_ok=True)
@@ -1097,6 +1102,89 @@ class UniversalRagSystem:
             f"Built FR-based aggregation index: {len(type_counts)} types, "
             f"{len(fc_counts)} FCs, {len(active_frs)} active FRs — saved to {out_path}"
         )
+
+    def _compute_pagerank(self, all_fr_stats, top_n=500):
+        """Compute PageRank on the FR graph for centrality-based retrieval.
+
+        Builds a directed graph from FR traversal results (multi-hop semantic
+        connections) and runs PageRank. Returns top entities per FC for use
+        in the type-filtered retrieval channel.
+
+        Args:
+            all_fr_stats: List of (entity_uri, entity_label, fr_stats_dict).
+            top_n: Number of top entities to keep per FC.
+
+        Returns:
+            Dict with "metadata", "by_fc", and "global_top" keys, or None on failure.
+        """
+        import networkx as nx
+
+        G = nx.DiGraph()
+
+        # Track entity metadata (label, fc)
+        entity_meta = {}  # uri → {"label": str, "fc": str}
+
+        for entity_uri, entity_label, stats in all_fr_stats:
+            fc = stats.get("fc", "")
+            entity_meta[entity_uri] = {"label": entity_label, "fc": fc}
+
+            for fr in stats.get("fr_results", []):
+                for target_uri, target_label in fr["targets"]:
+                    if G.has_edge(entity_uri, target_uri):
+                        G[entity_uri][target_uri]["weight"] += 1
+                    else:
+                        G.add_edge(entity_uri, target_uri, weight=1)
+                    # Store target label if not already tracked
+                    if target_uri not in entity_meta:
+                        entity_meta[target_uri] = {"label": target_label, "fc": ""}
+
+        if G.number_of_nodes() == 0:
+            logger.info("PageRank: empty graph, skipping")
+            return None
+
+        # Run PageRank
+        pr_scores = nx.pagerank(G, alpha=0.85, weight="weight")
+
+        # Filter to entities that have documents in the store
+        doc_ids = set(self.document_store.docs.keys()) if self.document_store else set()
+
+        # Partition by FC and build ranked lists
+        by_fc = {}  # fc → [(uri, label, score), ...]
+        global_list = []
+
+        for uri, score in pr_scores.items():
+            if uri not in doc_ids:
+                continue
+            meta = entity_meta.get(uri, {})
+            label = meta.get("label", uri.rsplit("/", 1)[-1])
+            fc = meta.get("fc", "")
+
+            entry = {"uri": uri, "label": label, "score": score}
+            global_list.append({**entry, "fc": fc})
+
+            if fc:
+                by_fc.setdefault(fc, []).append(entry)
+
+        # Sort and truncate
+        for fc in by_fc:
+            by_fc[fc] = sorted(by_fc[fc], key=lambda x: x["score"], reverse=True)[:top_n]
+        global_top = sorted(global_list, key=lambda x: x["score"], reverse=True)[:top_n]
+
+        scored_count = len(global_list)
+        logger.info(
+            f"PageRank computed: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges, "
+            f"{scored_count} entities with docs, {len(by_fc)} FCs"
+        )
+
+        return {
+            "metadata": {
+                "num_nodes": G.number_of_nodes(),
+                "num_edges": G.number_of_edges(),
+                "alpha": 0.85,
+            },
+            "by_fc": {fc: entries for fc, entries in by_fc.items()},
+            "global_top": global_top,
+        }
 
     def _load_aggregation_index(self):
         """Load pre-computed aggregation index from JSON.
@@ -3381,6 +3469,40 @@ Rules:
 
         return [(doc_map[did], scores[did]) for did in sorted_ids]
 
+    def _get_pagerank_candidates(self, categories, k):
+        """Get top PageRank entities for target FC categories.
+
+        Looks up pre-computed PageRank scores from the aggregation index
+        and returns GraphDocument objects ranked by centrality.
+
+        Args:
+            categories: List of FC names (e.g. ["Actor", "Thing"]).
+            k: Maximum number of candidates to return.
+
+        Returns:
+            List of (GraphDocument, pagerank_score) tuples.
+        """
+        pagerank = self._aggregation_index.get("pagerank", {})
+        by_fc = pagerank.get("by_fc", {})
+        if not by_fc:
+            return []
+
+        candidates = []
+        seen = set()
+        for fc in categories:
+            for entry in by_fc.get(fc, []):
+                uri = entry["uri"]
+                if uri in seen:
+                    continue
+                seen.add(uri)
+                doc = self.document_store.docs.get(uri)
+                if doc:
+                    candidates.append((doc, entry["score"]))
+
+        # Sort by PageRank score descending and truncate
+        candidates.sort(key=lambda x: x[1], reverse=True)
+        return candidates[:k]
+
     def retrieve(self, query, k=RetrievalConfig.DEFAULT_RETRIEVAL_K, initial_pool_size=60, alpha=RetrievalConfig.RELEVANCE_CONNECTIVITY_ALPHA, query_analysis=None):
         """
         Retrieve documents using hybrid FAISS+BM25 similarity + coherent subgraph extraction:
@@ -3444,6 +3566,21 @@ Rules:
                     typed_fused = typed_faiss
                 else:
                     typed_fused = typed_bm25
+
+                # Fold PageRank into typed channel as a third signal
+                if (typed_fused
+                        and self._aggregation_index
+                        and "pagerank" in self._aggregation_index):
+                    pagerank_candidates = self._get_pagerank_candidates(
+                        query_analysis.categories, initial_pool_size
+                    )
+                    if pagerank_candidates:
+                        typed_fused = self._rrf_fuse(
+                            typed_fused, pagerank_candidates,
+                            pool_size=initial_pool_size,
+                        )
+                        logger.info(f"PageRank channel: {len(pagerank_candidates)} candidates "
+                                    f"fused into typed pool")
 
                 if typed_fused:
                     # Merge: reserve slots for type-matching docs
@@ -3581,6 +3718,17 @@ Rules:
         if fc_counts:
             fc_parts = [f"{fc}: {c}" for fc, c in sorted(fc_counts.items(), key=lambda x: x[1], reverse=True)]
             lines.append(f"Fundamental Categories: {', '.join(fc_parts)}")
+
+        # PageRank top entities per target FC
+        pagerank = self._aggregation_index.get("pagerank", {})
+        by_fc_pr = pagerank.get("by_fc", {})
+        if by_fc_pr and categories:
+            for fc in sorted(categories):
+                fc_entries = by_fc_pr.get(fc, [])
+                if fc_entries:
+                    top_labels = [e["label"] for e in fc_entries[:20]]
+                    lines.append(f"Top {fc}s by graph centrality: {', '.join(top_labels)}")
+
         lines.append("")
 
         # --- FR summaries filtered by query categories ---
@@ -4181,8 +4329,8 @@ Rules:
             context += "\n## Structured Relationships\n\n"
             context += triples_enrichment + "\n"
 
-        # Add pre-computed aggregation statistics for AGGREGATION queries
-        if query_analysis.query_type == "AGGREGATION":
+        # Add pre-computed aggregation statistics for AGGREGATION/ENUMERATION queries
+        if query_analysis.query_type in ("AGGREGATION", "ENUMERATION"):
             agg_context = self._build_aggregation_context(query_analysis, retrieved_docs)
             if agg_context:
                 context += "\n## Dataset Statistics (pre-computed from full knowledge graph)\n\n"

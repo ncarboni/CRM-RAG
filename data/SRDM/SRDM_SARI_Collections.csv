@@ -1,0 +1,1223 @@
+﻿ID,Name,Description,Ontological Scope,Field,Collection_Turtle,Authors,Users,Funders
+[COL.1] ID Attribution,ID Attribution,This collection of fields enables the documentation the identifier attributed to an entity.,E1 CRM Entity,"fie_1_Identifier,fie_2_Identifier Type,fie_3_Identifier Provider,fie_4_Identifier Source","<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P1_is_identified_by <https://example.org/name/fie_1_1> .
+<https://example.org/name/fie_1_1> a crm:E42_Identifier;
+crm:P190_has_symbolic_content ""content"" .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P1_is_identified_by <https://example.org/name/fie_1_1> .
+<https://example.org/name/fie_1_1> a crm:E42_Identifier ;
+crm:P2_has_type <https://example.org/type/fie_2_1> .
+<https://example.org/type/fie_2_1> a crm:E55_Type .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P1_is_identified_by <https://example.org/name/fie_1_1> .
+<https://example.org/name/fie_1_1> a crm:E42_Identifier ;
+crm:P37i_was_assigned_by <https://example.org/event/fie_3_1> .
+<https://example.org/event/fie_3_1> a crm:E15_Identifier_Assignment;
+crm:P14_carried_out_by <https://example.org/actor/fie_3_2> .
+<https://example.org/actor/fie_3_2> a crm:E39_Actor .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P1_is_identified_by <https://example.org/name/fie_1_1> .
+<https://example.org/name/fie_1_1> a crm:E42_Identifier ;
+crm:P37i_was_assigned_by <https://example.org/event/fie_3_1> .
+<https://example.org/event/fie_3_1> a crm:E15_Identifier_Assignment;
+crm:P16_used_specific_object <https://example.org/conceptual_object/fie_4_1> .
+<https://example.org/conceptual_object/fie_4_1> a crm:E73_Information_Object .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.2] Preferred Name,Preferred Name,This collection of fields enables the documentation of a preferred name attributed to an entity.,E1 CRM Entity,"fie_5_Name,fie_6_Name Language,fie_7_Name Part,fie_8_Name Part Type,fie_9_Name Part Language","<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P1_is_identified_by <https://example.org/name/fie_5_1> .
+<https://example.org/name/fie_5_1> a crm:E33_E41_Linguistic_Appellation;
+crm:P190_has_symbolic_content ""content"" ;
+crm:P2_has_type <http://vocab.getty.edu/aat/300404670> .
+<http://vocab.getty.edu/aat/300404670> a crm:E55_Type;
+rdfs:label ""preferred terms"" .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P1_is_identified_by <https://example.org/name/fie_5_1> .
+<https://example.org/name/fie_5_1> a crm:E33_E41_Linguistic_Appellation;
+crm:P72_has_language <https://example.org/name/fie_6_1> .
+<https://example.org/name/fie_6_1> a crm:E56_Language .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P1_is_identified_by <https://example.org/name/fie_5_1> .
+<https://example.org/name/fie_5_1> a crm:E33_E41_Linguistic_Appellation;
+crm:P106_is_composed_of <https://example.org/name/fie_7_1> .
+<https://example.org/name/fie_7_1> a crm:E33_E41_Linguistic_Appellation ;
+rdfs:label ""content"" .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P1_is_identified_by <https://example.org/name/fie_5_1> .
+<https://example.org/name/fie_5_1> a crm:E33_E41_Linguistic_Appellation;
+crm:P106_is_composed_of <https://example.org/name/fie_7_1> .
+<https://example.org/name/fie_7_1> a crm:E33_E41_Linguistic_Appellation ;
+crm:P2_has_type <https://example.org/type/fie_8_1> .
+<https://example.org/type/fie_8_1> a crm:E55_Type .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P1_is_identified_by <https://example.org/name/fie_5_1> .
+<https://example.org/name/fie_5_1> a crm:E33_E41_Linguistic_Appellation;
+crm:P106_is_composed_of <https://example.org/name/fie_7_1> .
+<https://example.org/name/fie_7_1> a crm:E33_E41_Linguistic_Appellation ;
+crm:P72_has_language <https://example.org/type/fie_9_1> .
+<https://example.org/type/fie_9_1> a crm:E56_Language .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.3] Alternative Name,Alternative Name,This collection of fields enables the documentation of an alternative name attributed to an entity.,E1 CRM Entity,"fie_10_Alternative Name,fie_11_Alternative Name Type,fie_12_Alternative Name Language,fie_13_Alternative Name Use Period - Earliest,fie_14_Alternative Name Use Period - Latest,fie_15_Alternative Name - Attributed by,fie_16_Alternative Name - Source","<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P1_is_identified_by <https://example.org/name/fie_10_1> .
+<https://example.org/name/fie_10_1> a crm:E33_E41_Linguistic_Appellation;
+crm:P190_has_symbolic_content ""content"" .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P1_is_identified_by <https://example.org/name/fie_10_1> .
+<https://example.org/name/fie_10_1> a crm:E33_E41_Linguistic_Appellation;
+crm:P2_has_type <https://example.org/type/fie_11_1> .
+<https://example.org/type/fie_11_1> a crm:E55_Type .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P1_is_identified_by <https://example.org/name/fie_10_1> .
+<https://example.org/name/fie_10_1> a crm:E33_E41_Linguistic_Appellation;
+crm:P72_has_language <https://example.org/name/fie_12_1> .
+<https://example.org/name/fie_12_1> a crm:E56_Language .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P1_is_identified_by <https://example.org/name/fie_10_1> .
+<https://example.org/name/fie_10_1> a crm:E33_E41_Linguistic_Appellation;
+frbroo:R64i_was_name_used_by <https://example.org/event/fie_13_1> .
+<https://example.org/event/fie_13_1> a frbroo:F52_Name_Use_Activity ;
+crm:P4_has_time-span <https://example.org/time_span/fie_13_2> .
+<https://example.org/time_span/fie_13_2> a crm:E52_Time-Span;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P1_is_identified_by <https://example.org/name/fie_10_1> .
+<https://example.org/name/fie_10_1> a crm:E33_E41_Linguistic_Appellation;
+frbroo:R64i_was_name_used_by <https://example.org/event/fie_13_1> .
+<https://example.org/event/fie_13_1> a frbroo:F52_Name_Use_Activity ;
+crm:P4_has_time-span <https://example.org/time_span/fie_13_2> .
+<https://example.org/time_span/fie_13_2> a crm:E52_Time-Span;
+crm:P82b_end_of_the_end """"^^xsd:dateTime .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P1_is_identified_by <https://example.org/name/fie_10_1> .
+<https://example.org/name/fie_10_1> a crm:E33_E41_Linguistic_Appellation;
+crm:P141i_was_assigned_by <https://example.org/event/fie_15_1> .
+<https://example.org/event/fie_15_1> a crm:E13_Attribute_Assignment ;
+crm:P14_carried_out_by <https://example.org/actor/fie_15_2> .
+<https://example.org/actor/fie_15_2> a crm:E39_Actor .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P1_is_identified_by <https://example.org/name/fie_10_1> .
+<https://example.org/name/fie_10_1> a crm:E33_E41_Linguistic_Appellation;
+crm:P141i_was_assigned_by <https://example.org/event/fie_15_1> .
+<https://example.org/event/fie_15_1> a crm:E13_Attribute_Assignment ;
+crm:P16_used_specific_object <https://example.org/conceptual_object/fie_16_1> .
+<https://example.org/conceptual_object/fie_16_1> a crm:E73_Information_Object .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.4] Type,Type,This collection of fields enables the documentation of the classifications attributed to an entity.,E1 CRM Entity,"fie_17_Type,fie_18_Type Start - Date,fie_19_Type - End Date,fie_20_Type Attributor,fie_21_Type Qualifying Description","<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P2_has_type <https://example.org/type/fie_17_1> .
+<https://example.org/type/fie_17_1> a crm:E55_Type .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P41i_was_classified_by <https://example.org/event/fie_18_1> .
+<https://example.org/event/fie_18_1> a crm:E17_Type_Assignment ;
+crm:P42_assigned <https://example.org/type/fie_17_1> ;
+crm:P4_has_time-span <https://example.org/time_span/fie_18_2> .
+<https://example.org/time_span/fie_18_2> a crm:E52_Time-Span;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P41i_was_classified_by <https://example.org/event/fie_18_1> .
+<https://example.org/event/fie_18_1> a crm:E17_Type_Assignment ;
+crm:P42_assigned <https://example.org/type/fie_17_1> ;
+crm:P4_has_time-span <https://example.org/time_span/fie_18_2> .
+<https://example.org/time_span/fie_18_2> a crm:E52_Time-Span;
+crm:P82b_end_of_the_end """"^^xsd:dateTime .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P41i_was_classified_by <https://example.org/event/fie_18_1> .
+<https://example.org/event/fie_18_1> a crm:E17_Type_Assignment ;
+crm:P42_assigned <https://example.org/type/fie_17_1> ;
+crm:P14_carried_out_by <https://example.org/actor/fie_20_1> .
+<https://example.org/actor/fie_20_1> a crm:E39_Actor .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P41i_was_classified_by <https://example.org/event/fie_18_1> .
+<https://example.org/event/fie_18_1> a crm:E17_Type_Assignment ;
+crm:P67i_is_referred_to_by <https://example.org/conceptual_object/fie_21_1> . 
+<https://example.org/conceptual_object/fie_21_1> a crm:E33_Linguistic_Object .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.5] Current Parthood,Current Parthood,This collection of fields enables the documentation of the relation of parthood that currently holds between two places.,E53 Place,"fie_35_Has Part,fie_36_Is Part of,fie_287_Part of Archival Unit","<http://www.srdm.org/place/E53> a <http://www.cidoc-crm.org/cidoc-crm/E53_Place>;
+crm:P89i_contains <https://example.org/place/fie_35_1> .
+<https://example.org/place/fie_35_1> a crm:E53_Place .<http://www.srdm.org/place/E53> a <http://www.cidoc-crm.org/cidoc-crm/E53_Place>;
+crm:P89_falls_within <https://example.org/place/fie_36_1> .
+<https://example.org/place/fie_36_1> a crm:E53_Place .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.6] Historical Parthood,Historical Parthood,This collection of fields enables the documentation of the relation of parthood that has in the past held holds between two places.,E53 Place,"fie_37_Historically Has Part,fie_38_Name at time of Historically Having Part,fie_39_Type at Time of Historically Having Part,fie_40_Historically Has Part - Earliest Date Time,fie_41_Historically Has Part - Latest Date Time,fie_42_Historically Is Part of Place,fie_43_Name at Time of Historically Being Part of Place,fie_44_Type at Time of Historically Being Part of Place,fie_45_Historically Is Part of Place - Earliest Date Time,fie_46_Historically Is Part of Place - Latest Date Time,fie_47_Historical Coordinates","<http://www.srdm.org/place/E53> a <http://www.cidoc-crm.org/cidoc-crm/E53_Place>;
+crm:P161i_is_spatial_projection_of <https://example.org/event/fie_37_1> . 
+<https://example.org/event/fie_37_1> a crm:E4_Period;
+crm:P161_has_spatial_projection <https://example.org/place/fie_37_2> . 
+<https://example.org/place/fie_37_2> a crm:E53_Place .<http://www.srdm.org/place/E53> a <http://www.cidoc-crm.org/cidoc-crm/E53_Place>;
+crm:P161i_is_spatial_projection_of <https://example.org/event/fie_37_1> .
+<https://example.org/event/fie_37_1> a crm:E4_Period;
+crm:P1_is_identified_by <https://example.org/name/fie_38_1> .
+<https://example.org/name/fie_38_1> a crm:E41_Appellation ;
+rdfs:label ""content"" .<http://www.srdm.org/place/E53> a <http://www.cidoc-crm.org/cidoc-crm/E53_Place>;
+crm:P161i_is_spatial_projection_of <https://example.org/event/fie_37_1> .
+<https://example.org/event/fie_37_1> a crm:E4_Period;
+crm:P2_has_type <https://example.org/type/fie_39_1> .
+<https://example.org/type/fie_39_1> a crm:E55_Type .<http://www.srdm.org/place/E53> a <http://www.cidoc-crm.org/cidoc-crm/E53_Place>;
+crm:P161i_is_spatial_projection_of <https://example.org/event/fie_37_1> .
+<https://example.org/event/fie_37_1> a crm:E4_Period;
+crm:P160_has_temporal_projection <https://example.org/time_span/fie_40_1> .
+<https://example.org/time_span/fie_40_1> a crm:E52_Time-Span ;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .<http://www.srdm.org/place/E53> a <http://www.cidoc-crm.org/cidoc-crm/E53_Place>;
+crm:P161i_is_spatial_projection_of <https://example.org/event/fie_37_1> .
+<https://example.org/event/fie_37_1> a crm:E4_Period;
+crm:P160_has_temporal_projection <https://example.org/time_span/fie_40_1> .
+<https://example.org/time_span/fie_40_1> a crm:E52_Time-Span ;
+crm:P82b_end_of_the_end """"^^xsd:dateTime .<http://www.srdm.org/place/E53> a <http://www.cidoc-crm.org/cidoc-crm/E53_Place>;
+crm:P161i_is_spatial_projection_of <https://example.org/event/fie_42_1> .
+<https://example.org/event/fie_42_1> a crm:E4_Period;
+crm:P166i_had_presence <https://example.org/stv/fie_42_2> .
+<https://example.org/stv/fie_42_2> a crm:E93_Presence ;
+crm:P10_falls_within <https://example.org/place/fie_42_3> .
+<https://example.org/place/fie_42_3> a crm:E4_Period;
+crm:P161_has_spatial_projection <https://example.org/place/fie_42_4> .
+<https://example.org/place/fie_42_4> a crm:E53_Place ;
+crm:P168_place_is_defined_by """"^^geo:wkt .<http://www.srdm.org/place/E53> a <http://www.cidoc-crm.org/cidoc-crm/E53_Place>;
+crm:P161i_is_spatial_projection_of <https://example.org/event/fie_42_1> .
+<https://example.org/event/fie_42_1> a crm:E4_Period;
+crm:P166i_had_presence <https://example.org/stv/fie_42_2> .
+<https://example.org/stv/fie_42_2> a crm:E93_Presence ;
+crm:P10i_contains <https://example.org/event/fie_43_1> ;
+crm:P164_is_temporally_specified_by <https://example.org/time_span/fie_45_1> .
+<https://example.org/time_span/fie_45_1> a crm:E52_Time-Span ;
+crm:P82b_end_of_the_end """"^^xsd:dateTime ;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .
+<https://example.org/event/fie_43_1> a frbroo:F52_Name_Use_Activity;
+frbroo:R64_used_name <https://example.org/name/fie_43_2> ;
+crm:P140_assigned_attribute_to <https://example.org/event/fie_42_1> .
+<https://example.org/name/fie_43_2> a crm:E41_Appellation ;
+crm:P190_has_symbolic_content ""content"".<http://www.srdm.org/place/E53> a <http://www.cidoc-crm.org/cidoc-crm/E53_Place>;
+crm:P161i_is_spatial_projection_of <https://example.org/event/fie_42_1> .
+<https://example.org/event/fie_42_1> a crm:E4_Period;
+crm:P166i_had_presence <https://example.org/stv/fie_42_2> .
+<https://example.org/stv/fie_42_2> a crm:E93_Presence ;
+crm:P10i_contains <https://example.org/event/fie_44_1> ;
+crm:P164_is_temporally_specified_by <https://example.org/time_span/fie_45_1> .
+<https://example.org/time_span/fie_45_1> a crm:E52_Time-Span ;
+crm:P82b_end_of_the_end """"^^xsd:dateTime ;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .
+<https://example.org/event/fie_44_1> a crm:E17_Type_Assignment;
+crm:P42_assigned <https://example.org/type/fie_44_2> ;
+crm:P41_classified <https://example.org/event/fie_42_1> .
+<https://example.org/type/fie_44_2> a crm:E55_Type .<http://www.srdm.org/place/E53> a <http://www.cidoc-crm.org/cidoc-crm/E53_Place>;
+crm:P161i_is_spatial_projection_of <https://example.org/event/fie_42_1> .
+<https://example.org/event/fie_42_1> a crm:E4_Period;
+crm:P166i_had_presence <https://example.org/stv/fie_42_2> .
+<https://example.org/stv/fie_42_2> a crm:E93_Presence ;
+crm:P164_is_temporally_specified_by <https://example.org/time_span/fie_45_1> .
+<https://example.org/time_span/fie_45_1> a crm:E52_Time-Span ;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .<http://www.srdm.org/place/E53> a <http://www.cidoc-crm.org/cidoc-crm/E53_Place>;
+crm:P161i_is_spatial_projection_of <https://example.org/event/fie_42_1> .
+<https://example.org/event/fie_42_1> a crm:E4_Period;
+crm:P166i_had_presence <https://example.org/stv/fie_42_2> .
+<https://example.org/stv/fie_42_2> a crm:E93_Presence ;
+crm:P164_is_temporally_specified_by <https://example.org/time_span/fie_45_1> .
+<https://example.org/time_span/fie_45_1> a crm:E52_Time-Span ;
+crm:P82b_end_of_the_end """"^^xsd:dateTime .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.7] Temporal Start,Temporal Start,This collection of fields enables the documentation of parameters involved an event attributed starting time.,E2 Temporal Entity,"fie_48_Earliest Possible Start Date,fie_49_Latest Possible Start Date","<http://www.srdm.org/event/E2> a <http://www.cidoc-crm.org/cidoc-crm/E2_Temporal_Entity>;
+crm:P4_has_time-span <https://example.org/time_span/fie_48_1> .
+<https://example.org/time_span/fie_48_1> a crm:E52_Time-Span ;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .<http://www.srdm.org/event/E2> a <http://www.cidoc-crm.org/cidoc-crm/E2_Temporal_Entity>;
+crm:P4_has_time-span <https://example.org/time_span/fie_48_1> .
+<https://example.org/time_span/fie_48_1> a crm:E52_Time-Span ;
+crm:P81a_end_of_the_begin """"^^xsd:dateTime .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.8] Temporal End,Temporal End,This collection of fields enables the documentation of parameters involved an event attributed ending time.,E2 Temporal Entity,"fie_50_Earliest Possible End Date,fie_51_Latest Possible End Date","<http://www.srdm.org/event/E2> a <http://www.cidoc-crm.org/cidoc-crm/E2_Temporal_Entity>;
+crm:P4_has_time-span <https://example.org/time_span/fie_48_1> .
+<https://example.org/time_span/fie_48_1> a crm:E52_Time-Span ;
+crm:P81b_begin_of_the_end """"^^xsd:dateTime .<http://www.srdm.org/event/E2> a <http://www.cidoc-crm.org/cidoc-crm/E2_Temporal_Entity>;
+crm:P4_has_time-span <https://example.org/time_span/fie_48_1> .
+<https://example.org/time_span/fie_48_1> a crm:E52_Time-Span ;
+crm:P82b_end_of_the_end """"^^xsd:dateTime .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.9] Temporal Duration,Temporal Duration,This collection of fields enables the documentation of temporal duration information attributed to an event.,E2 Temporal Entity,"fie_52_Maximal Duration - Value,fie_53_Maximal Duration - Unit,fie_54_Minimal Duration - Value,fie_55_Minimal Duration - Unit","<http://www.srdm.org/event/E2> a <http://www.cidoc-crm.org/cidoc-crm/E2_Temporal_Entity>;
+crm:P4_has_time-span <https://example.org/time_span/fie_48_1> .
+<https://example.org/time_span/fie_48_1> a crm:E52_Time-Span ;
+crm:P84_had_at_most_duration <https://example.org/dimension/fie_52_1>.
+<https://example.org/dimension/fie_52_1> a crm:E54_Dimension ;
+crm:P90_has_value ""content"" .<http://www.srdm.org/event/E2> a <http://www.cidoc-crm.org/cidoc-crm/E2_Temporal_Entity>;
+crm:P4_has_time-span <https://example.org/time_span/fie_48_1> .
+<https://example.org/time_span/fie_48_1> a crm:E52_Time-Span ;
+crm:P84_had_at_most_duration <https://example.org/dimension/fie_52_1>.
+<https://example.org/dimension/fie_52_1> a crm:E54_Dimension ;
+crm:P91_has_unit <https://example.org/type/fie_53_1> .
+<https://example.org/type/fie_53_1> a crm:E58_Measurement_Unit .<http://www.srdm.org/event/E2> a <http://www.cidoc-crm.org/cidoc-crm/E2_Temporal_Entity>;
+crm:P4_has_time-span <https://example.org/time_span/fie_48_1> .
+<https://example.org/time_span/fie_48_1> a crm:E52_Time-Span ;
+crm:P83_had_at_least_duration <https://example.org/dimension/fie_54_1>.
+<https://example.org/dimension/fie_54_1> a crm:E54_Dimension ;
+crm:P90_has_value ""content"" .<http://www.srdm.org/event/E2> a <http://www.cidoc-crm.org/cidoc-crm/E2_Temporal_Entity>;
+crm:P4_has_time-span <https://example.org/time_span/fie_48_1> .
+<https://example.org/time_span/fie_48_1> a crm:E52_Time-Span ;
+crm:P83_had_at_least_duration  <https://example.org/dimension/fie_54_1>.
+<https://example.org/dimension/fie_54_1> a crm:E54_Dimension ;
+crm:P91_has_unit <https://example.org/type/fie_55_1> .
+<https://example.org/type/fie_55_1> a crm:E58_Measurement_Unit .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.11] Production,Production,"This collection of fields enables the documentation of the parameters involved in the production of a physical thing - e.g. artwork or built work - such as the time it occurred,  where it happened, who carried out the production and so on.",E24 Physical Human-Made Thing,"fie_58_Production Date - Earliest,fie_59_Production Date - Latest,fie_60_Production Location,fie_61_Production Period,fie_262_Production - Used Physical Object,fie_299_Production Type","<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P108i_was_produced_by <https://example.org/event/fie_58_1> .
+<https://example.org/event/fie_58_1> a crm:E12_Production;
+crm:P4_has_time-span <https://example.org/time_span/fie_58_2> .
+<https://example.org/time_span/fie_58_2> a crm:E52_Time-Span;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P108i_was_produced_by <https://example.org/event/fie_58_1> .
+<https://example.org/event/fie_58_1> a crm:E12_Production;
+crm:P4_has_time-span <https://example.org/time_span/fie_58_2> .
+<https://example.org/time_span/fie_58_2> a crm:E52_Time-Span;
+crm:P82b_end_of_the_end """"^^xsd:dateTime .<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P108i_was_produced_by <https://example.org/event/fie_58_1> .
+<https://example.org/event/fie_58_1> a crm:E12_Production;
+crm:P7_took_place_at <https://example.org/place/fie_60_1> . <https://example.org/place/fie_60_1> a crm:E53_Place .<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P108i_was_produced_by <https://example.org/event/fie_58_1> .
+<https://example.org/event/fie_58_1> a crm:E12_Production;
+crm:P10_falls_within <https://example.org/event/fie_61_1> . <https://example.org/event/fie_61_1> a crm:E4_Period .<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P108i_was_produced_by <https://example.org/event/fie_58_1> .
+<https://example.org/event/fie_58_1> a crm:E12_Production;
+crm:P16_used_specific_object <https://example.org/physical_object/fie_262_1> .
+<https://example.org/physical_object/fie_262_1> a crm:E18_Physical_Thing .<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P108i_was_produced_by <https://example.org/event/fie_58_1> .
+<https://example.org/event/fie_58_1> a crm:E12_Production;
+crm:P2_has_type <https://example.org/physical_object/fie_299_1> .
+<https://example.org/physical_object/fie_299_1> a crm:E55_Type .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.12] Destruction,Destruction,"This collection of fields enables the documentation of the parameters involved in the destruction of a physical thing - e.g. artwork or built work - such as the time it occurred,  where it happened, who carried out the production and so on.",E18 Physical Thing,"fie_62_Destruction Date - Earliest,fie_63_Destruction Date - Latest,fie_64_Destruction Location,fie_65_Destruction period","<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:P13i_was_destroyed_by <https://example.org/event/fie_62_1> .
+<https://example.org/event/fie_62_1> a crm:E6_Destruction;
+crm:P4_has_time-span <https://example.org/time_span/fie_62_2> .
+<https://example.org/time_span/fie_62_2> a crm:E52_Time-Span;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:P13i_was_destroyed_by <https://example.org/event/fie_62_1> .
+<https://example.org/event/fie_62_1> a crm:E6_Destruction;
+crm:P4_has_time-span <https://example.org/time_span/fie_62_2> .
+<https://example.org/time_span/fie_62_2> a crm:E52_Time-Span;
+crm:P82b_end_of_the_end """"^^xsd:dateTime .<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:P13i_was_destroyed_by <https://example.org/event/fie_62_1> .
+<https://example.org/event/fie_62_1> a crm:E6_Destruction;
+crm:P7_took_place_at <https://example.org/place/fie_64_1> . <https://example.org/place/fie_64_1> a crm:E53_Place .<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:P13i_was_destroyed_by <https://example.org/event/fie_62_1> .
+<https://example.org/event/fie_62_1> a crm:E6_Destruction;
+crm:P10_falls_within <https://example.org/event/fie_65_1> . <https://example.org/event/fie_65_1> a crm:E4_Period .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.13] Digital Creation,Digital Creation,This collection of fields enables the documentation of information describing the various parameters involved in the creation of a digital object. ,D1 Digital Object,"fie_66_Creation Date - Early,fie_67_Creation Date - Late","<http://www.srdm.org/conceptual_object/D1> a <http://www.ics.forth.gr/isl/CRMdig/D1_Digital_Object>;
+crmdig:L11i_was_output_of <https://example.org/event/fie_66_1> .
+<https://example.org/event/fie_66_1> a crmdig:D7_Digital_Machine_Event;
+crm:P2_has_type <https://example.org/type/fie_66_3> ;
+crm:P4_has_time-span <https://example.org/time_span/fie_66_2> .
+<https://example.org/type/fie_66_3> a crm:E55_Type;
+rdfs:label ""Creation"" .
+<https://example.org/time_span/fie_66_2> a crm:E52_Time-Span;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .
+<http://www.srdm.org/conceptual_object/D1> a <http://www.ics.forth.gr/isl/CRMdig/D1_Digital_Object>;
+crmdig:L11i_was_output_of <https://example.org/event/fie_66_1> .
+<https://example.org/event/fie_66_1> a crmdig:D7_Digital_Machine_Event;
+crm:P2_has_type <https://example.org/type/fie_66_3> ;
+crm:P4_has_time-span <https://example.org/time_span/fie_66_2> .
+<https://example.org/type/fie_66_3> a crm:E55_Type;
+rdfs:label ""Creation"" .
+<https://example.org/time_span/fie_66_2> a crm:E52_Time-Span;
+crm:P82b_end_of_the_end """"^^xsd:dateTime .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.14] Modification,Modification,This collection of fields enables the documentation of a modification event that has occurred to a physical object.,D1 Digital Object,"fie_68_Modification Date - Early,fie_69_Modification Date - Late","<http://www.srdm.org/conceptual_object/D1> a <http://www.ics.forth.gr/isl/CRMdig/D1_Digital_Object>;
+crmdig:L11i_was_output_of <https://example.org/event/fie_68_1> .
+<https://example.org/event/fie_68_1> a crmdig:D7_Digital_Machine_Event;
+crm:P2_has_type <https://example.org/type/fie_68_3> ;
+crm:P4_has_time-span <https://example.org/time_span/fie_68_2> .
+<https://example.org/type/fie_68_3> a crm:E55_Type;
+rdfs:label ""Modification"" .
+<https://example.org/time_span/fie_68_2> a crm:E52_Time-Span;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .<http://www.srdm.org/conceptual_object/D1> a <http://www.ics.forth.gr/isl/CRMdig/D1_Digital_Object>;
+crmdig:L11i_was_output_of <https://example.org/event/fie_68_1> .
+<https://example.org/event/fie_68_1> a crmdig:D7_Digital_Machine_Event;
+crm:P2_has_type <https://example.org/type/fie_68_23> ;
+crm:P4_has_time-span <https://example.org/time_span/fie_68_2> .
+<https://example.org/type/fie_68_23> a crm:E55_Type;
+rdfs:label ""Modification"" .
+<https://example.org/time_span/fie_68_2> a crm:E52_Time-Span;
+crm:P82b_end_of_the_end """"^^xsd:dateTime .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.15] Publication,Publication,"This collection of fields enables the documentation of the parameters involved in the publication of an information object - e.g. textual work or visual work - such as the time it occurred,  where it happened, who carried out the production and so on.",F24 Publication Expression,"fie_70_Publication Date - Earliest,fie_71_Publication Date - Latest,fie_72_Publication Location","<http://www.srdm.org/conceptual_object/F24> a <http://iflastandards.info/ns/fr/frbr/frbroo/F24_Publication_Expression>;
+frbroo:R24i_was_created_through <https://example.org/event/fie_70_1> .
+<https://example.org/event/fie_70_1> a frbroo:F30_Publication_Event;
+crm:P4_has_time-span <https://example.org/time_span/fie_70_2> .
+<https://example.org/time_span/fie_70_2> a crm:E52_Time-Span;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .<http://www.srdm.org/conceptual_object/F24> a <http://iflastandards.info/ns/fr/frbr/frbroo/F24_Publication_Expression>;
+frbroo:R24i_was_created_through <https://example.org/event/fie_70_1> .
+<https://example.org/event/fie_70_1> a frbroo:F30_Publication_Event;
+crm:P4_has_time-span <https://example.org/time_span/fie_70_2> .
+<https://example.org/time_span/fie_70_2> a crm:E52_Time-Span;
+crm:P82b_end_of_the_end """"^^xsd:dateTime .<http://www.srdm.org/conceptual_object/F24> a <http://iflastandards.info/ns/fr/frbr/frbroo/F24_Publication_Expression>;
+frbroo:R24i_was_created_through <https://example.org/event/fie_70_1> .
+<https://example.org/event/fie_70_1> a frbroo:F30_Publication_Event;
+crm:P7_took_place_at <https://example.org/place/fie_72_1> . <https://example.org/place/fie_72_1> a crm:E53_Place .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.16] Birth,Birth,"This collection of fields enables the documentation of the parameters involved in the birth of an individual such as the time it occurred,  where it happened and so on.",E21 Person,"fie_73_Birth Date - Earliest,fie_74_Birth Date - Latest,fie_75_Birth Location","<http://www.srdm.org/actor/E21> a <http://www.cidoc-crm.org/cidoc-crm/E21_Person>;
+crm:P98i_was_born
+<https://example.org/event/fie_73_1> .
+<https://example.org/event/fie_73_1> a 
+crm:E67_Birth;
+crm:P4_has_time-span <https://example.org/time_span/fie_73_2> .
+<https://example.org/time_span/fie_73_2> a crm:E52_Time-Span;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .<http://www.srdm.org/actor/E21> a <http://www.cidoc-crm.org/cidoc-crm/E21_Person>;
+crm:P98i_was_born
+<https://example.org/event/fie_73_1> .
+<https://example.org/event/fie_73_1> a 
+crm:E67_Birth;
+crm:P4_has_time-span <https://example.org/time_span/fie_73_2> .
+<https://example.org/time_span/fie_73_2> a crm:E52_Time-Span;
+crm:P82b_end_of_the_end """"^^xsd:dateTime .<http://www.srdm.org/actor/E21> a <http://www.cidoc-crm.org/cidoc-crm/E21_Person>;
+crm:P98i_was_born
+<https://example.org/event/fie_73_1> .
+<https://example.org/event/fie_73_1> a 
+crm:E67_Birth;
+crm:P7_took_place_at <https://example.org/place/fie_75_1> . <https://example.org/place/fie_75_1> a crm:E53_Place .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.17] Death,Death,"This collection of fields enables the documentation of the parameters involved in the death of an individual such as the time it occurred,  where it happened and so on.",E21 Person,"fie_76_Death Date - Earliest,fie_77_Death Date - Latest,fie_78_Death Location","<http://www.srdm.org/actor/E21> a <http://www.cidoc-crm.org/cidoc-crm/E21_Person>;
+crm:P100i_died_in
+<https://example.org/event/fie_76_1> .
+<https://example.org/event/fie_76_1> a 
+crm:E69_Death;
+crm:P4_has_time-span <https://example.org/time_span/fie_76_2> .
+<https://example.org/time_span/fie_76_2> a crm:E52_Time-Span;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .<http://www.srdm.org/actor/E21> a <http://www.cidoc-crm.org/cidoc-crm/E21_Person>;
+crm:P100i_died_in
+<https://example.org/event/fie_76_1> .
+<https://example.org/event/fie_76_1> a 
+crm:E69_Death;
+crm:P4_has_time-span <https://example.org/time_span/fie_76_2> .
+<https://example.org/time_span/fie_76_2> a crm:E52_Time-Span;
+crm:P82b_end_of_the_end """"^^xsd:dateTime .<http://www.srdm.org/actor/E21> a <http://www.cidoc-crm.org/cidoc-crm/E21_Person>;
+crm:P100i_died_in
+<https://example.org/event/fie_76_1> .
+<https://example.org/event/fie_76_1> a 
+crm:E69_Death;
+crm:P7_took_place_at <https://example.org/place/fie_78_1> . <https://example.org/place/fie_78_1> a crm:E53_Place .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.18] Formation,Formation,"This collection of fields enables the documentation of the parameters involved in the event of formation of a group such as the time it occurred, who was involved and so on.",E74 Group,"fie_79_Formation Date - Earliest,fie_80_Formation Date - Latest,fie_81_Formation Location,fie_82_Formed from","<http://www.srdm.org/actor/E74> a <http://www.cidoc-crm.org/cidoc-crm/E74_Group>;
+crm:P95i_was_formed_by
+<https://example.org/event/fie_79_1> .
+<https://example.org/event/fie_79_1> a 
+crm:E66_Formation;
+crm:P4_has_time-span <https://example.org/time_span/fie_79_2> .
+<https://example.org/time_span/fie_79_2> a crm:E52_Time-Span;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .<http://www.srdm.org/actor/E74> a <http://www.cidoc-crm.org/cidoc-crm/E74_Group>;
+crm:P95i_was_formed_by
+<https://example.org/event/fie_79_1> .
+<https://example.org/event/fie_79_1> a 
+crm:E66_Formation;
+crm:P4_has_time-span <https://example.org/time_span/fie_79_2> .
+<https://example.org/time_span/fie_79_2> a crm:E52_Time-Span;
+crm:P82b_end_of_the_end """"^^xsd:dateTime .<http://www.srdm.org/actor/E74> a <http://www.cidoc-crm.org/cidoc-crm/E74_Group>;
+crm:P95i_was_formed_by
+<https://example.org/event/fie_79_1> .
+<https://example.org/event/fie_79_1> a 
+crm:E66_Formation;
+crm:P7_took_place_at <https://example.org/place/fie_81_1> . <https://example.org/place/fie_81_1> a crm:E53_Place .<http://www.srdm.org/actor/E74> a <http://www.cidoc-crm.org/cidoc-crm/E74_Group>;
+crm:P95i_was_formed_by
+<https://example.org/event/fie_79_1> .
+<https://example.org/event/fie_79_1> a 
+crm:E66_Formation;
+crm:P151_was_formed_from <https://example.org/actor/fie_82_1> .
+<https://example.org/actor/fie_82_1> a crm:E39_Actor .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.19] Dissolution,Dissolution,"This collection of fields enables the documentation of the parameters involved in the event of dissolution of a group such as the time it occurred, who was involved and so on.",E74 Group,"fie_83_Dissolution Date - Earliest,fie_84_Dissolution Date - Latest,fie_85_Dissolution Location","<http://www.srdm.org/actor/E74> a <http://www.cidoc-crm.org/cidoc-crm/E74_Group>;
+crm:P99i_was_dissolved_by
+<https://example.org/event/fie_83_1> .
+<https://example.org/event/fie_83_1> a 
+crm:E68_Dissolution;
+crm:P4_has_time-span <https://example.org/time_span/fie_83_2> .
+<https://example.org/time_span/fie_83_2> a crm:E52_Time-Span;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .<http://www.srdm.org/actor/E74> a <http://www.cidoc-crm.org/cidoc-crm/E74_Group>;
+crm:P99i_was_dissolved_by
+<https://example.org/event/fie_83_1> .
+<https://example.org/event/fie_83_1> a 
+crm:E68_Dissolution;
+crm:P4_has_time-span <https://example.org/time_span/fie_83_2> .
+<https://example.org/time_span/fie_83_2> a crm:E52_Time-Span;
+crm:P82b_end_of_the_end """"^^xsd:dateTime .<http://www.srdm.org/actor/E74> a <http://www.cidoc-crm.org/cidoc-crm/E74_Group>;
+crm:P99i_was_dissolved_by
+<https://example.org/event/fie_83_1> .
+<https://example.org/event/fie_83_1> a 
+crm:E68_Dissolution;
+crm:P7_took_place_at <https://example.org/place/fie_85_1> . <https://example.org/place/fie_85_1> a crm:E53_Place .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.20] Dimension,Dimension,"This collection of fields enables the documentation of dimension information attributed to an entity. In particular, it allows the analytic description of measurement information relative to a documented entity.",E1 CRM Entity,"fie_86_Dimension Type,fie_87_Dimension Value,fie_88_Dimension Unit,fie_89_Dimension Taker","<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P39i_was_measured_by
+<https://example.org/event/fie_86_1> .
+<https://example.org/event/fie_86_1> a 
+crm:E16_Measurement;
+crm:P40_observed_dimension <https://example.org/dimension/fie_86_2> . <https://example.org/dimension/fie_86_2> a crm:E54_Dimension ;
+crm:P2_has_type
+<https://example.org/type/fie_86_3> .
+<https://example.org/type/fie_86_3> a crm:E55_Type .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P39i_was_measured_by
+<https://example.org/event/fie_86_1> .
+<https://example.org/event/fie_86_1> a 
+crm:E16_Measurement;
+crm:P40_observed_dimension <https://example.org/dimension/fie_86_2> . <https://example.org/dimension/fie_86_2> a crm:E54_Dimension ;
+crm:P90_has_value ""content"" .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P39i_was_measured_by
+<https://example.org/event/fie_86_1> .
+<https://example.org/event/fie_86_1> a 
+crm:E16_Measurement;
+crm:P40_observed_dimension <https://example.org/dimension/fie_86_2> . <https://example.org/dimension/fie_86_2> a crm:E54_Dimension ;
+crm:P91_has_unit <https://example.org/type/fie_88_1> .
+<https://example.org/type/fie_88_1> a crm:E58_Measurement_Unit .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P39i_was_measured_by
+<https://example.org/event/fie_86_1> .
+<https://example.org/event/fie_86_1> a 
+crm:E16_Measurement;
+crm:P14_carried_out_by <https://example.org/actor/fie_89_1> . <https://example.org/actor/fie_89_1> a crm:E39_Actor .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.21] Function,Function,This collection of fields enables the documentation of a funtion attributed to an entity.,E24 Physical Human-Made Thing,"fie_104_Use Period - Type,fie_105_Use Period - Start,fie_106_Use Period - End","<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P12i_was_present_at
+<https://example.org/event/fie_104_1> .
+<https://example.org/event/fie_104_1> a 
+crm:E5_Event;
+crm:P2_has_type <https://example.org/type/fie_104_2> .
+<https://example.org/type/fie_104_2> a crm:E55_Type .<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P12i_was_present_at
+<https://example.org/event/fie_104_1> .
+<https://example.org/event/fie_104_1> a 
+crm:E5_Event;
+crm:P4_has_time-span <https://example.org/time_span/fie_105_1> .
+<https://example.org/time_span/fie_105_1> a crm:E52_Time-Span;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P12i_was_present_at
+<https://example.org/event/fie_104_1> .
+<https://example.org/event/fie_104_1> a 
+crm:E5_Event;
+crm:P4_has_time-span <https://example.org/time_span/fie_105_1> .
+<https://example.org/time_span/fie_105_1> a crm:E52_Time-Span;
+crm:P82a_end_of_the_end """"^^xsd:dateTime .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.22] Conservation,Conservation,This collection of fields enables the documentation of a conservation event that has occurred to a archival holding.,E24 Physical Human-Made Thing,"fie_107_Conservation Event - Type,fie_108_Conservation Event - Earliest,fie_109_Conservation Event - Latest,fie_110_Conservation Event - technique,fie_111_Conservator,fie_112_Conservation Event Description","<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P31i_was_modified_by
+<https://example.org/event/fie_107_1> .
+<https://example.org/event/fie_107_1> a 
+crm:E11_Modification;
+crm:P2_has_type <https://example.org/type/fie_107_2> .
+<https://example.org/type/fie_107_2> a crm:E55_Type .
+<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P31i_was_modified_by
+<https://example.org/event/fie_107_1> .
+<https://example.org/event/fie_107_1> a 
+crm:E11_Modification;
+crm:P4_has_time-span <https://example.org/time_span/fie_108_1> .
+<https://example.org/time_span/fie_108_1> a crm:E52_Time-Span;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P31i_was_modified_by
+<https://example.org/event/fie_107_1> .
+<https://example.org/event/fie_107_1> a 
+crm:E11_Modification;
+crm:P4_has_time-span <https://example.org/time_span/fie_108_1> .
+<https://example.org/time_span/fie_108_1> a crm:E52_Time-Span;
+crm:P82b_end_of_the_end """"^^xsd:dateTime .<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P31i_was_modified_by
+<https://example.org/event/fie_107_1> .
+<https://example.org/event/fie_107_1> a 
+crm:E11_Modification;
+crm:P32_used_general_technique <https://example.org/type/fie_110_1> .
+<https://example.org/type/fie_110_1> a crm:E55_Type .<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P31i_was_modified_by
+<https://example.org/event/fie_107_1> .
+<https://example.org/event/fie_107_1> a 
+crm:E11_Modification;
+crm:P14_carried_out_by <https://example.org/actor/fie_111_1> .
+<https://example.org/actor/fie_111_1> a crm:E21_Person .
+<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P31i_was_modified_by
+<https://example.org/event/fie_107_1> .
+<https://example.org/event/fie_107_1> a 
+crm:E11_Modification;
+crm:P119i_is_subject_of <https://example.org/conceptual_Object/fie_112_1> .
+<https://example.org/conceptual_Object/fie_112_1> a crm:E73_Linguistic_Object .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.23] Provenance,Provenance,This collection of fields enables the documentation of an objects past ownership.,E24 Physical Human-Made Thing,"fie_113_Past Ownership Period Statement - Earliest date of taking of Possession,fie_114_Past Ownership Period Statement - Latest Date of taking of Possession,fie_115_Past Ownership Period Statement - Actor Obtaining Ownership,fie_116_Past Ownership Period Statement - Earliest Ceding of Possession,fie_117_Past Ownership Period Statement - Latest Ceding of Possession,fie_118_Past Ownership Period Statement - Actor Ceding Ownership,fie_119_Past Ownership Description","<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P24i_changed_ownership_through
+<https://example.org/event/fie_113_1> .
+<https://example.org/event/fie_113_1> a 
+crm:E8_Acquisition;
+crm:P4_has_time-span <https://example.org/time_span/fie_113_2> .
+<https://example.org/time_span/fie_113_2> a crm:E52_Time-Span;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P24i_changed_ownership_through
+<https://example.org/event/fie_113_1> .
+<https://example.org/event/fie_113_1> a 
+crm:E8_Acquisition;
+crm:P4_has_time-span <https://example.org/time_span/fie_113_2> .
+<https://example.org/time_span/fie_113_2> a crm:E52_Time-Span;
+crm:P82a_end_of_the_end """"^^xsd:dateTime .<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P24i_changed_ownership_through
+<https://example.org/event/fie_113_1> .
+<https://example.org/event/fie_113_1> a 
+crm:E8_Acquisition;
+crm:P22_transferred_title_to <https://example.org/actor/fie_115_1> .
+<https://example.org/actor/fie_115_1> a crm:E39_Actor .<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P24i_changed_ownership_through
+<https://example.org/event/fie_113_1> .
+<https://example.org/event/fie_113_1> a 
+crm:E8_Acquisition;
+crm:P115i_is_finished_by
+<https://example.org/event/fie_116_1> .
+<https://example.org/event/fie_116_1> a 
+crm:E8_Acquisition;
+crm:P4_has_time-span <https://example.org/time_span/fie_116_2> .
+<https://example.org/time_span/fie_116_2> a crm:E52_Time-Span;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P24i_changed_ownership_through
+<https://example.org/event/fie_113_1> .
+<https://example.org/event/fie_113_1> a 
+crm:E8_Acquisition;
+crm:P115i_is_finished_by
+<https://example.org/event/fie_116_1> .
+<https://example.org/event/fie_116_1> a 
+crm:E8_Acquisition;
+crm:P4_has_time-span <https://example.org/time_span/fie_116_2> .
+<https://example.org/time_span/fie_116_2> a crm:E52_Time-Span;
+crm:P82a_end_of_the_end """"^^xsd:dateTime .<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P24i_changed_ownership_through
+<https://example.org/event/fie_116_1> .
+<https://example.org/event/fie_116_1> a 
+crm:E8_Acquisition;
+crm:P23_transferred_title_from <https://example.org/actor/fie_118_1> .
+<https://example.org/actor/fie_118_1> a crm:E39_Actor .<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P24i_changed_ownership_through
+<https://example.org/event/fie_113_1> .
+<https://example.org/event/fie_113_1> a 
+crm:E8_Acquisition;
+crm:P129i_is_subject_of <https://example.org/conceptual_object/fie_119_1> .
+<https://example.org/conceptual_object/fie_119_1> a crm:E33_Linguistic_Object .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.25] Floruit,Floruit,"This collection of fields enables the documentation of the parameters involved in the flourishing of a person or group such as the time of its occurrence, its place and so on.",E39 Actor,"fie_121_Floruit - Earliest date,fie_122_Floruit - Latest date,fie_123_Floruit Location","<http://www.srdm.org/actor/E39> a <http://www.cidoc-crm.org/cidoc-crm/E39_Actor>;
+crm:P14i_performed
+<https://example.org/event/fie_121_1> .
+<https://example.org/event/fie_121_1> a 
+frbroo:F51_Pursuit;
+crm:P2_has_type
+<https://example.org/type/fie_121_2> ;
+crm:P4_has_time-span <https://example.org/time_span/fie_121_3> .
+<https://example.org/type/fie_121_2> a crm:E55_Type ;
+rdfs:label ""Floruit"" . 
+<https://example.org/time_span/fie_121_3> a crm:E52_Time-Span;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .<http://www.srdm.org/actor/E39> a <http://www.cidoc-crm.org/cidoc-crm/E39_Actor>;
+crm:P14i_performed
+<https://example.org/event/fie_121_1> .
+<https://example.org/event/fie_121_1> a 
+frbroo:F51_Pursuit;
+crm:P2_has_type
+<https://example.org/type/fie_121_2> ;
+crm:P4_has_time-span <https://example.org/time_span/fie_121_3> .<https://example.org/type/fie_121_2> a crm:E55_Type ;
+rdfs:label ""Floruit"" . 
+<https://example.org/time_span/fie_121_3> a crm:E52_Time-Span;
+crm:P82b_end_of_the_end """"^^xsd:dateTime .<http://www.srdm.org/actor/E39> a <http://www.cidoc-crm.org/cidoc-crm/E39_Actor>;
+crm:P14i_performed
+<https://example.org/event/fie_121_1> .
+<https://example.org/event/fie_121_1> a 
+frbroo:F51_Pursuit;
+crm:P2_has_type
+<https://example.org/type/fie_121_2> ;
+crm:P7_took_place_at <https://example.org/place/fie_123_1> .<https://example.org/type/fie_121_2> a crm:E55_Type ;
+rdfs:label ""Floruit"" . 
+<https://example.org/place/fie_123_1> a crm:E53_Place .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.26] Professional / Commercial Activity,Professional / Commercial Activity,"This collection of fields enables the documentation of the parameters involved in the professional activity of a person or group such as the time of its occurrence, its kind and so on.",E39 Actor,"fie_124_Field of Activity,fie_125_Period of Activity - Earliest,fie_126_Period of Activity - Latest,fie_127_Activity Location","<http://www.srdm.org/actor/E39> a <http://www.cidoc-crm.org/cidoc-crm/E39_Actor>;
+crm:P14i_performed
+<https://example.org/event/fie_124_1> .
+<https://example.org/event/fie_124_1> a 
+frbroo:F51_Pursuit;
+crm:P2_has_type
+<https://example.org/type/fie_124_2> ;
+frbroo:R59_had_typical_subject <https://example.org/type/fie_124_3> .<https://example.org/type/fie_124_2> a crm:E55_Type ;
+rdfs:label ""Field of Activity"" . 
+<https://example.org/type/fie_124_3> a crm:E55_Type .<http://www.srdm.org/actor/E39> a <http://www.cidoc-crm.org/cidoc-crm/E39_Actor>;
+crm:P14i_performed
+<https://example.org/event/fie_124_1> .
+<https://example.org/event/fie_124_1> a 
+frbroo:F51_Pursuit;
+crm:P4_has_time-span <https://example.org/time_span/fie_125_1> .<https://example.org/time_span/fie_125_1> a crm:E52_Time-Span ;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .<http://www.srdm.org/actor/E39> a <http://www.cidoc-crm.org/cidoc-crm/E39_Actor>;
+crm:P14i_performed
+<https://example.org/event/fie_124_1> .
+<https://example.org/event/fie_124_1> a 
+frbroo:F51_Pursuit;
+crm:P4_has_time-span <https://example.org/time_span/fie_125_1> .<https://example.org/time_span/fie_125_1> a crm:E52_Time-Span ;
+crm:P82b_end_of_the_end """"^^xsd:dateTime .<http://www.srdm.org/actor/E39> a <http://www.cidoc-crm.org/cidoc-crm/E39_Actor>;
+crm:P14i_performed
+<https://example.org/event/fie_124_1> .
+<https://example.org/event/fie_124_1> a 
+frbroo:F51_Pursuit;
+crm:P7_took_place_at
+<https://example.org/place/fie_127_1> .
+<https://example.org/place/fie_127_1> a crm:E53_Place .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.27] Participant,Participant,This collection of fields enables the documentation of the participants in an event.,E7 Activity,"fie_129_Participant,fie_130_Participant Role","<http://www.srdm.org/event/E7> a <http://www.cidoc-crm.org/cidoc-crm/E7_Activity>;
+crm:P01i_is_domain_of <https://example.org/property/fie_129_1> .
+<https://example.org/property/fie_129_1> a crm:PC14_carried_out_by;
+crm:P02_has_range <https://example.org/actor/fie_129_2> .
+<https://example.org/actor/fie_129_2> a crm:E39_Actor .<http://www.srdm.org/event/E7> a <http://www.cidoc-crm.org/cidoc-crm/E7_Activity>;
+crm:P01i_is_domain_of <https://example.org/property/fie_129_1> .
+<https://example.org/property/fie_129_1> a crm:PC14_carried_out_by;
+crm:P14.1_in_the_role_of <https://example.org/type/fie_130_1> .
+<https://example.org/type/fie_130_1> a crm:E55_Type .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.28] Creator,Creator,This collection of fields enables the documentation of the actor(s) who serve(s) as a physical object's creator,E24 Physical Human-Made Thing,"fie_135_Creator,fie_136_Creator Role,fie_251_Creator Attributed By,fie_252_Attribution Date Earliest,fie_253_Attribution Date Latest,fie_254_Creator Attribution Source","<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P108i_was_produced_by <https://example.org/event/fie_58_1> .
+<https://example.org/event/fie_58_1> a crm:E12_Production;
+crm:P01i_is_domain_of <https://example.org/property/fie_135_1> .
+<https://example.org/property/fie_135_1> a crm:PC14_carried_out_by;
+crm:P02_has_range <https://example.org/actor/fie_135_2> .
+<https://example.org/actor/fie_135_2> a crm:E39_Actor .<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P108i_was_produced_by <https://example.org/event/fie_58_1> .
+<https://example.org/event/fie_58_1> a crm:E12_Production;
+crm:P01i_is_domain_of <https://example.org/property/fie_135_1> .
+<https://example.org/property/fie_135_1> a crm:PC14_carried_out_by;
+crm:P14.1_in_the_role_of <https://example.org/type/fie_136_1> .
+<https://example.org/type/fie_136_1> a crm:E55_Type .<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P108i_was_produced_by <https://example.org/event/fie_58_1> .
+<https://example.org/event/fie_58_1> a crm:E12_Production ;
+crm:P01i_is_domain_of <https://example.org/property/fie_251_2> .
+<https://example.org/property/fie_251_2> a crm:PC14_carried_out_by ;
+crm:P141i_was_assigned_by <https://example.org/event/fie_251_3> .
+<https://example.org/event/fie_251_3> a crm:E13_Attribute_Assignment ; 
+crm:P14_carried_out_by <https://example.org/actor/fie_251_4> .
+<https://example.org/actor/fie_251_4> a crm:E39_Actor .
+<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P108i_was_produced_by <https://example.org/event/fie_58_1> .
+<https://example.org/event/fie_58_1> a crm:E12_Production ;
+crm:P01i_is_domain_of <https://example.org/property/fie_251_2> .
+<https://example.org/property/fie_251_2> a crm:PC14_carried_out_by ;
+crm:P141i_was_assigned_by <https://example.org/event/fie_251_3> .
+<https://example.org/event/fie_251_3> a crm:E13_Attribute_Assignment ;
+crm:P4_has_time-span <https://example.org/time_span/fie_252_1> .
+<https://example.org/time_span/fie_252_1> a crm:E52_Time-Span ;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .
+<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P108i_was_produced_by <https://example.org/event/fie_58_1> .
+<https://example.org/event/fie_58_1> a crm:E12_Production ;
+crm:P01i_is_domain_of <https://example.org/property/fie_251_2> .
+<https://example.org/property/fie_251_2> a crm:PC14_carried_out_by ;
+crm:P141i_was_assigned_by <https://example.org/event/fie_251_3> .
+<https://example.org/event/fie_251_3> a crm:E13_Attribute_Assignment ;
+crm:P4_has_time-span <https://example.org/time_span/fie_252_1> .
+<https://example.org/time_span/fie_252_1> a crm:E52_Time-Span ;
+crm:P82b_end_of_the_end """"^^xsd:dateTime .
+<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P108i_was_produced_by <https://example.org/event/fie_58_1> .
+<https://example.org/event/fie_58_1> a crm:E12_Production ;
+crm:P01i_is_domain_of <https://example.org/property/fie_251_2> .
+<https://example.org/property/fie_251_2> a crm:PC14_carried_out_by ;
+crm:P141i_was_assigned_by <https://example.org/event/fie_251_3> .
+<https://example.org/event/fie_251_3> a crm:E13_Attribute_Assignment ; crm:P16_used_specific_object <https://example.org/conceptual_object/fie_254_1> .
+<https://example.org/conceptual_object/fie_254_1> a crm:E33_Linguistic_Object .<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.29] Authorship,Authorship,This collection of fields enables the documentation of the actor(s) who serve(s) as a publication's author.,F24 Publication Expression,"fie_140_Author,fie_141_Authorship Role","<http://www.srdm.org/conceptual_object/F24> a <http://iflastandards.info/ns/fr/frbr/frbroo/F24_Publication_Expression>;
+frbroo:R24i_was_created_through <https://example.org/event/fie_140_1> .
+<https://example.org/event/fie_140_1> a frbroo:F30_Publication_Event;
+crm:P01i_is_domain_of <https://example.org/property/fie_140_2> .
+<https://example.org/property/fie_140_2> a crm:PC14_carried_out_by;
+crm:P02_has_range <https://example.org/actor/fie_140_3> .
+<https://example.org/actor/fie_140_3> a crm:E39_Actor .<http://www.srdm.org/conceptual_object/F24> a <http://iflastandards.info/ns/fr/frbr/frbroo/F24_Publication_Expression>;
+frbroo:R24i_was_created_through <https://example.org/event/fie_140_1> .
+<https://example.org/event/fie_140_1> a frbroo:F30_Publication_Event;
+crm:P01i_is_domain_of <https://example.org/property/fie_140_2> .
+<https://example.org/property/fie_140_2> a crm:PC14_carried_out_by;
+crm:P14.1_in_the_role_of <https://example.org/type/fie_141_1> .
+<https://example.org/type/fie_141_1> a crm:E55_Type .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.30] Members,Members,This collection of fields enables the documentation of the actors who belong to a group as members.,E74 Group,"fie_148_Member,fie_149_Member Role,fie_150_Member Start Date - Earliest,fie_151_Member Start Date - Latest,fie_152_Member End Date - Earliest,fie_153_Member End Date - Latest","<http://www.srdm.org/actor/E74> a <http://www.cidoc-crm.org/cidoc-crm/E74_Group>;
+crm:P01i_is_domain_of <https://example.org/property/fie_148_1> .
+<https://example.org/property/fie_148_1> a crm:PC144_joined_with;
+crm:P02_has_range <https://example.org/event/fie_148_2> .
+<https://example.org/event/fie_148_2> a crm:E85_Joining;
+crm:P143_joined <https://example.org/actor/fie_148_3> .
+<https://example.org/actor/fie_148_3> a crm:E21_Person .<http://www.srdm.org/actor/E74> a <http://www.cidoc-crm.org/cidoc-crm/E74_Group>;
+crm:P01i_is_domain_of <https://example.org/property/fie_148_1> .
+<https://example.org/property/fie_148_1> a crm:PC144_joined_with;
+crm:P14.1_in_the_role_of <https://example.org/type/fie_149_1> .
+<https://example.org/type/fie_149_1> a crm:E55_Type ;
+rdfs:label ""Position"" .<http://www.srdm.org/actor/E74> a <http://www.cidoc-crm.org/cidoc-crm/E74_Group>;
+crm:P01i_is_domain_of <https://example.org/property/fie_148_1> .
+<https://example.org/property/fie_148_1> a crm:PC144_joined_with;
+crm:P02_has_range <https://example.org/event/fie_148_2> .
+<https://example.org/event/fie_148_2> a crm:E85_Joining;
+crm:P4_has_time-span <https://example.org/time_span/fie_150_1> .<https://example.org/time_span/fie_150_1> a crm:E52_Time-Span ;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .<http://www.srdm.org/actor/E74> a <http://www.cidoc-crm.org/cidoc-crm/E74_Group>;
+crm:P01i_is_domain_of <https://example.org/property/fie_148_1> .
+<https://example.org/property/fie_148_1> a crm:PC144_joined_with;
+crm:P02_has_range <https://example.org/event/fie_148_2> .
+<https://example.org/event/fie_148_2> a crm:E85_Joining;
+crm:P4_has_time-span <https://example.org/time_span/fie_150_1> .<https://example.org/time_span/fie_150_1> a crm:E52_Time-Span ;
+crm:P82b_end_of_the_end """"^^xsd:dateTime .<http://www.srdm.org/actor/E74> a <http://www.cidoc-crm.org/cidoc-crm/E74_Group>;
+crm:P146i_lost_member_by <https://example.org/event/fie_152_1> .
+<https://example.org/event/fie_152_1> a crm:E86_Leaving ;
+crm:P145_separated <https://example.org/actor/fie_148_3> ;
+crm:P4_has_time-span <https://example.org/time_span/fie_152_2> .<https://example.org/time_span/fie_152_2> a crm:E52_Time-Span ;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .
+<https://example.org/actor/fie_148_3> a crm:E21_Person .
+<http://www.srdm.org/actor/E74> a <http://www.cidoc-crm.org/cidoc-crm/E74_Group>;
+crm:P146i_lost_member_by <https://example.org/event/fie_152_1> .
+<https://example.org/event/fie_152_1> a crm:E86_Leaving;
+crm:P145_separated <https://example.org/actor/fie_148_3> ;
+crm:P4_has_time-span <https://example.org/time_span/fie_152_2> .<https://example.org/time_span/fie_152_2> a crm:E52_Time-Span ;
+crm:P82b_end_of_the_end """"^^xsd:dateTime .
+<https://example.org/actor/fie_148_3> a crm:E21_Person .
+","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.31] Social Relations,Social Relations,This collection of fields enables the documentation of the social relations that hold between actors.,E21 Person,"fie_156_Relation,fie_157_Relation Type","<http://www.srdm.org/actor/E21> a <http://www.cidoc-crm.org/cidoc-crm/E21_Person>;
+crm:P01_has_domain <https://example.org/social/fie_156_1> .
+<https://example.org/social/fie_156_1> a sari:SRPC3_in_social_relation ;
+crm:P02_has_range <https://example.org/actor/fie_156_1> .
+
+<https://example.org/actor/fie_156_1> a crm:E21_Person .<http://www.srdm.org/actor/E21> a <http://www.cidoc-crm.org/cidoc-crm/E21_Person>;
+crm:P01_has_domain <https://example.org/social/fie_156_1> .
+
+<https://example.org/social/fie_156_1> a sari:SRPC3_in_social_relation ;
+crm:P2_has_type <https://example.org/type/fie_157_1> .
+
+<https://example.org/type/fie_157_1> a crm:E55_Type .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.32] Institutional Affiliation,Institutional Affiliation,This collection of fields enables the documentation of groups and insititutions with which an actor is affiliated.,E21 Person,"fie_158_Institutional Affiliation,fie_159_Institutional Affiliation - Role,fie_160_Institutional Affiliation Start Date - Earliest,fie_161_Institutional Affiliation Start Date - Latest,fie_162_Institutional Affiliation End Date - Earliest,fie_163_Institutional Affiliation End Date - Latest","<http://www.srdm.org/actor/E21> a <http://www.cidoc-crm.org/cidoc-crm/E21_Person>;
+crm:P143i_was_joined_by
+<https://example.org/event/fie_158_1> .
+<https://example.org/event/fie_158_1> a 
+crm:E85_Joining;
+crm:P01i_is_domain_of <https://example.org/property/fie_158_2> .
+<https://example.org/property/fie_158_2> a crm:PC144_joined_with ;
+crm:P02_has_range <https://example.org/actor/fie_158_3> .
+<https://example.org/actor/fie_158_3> a crm:E74_Group .<http://www.srdm.org/actor/E21> a <http://www.cidoc-crm.org/cidoc-crm/E21_Person>;
+crm:P143i_was_joined_by
+<https://example.org/event/fie_158_1> .
+<https://example.org/event/fie_158_1> a 
+crm:E85_Joining;
+crm:P01i_is_domain_of <https://example.org/property/fie_158_2> .
+<https://example.org/property/fie_158_2> a crm:PC144_joined_with;
+crm:P144_1_kind_of_member <https://example.org/type/fie_159_1> .
+<https://example.org/type/fie_159_1> a crm:E55_Type;
+rdfs:label ""Position"" .<http://www.srdm.org/actor/E21> a <http://www.cidoc-crm.org/cidoc-crm/E21_Person>;
+crm:P143i_was_joined_by
+<https://example.org/event/fie_158_1> .
+<https://example.org/event/fie_158_1> a 
+crm:E85_Joining;
+crm:P4_has_time-span <https://example.org/time_span/fie_160_1> .<https://example.org/time_span/fie_160_1> a crm:E52_Time-Span ;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .<http://www.srdm.org/actor/E21> a <http://www.cidoc-crm.org/cidoc-crm/E21_Person>;
+crm:P143i_was_joined_by
+<https://example.org/event/fie_158_1> .
+<https://example.org/event/fie_158_1> a 
+crm:E85_Joining;
+crm:P4_has_time-span <https://example.org/time_span/fie_160_1> .<https://example.org/time_span/fie_160_1> a crm:E52_Time-Span ;
+crm:P82b_end_of_the_end """"^^xsd:dateTime .<http://www.srdm.org/actor/E21> a <http://www.cidoc-crm.org/cidoc-crm/E21_Person>;
+crm:P145i_left_by
+<https://example.org/event/fie_162_1> .
+<https://example.org/event/fie_162_1> a 
+crm:E86_Leaving;
+crm:P146_separated_from <https://example.org/actor/fie_158_3> ;
+crm:P4_has_time-span <https://example.org/time_span/fie_162_2> .<https://example.org/time_span/fie_162_2> a crm:E52_Time-Span ;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .
+<https://example.org/actor/fie_158_3> a crm:E74_Group .<http://www.srdm.org/actor/E21> a <http://www.cidoc-crm.org/cidoc-crm/E21_Person>;
+crm:P145i_left_by
+<https://example.org/event/fie_162_1> .
+<https://example.org/event/fie_162_1> a 
+crm:E86_Leaving;
+crm:P146_separated_from <https://example.org/actor/fie_158_3> ;
+crm:P4_has_time-span <https://example.org/time_span/fie_162_2> .<https://example.org/time_span/fie_162_2> a crm:E52_Time-Span ;
+crm:P82b_end_of_the_end """"^^xsd:dateTime .
+<https://example.org/actor/fie_158_3> a crm:E74_Group .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.34] Designation Status,Designation Status,This collection of fields enables the documentation of a built work's designation status.,E18 Physical Thing,"fie_167_Designation Status Number,fie_168_Designation Status Attributor,fie_169_Designation Status Type,fie_170_Designation Status Description","<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:P41i_was_classified_by
+<https://example.org/event/fie_167_1> .
+<https://example.org/event/fie_167_1> a 
+crm:E17_Type_Assignment;
+crm:P141_assigned <https://example.org/name/fie_167_2> .<https://example.org/name/fie_167_2> a crm:E42_Identifier .<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:P41i_was_classified_by
+<https://example.org/event/fie_167_1> .
+<https://example.org/event/fie_167_1> a 
+crm:E17_Type_Assignment;
+crm:P14_carried_out_by <https://example.org/actor/fie_168_1> .<https://example.org/actor/fie_168_1> a crm:E39_Actor .<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:P41i_was_classified_by
+<https://example.org/event/fie_167_1> .
+<https://example.org/event/fie_167_1> a 
+crm:E17_Type_Assignment;
+crm:P42_assigned <https://example.org/type/fie_169_1> .<https://example.org/type/fie_169_1> a crm:E55_Type ;
+rdfs:label ""content"" .<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:P41i_was_classified_by
+<https://example.org/event/fie_167_1> .
+<https://example.org/event/fie_167_1> a 
+crm:E17_Type_Assignment;
+crm:P129i_is_subject_of <https://example.org/conceptual_object/fie_170_1> .<https://example.org/conceptual_object/fie_170_1> a crm:E73_Information_Object .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.35] Rights,Rights,This collection of fields enables the documentation of the rights that are held over a physical object.,E72 Legal Object,"fie_171_Right Holder,fie_172_Right Type,fie_173_Right Description","<http://www.srdm.org/object/E72> a <http://www.cidoc-crm.org/cidoc-crm/E72_Legal_Object>;
+crm:P104_is_subject_to
+<https://example.org/conceptual_object/fie_171_1> .
+<https://example.org/conceptual_object/fie_171_1> a 
+crm:E30_Right;
+crm:P105_right_held_by <https://example.org/actor/fie_171_2> .<https://example.org/actor/fie_171_2> a crm:E39_Actor .<http://www.srdm.org/object/E72> a <http://www.cidoc-crm.org/cidoc-crm/E72_Legal_Object>;
+crm:P104_is_subject_to
+<https://example.org/conceptual_object/fie_171_1> .
+<https://example.org/conceptual_object/fie_171_1> a 
+crm:E30_Right;
+crm:P2_has_type <https://example.org/type/fie_172_1> .<https://example.org/type/fie_172_1> a crm:E55_Type .<http://www.srdm.org/object/E72> a <http://www.cidoc-crm.org/cidoc-crm/E72_Legal_Object>;
+crm:P104_is_subject_to
+<https://example.org/conceptual_object/fie_171_1> .
+<https://example.org/conceptual_object/fie_171_1> a 
+crm:E30_Right;
+crm:P129i_is_subject_of <https://example.org/conceptual_object/fie_173_1> .<https://example.org/conceptual_object/fie_173_1> a crm:E73_Information_Object .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.36] Event Location,Event Location,This collection of fields enables the documentation of a location where an event has taken place.,E4 Period,"fie_174_Place Name,fie_175_Place Type,fie_176_Place  coordinates","<http://www.srdm.org/event/E4> a <http://www.cidoc-crm.org/cidoc-crm/E4_Period>;
+crm:P7_took_place_at
+<https://example.org/place/fie_174_1> .
+<https://example.org/place/fie_174_1> a 
+crm:E53_Place;
+crm:P1_is_identified_by <https://example.org/name/fie_174_2> .<https://example.org/name/fie_174_2> a crm:E41_Appellation .<http://www.srdm.org/event/E4> a <http://www.cidoc-crm.org/cidoc-crm/E4_Period>;
+crm:P7_took_place_at
+<https://example.org/place/fie_174_1> .
+<https://example.org/place/fie_174_1> a 
+crm:E53_Place;
+crm:P2_has_type <https://example.org/type/fie_175_1> .<https://example.org/type/fie_175_1> a crm:E55_Type .<http://www.srdm.org/event/E4> a <http://www.cidoc-crm.org/cidoc-crm/E4_Period>;
+crm:P7_took_place_at
+<https://example.org/place/fie_174_1> .
+<https://example.org/place/fie_174_1> a 
+crm:E53_Place;
+crm:P168_place_is_defined_by """"^^geo:wkt .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.37] Object Location,Object Location,This collection of fields enables the documentation of the places where an object has been located.,E18 Physical Thing,"fie_177_Location - Institution Address,fie_178_Location - coordinates,fie_179_Location - Cadastral Reference,fie_199_Location - Institution,fie_263_Present Location - Internal Storage Locator","<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:P53_has_former_or_current_location
+<https://example.org/place/fie_177_1> .
+<https://example.org/place/fie_177_1> a 
+crm:E53_Place;
+crm:P1_is_identified_by <https://example.org/name/fie_177_2> .<https://example.org/name/fie_177_2> a crm:E41_Appellation;
+crm:P2_has_type <https://example.org/type/fie_177_3> .
+<https://example.org/type/fie_177_3> a crm:E55_Type;
+rdfs:label ""Address"" .<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:P53_has_former_or_current_location
+<https://example.org/place/fie_177_1> .
+<https://example.org/place/fie_177_1> a 
+crm:E53_Place;
+crm:P168_place_is_defined_by """"^^geo:wkt .<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:P53_has_former_or_current_location
+<https://example.org/place/fie_177_1> .
+<https://example.org/place/fie_177_1> a 
+crm:E53_Place;
+crm:P70i_is_documented_in <https://example.org/conceptual_object/fie_179_1> .<https://example.org/conceptual_object/fie_179_1> a crm:E31_Document;
+crm:P1_is_identified_by <https://example.org/name/fie_179_2> .
+<https://example.org/name/fie_179_2> a crm:E42_Identifier .<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:P53_has_former_or_current_location
+<https://example.org/place/fie_263_1> .
+<https://example.org/place/fie_263_1> a 
+crm:E53_Place;
+crm:P1_is_identified_by <https://example.org/name/fie_263_2> .<https://example.org/name/fie_263_2> a crm:E42_Identifier;
+crm:P2_has_type <https://example.org/type/fie_263_3> .
+<https://example.org/type/fie_263_3> a crm:E55_Type ;
+rdfs:label ""Internal Locator"" . 
+","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.38] File Location,File Location,This collection of fields enables the documentation of the locatory metadata attributed to a digital object.,D1 Digital Object,"fie_180_Locator,fie_181_Locator Type,fie_182_Stored on","<http://www.srdm.org/conceptual_object/D1> a <http://www.ics.forth.gr/isl/CRMdig/D1_Digital_Object>;
+crm:P1_is_identified_by
+<https://example.org/name/fie_180_1> .
+<https://example.org/name/fie_180_1> a 
+crm:E42_Identifier .<http://www.srdm.org/conceptual_object/D1> a <http://www.ics.forth.gr/isl/CRMdig/D1_Digital_Object>;
+crm:P1_is_identified_by
+<https://example.org/name/fie_180_1> .
+<https://example.org/name/fie_180_1> a 
+crm:E42_Identifier ;
+crm:P2_has_type <https://example.org/type/fie_181_1> .
+<https://example.org/type/fie_181_1> a crm:E55_Type .<http://www.srdm.org/conceptual_object/D1> a <http://www.ics.forth.gr/isl/CRMdig/D1_Digital_Object>;
+crmdig:L19i_is_stored_on
+<https://example.org/physical_object/fie_182_1> .
+<https://example.org/physical_object/fie_182_1> a 
+crmdig:D13_Digital_Information_Carrier .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.39] Actor Location,Actor Location,This collection of fields enables the documentation of the places where an actor has resided.,E39 Actor,"fie_183_Address,fie_184_Address Type,fie_185_address Coordinates,fie_186_Location Type","<http://www.srdm.org/actor/E39> a <http://www.cidoc-crm.org/cidoc-crm/E39_Actor>;
+crm:P74_has_current_or_former_residence
+<https://example.org/place/fie_183_1> .
+<https://example.org/place/fie_183_1> a 
+crm:E53_Place;
+crm:P1_is_identified_by  <https://example.org/name/fie_183_2> .<https://example.org/name/fie_183_2> a crm:E41_Appellation;
+rdfs:label ""content"" .<http://www.srdm.org/actor/E39> a <http://www.cidoc-crm.org/cidoc-crm/E39_Actor>;
+crm:P74_has_current_or_former_residence
+<https://example.org/place/fie_183_1> .
+<https://example.org/place/fie_183_1> a 
+crm:E53_Place;
+crm:P1_is_identified_by  <https://example.org/name/fie_183_2> .<https://example.org/name/fie_183_2> a crm:E41_Appellation;
+rdfs:label ""content"";
+crm:P2_has_type  <https://example.org/type/fie_184_1> .
+<https://example.org/type/fie_184_1> a crm:E55_Type .<http://www.srdm.org/actor/E39> a <http://www.cidoc-crm.org/cidoc-crm/E39_Actor>;
+crm:P74_has_current_or_former_residence
+<https://example.org/place/fie_183_1> .
+<https://example.org/place/fie_183_1> a 
+crm:E53_Place;
+crm:P168_place_is_defined_by """"^^geo:wkt .<http://www.srdm.org/actor/E39> a <http://www.cidoc-crm.org/cidoc-crm/E39_Actor>;
+crm:P74_has_current_or_former_residence
+<https://example.org/place/fie_183_1> .
+<https://example.org/place/fie_183_1> a 
+crm:E53_Place;
+crm:P2_has_type <https://example.org/type/fie_186_1> .
+<https://example.org/type/fie_186_1> a crm:E55_Type .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.40] Description,Description,This collection of fields enables the documentation of free text descriptions that have been written about an entity.,E1 CRM Entity,"fie_188_Description,fie_189_Description Language,fie_190_Description Type,fie_191_Description Author,fie_192_Description Date - Earliest,fie_193_Description Date - Latest,fie_194_Description - Source","<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P129i_is_subject_of
+<https://example.org/conceptual_object/fie_188_1> .
+<https://example.org/conceptual_object/fie_188_1> a 
+crm:E33_Linguistic_Object;
+crm:P190_has_symbolic_content ""content"" .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P129i_is_subject_of
+<https://example.org/conceptual_object/fie_188_1> .
+<https://example.org/conceptual_object/fie_188_1> a 
+crm:E33_Linguistic_Object;
+crm:P72_has_language <https://example.org/type/fie_189_1> .
+<https://example.org/type/fie_189_1> a crm:E56_Language .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P129i_is_subject_of
+<https://example.org/conceptual_object/fie_188_1> .
+<https://example.org/conceptual_object/fie_188_1> a 
+crm:E33_Linguistic_Object;
+crm:P2_has_type <https://example.org/type/fie_190_1> .
+<https://example.org/type/fie_190_1> a crm:E55_Type .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P129i_is_subject_of
+<https://example.org/conceptual_object/fie_188_1> .
+<https://example.org/conceptual_object/fie_188_1> a 
+crm:E33_Linguistic_Object;
+crm:P94i_was_created_by <https://example.org/event/fie_191_1> .
+<https://example.org/event/fie_191_1> a crm:E65_Creation ;
+crm:P14_carried_out_by <https://example.org/actor/fie_191_2> .
+<https://example.org/actor/fie_191_2> a crm:E39_Actor.<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P129i_is_subject_of
+<https://example.org/conceptual_object/fie_188_1> .
+<https://example.org/conceptual_object/fie_188_1> a 
+crm:E33_Linguistic_Object;
+crm:P94i_was_created_by <https://example.org/event/fie_191_1> .
+<https://example.org/event/fie_191_1> a crm:E65_Creation ;
+crm:P4_has_time-span <https://example.org/time_span/fie_192_1> .
+<https://example.org/time_span/fie_192_1> a crm:E52_Time-span;
+crm:P81a_begin_of_the_begin ""content"" .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P129i_is_subject_of
+<https://example.org/conceptual_object/fie_188_1> .
+<https://example.org/conceptual_object/fie_188_1> a 
+crm:E33_Linguistic_Object;
+crm:P94i_was_created_by <https://example.org/event/fie_191_1> .
+<https://example.org/event/fie_191_1> a crm:E65_Creation ;
+crm:P4_has_time-span <https://example.org/time_span/fie_192_1> .
+<https://example.org/time_span/fie_192_1> a crm:E52_Time-span;
+crm:P81b_end_of_the_end ""content"" .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P129i_is_subject_of
+<https://example.org/conceptual_object/fie_188_1> .
+<https://example.org/conceptual_object/fie_188_1> a 
+crm:E33_Linguistic_Object;
+crm:P94i_was_created_by <https://example.org/event/fie_191_1> .
+<https://example.org/event/fie_191_1> a crm:E65_Creation ;
+crm:P63_used_specific_object <https://example.org/conceptual_object/fie_194_1> .
+<https://example.org/conceptual_object/fie_194_1> a crm:E73_Information_Object .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.44] Creation,Creation,This collection of fields enables the documentation of information describing the various parameters involved in the creation of a conceptual/abstract object. ,E36 Visual Item,"fie_242_Creation Date - Earliest,fie_243_Creation Date - Latest,fie_244_Creation Location,fie_245_Creation Period,fie_298_Intellectual Creator,fie_300_Intellectual Creator Role","<http://www.srdm.org/conceptual_object/E36> a <http://www.cidoc-crm.org/cidoc-crm/E36_Visual_Item>;
+crm:P94i_was_created_by <https://example.org/event/fie_242_1> .
+<https://example.org/event/fie_242_1> a crm:E65_Creation;
+crm:P4_has_time-span <https://example.org/time_span/fie_242_2> .
+<https://example.org/time_span/fie_242_2> a crm:E52_Time-Span;
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .<http://www.srdm.org/conceptual_object/E36> a <http://www.cidoc-crm.org/cidoc-crm/E36_Visual_Item>;
+crm:P94i_was_created_by <https://example.org/event/fie_242_1> .
+<https://example.org/event/fie_242_1> a crm:E65_Creation;
+crm:P4_has_time-span <https://example.org/time_span/fie_242_2> .
+<https://example.org/time_span/fie_242_2> a crm:E52_Time-Span;
+crm:P82b_end_of_the_end """"^^xsd:dateTime .<http://www.srdm.org/conceptual_object/E36> a <http://www.cidoc-crm.org/cidoc-crm/E36_Visual_Item>;
+crm:P94i_was_created_by <https://example.org/event/fie_242_1> .
+<https://example.org/event/fie_242_1> a crm:E65_Creation;
+crm:P7_took_place_at <https://example.org/place/fie_244_1> . <https://example.org/place/fie_244_1> a crm:E53_Place .<http://www.srdm.org/conceptual_object/E36> a <http://www.cidoc-crm.org/cidoc-crm/E36_Visual_Item>;
+crm:P94i_was_created_by <https://example.org/event/fie_242_1> .
+<https://example.org/event/fie_242_1> a crm:E65_Creation;
+crm:P10_falls_within <https://example.org/event/fie_245_1> . <https://example.org/event/fie_245_1> a crm:E4_Period .<http://www.srdm.org/conceptual_object/E36> a <http://www.cidoc-crm.org/cidoc-crm/E36_Visual_Item>;
+crm:P94i_was_created_by <https://example.org/event/fie_242_1> .
+<https://example.org/event/fie_242_1> a crm:E65_Creation;
+crm:P01i_is_domain_of <https://example.org/property/fie_298_1> .
+<https://example.org/property/fie_298_1> a crm:PC14_carried_out_by;
+crm:P02_has_range <https://example.org/actor/fie_298_2> .
+<https://example.org/actor/fie_298_2> a crm:E39_Actor .
+
+
+<http://www.srdm.org/conceptual_object/E36> a <http://www.cidoc-crm.org/cidoc-crm/E36_Visual_Item>;
+crm:P94i_was_created_by <https://example.org/event/fie_242_1> .
+<https://example.org/event/fie_242_1> a crm:E65_Creation;
+crm:P01i_is_domain_of <https://example.org/property/fie_298_1> .
+<https://example.org/property/fie_298_1> a crm:PC14_carried_out_by;
+crm:P14.1_in_the_role_of <https://example.org/type/fie_300_1> .
+<https://example.org/type/fie_300_1> a crm:E55_Type .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.48] Reference,Reference,This collection of fields enables the documentation of reference information with regards to an object of documentation.,E89 Propositional Object,"fie_101_Temporal Reference,fie_102_Physical Geographic Reference,fie_103_Subject Reference","<http://www.srdm.org/conceptual_object/E89> a <http://www.cidoc-crm.org/cidoc-crm/E89_Propositional_Object>;
+crm:P129_is_about <https://example.org/event/fie_101_1> . <https://example.org/event/fie_101_1> a crm:E4_Period .<http://www.srdm.org/conceptual_object/E89> a <http://www.cidoc-crm.org/cidoc-crm/E89_Propositional_Object>;
+crm:P129_is_about <https://example.org/place/fie_102_1> . <https://example.org/place/fie_102_1> a crm:E53_Place .<http://www.srdm.org/conceptual_object/E89> a <http://www.cidoc-crm.org/cidoc-crm/E89_Propositional_Object>;
+crm:P129_is_about <https://example.org/type/fie_103_1> . <https://example.org/type/fie_103_1> a crm:E55_Type .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.49] Depiction,Depiction,This collection of fields enables the documentation of images that have been taken of an entity.,E36 Visual Item,"fie_246_Physical Object Depicted,fie_247_Type Depicted,fie_248_Actor Depicted","<http://www.srdm.org/conceptual_object/E36> a <http://www.cidoc-crm.org/cidoc-crm/E36_Visual_Item>;
+crm:P138_represents <https://example.org/physical_object/fie_246_1> . <https://example.org/physical_object/fie_246_1> a crm:E18_Physical_Object .
+
+<http://www.srdm.org/conceptual_object/E36> a <http://www.cidoc-crm.org/cidoc-crm/E36_Visual_Item>;
+crm:P138_represents <https://example.org/type/fie_247_1> . <https://example.org/type/fie_247_1> a crm:E55_Type .
+
+<http://www.srdm.org/conceptual_object/E36> a <http://www.cidoc-crm.org/cidoc-crm/E36_Visual_Item>;
+crm:P138_represents <https://example.org/actor/fie_248_1> . <https://example.org/actor/fie_248_1> a crm:E39_Actor .
+","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.52] Media,Media,This collection of fields enables the documentation of analogue and digital media files that related to an entity.,E73 Information Object,"fie_249_Digital Object Carrier,fie_250_Physical Information Carrier","<http://www.srdm.org/conceptual_object/E73> a <http://www.cidoc-crm.org/cidoc-crm/E73_Information_Object>;
+crm:P165i_is_incorporated_by <https://example.org/conceptual_object/fie_249_1> . <https://example.org/conceptual_object/fie_249_1> a crmdig:D1_Digital_Object.
+
+<http://www.srdm.org/conceptual_object/E73> a <http://www.cidoc-crm.org/cidoc-crm/E73_Information_Object>;
+crm:P128i_is_carried_by <https://example.org/physical_object/fie_250_1> . <https://example.org/physical_object/fie_250_1> a crm:E22_Human_Made_Object.
+
+","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.53] Condition Assessment,Condition Assessment,This collection of fields enables the documentation of an action of attributing a condition to a physical object.,E24 Physical Human-Made Thing,"fie_255_Condition State Type,fie_256_Condition Assessment Assigned By,fie_257_Condition Assessment Description,fie_258_Condition Assessment Date Earliest,fie_259_Condition Assessment Date Latest","<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P44_has_condition <https://example.org/event/fie_255_1> .
+<https://example.org/event/fie_255_1> a crm:E3_Condition_State; 
+crm:P2_has_type <https://example.org/type/fie_255_2> .
+<https://example.org/type/fie_255_2> a crm:E55_Type .
+<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P44_has_condition <https://example.org/event/fie_255_1> .
+<https://example.org/event/fie_255_1> a crm:E3_Condition_State; 
+crm:P34i_was_assessed_by <https://example.org/event/fie_256_1> .
+<https://example.org/event/fie_256_1> a crm:E14_Condition_Assessment;
+crm:P14_carried_out_by 
+<https://example.org/actor/fie_256_2> .
+<https://example.org/actor/fie_256_2> a crm:E39_Actor .<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P44_has_condition <https://example.org/event/fie_255_1> .
+<https://example.org/event/fie_255_1> a crm:E3_Condition_State; 
+crm:P67i_is_referred_by
+<https://example.org/conceptual_object/fie_257_1> .
+<https://example.org/conceptual_object/fie_257_1> a crm:E33_Linguistic_Object .
+<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P44_has_condition <https://example.org/event/fie_255_1> .
+<https://example.org/event/fie_255_1> a crm:E3_Condition_State; 
+crm:P34i_was_assessed_by <https://example.org/event/fie_256_1> .
+<https://example.org/event/fie_256_1> a crm:E14_Condition_Assessment;
+crm:P4_has_time-span <https://example.org/time_span/fie_258_1> .
+<https://example.org/time_span/fie_258_1> a crm:E52_Time-Span ; 
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .
+<http://www.srdm.org/physical_object/E24> a <http://www.cidoc-crm.org/cidoc-crm/E24_Physical_Human-Made_Thing>;
+crm:P44_has_condition <https://example.org/event/fie_255_1> .
+<https://example.org/event/fie_255_1> a crm:E3_Condition_State; 
+crm:P34i_was_assessed_by <https://example.org/event/fie_256_1> .
+<https://example.org/event/fie_256_1> a crm:E14_Condition_Assessment;
+crm:P4_has_time-span <https://example.org/time_span/fie_258_1> .
+<https://example.org/time_span/fie_258_1> a crm:E52_Time-Span ; 
+crm:P82b_end_of_the_end """"^^xsd:dateTime .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.54] Recto/Verso,Recto/Verso,This collection of fields enables the documentation of text transcription that appears on the documented writing surface.,E18 Physical Thing,"fie_264_Recto/Verso Type,fie_265_Recto/Verso Description,fie_266_Recto/Verso Digital Image,fie_267_Recto/Verso Transcription","<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:P56_bears_feature <https://example.org/physical_object/fie_264_1> .
+<https://example.org/physical_object/fie_264_1> a crm:E26_Physical_Feature;
+crm:P2_has_type <https://example.org/type/fie_264_2> .
+<https://example.org/type/fie_264_2> a crm:E55_Type .
+<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:PP56_bears_feature <https://example.org/physical_object/fie_264_1> .
+<https://example.org/physical_object/fie_264_1> a crm:E26_Physical_Feature;
+crm:P67i_is_referred_to_by <https://example.org/conceptual_object/fie_265_1> .
+<https://example.org/conceptual_object/fie_265_1> a crm:E33_Linguistic_Object .
+<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:P56_bears_feature <https://example.org/physical_object/fie_264_1> .
+<https://example.org/physical_object/fie_264_1> a crm:E26_Physical_Feature;
+crm:P138i_has_representation <https://example.org/conceptual_object/fie_266_1> .
+<https://example.org/conceptual_object/fie_266_1> a 
+crm:E36_Visual_Item, crmdig:D9_Data_Object .
+<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:P56_bears_feature <https://example.org/physical_object/fie_264_1> .
+<https://example.org/physical_object/fie_264_1> a crm:E26_Physical_Feature;
+crm:P67i_is_referred_to_by <https://example.org/conceptual_object/fie_267_1> .
+<https://example.org/conceptual_object/fie_267_1> a 
+crm:E33_Linguistic_Object .
+","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.55] Coverage,Coverage,This collection of fields enables the documentation of an archival unit's coverage.,E1 CRM Entity,"fie_283_Archival Unit Person Coverage,fie_284_Archival Unit Geographic Coverage,fie_285_Archival Unit Temporal Coverage,fie_286_Archival Unit Subject Coverage","<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P128_carries 
+<https://example.org/conceptual_object/fie_273_1> .
+<https://example.org/conceptual_object/fie_273_1> a crm:E33_Linguistic_Object;
+crm:P129_is_about <https://example.org/actor/fie_283_1> .
+<https://example.org/actor/fie_283_1> a crm:E39_Actor .<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:PP128_carries 
+<https://example.org/conceptual_object/fie_273_1> .
+<https://example.org/conceptual_object/fie_273_1> a crm:E33_Linguistic_Object;
+crm:P129_is_about <https://example.org/place/fie_284_1> .
+<https://example.org/place/fie_284_1> a crm:E53_Place .
+<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:PP128_carries 
+<https://example.org/conceptual_object/fie_273_1> .
+<https://example.org/conceptual_object/fie_273_1> a crm:E33_Linguistic_Object;
+crm:P129_is_about <https://example.org/period/fie_285_1> .
+<https://example.org/period/fie_285_1> a crm:E4_Period .
+<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P128_carries 
+<https://example.org/conceptual_object/fie_273_1> .
+<https://example.org/conceptual_object/fie_273_1> a crm:E33_Linguistic_Object;
+crm:P129_is_about <https://example.org/type/fie_286_1> .
+<https://example.org/type/fie_286_1> a crm:E55_Type .
+","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.56] Appraisal,Appraisal,This collection of fields enables the documentation of an action of value appraisal to a physical object.,E18 Physical Thing,"fie_288_Appraised Amount/Value,fie_289_Appraised Amount Currency,fie_290_Appraisal Event Type,fie_291_Appraisal Description,fie_292_Appraiser,fie_293_Appraisal Date Earliest,fie_294_Appraisal Date Latest","<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:P140i_was_attributed_by
+<https://example.org/event/fie_288_1> .
+<https://example.org/event/fie_288_1> a crm:E13_Attribute_Assignment;
+crm:P141_assigned
+<https://example.org/dimension/fie_288_2> .
+<https://example.org/dimension/fie_288_2> a crm:E97_Monetary_Amount; 
+crm:P90_has_value ""content"" .
+<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:P140i_was_attributed_by
+<https://example.org/event/fie_288_1> .
+<https://example.org/event/fie_288_1> a crm:E13_Attribute_Assignment;
+crm:P141_assigned <https://example.org/dimension/fie_288_2> .
+<https://example.org/dimension/fie_288_2> a crm:E97_Monetary_Amount; 
+crm:P180_has_currency
+<https://example.org/type/fie_289_1> .
+<https://example.org/type/fie_289_1> a crm:E98_Currency .
+<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:P140i_was_attributed_by
+<https://example.org/event/fie_288_1> .
+<https://example.org/event/fie_288_1> a crm:E13_Attribute_Assignment;
+crm:P2_has_type <https://example.org/type/fie_290_1> .
+<https://example.org/type/fie_290_1> a crm:E55_Type .
+<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:P140i_was_attributed_by
+<https://example.org/event/fie_288_1> .
+<https://example.org/event/fie_288_1> a crm:E13_Attribute_Assignment;
+crm:P129i_is_subject_of <https://example.org/conceptual_object/fie_291_1> .
+<https://example.org/conceptual_object/fie_291_1> a crm:E33_Linguistic_Object .
+<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:P140i_was_attributed_by
+<https://example.org/event/fie_288_1> .
+<https://example.org/event/fie_288_1> a crm:E13_Attribute_Assignment;
+crm:P14_carried_out_by <https://example.org/actor/fie_292_1> .
+<https://example.org/actor/fie_292_1> a crm:E39_Actor .
+<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:P140i_was_attributed_by
+<https://example.org/event/fie_288_1> .
+<https://example.org/event/fie_288_1> a crm:E13_Attribute_Assignment;
+crm:P4_has_time-span <https://example.org/time_span/fie_293_1> .
+<https://example.org/time_span/fie_293_1>
+a crm:E52_Time-Span; 
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .
+<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:P140i_was_attributed_by
+<https://example.org/event/fie_288_1> .
+<https://example.org/event/fie_288_1> a crm:E13_Attribute_Assignment;
+crm:P4_has_time-span <https://example.org/time_span/fie_293_1> .
+<https://example.org/time_span/fie_293_1>
+a crm:E52_Time-Span; 
+crm:P82b_end_of_the_end """"^^xsd:dateTime .
+","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.57] Documentation,Documentation,This collection of fields enables the documentation of digital reference information with regards to an object of documentation.,E73 Information Object,"fie_295_Digital Object Reference,fie_195_Image,fie_196_Citation,fie_197_Citation Source","<http://www.srdm.org/conceptual_object/E73> a <http://www.cidoc-crm.org/cidoc-crm/E73_Information_Object>;
+crm:P129i_is_subject_of
+<https://example.org/conceptual_object/fie_295_1> .
+<https://example.org/conceptual_object/fie_295_1> a crmdig:D1_Digital_Object .
+","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.58] Substance,Substance,"This collection of fields enables the documentation of information describing the substance of a phsyical entity, such as the material it is composed of or the technique by which it has been produced.",E18 Physical Thing,"fie_90_Material,fie_91_Technique","<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:P45_consists_of
+<https://example.org/type/material/fie_90_1> .
+<https://example.org/type/material/fie_90_1> a
+crm:E57_Material .<http://www.srdm.org/physical_object/E18> a <http://www.cidoc-crm.org/cidoc-crm/E18_Physical_Thing>;
+crm:108i_was_produced_by <https://example.org/event/fie_58_1> .
+<https://example.org/event/fie_58_1> a crm:E12_Production;
+crm:P32_used_general_technique <https://example.org/type/fie_91_1> .
+<https://example.org/type/fie_91_1> a crm:E55_Type .","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.59] Use,Use,This collection of fields enables the documentation of a use attributed to a physical object.,E19 Physical Object,"fie_268_Object Use Event User,fie_269_Object Use Event Type,fie_270_Object Use Event Time Earliest,fie_271_Object Use Event Time Latest,fie_272_Object Use Purpose","<http://www.srdm.org/object/E19> a <http://www.cidoc-crm.org/cidoc-crm/E19_Physical_Object>;
+crm:P16i_was_used_for <https://example.org/event/fie_268_1> .
+<https://example.org/event/fie_268_1> a crm:E7_Activity;
+crm:P14_carried_out_by <https://example.org/actor/fie_268_2> .
+<https://example.org/actor/fie_268_2> a crm:E39_Actor .
+<http://www.srdm.org/object/E19> a <http://www.cidoc-crm.org/cidoc-crm/E19_Physical_Object>;
+crm:P16i_was_used_for <https://example.org/event/fie_268_1> .
+<https://example.org/event/fie_268_1> a crm:E7_Activity;
+crm:P2_has_type <https://example.org/type/fie_269_1> .
+<https://example.org/type/fie_269_1> a crm:E55_Type .
+<http://www.srdm.org/object/E19> a <http://www.cidoc-crm.org/cidoc-crm/E19_Physical_Object>;
+crm:P16i_was_used_for <https://example.org/event/fie_268_1> .
+<https://example.org/event/fie_268_1> a crm:E7_Activity;
+crm:P4_has_time-span <https://example.org/time_span/fie_270_1> .
+<https://example.org/time_span/fie_270_1> a crm:E52_Time-Span; 
+crm:P82a_begin_of_the_begin """"^^xsd:dateTime .
+<http://www.srdm.org/object/E19> a <http://www.cidoc-crm.org/cidoc-crm/E19_Physical_Object>;
+crm:P16i_was_used_for <https://example.org/event/fie_268_1> .
+<https://example.org/event/fie_268_1> a crm:E7_Activity;
+crm:P4_has_time-span <https://example.org/time_span/fie_270_1> .
+<https://example.org/time_span/fie_270_1> a crm:E52_Time-Span; 
+crm:P82b_end_of_the_end """"^^xsd:dateTime .
+<http://www.srdm.org/object/E19> a <http://www.cidoc-crm.org/cidoc-crm/E19_Physical_Object>;
+crm:P16i_was_used_for <https://example.org/event/fie_268_1> .
+<https://example.org/event/fie_268_1> a crm:E7_Activity;
+crm:P32_used_general_technique <https://example.org/type/fie_272_1> .
+<https://example.org/type/fie_272_1> a crm:E55_Type .
+
+","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute
+[COL.60] Curation,Curation,This collection of fields enables the documentation of a curation event that has occurred to an archival holding.,E1 CRM Entity,"fie_276_Curation Date - Earliest,fie_277_Curation Date - Latest,fie_278_Curation Location,fie_279_Curation Period,fie_280_Curator,fie_281_Rules or Conventions Description,fie_282_Rules or Conventions Type","<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P147i_was_curated_by <https://example.org/event/fie_276_1> .
+<https://example.org/event/fie_276_1> a crm:E87_Curation_Activity;
+crm:P4_has_time-span <https://example.org/time_span/fie_276_2> .
+<https://example.org/time_span/fie_276_2> a crm:E52_Time-Span; crm:P82a_begin_of_the_begin """"^^xsd:dateTime .
+<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P147i_was_curated_by <https://example.org/event/fie_276_1> .
+<https://example.org/event/fie_276_1> a crm:E87_Curation_Activity;
+crm:P4_has_time-span <https://example.org/time_span/fie_276_2> .
+<https://example.org/time_span/fie_276_2> a crm:E52_Time-Span; 
+crm:P82b_end_of_the_end """"^^xsd:dateTime .
+<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P147i_was_curated_by <https://example.org/event/fie_276_1> .
+<https://example.org/event/fie_276_1> a crm:E87_Curation_Activity;
+crm:P7_took_place_at <https://example.org/place/fie_278_1> .
+<https://example.org/place/fie_278_1> a crm:E53_Place .
+<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P147i_was_curated_by <https://example.org/event/fie_276_1> .
+<https://example.org/event/fie_276_1> a crm:E87_Curation_Activity;
+crm:P10_falls_within <https://example.org/period/fie_279_1> .
+<https://example.org/period/fie_279_1> a crm:E4_Period .
+<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P147i_was_curated_by <https://example.org/event/fie_276_1> .
+<https://example.org/event/fie_276_1> a crm:E87_Curation_Activity;
+crm:P14_carried_out_by <https://example.org/actor/fie_280_1> .
+<https://example.org/actor/fie_280_1> a crm:E39_Actor .
+<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P147i_was_curated_by <https://example.org/event/fie_276_1> .
+<https://example.org/event/fie_276_1> a crm:E87_Curation_Activity;
+crm:P33_used_specific_technique <https://example.org/event/fie_281_1> .
+<https://example.org/event/fie_281_1> a crm:E29_Design_or_Procedure; 
+crm:P190_has_symbolic_content ""literal"" .
+<http://www.srdm.org/object/E1> a <http://www.cidoc-crm.org/cidoc-crm/E1_CRM_Entity>;
+crm:P147i_was_curated_by 
+<https://example.org/event/fie_276_1> .
+<https://example.org/event/fie_276_1> a crm:E87_Curation_Activity;
+crm:P33_used_specific_technique <https://example.org/event/fie_281_1> .
+<https://example.org/event/fie_281_1> a crm:E29_Design_or_Procedure; 
+crm:P2_has_type <https://example.org/type/fie_282_1> .
+<https://example.org/type/fie_282_1> a crm:E55_Type . 
+","George Bruseker,Nicola Carboni",Swiss Art Research Institute,Swiss Art Research Institute

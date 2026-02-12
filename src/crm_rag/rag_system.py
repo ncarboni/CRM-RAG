@@ -2857,41 +2857,14 @@ Rules:
     def get_wikidata_for_entity(self, entity_uri):
         """Get Wikidata ID for an entity if available.
 
-        First checks document metadata (cached from build time),
-        then falls back to SPARQL query if needed.
+        Returns the cached wikidata_id from document metadata (indexed at build
+        time).  If the entity is in the document store, its metadata is
+        authoritative — a missing or None value means "no Wikidata link" and
+        no SPARQL fallback is attempted.
         """
-        # First, check if Wikidata ID is in document metadata (no SPARQL needed)
         if entity_uri in self.document_store.docs:
-            doc = self.document_store.docs[entity_uri]
-            wikidata_id = doc.metadata.get("wikidata_id")
-            if wikidata_id:
-                return wikidata_id
-
-        # Fall back to SPARQL query (only if endpoint is available)
-        query = f"""
-        PREFIX crmdig: <http://www.ics.forth.gr/isl/CRMdig/>
-
-        SELECT ?wikidata WHERE {{
-            <{entity_uri}> crmdig:L54_is_same-as ?wikidata .
-            FILTER(STRSTARTS(STR(?wikidata), "http://www.wikidata.org/entity/"))
-        }}
-        LIMIT 1
-        """
-
-        try:
-            self.sparql.setQuery(query)
-            results = self.sparql.query().convert()
-
-            if results["results"]["bindings"]:
-                wikidata_uri = results["results"]["bindings"][0]["wikidata"]["value"]
-                # Extract the Q-ID from the URI
-                wikidata_id = wikidata_uri.split('/')[-1]
-                return wikidata_id
-            return None
-        except Exception as e:
-            # Log at debug level since this is expected when SPARQL is unavailable
-            logger.debug(f"Could not fetch Wikidata ID from SPARQL: {str(e)}")
-            return None
+            return self.document_store.docs[entity_uri].metadata.get("wikidata_id")
+        return None
 
     def fetch_wikidata_info(self, wikidata_id):
         """Fetch information from Wikidata for a given Q-ID"""

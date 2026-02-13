@@ -1005,25 +1005,33 @@ class UniversalRagSystem:
 
         self._triples_index = index
 
-        # Build actor work-count index by tracing: Work →P108i→ creation →P14→ actor
-        creation_to_actors = {}   # creation_uri → [actor_uri, ...]
-        work_to_creation = {}     # work_uri → creation_uri
+        # Build actor work-count index by tracing production chains:
+        # Work →[P108i]→ creation/impression →[P14]→ actor
+        # Work →[P16i]→ edition/creation/impression →[P14]→ actor
+        creation_to_actors = {}   # event_uri → [actor_uri, ...]
+        work_to_events = {}       # work_uri → [event_uri, ...]
         for s, p, o in zip(table.column("s"), table.column("p"), table.column("o")):
             s_py, p_py, o_py = s.as_py(), p.as_py(), o.as_py()
             local = p_py.split("/")[-1].split("#")[-1]
             if "P14_carried_out_by" in local or "P14i_performed" in local:
-                # creation/impression event → actor
                 if local.endswith("_carried_out_by"):
                     creation_to_actors.setdefault(s_py, []).append(o_py)
                 else:  # P14i: actor → event
                     creation_to_actors.setdefault(o_py, []).append(s_py)
             elif "P108i_was_produced_by" in local:
-                # work → creation event
-                work_to_creation[s_py] = o_py
+                work_to_events.setdefault(s_py, []).append(o_py)
+            elif "P16i_was_used_for" in local:
+                # Only count production-type events (creation/edition/impression)
+                if any(pat in o_py for pat in ("/creation", "/edition", "/impression")):
+                    work_to_events.setdefault(s_py, []).append(o_py)
 
         actor_work_counts = {}
-        for work_uri, creation_uri in work_to_creation.items():
-            for actor_uri in creation_to_actors.get(creation_uri, []):
+        for work_uri, event_uris in work_to_events.items():
+            counted_actors = set()
+            for event_uri in event_uris:
+                for actor_uri in creation_to_actors.get(event_uri, []):
+                    counted_actors.add(actor_uri)
+            for actor_uri in counted_actors:
                 actor_work_counts[actor_uri] = actor_work_counts.get(actor_uri, 0) + 1
 
         self._actor_work_counts = actor_work_counts

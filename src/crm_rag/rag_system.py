@@ -52,7 +52,8 @@ from dataclasses import dataclass
 class QueryAnalysis:
     """Result of LLM-based query analysis."""
     query_type: str  # SPECIFIC, ENUMERATION, or AGGREGATION
-    categories: List[str]  # Target FC categories: Thing, Actor, Place, Event, Concept, Time
+    categories: List[str]  # Primary FC categories (what the user wants returned)
+    context_categories: List[str] = None  # Contextual FCs (mentioned but not the answer type)
 
 QUERY_ANALYSIS_PROMPT = """Classify this question about cultural heritage data.
 
@@ -61,15 +62,27 @@ Query type (pick one):
 - ENUMERATION: asks to list entities ("which paintings…", "list all…", "what artists…")
 - AGGREGATION: asks to count or rank ("how many…", "top 10…", "most…")
 
-Target categories (pick 1-3 from this list):
-- Thing (objects, artworks, buildings, features, inscriptions, visual representations, iconographic subjects, characters depicted)
-- Actor (people, artists, groups, organizations, donors, saints, historical figures)
-- Place (locations, cities, regions)
-- Event (activities, creation, production, exhibitions)
-- Concept (types, materials, techniques)
-- Time (dates, periods)
+Categories — pick from: Thing, Actor, Place, Event, Concept, Time.
+- "categories": the entity types the user wants as the ANSWER (1-2). What should the result list contain?
+- "context_categories": entity types mentioned as FILTERS or CONTEXT but not the answer (0-2).
 
-Return ONLY valid JSON with no extra text: {{"query_type": "...", "categories": ["..."]}}
+Examples:
+- "Which pieces from Swiss Artists are in the museum?" → categories=["Thing"], context=["Actor","Place"]
+- "List artists who exhibited in Paris" → categories=["Actor"], context=["Place","Event"]
+- "How many churches are in Cyprus?" → categories=["Thing"], context=["Place"]
+- "Tell me about Hodler" → categories=["Actor"]
+- "What events took place in 1905?" → categories=["Event"], context=["Time"]
+- "Which saints are depicted in the church?" → categories=["Actor","Thing"], context=["Place"]
+
+Category definitions:
+- Thing: objects, artworks, buildings, features, visual representations, iconographic subjects
+- Actor: people, artists, groups, organizations, donors, saints, historical figures
+- Place: locations, cities, regions
+- Event: activities, creation, production, exhibitions
+- Concept: types, materials, techniques
+- Time: dates, periods
+
+Return ONLY valid JSON: {{"query_type": "...", "categories": ["..."], "context_categories": ["..."]}}
 
 Question: "{question}"
 """
@@ -2858,8 +2871,9 @@ Each file contains:
     def _analyze_query(self, question: str) -> 'QueryAnalysis':
         """Classify a user question using the LLM for query-type-aware retrieval.
 
-        Returns a QueryAnalysis with query_type and target FC categories.
-        Falls back to SPECIFIC with no categories on failure.
+        Returns a QueryAnalysis with query_type, primary categories (what the
+        user wants returned), and context_categories (mentioned but not the
+        answer type).  Falls back to SPECIFIC with no categories on failure.
         """
         valid_types = {"SPECIFIC", "ENUMERATION", "AGGREGATION"}
         valid_categories = {"Thing", "Actor", "Place", "Event", "Concept", "Time"}
@@ -2876,13 +2890,17 @@ Each file contains:
             parsed = json.loads(raw)
             qtype = parsed.get("query_type", "SPECIFIC").upper()
             cats = parsed.get("categories", [])
+            ctx_cats = parsed.get("context_categories", [])
 
             if qtype not in valid_types:
                 qtype = "SPECIFIC"
             cats = [c for c in cats if c in valid_categories]
+            ctx_cats = [c for c in ctx_cats if c in valid_categories and c not in cats]
 
-            result = QueryAnalysis(query_type=qtype, categories=cats)
-            logger.info(f"Query analysis: type={result.query_type}, categories={result.categories}")
+            result = QueryAnalysis(query_type=qtype, categories=cats,
+                                   context_categories=ctx_cats)
+            logger.info(f"Query analysis: type={result.query_type}, "
+                        f"categories={result.categories}, context={result.context_categories}")
             return result
 
         except Exception as e:
@@ -3701,7 +3719,11 @@ Rules:
         if not self._aggregation_index:
             return ""
 
-        categories = set(query_analysis.categories) if query_analysis.categories else set()
+        # Primary categories drive PageRank labels; union with context for FR filtering
+        primary = set(query_analysis.categories) if query_analysis.categories else set()
+        ctx = set(query_analysis.context_categories) if query_analysis.context_categories else set()
+        all_categories = primary | ctx
+
         lines = []
 
         # --- Compact entity type counts ---
@@ -3719,11 +3741,11 @@ Rules:
             fc_parts = [f"{fc}: {c}" for fc, c in sorted(fc_counts.items(), key=lambda x: x[1], reverse=True)]
             lines.append(f"Fundamental Categories: {', '.join(fc_parts)}")
 
-        # PageRank top entities per target FC
+        # PageRank top entities per PRIMARY FC only
         pagerank = self._aggregation_index.get("pagerank", {})
         by_fc_pr = pagerank.get("by_fc", {})
-        if by_fc_pr and categories:
-            for fc in sorted(categories):
+        if by_fc_pr and primary:
+            for fc in sorted(primary):
                 fc_entries = by_fc_pr.get(fc, [])
                 if fc_entries:
                     top_labels = [e["label"] for e in fc_entries[:20]]
@@ -3731,7 +3753,7 @@ Rules:
 
         lines.append("")
 
-        # --- FR summaries filtered by query categories ---
+        # --- FR summaries filtered by primary + context categories ---
         fr_summaries = self._aggregation_index.get("fr_summaries", {})
         if not fr_summaries:
             result = "\n".join(lines)
@@ -3756,8 +3778,8 @@ Rules:
             domain_fc = summary.get("domain_fc", "")
             range_fc = summary.get("range_fc", "")
 
-            # Show FR if its domain or range matches a query category, or if no categories
-            if categories and domain_fc not in categories and range_fc not in categories:
+            # Show FR if its domain or range matches any category (primary or context)
+            if all_categories and domain_fc not in all_categories and range_fc not in all_categories:
                 continue
 
             if shown_frs >= max_frs:

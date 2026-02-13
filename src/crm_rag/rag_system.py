@@ -173,6 +173,10 @@ class RetrievalConfig:
         "PC67_refers_to": -0.25,
     }
 
+    # Mega-entity penalty: entities with very high triple counts provide diluted context
+    MEGA_ENTITY_TRIPLES_THRESHOLD = 2000   # Entities with more triples than this are penalized
+    MEGA_ENTITY_PENALTY = 0.15             # Score penalty (subtracted after type modifier)
+
 
 class UniversalRagSystem:
     """Universal RAG system with graph-based document retrieval"""
@@ -966,6 +970,7 @@ class UniversalRagSystem:
         if not os.path.exists(edges_path):
             logger.warning(f"No edges file at {edges_path} — raw_triples will be empty in responses")
             self._triples_index = {}
+            self._actor_work_counts = {}
             return
 
         import pyarrow.parquet as pq
@@ -978,6 +983,7 @@ class UniversalRagSystem:
         if not has_labels:
             logger.warning("edges.parquet uses old 3-column format — re-generate docs to get labels")
             self._triples_index = {}
+            self._actor_work_counts = {}
             return
 
         index = {}
@@ -998,6 +1004,45 @@ class UniversalRagSystem:
             index.setdefault(triple["object"], []).append(triple)
 
         self._triples_index = index
+
+        # Build actor work-count index by tracing: Work →P108i→ creation →P14→ actor
+        creation_to_actors = {}   # creation_uri → [actor_uri, ...]
+        work_to_creation = {}     # work_uri → creation_uri
+        for s, p, o in zip(table.column("s"), table.column("p"), table.column("o")):
+            s_py, p_py, o_py = s.as_py(), p.as_py(), o.as_py()
+            local = p_py.split("/")[-1].split("#")[-1]
+            if "P14_carried_out_by" in local or "P14i_performed" in local:
+                # creation/impression event → actor
+                if local.endswith("_carried_out_by"):
+                    creation_to_actors.setdefault(s_py, []).append(o_py)
+                else:  # P14i: actor → event
+                    creation_to_actors.setdefault(o_py, []).append(s_py)
+            elif "P108i_was_produced_by" in local:
+                # work → creation event
+                work_to_creation[s_py] = o_py
+
+        actor_work_counts = {}
+        for work_uri, creation_uri in work_to_creation.items():
+            for actor_uri in creation_to_actors.get(creation_uri, []):
+                actor_work_counts[actor_uri] = actor_work_counts.get(actor_uri, 0) + 1
+
+        self._actor_work_counts = actor_work_counts
+        if actor_work_counts:
+            top_3 = sorted(actor_work_counts.items(), key=lambda x: -x[1])[:3]
+            top_labels = []
+            for uri, count in top_3:
+                label = uri.split("/")[-1]
+                for t in index.get(uri, [])[:5]:
+                    if t.get("subject") == uri and t.get("subject_label"):
+                        label = t["subject_label"]
+                        break
+                    if t.get("object") == uri and t.get("object_label"):
+                        label = t["object_label"]
+                        break
+                top_labels.append(f"{label}({count})")
+            logger.info(f"Actor work-count index: {len(actor_work_counts)} actors, "
+                        f"top: {', '.join(top_labels)}")
+
         logger.info(f"Loaded triples index from {edges_path}: "
                     f"{len(table)} triples, {len(index)} entities indexed")
 
@@ -3409,6 +3454,10 @@ Rules:
                 # Apply type-based modifier
                 type_mod = candidate_type_mods[idx]
                 combined_score = base_score * (1.0 + type_mod)
+                # Mega-entity penalty: high-triple-count entities provide diluted context
+                triples_count = len(self._triples_index.get(candidates[idx].id, []))
+                if triples_count > RetrievalConfig.MEGA_ENTITY_TRIPLES_THRESHOLD:
+                    combined_score -= RetrievalConfig.MEGA_ENTITY_PENALTY
                 all_scores.append((idx, combined_score, relevance, connectivity_norm, div_penalty, type_mod))
 
             # Sort by combined score
@@ -3424,7 +3473,9 @@ Rules:
                 logger.info(f"      Connectivity: {conn:.3f} (weight={1-alpha:.1f}) → contrib={(1-alpha)*conn:.3f}")
                 logger.info(f"      Diversity penalty: -{div_pen:.3f}")
                 type_mod_str = f", type_mod={t_mod:+.2f}" if t_mod != 0 else ""
-                logger.info(f"      Combined: {combined:.3f}{type_mod_str}")
+                tc = len(self._triples_index.get(candidates[idx].id, []))
+                mega_str = f", MEGA(-{RetrievalConfig.MEGA_ENTITY_PENALTY:.2f}, {tc} triples)" if tc > RetrievalConfig.MEGA_ENTITY_TRIPLES_THRESHOLD else ""
+                logger.info(f"      Combined: {combined:.3f}{type_mod_str}{mega_str}")
 
             # Select the best
             best_idx, best_score, best_rel, best_connectivity_norm, best_div_penalty, best_type_mod = all_scores[0]
@@ -3755,6 +3806,25 @@ Rules:
                     top_labels = [e["label"] for e in fc_entries[:20]]
                     lines.append(f"Top {fc}s by graph centrality: {', '.join(top_labels)}")
 
+        # Work-count ranking for Actor queries (traced from P108i → P14 chain)
+        actor_work_counts = getattr(self, '_actor_work_counts', {})
+        if actor_work_counts and "Actor" in primary:
+            # Resolve actor URIs to labels via triples index
+            triples_index = getattr(self, '_triples_index', {})
+            sorted_actors = sorted(actor_work_counts.items(), key=lambda x: -x[1])[:30]
+            labeled_actors = []
+            for uri, count in sorted_actors:
+                label = uri.split("/")[-1]
+                for t in triples_index.get(uri, [])[:5]:
+                    if t.get("subject") == uri and t.get("subject_label"):
+                        label = t["subject_label"]
+                        break
+                    if t.get("object") == uri and t.get("object_label"):
+                        label = t["object_label"]
+                        break
+                labeled_actors.append(f"{label} ({count})")
+            lines.append(f"Top Actors by work count: {', '.join(labeled_actors)}")
+
         lines.append("")
 
         # --- FR summaries filtered by primary + context categories ---
@@ -3961,6 +4031,10 @@ Rules:
 
         sorted_docs = sorted(retrieved_docs, key=_type_priority)
 
+        # Fair budget allocation: cap per-entity chars so mega-entities can't starve others
+        entities_with_data = sum(1 for doc in sorted_docs if triples_index.get(doc.id))
+        max_chars_per_entity = max(200, MAX_TOTAL_CHARS // max(entities_with_data, 1))
+
         # Build per-entity enrichment
         entity_sections = []
         total_chars = 0
@@ -4048,6 +4122,10 @@ Rules:
                 continue
 
             section = f"{entity_label}:\n" + "\n".join(lines)
+
+            # Cap per-entity section to fair budget allocation
+            if len(section) > max_chars_per_entity:
+                section = section[:max_chars_per_entity] + "..."
 
             # Check total character budget
             if total_chars + len(section) + 2 > MAX_TOTAL_CHARS:

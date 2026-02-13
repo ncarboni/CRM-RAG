@@ -117,9 +117,10 @@ class RetrievalConfig:
     # Diversity penalty (MMR-style) for coherent subgraph extraction
     DIVERSITY_PENALTY = 0.2  # Weight for penalizing embedding similarity to already-selected docs
 
-    # Type-filtered retrieval channel (for ENUMERATION/AGGREGATION queries)
+    # Type-filtered retrieval channel
     TYPE_FILTERED_FETCH_K = 10000   # Raw FAISS results scanned before type filtering
-    TYPE_CHANNEL_POOL_FRACTION = 0.5  # Fraction of pool reserved for type-matching docs
+    TYPE_CHANNEL_POOL_FRACTION = 0.5  # Fraction of pool reserved for type-matching docs (ENUM/AGG)
+    TYPE_CHANNEL_POOL_FRACTION_SPECIFIC = 0.3  # Smaller fraction for SPECIFIC queries (safety net)
 
     # Thin document chaining: absorb thin docs into their richest neighbor
     THIN_DOC_THRESHOLD = 400  # Docs with fewer chars are candidates for chaining
@@ -3551,10 +3552,9 @@ Rules:
         else:
             results_with_scores = faiss_results
 
-        # Type-filtered retrieval channel for ENUMERATION/AGGREGATION queries
+        # Type-filtered retrieval channel for all query types with FC categories
         fc_doc_ids = getattr(self.document_store, '_fc_doc_ids', None)
         if (query_analysis
-                and query_analysis.query_type in ("ENUMERATION", "AGGREGATION")
                 and query_analysis.categories
                 and fc_doc_ids):
             # Collect allowed doc IDs from target FC categories
@@ -3585,8 +3585,9 @@ Rules:
                 else:
                     typed_fused = typed_bm25
 
-                # Fold PageRank into typed channel as a third signal
+                # Fold PageRank into typed channel as a third signal (ENUM/AGG only)
                 if (typed_fused
+                        and query_analysis.query_type in ("ENUMERATION", "AGGREGATION")
                         and self._aggregation_index
                         and "pagerank" in self._aggregation_index):
                     pagerank_candidates = self._get_pagerank_candidates(
@@ -3602,7 +3603,10 @@ Rules:
 
                 if typed_fused:
                     # Merge: reserve slots for type-matching docs
-                    typed_slots = int(initial_pool_size * RetrievalConfig.TYPE_CHANNEL_POOL_FRACTION)
+                    fraction = (RetrievalConfig.TYPE_CHANNEL_POOL_FRACTION_SPECIFIC
+                                if query_analysis.query_type == "SPECIFIC"
+                                else RetrievalConfig.TYPE_CHANNEL_POOL_FRACTION)
+                    typed_slots = int(initial_pool_size * fraction)
                     main_slots = initial_pool_size - typed_slots
 
                     # IDs already in the main pool
@@ -4174,6 +4178,91 @@ Rules:
         logger.info(f"Graph context: {len(lines)} lines from {len(neighbor_info)} neighbor entities")
         return "\n".join(lines[:max_lines])
 
+    def _enrich_temporal_context(self, retrieved_docs):
+        """Run a targeted SPARQL query for Activity/Event entities to fetch date triples.
+
+        Checks retrieved documents for Activity/Event types and queries the SPARQL
+        endpoint for P4_has_time-span / P81a / P81b temporal predicates.
+
+        Args:
+            retrieved_docs: List of GraphDocument objects from retrieval.
+
+        Returns:
+            Formatted string with temporal information, or empty string if none found.
+        """
+        # Event/Activity type indicators in doc metadata
+        _EVENT_TYPE_MARKERS = {
+            'Activity', 'Event',
+            'E5', 'E7', 'E11', 'E63', 'E64', 'E65', 'E66', 'E85', 'E86', 'E87',
+            'E5_Event', 'E7_Activity', 'E11_Modification',
+            'E63_Beginning_of_Existence', 'E64_End_of_Existence',
+            'E65_Creation', 'E66_Formation',
+            'E85_Joining', 'E86_Leaving', 'E87_Curation_Activity',
+        }
+
+        # Collect URIs of retrieved docs that are Activity or Event types
+        event_uris = {}  # uri -> label
+        for doc in retrieved_docs:
+            doc_type = doc.metadata.get('type', '')
+            all_types = set(doc.metadata.get('all_types', []))
+            # Check if any type marker matches the doc type or all_types
+            is_event = any(marker in doc_type for marker in _EVENT_TYPE_MARKERS)
+            if not is_event:
+                is_event = bool(all_types & _EVENT_TYPE_MARKERS)
+            if is_event:
+                label = doc.metadata.get('label', doc.id.split('/')[-1])
+                event_uris[doc.id] = label
+
+        if not event_uris:
+            return ""
+
+        logger.info(f"Temporal enrichment: querying dates for {len(event_uris)} event/activity entities")
+
+        # Build VALUES clause for batch SPARQL query
+        values_clause = " ".join(f"<{uri}>" for uri in event_uris)
+        query = f"""
+        SELECT ?entity ?start ?end WHERE {{
+            VALUES ?entity {{ {values_clause} }}
+            ?entity <http://www.cidoc-crm.org/cidoc-crm/P4_has_time-span> ?ts .
+            OPTIONAL {{ ?ts <http://www.cidoc-crm.org/cidoc-crm/P81a_end_of_the_begin> ?start }}
+            OPTIONAL {{ ?ts <http://www.cidoc-crm.org/cidoc-crm/P81b_begin_of_the_end> ?end }}
+        }}
+        """
+
+        try:
+            self.sparql.setQuery(query)
+            self.sparql.setReturnFormat(JSON)
+            results = self.sparql.query().convert()
+        except Exception as e:
+            logger.warning(f"Temporal enrichment SPARQL query failed: {e}")
+            return ""
+
+        # Parse results
+        temporal_lines = []
+        seen_entities = set()
+        for binding in results.get("results", {}).get("bindings", []):
+            entity_uri = binding.get("entity", {}).get("value", "")
+            if not entity_uri or entity_uri in seen_entities:
+                continue
+            seen_entities.add(entity_uri)
+
+            start = binding.get("start", {}).get("value", "")
+            end = binding.get("end", {}).get("value", "")
+            label = event_uris.get(entity_uri, entity_uri.split('/')[-1])
+
+            if start and end:
+                temporal_lines.append(f"- {label}: {start} to {end}")
+            elif start:
+                temporal_lines.append(f"- {label}: from {start}")
+            elif end:
+                temporal_lines.append(f"- {label}: until {end}")
+
+        if not temporal_lines:
+            return ""
+
+        logger.info(f"Temporal enrichment: found dates for {len(temporal_lines)} entities")
+        return "\n".join(temporal_lines)
+
     def answer_question(self, question, include_wikidata=True, chat_history=None):
         """Answer a question using the universal RAG system with CIDOC-CRM knowledge and optional Wikidata context.
 
@@ -4350,6 +4439,12 @@ Rules:
         if triples_enrichment:
             context += "\n## Structured Relationships\n\n"
             context += triples_enrichment + "\n"
+
+        # Runtime temporal enrichment for Activity/Event entities
+        temporal_enrichment = self._enrich_temporal_context(retrieved_docs)
+        if temporal_enrichment:
+            context += "\n## Temporal Information (dates for events and exhibitions)\n\n"
+            context += temporal_enrichment + "\n"
 
         # Add pre-computed aggregation statistics for AGGREGATION/ENUMERATION queries
         if query_analysis.query_type in ("AGGREGATION", "ENUMERATION"):

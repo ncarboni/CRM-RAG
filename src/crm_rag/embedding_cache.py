@@ -7,7 +7,7 @@ import hashlib
 import json
 import logging
 import os
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -94,42 +94,6 @@ class EmbeddingCache:
         except Exception as e:
             logger.error(f"Error caching embedding for {doc_id}: {e}")
 
-    def set_batch(self, embeddings: Dict[str, List[float]]):
-        """
-        Cache multiple embeddings at once.
-
-        Args:
-            embeddings: Dictionary mapping doc_id -> embedding
-        """
-        for doc_id, embedding in embeddings.items():
-            self.set(doc_id, embedding)
-
-    def get_batch(self, doc_ids: List[str]) -> Tuple[Dict[str, List[float]], List[str]]:
-        """
-        Get cached embeddings for multiple documents.
-
-        Args:
-            doc_ids: List of document IDs to retrieve
-
-        Returns:
-            Tuple of (cached embeddings dict, list of uncached doc_ids)
-        """
-        cached = {}
-        uncached = []
-
-        for doc_id in doc_ids:
-            embedding = self.get(doc_id)
-            if embedding is not None:
-                cached[doc_id] = embedding
-            else:
-                uncached.append(doc_id)
-
-        return cached, uncached
-
-    def has(self, doc_id: str) -> bool:
-        """Check if an embedding is cached for a document."""
-        return os.path.exists(self._get_path(doc_id))
-
     def get_cached_ids(self) -> set:
         """
         Get all cached document IDs.
@@ -142,18 +106,7 @@ class EmbeddingCache:
         if not os.path.exists(self.cache_dir):
             return cached_ids
 
-        # Walk through subdirectories
-        for subdir in os.listdir(self.cache_dir):
-            subdir_path = os.path.join(self.cache_dir, subdir)
-            if os.path.isdir(subdir_path) and len(subdir) == 2:
-                for filename in os.listdir(subdir_path):
-                    if filename.endswith('.npy'):
-                        # We can't reverse the hash, so we just track that something is cached
-                        # The actual lookup will use _get_path
-                        pass
-
-        # For proper tracking, we need a separate index file
-        # Load from metadata if it exists
+        # Load from metadata index file
         metadata_path = self._get_metadata_path()
         if os.path.exists(metadata_path):
             try:
@@ -195,15 +148,6 @@ class EmbeddingCache:
             if os.path.isdir(subdir_path) and len(subdir) == 2:
                 count += len([f for f in os.listdir(subdir_path) if f.endswith('.npy')])
         return count
-
-    def clear(self):
-        """Clear all cached embeddings."""
-        import shutil
-        if os.path.exists(self.cache_dir):
-            shutil.rmtree(self.cache_dir)
-            self._ensure_dir()
-        self._cached_ids = None
-        logger.info(f"Cleared embedding cache at {self.cache_dir}")
 
     def get_stats(self) -> Dict:
         """Get cache statistics."""

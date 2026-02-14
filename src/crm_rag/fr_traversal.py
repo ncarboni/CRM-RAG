@@ -164,9 +164,6 @@ class FRTraversal:
             for cls in class_list:
                 self._class_to_fc[cls] = fc_name
 
-        # Index: property_local_name -> list of (fr_index, path_index, step_index)
-        self._prop_index = self._build_property_index()
-
         # Index: (fc, property_local_name) -> True for step-0 properties per domain FC
         # Used by collect_direct_predicates to avoid duplication with FR results
         self._step0_props = self._build_step0_index()
@@ -185,16 +182,6 @@ class FRTraversal:
         if '#' in name:
             name = name.rsplit('#', 1)[-1]
         return name
-
-    def _build_property_index(self) -> Dict[str, List[Tuple[int, int, int]]]:
-        """Index property local names used in FR paths for fast lookup."""
-        index = defaultdict(list)
-        for fr_idx, fr in enumerate(self.fr_list):
-            for path_idx, path in enumerate(fr["paths"]):
-                for step_idx, step in enumerate(path["steps"]):
-                    prop_local = self._local_name(step["property"])
-                    index[prop_local].append((fr_idx, path_idx, step_idx))
-        return dict(index)
 
     def _build_step0_index(self) -> Set[Tuple[str, str]]:
         """Build set of (domain_fc, property_local_name) for step-0 properties.

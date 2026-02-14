@@ -123,10 +123,6 @@ class RetrievalConfig:
     THIN_DOC_THRESHOLD = 400  # Docs with fewer chars are candidates for chaining
     MAX_CHAINED_DOC_SIZE = 5000  # Stop absorbing into a target that would exceed this
 
-    # Graph context enrichment for LLM prompt
-    GRAPH_CONTEXT_MAX_NEIGHBORS = 5   # Max neighbor relationships to show per entity
-    GRAPH_CONTEXT_MAX_LINES = 50      # Total line cap for graph context section
-
     # Type-based score modifiers for retrieval ranking
     # Positive = boost, negative = penalty. Applied as multiplier: score * (1 + modifier)
     # Keys match the human-readable type stored in doc.metadata["type"]
@@ -183,7 +179,6 @@ class UniversalRagSystem:
     _ontology_classes = None
     _class_labels = None  # Cache for class URI -> English label mapping
     _inverse_properties = None  # Cache for property URI -> inverse property URI mapping
-    _event_classes = None  # Cache for event class URIs (loaded from config/event_classes.json)
     _extraction_attempted = False  # Track if we've tried extraction to avoid infinite loops
     _missing_properties = set()  # Track properties that couldn't be found
     _missing_classes = set()  # Track classes that couldn't be found in ontology files
@@ -260,6 +255,8 @@ class UniversalRagSystem:
         # Initialize document store
         self.document_store = None
         self._aggregation_index = {}
+        self._parquet_writer = None
+        self._parquet_triple_count = 0
 
         # Create a secure session for HTTP requests (e.g., Wikidata API)
         # Disable trust_env to prevent .netrc credential leaks (CVE fix)
@@ -344,24 +341,25 @@ class UniversalRagSystem:
             logger.info("Run: python scripts/extract_ontology_labels.py to generate it")
             return {}
 
-    def _init_fr_traversal(self) -> Optional[FRTraversal]:
+    def _init_fr_traversal(self) -> FRTraversal:
         """Initialize FR traversal module with required config files.
 
-        Returns FRTraversal instance or None if config files are missing.
+        Raises FileNotFoundError if any required config file is missing.
         """
         fr_json = str(PROJECT_ROOT / 'config' / 'fundamental_relationships_cidoc_crm.json')
         inverse_props = str(PROJECT_ROOT / 'data' / 'labels' / 'inverse_properties.json')
         fc_mapping = str(PROJECT_ROOT / 'config' / 'fc_class_mapping.json')
 
-        if not os.path.exists(fr_json):
-            logger.warning(f"FR JSON not found: {fr_json} — FR traversal disabled")
-            return None
-        if not os.path.exists(inverse_props):
-            logger.warning(f"Inverse properties not found: {inverse_props} — FR traversal disabled")
-            return None
-        if not os.path.exists(fc_mapping):
-            logger.warning(f"FC class mapping not found: {fc_mapping} — FR traversal disabled")
-            return None
+        for path, label in [
+            (fr_json, "FR JSON"),
+            (inverse_props, "Inverse properties"),
+            (fc_mapping, "FC class mapping"),
+        ]:
+            if not os.path.exists(path):
+                raise FileNotFoundError(
+                    f"{label} not found: {path}. "
+                    "Run: python scripts/extract_ontology_labels.py to generate it."
+                )
 
         traversal = FRTraversal(
             fr_json_path=fr_json,
@@ -557,58 +555,6 @@ class UniversalRagSystem:
         else:
             logger.error(f"Class labels file not found at {labels_file}")
             return {}
-
-    def _load_event_classes(self):
-        """
-        Load event classes from config/event_classes.json.
-
-        Event classes are CIDOC-CRM and extension classes that represent events
-        (activities, processes, etc.). These are used for event-aware graph traversal
-        where multi-hop context only goes THROUGH events.
-
-        Returns:
-            set: Set of event class URIs
-        """
-        config_file = str(PROJECT_ROOT / 'config' / 'event_classes.json')
-
-        if not os.path.exists(config_file):
-            logger.warning(f"Event classes config not found at {config_file}")
-            logger.warning("Event-aware traversal will be disabled (all entities treated equally)")
-            return set()
-
-        try:
-            with open(config_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-
-            # Combine all event class lists (ignore _comment key)
-            event_classes = set()
-            for key, value in data.items():
-                if key.startswith('_'):  # Skip comment fields
-                    continue
-                if isinstance(value, list):
-                    event_classes.update(value)
-
-            logger.info(f"Loaded {len(event_classes)} event classes from {config_file}")
-            return event_classes
-
-        except Exception as e:
-            logger.error(f"Error loading event classes from {config_file}: {str(e)}")
-            return set()
-
-    @classmethod
-    def get_event_classes(cls):
-        """
-        Get the cached event classes, loading from JSON if needed.
-
-        Returns:
-            set: Set of event class URIs
-        """
-        if cls._event_classes is None:
-            # Create a temporary instance just to load event classes
-            # This is a bit awkward but maintains consistency with other label loading
-            instance = object.__new__(cls)
-            cls._event_classes = instance._load_event_classes()
-        return cls._event_classes
 
     @property
     def embeddings(self):
@@ -922,37 +868,49 @@ class UniversalRagSystem:
 
         return chained_map
 
-    def _save_edges_parquet(self, all_triples: List[Dict]) -> None:
-        """Save collected triples to a Parquet edges file alongside entity_documents/.
+    def _get_edges_parquet_path(self) -> str:
+        """Return the path to the edges Parquet file."""
+        return os.path.join(os.path.dirname(self._get_documents_dir()), "edges.parquet")
 
-        Stores 6 columns: URIs (s, p, o) and labels (s_label, p_label, o_label).
+    def _append_edges_parquet(self, triples: List[Dict]) -> None:
+        """Append triples to the Parquet edges file incrementally.
 
-        Args:
-            all_triples: List of dicts with 'subject', 'subject_label', 'predicate',
-                        'predicate_label', 'object', 'object_label' keys
+        Creates the file on first call, appends on subsequent calls.
+        Uses a persistent ParquetWriter for efficient streaming writes.
         """
         import pyarrow as pa
-        import pyarrow.parquet as pq
 
-        # edges.parquet lives in data/documents/{dataset_id}/ (parent of entity_documents/)
-        edges_path = os.path.join(os.path.dirname(self._get_documents_dir()), "edges.parquet")
-
-        subjects = [t["subject"] for t in all_triples]
-        subject_labels = [t.get("subject_label", "") for t in all_triples]
-        predicates = [t["predicate"] for t in all_triples]
-        predicate_labels = [t.get("predicate_label", "") for t in all_triples]
-        objects = [t["object"] for t in all_triples]
-        object_labels = [t.get("object_label", "") for t in all_triples]
+        if not triples:
+            return
 
         table = pa.table({
-            "s": subjects, "s_label": subject_labels,
-            "p": predicates, "p_label": predicate_labels,
-            "o": objects, "o_label": object_labels,
+            "s": [t["subject"] for t in triples],
+            "s_label": [t.get("subject_label", "") for t in triples],
+            "p": [t["predicate"] for t in triples],
+            "p_label": [t.get("predicate_label", "") for t in triples],
+            "o": [t["object"] for t in triples],
+            "o_label": [t.get("object_label", "") for t in triples],
         })
-        pq.write_table(table, edges_path)
 
-        size_mb = os.path.getsize(edges_path) / (1024 * 1024)
-        logger.info(f"Saved {len(all_triples)} triples (6 columns) to {edges_path} ({size_mb:.1f} MB)")
+        if self._parquet_writer is None:
+            import pyarrow.parquet as pq
+            edges_path = self._get_edges_parquet_path()
+            os.makedirs(os.path.dirname(edges_path), exist_ok=True)
+            self._parquet_writer = pq.ParquetWriter(edges_path, table.schema)
+            self._parquet_triple_count = 0
+
+        self._parquet_writer.write_table(table)
+        self._parquet_triple_count += len(triples)
+
+    def _close_edges_parquet(self) -> None:
+        """Close the incremental Parquet writer and log final stats."""
+        if self._parquet_writer is not None:
+            self._parquet_writer.close()
+            self._parquet_writer = None
+            edges_path = self._get_edges_parquet_path()
+            size_mb = os.path.getsize(edges_path) / (1024 * 1024)
+            logger.info(f"Saved {self._parquet_triple_count:,} triples to {edges_path} ({size_mb:.1f} MB)")
+            self._parquet_triple_count = 0
 
     def _load_triples_index(self):
         """Load Parquet edges file and build entity -> triples index.
@@ -1309,94 +1267,6 @@ class UniversalRagSystem:
         logger.info(f"Added {edges_added} edges from Parquet file "
                     f"({skipped} triples skipped — endpoints not in document store)")
 
-    def _get_inverse_predicate(self, predicate_uri):
-        """
-        Get the inverse predicate URI for a CIDOC-CRM predicate.
-        Uses owl:inverseOf mappings extracted from ontology files.
-
-        Args:
-            predicate_uri: Full URI of the predicate
-
-        Returns:
-            Inverse predicate URI (or original if no inverse defined in ontology)
-        """
-        if UniversalRagSystem._inverse_properties:
-            inverse = UniversalRagSystem._inverse_properties.get(predicate_uri)
-            if inverse:
-                return inverse
-
-        # No inverse found in ontology - return original predicate
-        return predicate_uri
-
-    def process_cidoc_relationship(self, subject_uri, predicate, object_uri, subject_label=None, object_label=None):
-        """Convert CIDOC-CRM RDF relationships to natural language using ontology labels"""
-
-        # Extract predicate name handling various namespace formats
-        # Handle: http://example.com/P89_falls_within, vir#K1i, crm:P89_falls_within
-        # First split by '/' to get the last segment
-        simple_pred = predicate.split('/')[-1]
-
-        # If that segment contains '#', split by '#' to get the actual predicate
-        if '#' in simple_pred:
-            simple_pred = simple_pred.split('#')[-1]
-
-        # Handle missing entity labels
-        subject_label = subject_label or subject_uri.split('/')[-1].rstrip('/')
-        object_label = object_label or object_uri.split('/')[-1].rstrip('/')
-
-        # Look up the predicate label from the ontology-extracted labels
-        # Try multiple strategies: full URI, local name with code, stripped name
-        predicate_label = None
-
-        if self._property_labels:
-            # Try full predicate URI first
-            predicate_label = self._property_labels.get(predicate)
-
-            # Try local name with prefix code (e.g., "K24_portray", "L54_is_same-as")
-            if not predicate_label:
-                predicate_label = self._property_labels.get(simple_pred)
-
-            # Try stripped name without prefix code (e.g., "portray", "is_same-as")
-            if not predicate_label:
-                stripped_pred = re.sub(r'^[A-Z]\d+[a-z]?_', '', simple_pred)
-                predicate_label = self._property_labels.get(stripped_pred)
-
-        # If no label found in ontology, handle missing property
-        if not predicate_label:
-            # Track this missing property
-            if predicate not in UniversalRagSystem._missing_properties:
-                UniversalRagSystem._missing_properties.add(predicate)
-                logger.warning(f"Property label not found for: {predicate} (local: {simple_pred})")
-
-                # If we haven't tried extraction yet, trigger it
-                if not UniversalRagSystem._extraction_attempted:
-                    logger.info("Attempting to re-extract property labels from ontologies...")
-                    new_labels = self._load_property_labels(force_extract=True)
-                    if new_labels:
-                        # Update the class-level cache
-                        UniversalRagSystem._property_labels = new_labels
-                        # Try to find the label again
-                        predicate_label = (
-                            new_labels.get(predicate) or
-                            new_labels.get(simple_pred) or
-                            new_labels.get(re.sub(r'^[A-Z]\d+[a-z]?_', '', simple_pred))
-                        )
-
-            # If still not found, create a fallback label
-            if not predicate_label:
-                # Strip prefix codes and convert underscores to spaces
-                stripped_pred = re.sub(r'^[A-Z]\d+[a-z]?_', '', simple_pred)
-                predicate_label = stripped_pred.replace('_', ' ').lower()
-                logger.debug(f"Using fallback label '{predicate_label}' for property {simple_pred}")
-
-        # Special handling for type classification relationships (P2_has_type)
-        # to distinguish instances from types in iconographic classifications
-        if "P2_has_type" in predicate or "P2_has_type" in simple_pred:
-            return f"{subject_label} is classified as type: {object_label}"
-
-        # Return natural language statement using the predicate label
-        return f"{subject_label} {predicate_label} {object_label}"
-
     def is_schema_predicate(self, predicate):
         """Check if a predicate is a schema-level predicate that should be filtered out"""
         return _is_schema_predicate(predicate)
@@ -1404,14 +1274,6 @@ class UniversalRagSystem:
     def is_technical_class_name(self, class_name):
         """Check if a class name is a technical ontology class that should be filtered"""
         return _is_technical_class_name(class_name, UniversalRagSystem._ontology_classes)
-
-    def _batch_query_tsv(self, query: str) -> List[List[str]]:
-        """Execute a SPARQL query using TSV format for 3x faster parsing."""
-        return self.batch_sparql.batch_query_tsv(query)
-
-    def _escape_uri_for_values(self, uri: str) -> str:
-        """Escape a URI for use in SPARQL VALUES clause."""
-        return self.batch_sparql.escape_uri_for_values(uri)
 
     def _batch_fetch_types(self, uris: List[str], batch_size: int = None) -> Dict[str, set]:
         """Batch fetch rdf:type for multiple URIs."""
@@ -1432,368 +1294,6 @@ class UniversalRagSystem:
     def _batch_fetch_type_labels(self, type_uris: set, batch_size: int = None) -> Dict[str, str]:
         """Batch fetch labels for type URIs."""
         return self.batch_sparql.batch_fetch_type_labels(type_uris, batch_size or RetrievalConfig.BATCH_QUERY_SIZE)
-
-    def get_entities_context_batch(
-        self,
-        entity_uris: List[str],
-        depth: int = None,
-        batch_size: int = None
-    ) -> Dict[str, Tuple[List[str], List[Dict]]]:
-        """
-        Batch version of get_entity_context using BFS-style traversal.
-
-        Implements event-aware filtering matching the single-entity method:
-        - For EVENT entities: full multi-hop traversal
-        - For NON-EVENT entities: only traverse through events
-
-        Args:
-            entity_uris: List of entity URIs to get context for
-            depth: How many hops to traverse (default: ENTITY_CONTEXT_DEPTH)
-            batch_size: URIs per batch query (default: BATCH_QUERY_SIZE)
-
-        Returns:
-            Dict mapping URI -> (statements list, triples list)
-        """
-        if depth is None:
-            depth = RetrievalConfig.ENTITY_CONTEXT_DEPTH
-        if batch_size is None:
-            batch_size = RetrievalConfig.BATCH_QUERY_SIZE
-
-        logger.info(f"Batch context retrieval for {len(entity_uris)} entities (depth={depth})")
-
-        # Initialize results for all requested entities
-        results = {uri: ([], []) for uri in entity_uris}
-
-        # Track which entities are starting entities (for event-aware filtering)
-        starting_entities = set(entity_uris)
-
-        # Cache for entity types (URI -> set of type URIs)
-        type_cache = {}
-
-        # Cache for entity labels (URI -> label string)
-        label_cache = {}
-
-        # Load event classes for filtering
-        event_classes = UniversalRagSystem.get_event_classes()
-
-        # Pre-fetch types for starting entities
-        logger.info(f"  Pre-fetching types for {len(entity_uris)} starting entities...")
-        starting_types = self._batch_fetch_types(entity_uris, batch_size)
-        type_cache.update(starting_types)
-
-        # Determine which starting entities are events
-        starting_is_event = {}
-        for uri in entity_uris:
-            types = type_cache.get(uri, set())
-            starting_is_event[uri] = bool(types & event_classes)
-
-        # BFS traversal
-        visited = set()
-        current_level = set(entity_uris)
-
-        # Track statements and triples per starting entity
-        entity_statements = {uri: [] for uri in entity_uris}
-        entity_triples = {uri: [] for uri in entity_uris}
-
-        # Map discovered URIs back to their originating starting entity
-        # uri_origin[discovered_uri] = set of starting entities that led here
-        uri_origin = {uri: {uri} for uri in entity_uris}
-
-        for current_depth in range(depth + 1):
-            uris_to_query = [u for u in current_level if u not in visited]
-            if not uris_to_query:
-                break
-
-            visited.update(uris_to_query)
-            logger.info(f"  Depth {current_depth}: querying {len(uris_to_query)} URIs...")
-
-            # Batch query outgoing and incoming relationships
-            outgoing = self._batch_query_outgoing(uris_to_query, batch_size)
-            incoming = self._batch_query_incoming(uris_to_query, batch_size)
-
-            # Collect URIs for next level
-            next_level = set()
-            next_level_origins = {}  # new_uri -> set of starting entities
-
-            # Pre-fetch types for all discovered URIs (for event-aware filtering)
-            discovered_uris = set()
-            for rels in outgoing.values():
-                for pred, obj, _ in rels:
-                    if obj not in visited and obj not in discovered_uris:
-                        discovered_uris.add(obj)
-            for rels in incoming.values():
-                for subj, pred, _ in rels:
-                    if subj not in visited and subj not in discovered_uris:
-                        discovered_uris.add(subj)
-
-            if discovered_uris:
-                new_types = self._batch_fetch_types(list(discovered_uris), batch_size)
-                type_cache.update(new_types)
-
-            # Process outgoing relationships
-            for uri, rels in outgoing.items():
-                # Find which starting entities this URI is connected to
-                origins = uri_origin.get(uri, set())
-                current_types = type_cache.get(uri, set())
-                current_is_event = bool(current_types & event_classes)
-
-                for pred, obj, obj_label in rels:
-                    # Skip schema predicates
-                    if self.is_schema_predicate(pred):
-                        continue
-
-                    # Get predicate label
-                    pred_label = UniversalRagSystem._property_labels.get(pred)
-                    if not pred_label:
-                        pred_label = pred.split('/')[-1].split('#')[-1]
-
-                    # Get entity labels
-                    if uri not in label_cache:
-                        # Try to get from literals we already have
-                        label_cache[uri] = uri.split('/')[-1]
-                    entity_label = label_cache[uri]
-
-                    if not obj_label:
-                        obj_label = obj.split('/')[-1]
-                    label_cache[obj] = obj_label
-
-                    # Filter self-referential
-                    if uri == obj:
-                        continue
-                    if entity_label and obj_label and entity_label.lower() == obj_label.lower():
-                        continue
-
-                    # Event-aware filtering for each starting entity
-                    target_types = type_cache.get(obj, set())
-
-
-                    for start_uri in origins:
-                        start_is_event = starting_is_event.get(start_uri, False)
-
-                        # Filtering logic matching single-entity method
-                        if start_is_event:
-                            should_include = True
-                        elif current_depth == 0:
-                            should_include = True
-                        elif current_is_event:
-                            should_include = True
-                        else:
-                            should_include = False
-
-                        if should_include:
-                            # Create statement
-                            statement = self.process_cidoc_relationship(
-                                uri, pred, obj, entity_label, obj_label
-                            )
-                            entity_statements[start_uri].append(statement)
-                            entity_triples[start_uri].append({
-                                "subject": uri,
-                                "subject_label": entity_label,
-                                "predicate": pred,
-                                "predicate_label": pred_label,
-                                "object": obj,
-                                "object_label": obj_label
-                            })
-
-                            # Only traverse further through events (matching bulk script)
-                            target_is_event = bool(target_types & event_classes)
-                            if current_depth < depth and obj not in visited:
-                                if starting_is_event.get(start_uri, False) or target_is_event:
-                                    next_level.add(obj)
-                                    if obj not in next_level_origins:
-                                        next_level_origins[obj] = set()
-                                    next_level_origins[obj].add(start_uri)
-
-            # Process incoming relationships
-            for uri, rels in incoming.items():
-                origins = uri_origin.get(uri, set())
-                current_types = type_cache.get(uri, set())
-                current_is_event = bool(current_types & event_classes)
-
-                if uri not in label_cache:
-                    label_cache[uri] = uri.split('/')[-1]
-                entity_label = label_cache[uri]
-
-                for subj, pred, subj_label in rels:
-                    if self.is_schema_predicate(pred):
-                        continue
-
-                    pred_label = UniversalRagSystem._property_labels.get(pred)
-                    if not pred_label:
-                        pred_label = pred.split('/')[-1].split('#')[-1]
-
-                    if not subj_label:
-                        subj_label = subj.split('/')[-1]
-                    label_cache[subj] = subj_label
-
-                    if subj == uri:
-                        continue
-                    if subj_label and entity_label and subj_label.lower() == entity_label.lower():
-                        continue
-
-                    target_types = type_cache.get(subj, set())
-
-
-                    for start_uri in origins:
-                        start_is_event = starting_is_event.get(start_uri, False)
-
-                        if start_is_event:
-                            should_include = True
-                        elif current_depth == 0:
-                            should_include = True
-                        elif current_is_event:
-                            should_include = True
-                        else:
-                            should_include = False
-
-                        if should_include:
-                            # Use inverse predicate for incoming
-                            inverse_pred = self._get_inverse_predicate(pred)
-                            statement = self.process_cidoc_relationship(
-                                uri, inverse_pred, subj, entity_label, subj_label
-                            )
-                            entity_statements[start_uri].append(statement)
-                            entity_triples[start_uri].append({
-                                "subject": subj,
-                                "subject_label": subj_label,
-                                "predicate": pred,
-                                "predicate_label": pred_label,
-                                "object": uri,
-                                "object_label": entity_label
-                            })
-
-                            # Traverse from incoming IF the source is an event
-                            # Critical for CIDOC-CRM: production events arrive as incoming
-                            # to actors/objects, traverse through them to discover artworks
-                            source_types = type_cache.get(subj, set())
-                            source_is_event = bool(source_types & event_classes)
-                            if current_depth < depth and subj not in visited:
-                                if starting_is_event.get(start_uri, False) or source_is_event:
-                                    next_level.add(subj)
-                                    if subj not in next_level_origins:
-                                        next_level_origins[subj] = set()
-                                    next_level_origins[subj].add(start_uri)
-
-            # Update origins for next level
-            for uri, origins in next_level_origins.items():
-                if uri not in uri_origin:
-                    uri_origin[uri] = set()
-                uri_origin[uri].update(origins)
-
-            current_level = next_level
-
-        # Compile results - deduplicate statements and triples
-        for uri in entity_uris:
-            unique_statements = list(set(entity_statements[uri]))
-
-            seen_triples = set()
-            unique_triples = []
-            for triple in entity_triples[uri]:
-                triple_key = (triple["subject"], triple["predicate"], triple["object"])
-                if triple_key not in seen_triples:
-                    seen_triples.add(triple_key)
-                    unique_triples.append(triple)
-
-            results[uri] = (unique_statements, unique_triples)
-
-        logger.info(f"  Batch context complete: visited {len(visited)} total URIs")
-        return results
-
-    def _create_document_from_prefetched(
-        self,
-        entity_uri: str,
-        literals: Dict[str, List[str]],
-        types: set,
-        context: Tuple[List[str], List[Dict]],
-        type_labels: Dict[str, str] = None
-    ) -> Tuple[str, str, List[str], List[Dict]]:
-        """
-        Create document text from pre-fetched data (no SPARQL queries).
-
-        Same format as create_enhanced_document() but uses pre-fetched data.
-
-        Args:
-            entity_uri: The entity URI
-            literals: Dict of property_name -> [values]
-            types: Set of type URIs
-            context: Tuple of (statements, triples) from batch context
-            type_labels: Optional dict of type_uri -> label (from batch fetch)
-
-        Returns:
-            Tuple of (doc_text, entity_label, type_labels_list, raw_triples)
-        """
-        # Extract label from literals
-        entity_label = entity_uri.split('/')[-1]
-        for label_prop in ['label', 'prefLabel', 'name', 'title']:
-            if label_prop in literals and literals[label_prop]:
-                entity_label = literals[label_prop][0]
-                break
-
-        # Convert type URIs to labels
-        entity_types = []
-        for type_uri in types:
-            # Try class_labels.json first
-            type_label = None
-            if UniversalRagSystem._class_labels:
-                type_label = UniversalRagSystem._class_labels.get(type_uri)
-
-            # Try pre-fetched labels
-            if not type_label and type_labels:
-                type_label = type_labels.get(type_uri)
-
-            # Fallback to local name
-            if not type_label:
-                type_label = type_uri.split('/')[-1].split('#')[-1]
-                if type_uri not in UniversalRagSystem._missing_classes:
-                    UniversalRagSystem._missing_classes.add(type_uri)
-
-            entity_types.append(type_label)
-
-        # Unpack context
-        context_statements, raw_triples = context
-
-        # Create document text (same format as create_enhanced_document)
-        text = f"# {entity_label}\n\n"
-        text += f"URI: {entity_uri}\n\n"
-
-        # Add types (filter technical class names)
-        if entity_types:
-            human_readable_types = [
-                t for t in entity_types
-                if not self.is_technical_class_name(t)
-            ]
-            if human_readable_types:
-                text += "## Types\n\n"
-                for type_label in human_readable_types:
-                    text += f"- {type_label}\n"
-                text += "\n"
-
-        # Add literal properties
-        if literals:
-            text += "## Properties\n\n"
-            for prop_name, values in sorted(literals.items()):
-                display_name = prop_name.replace('_', ' ').title()
-                if len(values) == 1:
-                    value_str = values[0]
-                    if len(value_str) > 200:
-                        value_str = value_str[:200] + "... [truncated]"
-                    text += f"- **{display_name}**: {value_str}\n"
-                else:
-                    text += f"- **{display_name}**:\n"
-                    for value in values:
-                        value_str = value
-                        if len(value_str) > 200:
-                            value_str = value_str[:200] + "... [truncated]"
-                        text += f"  - {value_str}\n"
-            text += "\n"
-
-        # Add relationship statements
-        if context_statements:
-            text += "## Relationships\n\n"
-            for statement in context_statements:
-                text += f"- {statement}\n"
-
-        return text, entity_label, entity_types, raw_triples
 
     def _batch_fetch_wikidata_ids(self, uris: List[str], batch_size: int = None) -> Dict[str, str]:
         """Batch fetch Wikidata IDs (crmdig:L54_is_same-as) for multiple URIs."""
@@ -2389,9 +1889,7 @@ class UniversalRagSystem:
         logger.info(f"Entity documents will be saved to: {output_dir}/")
 
         # Create README for entity_documents directory
-        use_fr_docs = self.fr_traversal is not None
-        if use_fr_docs:
-            readme_content = """# Entity Documents (FR-based)
+        readme_content = """# Entity Documents (FR-based)
 
 This directory contains individual markdown files for each entity processed from the RDF data
 using Fundamental Relationship (FR) path traversal (Tzompanaki & Doerr, 2012).
@@ -2413,27 +1911,6 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
 
 ## Notes
 - Schema-level predicates (rdf:type, rdfs:subClassOf, etc.) are filtered
-- Files are regenerated on each rebuild
-"""
-        else:
-            readme_content = """# Entity Documents (BFS-based)
-
-This directory contains individual markdown files for each entity processed from the RDF data
-using BFS relationship traversal.
-
-## File Naming Convention
-Files are named: `{label}_{hash}.md`
-
-## File Structure
-Each file contains:
-1. **Metadata header**: URI, label, generation timestamp
-2. **Types**: RDF types of the entity
-3. **Properties**: All literal values (labels, descriptions, WKT geometries, dates, etc.)
-4. **Relationships**: Filtered CIDOC-CRM relationships in natural language
-
-## Notes
-- Schema-level predicates (rdf:type, rdfs:subClassOf, etc.) are filtered from relationships
-- Self-referential relationships are removed
 - Files are regenerated on each rebuild
 """
         readme_path = os.path.join(output_dir, "README.md")
@@ -2462,8 +1939,6 @@ Each file contains:
             cache_stats = self.embedding_cache.get_stats()
             logger.info(f"Embedding cache: {cache_stats['count']} cached embeddings ({cache_stats['size_mb']} MB)")
 
-        # Collect all triples for edges file
-        all_triples = []
         # Accumulate satellite URIs across all chunks
         all_satellite_uris = set()
         # Accumulate FR stats across all chunks for aggregation index
@@ -2500,31 +1975,21 @@ Each file contains:
             chunk_type_labels = self._batch_fetch_type_labels(chunk_type_uris)
             logger.info(f"    Type labels: {len(chunk_type_labels)} types")
 
-            use_fr = self.fr_traversal is not None
-            fr_outgoing = fr_incoming = entity_labels_map = entity_types_map = None
-            chunk_contexts = None
+            # Build graph indexes for FR traversal
+            fr_outgoing, fr_incoming, entity_labels_map, entity_types_map, chunk_raw_triples = \
+                self._build_fr_graph_for_chunk(chunk_uris, chunk_types, chunk_literals)
+            self._append_edges_parquet(chunk_raw_triples)
+            logger.info(f"    FR graph built: {len(chunk_raw_triples)} raw triples")
+            del chunk_raw_triples  # free immediately after writing to Parquet
 
-            # Satellite identification variables (set per-chunk)
+            # Identify satellites for this chunk
             chunk_satellite_uris = set()
             chunk_parent_satellites = {}
-
-            if use_fr:
-                # FR-based: build graph indexes for FR traversal (replaces BFS context)
-                fr_outgoing, fr_incoming, entity_labels_map, entity_types_map, chunk_raw_triples = \
-                    self._build_fr_graph_for_chunk(chunk_uris, chunk_types, chunk_literals)
-                all_triples.extend(chunk_raw_triples)
-                logger.info(f"    FR graph built: {len(chunk_raw_triples)} raw triples")
-
-                # Identify satellites for this chunk
-                chunk_satellite_uris, chunk_parent_satellites = self._identify_satellites_from_prefetched(
-                    chunk_types, fr_incoming, entity_labels_map,
-                    all_literals=chunk_literals,
-                )
-                all_satellite_uris.update(chunk_satellite_uris)
-            else:
-                # Legacy BFS context
-                chunk_contexts = self.get_entities_context_batch(chunk_uris)
-                logger.info(f"    Contexts: {len(chunk_contexts)} entities")
+            chunk_satellite_uris, chunk_parent_satellites = self._identify_satellites_from_prefetched(
+                chunk_types, fr_incoming, entity_labels_map,
+                all_literals=chunk_literals,
+            )
+            all_satellite_uris.update(chunk_satellite_uris)
 
             chunk_wikidata = self._batch_fetch_wikidata_ids(chunk_uris)
             logger.info(f"    Wikidata IDs: {len(chunk_wikidata)} entities")
@@ -2533,8 +1998,7 @@ Each file contains:
             # Filter out satellite entities
             doc_entities = [e for e in chunk_entities if e["entity"] not in chunk_satellite_uris]
             logger.info(f"  Phase B: Generating {len(doc_entities)} documents "
-                        f"(skipping {len(chunk_satellite_uris)} satellites)"
-                        f"{' (FR)' if use_fr else ' (BFS)'}...")
+                        f"(skipping {len(chunk_satellite_uris)} satellites) (FR)...")
             chunk_docs = []  # List of (entity_uri, doc_text, metadata, cached_embedding)
 
             for entity in tqdm(doc_entities, desc=f"Chunk {chunk_num}", unit="entity"):
@@ -2544,50 +2008,41 @@ Each file contains:
                     literals = chunk_literals.get(entity_uri, {})
                     types = chunk_types.get(entity_uri, set())
 
-                    if use_fr:
-                        # FR-based document creation
-                        # Build type labels for this entity
-                        entity_type_labels = []
-                        for type_uri in types:
-                            type_label = None
-                            if UniversalRagSystem._class_labels:
-                                type_label = UniversalRagSystem._class_labels.get(type_uri)
-                            if not type_label:
-                                type_label = chunk_type_labels.get(type_uri)
-                            if not type_label:
-                                type_label = type_uri.split('/')[-1].split('#')[-1]
-                            entity_type_labels.append(type_label)
+                    # Build type labels for this entity
+                    entity_type_labels = []
+                    for type_uri in types:
+                        type_label = None
+                        if UniversalRagSystem._class_labels:
+                            type_label = UniversalRagSystem._class_labels.get(type_uri)
+                        if not type_label:
+                            type_label = chunk_type_labels.get(type_uri)
+                        if not type_label:
+                            type_label = type_uri.split('/')[-1].split('#')[-1]
+                        entity_type_labels.append(type_label)
 
-                        # Extract entity label
-                        entity_label = entity_uri.split('/')[-1]
-                        for label_prop in ['label', 'prefLabel', 'name', 'title']:
-                            if label_prop in literals and literals[label_prop]:
-                                entity_label = literals[label_prop][0]
-                                break
+                    # Extract entity label
+                    entity_label = entity_uri.split('/')[-1]
+                    for label_prop in ['label', 'prefLabel', 'name', 'title']:
+                        if label_prop in literals and literals[label_prop]:
+                            entity_label = literals[label_prop][0]
+                            break
 
-                        # Get absorbed satellite info
-                        sat_info = chunk_parent_satellites.get(entity_uri)
-                        absorbed_lines = None
-                        if sat_info:
-                            absorbed_lines = self.fr_traversal.format_absorbed_satellites(
-                                dict(sat_info), entity_label
-                            )
-
-                        doc_text, entity_label, entity_types, fr_stats = self._create_fr_document_from_prefetched(
-                            entity_uri, entity_label, types, entity_type_labels,
-                            literals, fr_outgoing, fr_incoming,
-                            entity_labels_map, entity_types_map,
-                            absorbed_lines=absorbed_lines,
+                    # Get absorbed satellite info
+                    sat_info = chunk_parent_satellites.get(entity_uri)
+                    absorbed_lines = None
+                    if sat_info:
+                        absorbed_lines = self.fr_traversal.format_absorbed_satellites(
+                            dict(sat_info), entity_label
                         )
-                        if fr_stats:
-                            all_fr_stats.append((entity_uri, entity_label, fr_stats))
-                    else:
-                        # Legacy BFS document creation
-                        context = chunk_contexts.get(entity_uri, ([], []))
-                        doc_text, entity_label, entity_types, raw_triples = self._create_document_from_prefetched(
-                            entity_uri, literals, types, context, chunk_type_labels
-                        )
-                        all_triples.extend(raw_triples)
+
+                    doc_text, entity_label, entity_types, fr_stats = self._create_fr_document_from_prefetched(
+                        entity_uri, entity_label, types, entity_type_labels,
+                        literals, fr_outgoing, fr_incoming,
+                        entity_labels_map, entity_types_map,
+                        absorbed_lines=absorbed_lines,
+                    )
+                    if fr_stats:
+                        all_fr_stats.append((entity_uri, entity_label, fr_stats))
 
                     # Determine primary entity type
                     primary_type = "Unknown"
@@ -2635,10 +2090,7 @@ Each file contains:
 
             # Phase C: Free pre-fetched data before embedding
             del chunk_literals, chunk_types, chunk_type_uris, chunk_type_labels, chunk_wikidata
-            if fr_outgoing is not None:
-                del fr_outgoing, fr_incoming, entity_labels_map, entity_types_map
-            if chunk_contexts is not None:
-                del chunk_contexts
+            del fr_outgoing, fr_incoming, entity_labels_map, entity_types_map
 
             # Phase D: Embed in sub-batches
             logger.info(f"  Phase D: Embedding {len(chunk_docs)} documents...")
@@ -2663,9 +2115,8 @@ Each file contains:
         if cached_count > 0:
             logger.info(f"Used {cached_count} cached embeddings")
 
-        # Save triples and build edges from Parquet (avoids redundant SPARQL queries)
-        if all_triples:
-            self._save_edges_parquet(all_triples)
+        # Finalize incremental Parquet writes and build edges
+        self._close_edges_parquet()
         logger.info("Creating document graph edges...")
         self._build_edges_from_parquet()
 
@@ -3133,36 +2584,6 @@ Rules:
                 return np.ones_like(values)
 
             return (values - min_val) / (max_val - min_val)
-
-    def _fetch_wikidata_id_from_sparql(self, entity_uri):
-        """Fetch Wikidata ID from SPARQL endpoint (used during build phase).
-
-        This is a private method for build-time use. At query time,
-        use get_wikidata_for_entity() which checks cached metadata first.
-        """
-        query = f"""
-        PREFIX crmdig: <http://www.ics.forth.gr/isl/CRMdig/>
-
-        SELECT ?wikidata WHERE {{
-            <{entity_uri}> crmdig:L54_is_same-as ?wikidata .
-            FILTER(STRSTARTS(STR(?wikidata), "http://www.wikidata.org/entity/"))
-        }}
-        LIMIT 1
-        """
-
-        try:
-            self.sparql.setQuery(query)
-            results = self.sparql.query().convert()
-
-            if results["results"]["bindings"]:
-                wikidata_uri = results["results"]["bindings"][0]["wikidata"]["value"]
-                # Extract the Q-ID from the URI
-                wikidata_id = wikidata_uri.split('/')[-1]
-                return wikidata_id
-            return None
-        except Exception as e:
-            logger.debug(f"Could not fetch Wikidata ID for {entity_uri}: {str(e)}")
-            return None
 
     def get_wikidata_for_entity(self, entity_uri):
         """Get Wikidata ID for an entity if available.
@@ -3781,16 +3202,6 @@ Rules:
         logger.info(f"Retrieved and selected {len(selected_docs)} coherent documents")
         return selected_docs
 
-    def _get_entity_label_from_triples(self, uri):
-        """Find a human-readable label for a URI from the triples index."""
-        triples = getattr(self, '_triples_index', {}).get(uri, [])
-        for t in triples:
-            if t.get('subject') == uri and t.get('subject_label'):
-                return t['subject_label']
-            if t.get('object') == uri and t.get('object_label'):
-                return t['object_label']
-        return uri.split('/')[-1]
-
     def _build_aggregation_context(self, query_analysis, retrieved_docs):
         """Build pre-computed aggregation statistics context for the LLM prompt.
 
@@ -4176,114 +3587,6 @@ Rules:
                     f"{len(result)} chars")
         return result
 
-    def _build_graph_context(self, selected_docs):
-        """Walk graph edges from selected docs and build structured context about neighboring entities.
-
-        Returns a text block describing relationships to entities NOT in the selected set,
-        giving the LLM visibility into the broader knowledge graph without including full documents.
-        """
-        selected_uris = {doc.id for doc in selected_docs}
-        selected_labels = {doc.id: doc.metadata.get('label', doc.id.split('/')[-1]) for doc in selected_docs}
-
-        # Collect neighbor info: {neighbor_uri: {label, type, connections, max_weight}}
-        neighbor_info = {}
-
-        for doc in selected_docs:
-            doc_label = selected_labels[doc.id]
-            graph_doc = self.document_store.docs.get(doc.id)
-            if not graph_doc:
-                continue
-
-            sorted_neighbors = sorted(graph_doc.neighbors, key=lambda n: n.get('weight', 0), reverse=True)
-
-            for neighbor in sorted_neighbors:
-                nb_id = neighbor.get('doc_id', '')
-                if nb_id in selected_uris or not nb_id:
-                    continue
-
-                edge_type = neighbor.get('edge_type', 'related_to')
-                weight = neighbor.get('weight', 0.5)
-
-                nb_doc = self.document_store.docs.get(nb_id)
-                if nb_doc:
-                    nb_label = nb_doc.metadata.get('label', nb_id.split('/')[-1])
-                    nb_type = nb_doc.metadata.get('type', '')
-                else:
-                    nb_label = self._get_entity_label_from_triples(nb_id)
-                    nb_type = ''
-
-                # Skip non-informative entity types in graph context
-                _GRAPH_CONTEXT_SKIP_TYPES = {
-                    'E41_E33_Linguistic_Appellation', 'Linguistic Appellation',
-                    'E33_Linguistic_Object', 'Linguistic Object',
-                    'E34_Inscription', 'Inscription',
-                    'E41_Appellation', 'Appellation',
-                    'Visual Item', 'Representation', 'PC67_refers_to',
-                }
-                if nb_type in _GRAPH_CONTEXT_SKIP_TYPES:
-                    continue
-
-                if nb_id not in neighbor_info:
-                    neighbor_info[nb_id] = {
-                        'label': nb_label,
-                        'type': nb_type,
-                        'connections': [],
-                        'max_weight': 0
-                    }
-                neighbor_info[nb_id]['connections'].append((doc_label, edge_type))
-                neighbor_info[nb_id]['max_weight'] = max(neighbor_info[nb_id]['max_weight'], weight)
-
-        if not neighbor_info:
-            return ""
-
-        # Sort: most connections first (bridge entities), then by max weight
-        sorted_neighbors = sorted(
-            neighbor_info.items(),
-            key=lambda x: (len(x[1]['connections']), x[1]['max_weight']),
-            reverse=True
-        )
-
-        lines = []
-        max_neighbors = RetrievalConfig.GRAPH_CONTEXT_MAX_NEIGHBORS
-        max_lines = RetrievalConfig.GRAPH_CONTEXT_MAX_LINES
-
-        for nb_uri, info in sorted_neighbors:
-            if len(lines) >= max_lines:
-                break
-
-            type_suffix = f" [{info['type']}]" if info['type'] else ""
-
-            # Show how this neighbor connects to selected entities
-            for from_label, edge_type in info['connections'][:max_neighbors]:
-                lines.append(f"- {from_label} -> {edge_type} -> {info['label']}{type_suffix}")
-                if len(lines) >= max_lines:
-                    break
-
-            if len(lines) >= max_lines:
-                break
-
-            # 2nd hop: show this neighbor's own key relationships (from graph)
-            nb_graph_doc = self.document_store.docs.get(nb_uri)
-            if nb_graph_doc:
-                hop2_neighbors = sorted(nb_graph_doc.neighbors, key=lambda n: n.get('weight', 0), reverse=True)
-                for hop2 in hop2_neighbors[:3]:
-                    hop2_id = hop2.get('doc_id', '')
-                    if not hop2_id or hop2_id == nb_uri:
-                        continue
-                    hop2_doc = self.document_store.docs.get(hop2_id)
-                    if hop2_doc:
-                        hop2_label = hop2_doc.metadata.get('label', '')
-                        if hop2_label:
-                            lines.append(f"  -> {info['label']} -> {hop2['edge_type']} -> {hop2_label}")
-                            if len(lines) >= max_lines:
-                                break
-
-        if not lines:
-            return ""
-
-        logger.info(f"Graph context: {len(lines)} lines from {len(neighbor_info)} neighbor entities")
-        return "\n".join(lines[:max_lines])
-
     def answer_question(self, question, include_wikidata=True, chat_history=None):
         """Answer a question using the universal RAG system with CIDOC-CRM knowledge and optional Wikidata context.
 
@@ -4448,12 +3751,6 @@ Rules:
                         "entity_label": entity_label,
                         "wikidata_id": wikidata_id
                     })
-
-        # Add graph context: relationships to entities beyond the selected documents
-        graph_context = self._build_graph_context(retrieved_docs)
-        if graph_context:
-            context += "\n## Graph Context (relationships beyond retrieved documents)\n"
-            context += graph_context + "\n"
 
         # Add structured triples enrichment from edges.parquet
         triples_enrichment = self._build_triples_enrichment(retrieved_docs)

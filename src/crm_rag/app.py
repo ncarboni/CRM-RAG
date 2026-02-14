@@ -207,6 +207,71 @@ def create_app(config, datasets_config, interface_config, dataset_manager):
     return app
 
 
+def _run_cli(rag_system, dataset_id, single_question=None):
+    """Run the RAG system in CLI mode (no Flask).
+
+    Args:
+        rag_system: Initialized UniversalRagSystem instance
+        dataset_id: Active dataset identifier (for display)
+        single_question: If provided, answer this one question and exit.
+                         If None, enter interactive REPL.
+    """
+    import textwrap
+
+    chat_history = []
+
+    def _ask(question):
+        result = rag_system.answer_question(question, chat_history=chat_history or None)
+        answer = result.get("answer", "No answer.")
+        sources = result.get("sources", [])
+
+        # Update chat history
+        chat_history.append({"role": "user", "content": question})
+        chat_history.append({"role": "assistant", "content": answer})
+
+        # Print answer
+        print(f"\n{answer}")
+
+        # Print sources
+        if sources:
+            print(f"\n--- Sources ({len(sources)}) ---")
+            for src in sources:
+                label = src.get("entity_label") or src.get("label") or src.get("doc_id", "?")
+                uri = src.get("entity_uri") or src.get("uri", "")
+                etype = src.get("entity_type", "")
+                prefix = f"[{etype}] " if etype else ""
+                print(f"  - {prefix}{label}" + (f"  ({uri})" if uri else ""))
+        print()
+
+    # Single question mode
+    if single_question:
+        _ask(single_question)
+        return
+
+    # Interactive REPL
+    print(f"\nCRM-RAG CLI — dataset: {dataset_id}")
+    print("Type your question and press Enter. Type 'quit' or 'exit' to stop.\n")
+
+    while True:
+        try:
+            question = input("You> ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print("\nBye.")
+            break
+
+        if not question:
+            continue
+        if question.lower() in ("quit", "exit", "q"):
+            print("Bye.")
+            break
+
+        try:
+            _ask(question)
+        except Exception as e:
+            logger.error(f"Error answering question: {e}", exc_info=True)
+            print(f"\nError: {e}\n")
+
+
 def main():
     """Entry point: parse CLI args, configure logging, create app, and run."""
     # Configure logging
@@ -236,6 +301,9 @@ def main():
                         help='Dataset ID to process (from datasets.yaml). Use with --rebuild to process a specific dataset.')
     parser.add_argument('--debug', action='store_true',
                         help='Enable debug logging for detailed traversal tracing.')
+    parser.add_argument('--question', type=str, nargs='?', const='',
+                        help='Run in CLI mode. Pass a question to get a single answer, '
+                             'or omit the question to enter interactive mode.')
     args = parser.parse_args()
 
     # Enable debug logging if requested
@@ -279,12 +347,6 @@ def main():
 
     logger.info(f"Found {len(datasets_config['datasets'])} datasets in configuration")
     dataset_manager = DatasetManager(datasets_config, config)
-
-    # Create Flask app
-    app = create_app(config, datasets_config, interface_config, dataset_manager)
-
-    # Get port from environment or use default 5001
-    port = config.get("port", 5001)
 
     # Determine which dataset to process
     target_dataset = args.dataset
@@ -343,6 +405,24 @@ def main():
         print(f"ERROR: {str(e)}")
         print("Application cannot start without proper initialization. Please fix the issues and try again.")
         sys.exit(1)
+
+    # CLI mode: --question (with or without a question string)
+    if args.question is not None:
+        cli_dataset = target_dataset or datasets_config.get('default_dataset')
+        if not cli_dataset:
+            print("ERROR: No dataset available. Specify --dataset or set default_dataset in datasets.yaml.")
+            sys.exit(1)
+        try:
+            rag = dataset_manager.get_dataset(cli_dataset)
+        except Exception as e:
+            print(f"ERROR: Could not load dataset '{cli_dataset}': {e}")
+            sys.exit(1)
+        _run_cli(rag, cli_dataset, single_question=args.question or None)
+        return
+
+    # Create Flask app
+    app = create_app(config, datasets_config, interface_config, dataset_manager)
+    port = config.get("port", 5001)
 
     # Print explicit startup information
     print(f"Starting Flask application...")

@@ -1257,7 +1257,7 @@ class UniversalRagSystem:
         for s, p, o in zip(table.column("s"), table.column("p"), table.column("o")):
             s_str, p_str, o_str = s.as_py(), p.as_py(), o.as_py()
             if s_str in doc_uris and o_str in doc_uris and s_str != o_str:
-                weight = self.get_relationship_weight(p_str)
+                weight = _get_relationship_weight(p_str)
                 pred_name = p_str.split('/')[-1].split('#')[-1]
                 self.document_store.add_edge(s_str, o_str, pred_name, weight=weight)
                 edges_added += 1
@@ -1267,43 +1267,6 @@ class UniversalRagSystem:
         logger.info(f"Added {edges_added} edges from Parquet file "
                     f"({skipped} triples skipped — endpoints not in document store)")
 
-    def is_schema_predicate(self, predicate):
-        """Check if a predicate is a schema-level predicate that should be filtered out"""
-        return _is_schema_predicate(predicate)
-
-    def is_technical_class_name(self, class_name):
-        """Check if a class name is a technical ontology class that should be filtered"""
-        return _is_technical_class_name(class_name, UniversalRagSystem._ontology_classes)
-
-    def _batch_fetch_types(self, uris: List[str], batch_size: int = None) -> Dict[str, set]:
-        """Batch fetch rdf:type for multiple URIs."""
-        return self.batch_sparql.batch_fetch_types(uris, batch_size or RetrievalConfig.BATCH_QUERY_SIZE)
-
-    def _batch_query_outgoing(self, uris: List[str], batch_size: int = None) -> Dict[str, List[Tuple[str, str, Optional[str]]]]:
-        """Batch query outgoing relationships for multiple URIs."""
-        return self.batch_sparql.batch_query_outgoing(uris, batch_size or RetrievalConfig.BATCH_QUERY_SIZE)
-
-    def _batch_query_incoming(self, uris: List[str], batch_size: int = None) -> Dict[str, List[Tuple[str, str, Optional[str]]]]:
-        """Batch query incoming relationships for multiple URIs."""
-        return self.batch_sparql.batch_query_incoming(uris, batch_size or RetrievalConfig.BATCH_QUERY_SIZE)
-
-    def _batch_fetch_literals(self, uris: List[str], batch_size: int = None) -> Dict[str, Dict[str, List[str]]]:
-        """Batch fetch literal properties for multiple URIs."""
-        return self.batch_sparql.batch_fetch_literals(uris, batch_size or RetrievalConfig.BATCH_QUERY_SIZE)
-
-    def _batch_fetch_type_labels(self, type_uris: set, batch_size: int = None) -> Dict[str, str]:
-        """Batch fetch labels for type URIs."""
-        return self.batch_sparql.batch_fetch_type_labels(type_uris, batch_size or RetrievalConfig.BATCH_QUERY_SIZE)
-
-    def _batch_fetch_wikidata_ids(self, uris: List[str], batch_size: int = None) -> Dict[str, str]:
-        """Batch fetch Wikidata IDs (crmdig:L54_is_same-as) for multiple URIs."""
-        return self.batch_sparql.batch_fetch_wikidata_ids(uris, batch_size or RetrievalConfig.BATCH_QUERY_SIZE)
-
-    def _build_image_index(self) -> Dict[str, List[str]]:
-        """Build image index using SPARQL pattern from dataset configuration."""
-        return self.batch_sparql.build_image_index(self.dataset_config)
-
-    # ==================== End Batch SPARQL Query Methods ====================
 
     # ==================== FR-based Document Generation ====================
 
@@ -1332,8 +1295,8 @@ class UniversalRagSystem:
         chunk_set = set(chunk_uris)
 
         # Step 1: Batch query outgoing and incoming for chunk entities
-        raw_outgoing = self._batch_query_outgoing(chunk_uris)
-        raw_incoming = self._batch_query_incoming(chunk_uris)
+        raw_outgoing = self.batch_sparql.batch_query_outgoing(chunk_uris)
+        raw_incoming = self.batch_sparql.batch_query_incoming(chunk_uris)
 
         # Build FR-format indexes (2-tuple: pred, target) and collect labels
         fr_outgoing = defaultdict(list)  # uri -> [(pred, obj)]
@@ -1355,7 +1318,7 @@ class UniversalRagSystem:
         intermediate_uris = set()
         for uri, rels in raw_outgoing.items():
             for pred, obj, obj_label in rels:
-                if self.is_schema_predicate(pred):
+                if _is_schema_predicate(pred):
                     continue
                 fr_outgoing[uri].append((pred, obj))
                 if obj_label:
@@ -1385,7 +1348,7 @@ class UniversalRagSystem:
         # Process incoming: raw format is (subj, pred, subj_label)
         for uri, rels in raw_incoming.items():
             for subj, pred, subj_label in rels:
-                if self.is_schema_predicate(pred):
+                if _is_schema_predicate(pred):
                     continue
                 fr_incoming[uri].append((pred, subj))
                 if subj_label:
@@ -1416,12 +1379,12 @@ class UniversalRagSystem:
             intermediate_list = list(intermediate_uris)
             logger.info(f"    FR: fetching edges for {len(intermediate_list)} intermediate URIs...")
 
-            inter_outgoing = self._batch_query_outgoing(intermediate_list)
-            inter_incoming = self._batch_query_incoming(intermediate_list)
+            inter_outgoing = self.batch_sparql.batch_query_outgoing(intermediate_list)
+            inter_incoming = self.batch_sparql.batch_query_incoming(intermediate_list)
 
             for uri, rels in inter_outgoing.items():
                 for pred, obj, obj_label in rels:
-                    if self.is_schema_predicate(pred):
+                    if _is_schema_predicate(pred):
                         continue
                     fr_outgoing[uri].append((pred, obj))
                     if obj_label:
@@ -1447,7 +1410,7 @@ class UniversalRagSystem:
 
             for uri, rels in inter_incoming.items():
                 for subj, pred, subj_label in rels:
-                    if self.is_schema_predicate(pred):
+                    if _is_schema_predicate(pred):
                         continue
                     fr_incoming[uri].append((pred, subj))
                     if subj_label:
@@ -1472,7 +1435,7 @@ class UniversalRagSystem:
                     })
 
             # Fetch types for intermediates (needed for FR range-FC filtering)
-            inter_types = self._batch_fetch_types(intermediate_list)
+            inter_types = self.batch_sparql.batch_fetch_types(intermediate_list)
             chunk_types.update(inter_types)
 
         # entity_types_map = chunk_types (already updated with intermediates)
@@ -1514,7 +1477,7 @@ class UniversalRagSystem:
             (text, label, type_labels, fr_stats) where fr_stats contains
             the entity's FC and FR traversal results for aggregation indexing.
         """
-        types_display = [t for t in entity_type_labels if not self.is_technical_class_name(t)]
+        types_display = [t for t in entity_type_labels if not _is_technical_class_name(t, UniversalRagSystem._ontology_classes)]
 
         # Minimal doc for vocabulary entities
         if self.fr_traversal.is_minimal_doc_entity(raw_types):
@@ -1542,7 +1505,7 @@ class UniversalRagSystem:
             incoming=fr_incoming,
             entity_labels=entity_labels,
             entity_types=raw_types,
-            schema_filter=self.is_schema_predicate,
+            schema_filter=_is_schema_predicate,
         )
 
         # Build target enrichments (type tags + attributes for FR targets)
@@ -1945,7 +1908,7 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         all_fr_stats = []  # [(entity_uri, entity_label, fr_stats_dict), ...]
 
         # Pre-fetch image index (single SPARQL query, shared across all chunks)
-        image_index = self._build_image_index()
+        image_index = self.batch_sparql.build_image_index(self.dataset_config)
 
         # SPARQL pre-fetch chunk size (matches existing batch query infrastructure)
         chunk_size = RetrievalConfig.BATCH_QUERY_SIZE
@@ -1962,17 +1925,17 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
             # Phase A: Batch pre-fetch all data for this chunk
             logger.info(f"  Phase A: Batch pre-fetching data for {len(chunk_uris)} entities...")
 
-            chunk_literals = self._batch_fetch_literals(chunk_uris)
+            chunk_literals = self.batch_sparql.batch_fetch_literals(chunk_uris)
             logger.info(f"    Literals: {len(chunk_literals)} entities")
 
-            chunk_types = self._batch_fetch_types(chunk_uris)
+            chunk_types = self.batch_sparql.batch_fetch_types(chunk_uris)
             logger.info(f"    Types: {len(chunk_types)} entities")
 
             # Collect all type URIs for batch label fetching
             chunk_type_uris = set()
             for types in chunk_types.values():
                 chunk_type_uris.update(types)
-            chunk_type_labels = self._batch_fetch_type_labels(chunk_type_uris)
+            chunk_type_labels = self.batch_sparql.batch_fetch_type_labels(chunk_type_uris)
             logger.info(f"    Type labels: {len(chunk_type_labels)} types")
 
             # Build graph indexes for FR traversal
@@ -1991,7 +1954,7 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
             )
             all_satellite_uris.update(chunk_satellite_uris)
 
-            chunk_wikidata = self._batch_fetch_wikidata_ids(chunk_uris)
+            chunk_wikidata = self.batch_sparql.batch_fetch_wikidata_ids(chunk_uris)
             logger.info(f"    Wikidata IDs: {len(chunk_wikidata)} entities")
 
             # Phase B: Generate docs from pre-fetched data (zero SPARQL queries)
@@ -2050,7 +2013,7 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
                     if entity_types:
                         human_readable_types = [
                             t for t in entity_types
-                            if not self.is_technical_class_name(t)
+                            if not _is_technical_class_name(t, UniversalRagSystem._ontology_classes)
                         ]
                         primary_type = human_readable_types[0] if human_readable_types else "Entity"
 
@@ -2325,19 +2288,6 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
 
 
 
-    def cidoc_aware_retrieval(self, query, k=20):
-        """Retrieve candidate documents using FAISS vector similarity.
-
-        Returns (documents, scores) tuples preserving actual FAISS similarity
-        scores for use as initial relevance signal in coherent subgraph extraction.
-        """
-        results_with_scores = self.document_store.retrieve(query, k=k)
-
-        if not results_with_scores:
-            return []
-
-        return results_with_scores
-
     # ==================== Query Analysis ====================
 
     _fc_class_mapping = None  # Class-level cache: FC name → list of CRM class URIs
@@ -2543,47 +2493,24 @@ Rules:
             logger.error(f"Error fetching entities: {str(e)}")
             return []
 
-    def get_relationship_weight(self, predicate_uri):
-        """Get weight for a CIDOC-CRM relationship predicate."""
-        return _get_relationship_weight(predicate_uri)
-
     def normalize_scores(self, scores):
         """
         Normalize scores to [0, 1] range using min-max normalization.
 
         Args:
-            scores: Dictionary of {id: score} or list of scores
+            scores: numpy array of scores
 
         Returns:
-            Dictionary or list with normalized scores in [0, 1] range
+            numpy array with normalized scores in [0, 1] range
         """
+        values = np.array(scores)
+        min_val = np.min(values)
+        max_val = np.max(values)
 
-        if isinstance(scores, dict):
-            if not scores:
-                return scores
+        if max_val - min_val < 1e-10:
+            return np.ones_like(values)
 
-            values = np.array(list(scores.values()))
-            min_val = np.min(values)
-            max_val = np.max(values)
-
-            # Handle case where all scores are the same
-            if max_val - min_val < 1e-10:
-                return {k: 1.0 for k in scores.keys()}
-
-            # Min-max normalization
-            normalized = {k: float((v - min_val) / (max_val - min_val))
-                         for k, v in scores.items()}
-            return normalized
-        else:
-            # Handle list/array
-            values = np.array(scores)
-            min_val = np.min(values)
-            max_val = np.max(values)
-
-            if max_val - min_val < 1e-10:
-                return np.ones_like(values)
-
-            return (values - min_val) / (max_val - min_val)
+        return (values - min_val) / (max_val - min_val)
 
     def get_wikidata_for_entity(self, entity_uri):
         """Get Wikidata ID for an entity if available.
@@ -3039,7 +2966,7 @@ Rules:
         logger.info(f"Retrieving documents for query: '{query}'")
 
         # FAISS retrieval with actual similarity scores
-        faiss_results = self.cidoc_aware_retrieval(query, k=initial_pool_size)
+        faiss_results = self.document_store.retrieve(query, k=initial_pool_size)
 
         if not faiss_results:
             logger.warning("No documents found in FAISS retrieval")
@@ -3184,7 +3111,7 @@ Rules:
         adjacency_matrix = self.document_store.create_adjacency_matrix(
             doc_ids,
             triples_index=getattr(self, '_triples_index', {}),
-            weight_fn=self.get_relationship_weight,
+            weight_fn=_get_relationship_weight,
             max_hops=RetrievalConfig.MAX_ADJACENCY_HOPS,
         )
 

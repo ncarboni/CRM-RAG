@@ -88,6 +88,206 @@ Question: "{question}"
 """
 
 
+def _fetch_wikidata_info(wikidata_id, session):
+    """Fetch information from Wikidata for a given Q-ID.
+
+    Pure function — uses the provided HTTP session for requests.
+    Returns a dict with id, url, label, description, properties, wikipedia,
+    or None on failure.
+    """
+    max_retries = 3
+    retry_delay = 2
+
+    for attempt in range(max_retries):
+        try:
+            url = "https://www.wikidata.org/w/api.php"
+            params = {
+                "action": "wbgetentities",
+                "ids": wikidata_id,
+                "format": "json",
+                "languages": "en",
+                "props": "labels|descriptions|claims|sitelinks"
+            }
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (compatible; RAG-Bot/1.0; +http://example.com/bot)',
+                'Accept': 'application/json'
+            }
+            response = session.get(url, params=params, headers=headers, timeout=10)
+
+            if not response.text or response.status_code != 200:
+                logger.warning(f"Wikidata API: status {response.status_code} for {wikidata_id} "
+                              f"(attempt {attempt+1}/{max_retries})")
+                time.sleep(retry_delay)
+                retry_delay *= 2
+                continue
+
+            try:
+                data = response.json()
+            except ValueError as e:
+                logger.warning(f"Wikidata JSON parse failed for {wikidata_id}: {e}")
+                time.sleep(retry_delay)
+                retry_delay *= 2
+                continue
+
+            if "entities" not in data or wikidata_id not in data["entities"]:
+                logger.warning(f"No entity data found for {wikidata_id}")
+                return None
+
+            entity = data["entities"][wikidata_id]
+            result = {
+                "id": wikidata_id,
+                "url": f"https://www.wikidata.org/wiki/{wikidata_id}"
+            }
+
+            if "labels" in entity and "en" in entity["labels"]:
+                result["label"] = entity["labels"]["en"]["value"]
+            if "descriptions" in entity and "en" in entity["descriptions"]:
+                result["description"] = entity["descriptions"]["en"]["value"]
+            if "sitelinks" in entity and "enwiki" in entity["sitelinks"]:
+                result["wikipedia"] = {
+                    "title": entity["sitelinks"]["enwiki"]["title"],
+                    "url": f"https://en.wikipedia.org/wiki/{entity['sitelinks']['enwiki']['title'].replace(' ', '_')}"
+                }
+
+            if "claims" in entity:
+                result["properties"] = {}
+                property_map = {
+                    "P18": "image", "P571": "inception", "P17": "country",
+                    "P131": "located_in", "P625": "coordinates",
+                    "P1343": "described_by", "P138": "named_after",
+                    "P180": "depicts", "P31": "instance_of", "P276": "location"
+                }
+                for prop_id, prop_name in property_map.items():
+                    if prop_id in entity["claims"]:
+                        values = []
+                        for claim in entity["claims"][prop_id]:
+                            if "mainsnak" not in claim or "datavalue" not in claim["mainsnak"]:
+                                continue
+                            dv = claim["mainsnak"]["datavalue"]
+                            if dv["type"] == "wikibase-entityid":
+                                values.append(dv["value"]["id"])
+                            elif dv["type"] == "string":
+                                values.append(dv["value"])
+                            elif dv["type"] == "time":
+                                values.append(dv["value"]["time"])
+                            elif dv["type"] == "globecoordinate":
+                                values.append({"latitude": dv["value"]["latitude"],
+                                               "longitude": dv["value"]["longitude"]})
+                        if values:
+                            result["properties"][prop_name] = values[0] if len(values) == 1 else values
+
+            return result
+
+        except requests.exceptions.Timeout:
+            logger.warning(f"Wikidata timeout for {wikidata_id} (attempt {attempt+1}/{max_retries})")
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Wikidata request failed for {wikidata_id}: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected Wikidata error for {wikidata_id}: {e}")
+        time.sleep(retry_delay)
+        retry_delay *= 2
+
+    logger.error(f"Failed to fetch Wikidata info after {max_retries} attempts for {wikidata_id}")
+    return None
+
+
+
+# ---------------------------------------------------------------------------
+# Helper functions for _build_triples_enrichment (module-level to flatten
+# the method body and reduce nesting)
+# ---------------------------------------------------------------------------
+
+# Predicate label fragments to skip (case-insensitive check)
+_SKIP_LABEL_FRAGMENTS = {"label", "type", "same as", "see also"}
+
+# High-priority predicate URI fragments (partial match on local name)
+_HIGH_PRIORITY_FRAGMENTS = {
+    "P4_has_time-span", "P82a_begin_of_the_begin", "P82b_end_of_the_end",
+    "P14_carried_out_by", "P14i_performed", "P108_has_produced",
+    "P108i_was_produced_by", "P7_took_place_at", "P55_has_current_location",
+    "P53_has_former_or_current_location", "P89_falls_within",
+    "P16_used_specific_object", "P16i_was_used_for",
+    "P12_occurred_in_the_presence_of", "P12i_was_present_at",
+    "P62_depicts", "P62i_is_depicted_by",
+    "P46_is_composed_of", "P46i_forms_part_of",
+    "P56_bears_feature", "P56i_is_found_on",
+    "K24_portray", "K24i_portrayed_by",
+    "P9_consists_of", "P9i_forms_part_of",
+}
+
+_DATE_PREDICATES = {
+    "P82a_begin_of_the_begin", "P82b_end_of_the_end",
+    "P82_at_some_time_within", "P81a_end_of_the_begin", "P81b_begin_of_the_end",
+}
+
+_TRIPLES_PRIORITY_TYPES = frozenset({
+    "Actor", "E39_Actor", "E21_Person", "Person", "Group",
+    "Human-Made Object", "E22_Human-Made_Object", "E22_Man-Made_Object",
+    "Man-Made Object", "Physical Human-Made Thing",
+    "Activity", "E7_Activity", "Event", "E5_Event",
+    "Place", "E53_Place",
+})
+
+
+def _is_skip_label(pred_label):
+    """Check if predicate label is too generic to be useful."""
+    if not pred_label:
+        return True
+    return pred_label.strip().lower() in _SKIP_LABEL_FRAGMENTS
+
+
+def _is_blank_or_hash(value):
+    """Check if a value looks like a blank node or non-informative hash URI."""
+    if not value:
+        return True
+    if value.startswith("_:"):
+        return True
+    if "#" in value and "/" not in value.split("#")[-1]:
+        return True
+    return False
+
+
+def _predicate_priority(triple, entity_uri, retrieved_uris):
+    """Return priority score: 0 = highest (inter-doc), 1 = high, 2 = medium, 3 = low."""
+    other_uri = triple["object"] if triple["subject"] == entity_uri else triple["subject"]
+    if other_uri in retrieved_uris:
+        return 0
+    pred = triple.get("predicate", "")
+    local_name = pred.split("/")[-1].split("#")[-1]
+    for frag in _HIGH_PRIORITY_FRAGMENTS:
+        if frag in local_name:
+            return 1
+    if triple.get("predicate_label"):
+        return 2
+    return 3
+
+
+def _resolve_time_span(time_span_uri, triples_index):
+    """Follow a time-span URI to extract begin/end date values."""
+    ts_triples = triples_index.get(time_span_uri, [])
+    dates = {}
+    for t in ts_triples:
+        if t["subject"] != time_span_uri:
+            continue
+        pred_local = t["predicate"].split("/")[-1].split("#")[-1]
+        for dp in _DATE_PREDICATES:
+            if dp in pred_local:
+                obj_val = t.get("object_label") or t.get("object", "")
+                if obj_val and not obj_val.startswith("http"):
+                    if "begin" in dp:
+                        dates["began"] = obj_val
+                    elif "end" in dp:
+                        dates["ended"] = obj_val
+                    else:
+                        dates["date"] = obj_val
+    return dates
+
+
+def _triples_type_priority(doc):
+    """Sort key: informative entity types first for budget allocation."""
+    return 0 if doc.metadata.get('type', '') in _TRIPLES_PRIORITY_TYPES else 1
+
+
 class RetrievalConfig:
     """Configuration constants for the RAG retrieval system"""
 
@@ -122,6 +322,9 @@ class RetrievalConfig:
     # Thin document chaining: absorb thin docs into their richest neighbor
     THIN_DOC_THRESHOLD = 400  # Docs with fewer chars are candidates for chaining
     MAX_CHAINED_DOC_SIZE = 5000  # Stop absorbing into a target that would exceed this
+
+    # Context assembly: per-document truncation when building the LLM prompt
+    MAX_DOC_CHARS = 5000  # Aligned with MAX_CHAINED_DOC_SIZE
 
     # Type-based score modifiers for retrieval ranking
     # Positive = boost, negative = penalty. Applied as multiplier: score * (1 + modifier)
@@ -169,6 +372,15 @@ class RetrievalConfig:
     # Mega-entity penalty: entities with very high triple counts provide diluted context
     MEGA_ENTITY_TRIPLES_THRESHOLD = 2000   # Entities with more triples than this are penalized
     MEGA_ENTITY_PENALTY = 0.15             # Score penalty (subtracted after type modifier)
+
+    # Pool pre-filtering: cap the ratio of non-informative entity types
+    NON_INFORMATIVE_TYPES = frozenset({
+        "Linguistic Object", "E33_Linguistic_Object",
+        "E33_E41_Linguistic_Appellation", "E41_E33_Linguistic_Appellation",
+        "Linguistic Appellation", "Inscription", "E34_Inscription",
+        "Appellation", "E41_Appellation", "PC67_refers_to",
+    })
+    MAX_NON_INFORMATIVE_RATIO = 0.25
 
 
 class UniversalRagSystem:
@@ -245,7 +457,7 @@ class UniversalRagSystem:
         # Initialize embedding cache for resumability
         self.use_embedding_cache = self.config.get("use_embedding_cache", True)
         if self.use_embedding_cache:
-            cache_dir = os.path.join(self._get_cache_dir(), "embeddings")
+            cache_dir = os.path.join(self._path('cache'), "embeddings")
             self.embedding_cache = EmbeddingCache(cache_dir)
             logger.info(f"Embedding cache enabled at {cache_dir}")
         else:
@@ -265,13 +477,13 @@ class UniversalRagSystem:
 
         # Load property labels and ontology classes from ontology extraction (cached at class level)
         if UniversalRagSystem._property_labels is None:
-            UniversalRagSystem._property_labels = self._load_property_labels()
+            UniversalRagSystem._property_labels = self._load_ontology_json('property_labels.json')
 
         if UniversalRagSystem._ontology_classes is None:
-            UniversalRagSystem._ontology_classes = self._load_ontology_classes()
+            UniversalRagSystem._ontology_classes = self._load_ontology_json('ontology_classes.json', as_set=True)
 
         if UniversalRagSystem._class_labels is None:
-            UniversalRagSystem._class_labels = self._load_class_labels()
+            UniversalRagSystem._class_labels = self._load_ontology_json('class_labels.json')
 
         if UniversalRagSystem._inverse_properties is None:
             UniversalRagSystem._inverse_properties = self._load_inverse_properties()
@@ -282,39 +494,25 @@ class UniversalRagSystem:
     # ==================== Path Helper Methods ====================
     # These methods return dataset-specific paths for multi-dataset support
 
-    def _get_cache_dir(self) -> str:
-        """Return the cache directory for this dataset."""
+    def _path(self, key: str) -> str:
+        """Return a dataset-specific path by key.
+
+        Keys: cache, graph, graph_temp, vector_dir, vector_index,
+              bm25_dir, aggregation, documents
+        """
         base = self.data_dir if self.data_dir else str(PROJECT_ROOT / 'data')
-        return f'{base}/cache/{self.dataset_id}'
-
-    def _get_document_graph_path(self) -> str:
-        """Return the document graph pickle file path for this dataset."""
-        return f'{self._get_cache_dir()}/document_graph.pkl'
-
-    def _get_document_graph_temp_path(self) -> str:
-        """Return the temporary document graph pickle file path for this dataset."""
-        return f'{self._get_cache_dir()}/document_graph_temp.pkl'
-
-    def _get_vector_index_dir(self) -> str:
-        """Return the vector index directory for this dataset."""
-        return f'{self._get_cache_dir()}/vector_index'
-
-    def _get_vector_index_path(self) -> str:
-        """Return the vector index file path for this dataset."""
-        return f'{self._get_vector_index_dir()}/index.faiss'
-
-    def _get_bm25_index_dir(self) -> str:
-        """Return the BM25 index directory for this dataset."""
-        return f'{self._get_cache_dir()}/bm25_index'
-
-    def _get_aggregation_index_path(self) -> str:
-        """Return the aggregation index JSON file path for this dataset."""
-        return f'{self._get_cache_dir()}/aggregation_index.json'
-
-    def _get_documents_dir(self) -> str:
-        """Return the entity documents directory for this dataset."""
-        base = self.data_dir if self.data_dir else str(PROJECT_ROOT / 'data')
-        return f'{base}/documents/{self.dataset_id}/entity_documents'
+        cache = f'{base}/cache/{self.dataset_id}'
+        paths = {
+            'cache':        cache,
+            'graph':        f'{cache}/document_graph.pkl',
+            'graph_temp':   f'{cache}/document_graph_temp.pkl',
+            'vector_dir':   f'{cache}/vector_index',
+            'vector_index': f'{cache}/vector_index/index.faiss',
+            'bm25_dir':     f'{cache}/bm25_index',
+            'aggregation':  f'{cache}/aggregation_index.json',
+            'documents':    f'{base}/documents/{self.dataset_id}/entity_documents',
+        }
+        return paths[key]
 
     # ==================== End Path Helper Methods ====================
 
@@ -370,191 +568,62 @@ class UniversalRagSystem:
         logger.info("FR traversal initialized for document generation")
         return traversal
 
-    def _load_property_labels(self, force_extract=False):
-        """
-        Load property labels from JSON file generated from ontologies.
-        Automatically extracts labels from ontology files if JSON doesn't exist.
+    def _ensure_ontology_extraction(self):
+        """Run ontology label extraction if any label files are missing. Returns True on success."""
+        ontology_dir = str(PROJECT_ROOT / 'data' / 'ontologies')
+        if not os.path.exists(ontology_dir):
+            logger.error(f"Ontology directory not found at '{ontology_dir}'")
+            return False
+        ontology_files = [f for f in os.listdir(ontology_dir) if f.endswith(('.ttl', '.rdf', '.owl', '.n3'))]
+        if not ontology_files:
+            logger.error(f"No ontology files found in '{ontology_dir}'")
+            return False
+        logger.info(f"Extracting ontology labels from {len(ontology_files)} files...")
+        try:
+            labels_dir = str(PROJECT_ROOT / 'data' / 'labels')
+            success = run_extraction(
+                ontology_dir,
+                f'{labels_dir}/property_labels.json',
+                f'{labels_dir}/ontology_classes.json',
+                f'{labels_dir}/class_labels.json',
+            )
+            if success:
+                UniversalRagSystem._extraction_attempted = True
+            return success
+        except Exception as e:
+            logger.error(f"Ontology extraction failed: {e}")
+            return False
+
+    def _load_ontology_json(self, filename, as_set=False):
+        """Load a JSON resource from data/labels/, extracting from ontologies if missing.
 
         Args:
-            force_extract: If True, force re-extraction even if JSON exists
+            filename: JSON filename in data/labels/ (e.g. 'property_labels.json')
+            as_set: If True, convert loaded list to set
 
         Returns:
-            dict: Property labels mapping
+            dict, set, or empty default on failure
         """
-        labels_file = str(PROJECT_ROOT / 'data' / 'labels' / 'property_labels.json')
-        ontology_dir = str(PROJECT_ROOT / 'data' / 'ontologies')
+        json_path = str(PROJECT_ROOT / 'data' / 'labels' / filename)
+        empty = set() if as_set else {}
 
-        # Check if we need to extract
-        should_extract = force_extract or not os.path.exists(labels_file)
+        if not os.path.exists(json_path):
+            if not self._ensure_ontology_extraction():
+                return empty
 
-        if should_extract:
-            # Check if ontology directory exists
-            if not os.path.exists(ontology_dir):
-                logger.error(f"Ontology directory not found at '{ontology_dir}'")
-                logger.error("Cannot extract property labels without ontology files")
-                return {}
+        if not os.path.exists(json_path):
+            logger.error(f"File not found after extraction: {json_path}")
+            return empty
 
-            # Check if ontology files exist
-            ontology_files = [f for f in os.listdir(ontology_dir) if f.endswith(('.ttl', '.rdf', '.owl', '.n3'))]
-            if not ontology_files:
-                logger.error(f"No ontology files found in '{ontology_dir}'")
-                logger.error("Add CIDOC-CRM, VIR, CRMdig ontology files to the ontology directory")
-                return {}
-
-            # Run extraction
-            logger.info("Extracting property labels from ontology files...")
-            logger.info(f"Found {len(ontology_files)} ontology files: {', '.join(ontology_files)}")
-
-            try:
-                success = run_extraction(ontology_dir, labels_file)
-                if not success:
-                    logger.error("Failed to extract property labels from ontologies")
-                    return {}
-                else:
-                    logger.info(f"✓ Successfully extracted property labels to {labels_file}")
-                    UniversalRagSystem._extraction_attempted = True
-            except Exception as e:
-                logger.error(f"Error during property label extraction: {str(e)}")
-                return {}
-
-        # Load the JSON file
-        if os.path.exists(labels_file):
-            try:
-                with open(labels_file, 'r', encoding='utf-8') as f:
-                    labels = json.load(f)
-                logger.info(f"Loaded {len(labels)} property labels from {labels_file}")
-                return labels
-            except Exception as e:
-                logger.error(f"Error loading property labels from {labels_file}: {str(e)}")
-                return {}
-        else:
-            logger.error(f"Property labels file not found at {labels_file}")
-            return {}
-
-    def _load_ontology_classes(self, force_extract=False):
-        """
-        Load ontology classes from JSON file generated from ontologies.
-        Automatically extracts classes from ontology files if JSON doesn't exist.
-
-        Args:
-            force_extract: If True, force re-extraction even if JSON exists
-
-        Returns:
-            set: Set of ontology class names (both URIs and local names)
-        """
-        classes_file = str(PROJECT_ROOT / 'data' / 'labels' / 'ontology_classes.json')
-        ontology_dir = str(PROJECT_ROOT / 'data' / 'ontologies')
-
-        # Check if we need to extract (the extraction is done together with properties)
-        should_extract = force_extract or not os.path.exists(classes_file)
-
-        if should_extract:
-            # Check if ontology directory exists
-            if not os.path.exists(ontology_dir):
-                logger.error(f"Ontology directory not found at '{ontology_dir}'")
-                logger.error("Cannot extract ontology classes without ontology files")
-                return set()
-
-            # Check if ontology files exist
-            ontology_files = [f for f in os.listdir(ontology_dir) if f.endswith(('.ttl', '.rdf', '.owl', '.n3'))]
-            if not ontology_files:
-                logger.error(f"No ontology files found in '{ontology_dir}'")
-                logger.error("Add CIDOC-CRM, VIR, CRMdig ontology files to the ontology directory")
-                return set()
-
-            # Run extraction (this extracts both properties and classes)
-            logger.info("Extracting ontology classes from ontology files...")
-            logger.info(f"Found {len(ontology_files)} ontology files: {', '.join(ontology_files)}")
-
-            try:
-                # This will extract both properties and classes
-                labels_file = str(PROJECT_ROOT / 'data' / 'labels' / 'property_labels.json')
-                success = run_extraction(ontology_dir, labels_file, classes_file)
-                if not success:
-                    logger.error("Failed to extract ontology classes from ontologies")
-                    return set()
-                else:
-                    logger.info(f"✓ Successfully extracted ontology classes to {classes_file}")
-            except Exception as e:
-                logger.error(f"Error during ontology class extraction: {str(e)}")
-                return set()
-
-        # Load the JSON file
-        if os.path.exists(classes_file):
-            try:
-                with open(classes_file, 'r', encoding='utf-8') as f:
-                    classes_list = json.load(f)
-                classes_set = set(classes_list)
-                logger.info(f"Loaded {len(classes_set)} ontology classes from {classes_file}")
-                return classes_set
-            except Exception as e:
-                logger.error(f"Error loading ontology classes from {classes_file}: {str(e)}")
-                return set()
-        else:
-            logger.error(f"Ontology classes file not found at {classes_file}")
-            return set()
-
-    def _load_class_labels(self, force_extract=False):
-        """
-        Load class labels (URI -> English label mapping) from JSON file generated from ontologies.
-        Automatically extracts labels from ontology files if JSON doesn't exist.
-
-        Args:
-            force_extract: If True, force re-extraction even if JSON exists
-
-        Returns:
-            dict: Class labels mapping (URI -> English label)
-        """
-        labels_file = str(PROJECT_ROOT / 'data' / 'labels' / 'class_labels.json')
-        ontology_dir = str(PROJECT_ROOT / 'data' / 'ontologies')
-
-        # Check if we need to extract (the extraction is done together with classes)
-        should_extract = force_extract or not os.path.exists(labels_file)
-
-        if should_extract:
-            # Check if ontology directory exists
-            if not os.path.exists(ontology_dir):
-                logger.error(f"Ontology directory not found at '{ontology_dir}'")
-                logger.error("Cannot extract class labels without ontology files")
-                return {}
-
-            # Check if ontology files exist
-            ontology_files = [f for f in os.listdir(ontology_dir) if f.endswith(('.ttl', '.rdf', '.owl', '.n3'))]
-            if not ontology_files:
-                logger.error(f"No ontology files found in '{ontology_dir}'")
-                logger.error("Add CIDOC-CRM, VIR, CRMdig ontology files to the ontology directory")
-                return {}
-
-            # Run extraction (this extracts properties, classes, and class labels)
-            logger.info("Extracting class labels from ontology files...")
-            logger.info(f"Found {len(ontology_files)} ontology files: {', '.join(ontology_files)}")
-
-            try:
-                prop_labels = str(PROJECT_ROOT / 'data' / 'labels' / 'property_labels.json')
-                ont_classes = str(PROJECT_ROOT / 'data' / 'labels' / 'ontology_classes.json')
-                success = run_extraction(ontology_dir, prop_labels, ont_classes, labels_file)
-                if not success:
-                    logger.error("Failed to extract class labels from ontologies")
-                    return {}
-                else:
-                    logger.info(f"✓ Successfully extracted class labels to {labels_file}")
-            except Exception as e:
-                logger.error(f"Error during class label extraction: {str(e)}")
-                return {}
-
-        # Load the JSON file
-        if os.path.exists(labels_file):
-            try:
-                with open(labels_file, 'r', encoding='utf-8') as f:
-                    labels = json.load(f)
-                logger.info(f"Loaded {len(labels)} class labels from {labels_file}")
-                return labels
-            except Exception as e:
-                logger.error(f"Error loading class labels from {labels_file}: {str(e)}")
-                return {}
-        else:
-            logger.error(f"Class labels file not found at {labels_file}")
-            return {}
+        try:
+            with open(json_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            result = set(data) if as_set else data
+            logger.info(f"Loaded {len(result)} entries from {filename}")
+            return result
+        except Exception as e:
+            logger.error(f"Error loading {filename}: {e}")
+            return empty
 
     @property
     def embeddings(self):
@@ -601,9 +670,9 @@ class UniversalRagSystem:
         self.document_store = GraphDocumentStore(self.embeddings)
 
         # Check if saved data exists (using dataset-specific paths)
-        doc_graph_path = self._get_document_graph_path()
-        vector_index_path = self._get_vector_index_path()
-        vector_index_dir = self._get_vector_index_dir()
+        doc_graph_path = self._path('graph')
+        vector_index_path = self._path('vector_index')
+        vector_index_dir = self._path('vector_dir')
 
         logger.info(f"Checking for saved data at {doc_graph_path} and {vector_index_path}")
 
@@ -641,7 +710,7 @@ class UniversalRagSystem:
                 self._load_triples_index()
                 self._load_aggregation_index()
                 # Load or build BM25 index
-                bm25_dir = self._get_bm25_index_dir()
+                bm25_dir = self._path('bm25_dir')
                 if not self.document_store.load_bm25_index(bm25_dir):
                     logger.info("BM25 index not cached, building from loaded documents...")
                     if self.document_store.build_bm25_index():
@@ -675,7 +744,7 @@ class UniversalRagSystem:
 
         # Build and save BM25 index
         if self.document_store.build_bm25_index():
-            bm25_dir = self._get_bm25_index_dir()
+            bm25_dir = self._path('bm25_dir')
             self.document_store.save_bm25_index(bm25_dir)
 
         # Build FC type index for type-filtered retrieval
@@ -782,10 +851,18 @@ class UniversalRagSystem:
         threshold = RetrievalConfig.THIN_DOC_THRESHOLD
         max_target_size = RetrievalConfig.MAX_CHAINED_DOC_SIZE
 
+        # FC categories exempt from chaining (carry irreplaceable temporal/spatial info)
+        _EXEMPT_FC_PREFIXES = ("[Event]", "[Actor]")
+
         # Collect candidates: thin docs that have at least one neighbor
         candidates = []
+        skipped_exempt = 0
         for doc_id, doc in store.docs.items():
             if len(doc.text) < threshold and doc.neighbors:
+                # Exempt entities whose FC category makes them independently important
+                if any(doc.text.lstrip().startswith(pfx) for pfx in _EXEMPT_FC_PREFIXES):
+                    skipped_exempt += 1
+                    continue
                 candidates.append((doc_id, len(doc.text)))
 
         if not candidates:
@@ -862,7 +939,8 @@ class UniversalRagSystem:
             chained_map[doc_id] = absorbed_into[0]
 
         logger.info(
-            f"Thin-doc chaining: {len(chained_map)} docs absorbed into neighbors "
+            f"Thin-doc chaining: {len(chained_map)} docs absorbed into neighbors, "
+            f"{skipped_exempt} exempt (Event/Actor) "
             f"({len(store.docs)} docs remaining)"
         )
 
@@ -870,7 +948,7 @@ class UniversalRagSystem:
 
     def _get_edges_parquet_path(self) -> str:
         """Return the path to the edges Parquet file."""
-        return os.path.join(os.path.dirname(self._get_documents_dir()), "edges.parquet")
+        return os.path.join(os.path.dirname(self._path('documents')), "edges.parquet")
 
     def _append_edges_parquet(self, triples: List[Dict]) -> None:
         """Append triples to the Parquet edges file incrementally.
@@ -921,7 +999,7 @@ class UniversalRagSystem:
 
         Falls back gracefully if the file is missing or uses the old 3-column format.
         """
-        edges_path = os.path.join(os.path.dirname(self._get_documents_dir()), "edges.parquet")
+        edges_path = os.path.join(os.path.dirname(self._path('documents')), "edges.parquet")
         if not os.path.exists(edges_path):
             logger.warning(f"No edges file at {edges_path} — raw_triples will be empty in responses")
             self._triples_index = {}
@@ -1113,7 +1191,7 @@ class UniversalRagSystem:
             agg_index["pagerank"] = pagerank_data
 
         # Save to JSON
-        out_path = self._get_aggregation_index_path()
+        out_path = self._path('aggregation')
         os.makedirs(os.path.dirname(out_path), exist_ok=True)
         with open(out_path, "w", encoding="utf-8") as f:
             json.dump(agg_index, f, ensure_ascii=False, indent=2)
@@ -1213,7 +1291,7 @@ class UniversalRagSystem:
 
         Graceful fallback: if file missing or corrupt, sets empty dict.
         """
-        path = self._get_aggregation_index_path()
+        path = self._path('aggregation')
         if not os.path.exists(path):
             logger.info("No aggregation index found — AGGREGATION queries will work without pre-computed stats")
             self._aggregation_index = {}
@@ -1238,7 +1316,7 @@ class UniversalRagSystem:
         Reads edges.parquet (saved during --generate-docs) and adds weighted edges
         to the document store using proper CIDOC-CRM semantic weights.
         """
-        edges_path = os.path.join(os.path.dirname(self._get_documents_dir()), "edges.parquet")
+        edges_path = os.path.join(os.path.dirname(self._path('documents')), "edges.parquet")
         if not os.path.exists(edges_path):
             logger.warning(f"No edges file found at {edges_path}, skipping edge building")
             return
@@ -1441,8 +1519,53 @@ class UniversalRagSystem:
         # entity_types_map = chunk_types (already updated with intermediates)
         entity_types_map = chunk_types
 
+        # Add date literals for E52_Time-Span entities to raw_triples.
+        # batch_query_outgoing uses FILTER(isURI(?o)) so P82a/P82b literal values
+        # are excluded.  We fetch them here so _resolve_time_span can find them
+        # in the triples index at query time.
+        _E52_URI = "http://www.cidoc-crm.org/cidoc-crm/E52_Time-Span"
+        _CRM_NS = "http://www.cidoc-crm.org/cidoc-crm/"
+        _TS_DATE_PROPS = {
+            "P82a_begin_of_the_begin", "P82b_end_of_the_end",
+            "P82_at_some_time_within", "P81a_end_of_the_begin",
+            "P81b_begin_of_the_end",
+        }
+
+        ts_from_chunk = [u for u in chunk_uris if _E52_URI in chunk_types.get(u, set())]
+        ts_from_inter = [u for u in intermediate_uris if _E52_URI in chunk_types.get(u, set())]
+
+        # Chunk time-spans already have literals in chunk_literals;
+        # intermediate time-spans need a fresh fetch.
+        inter_ts_lits = (
+            self.batch_sparql.batch_fetch_literals(ts_from_inter) if ts_from_inter else {}
+        )
+        ts_date_count = 0
+        for ts_uri, ts_lits in (
+            [(u, chunk_literals.get(u, {})) for u in ts_from_chunk] +
+            [(u, inter_ts_lits.get(u, {})) for u in ts_from_inter]
+        ):
+            for prop_local, vals in ts_lits.items():
+                if prop_local not in _TS_DATE_PROPS or not vals:
+                    continue
+                prop_label = ""
+                if UniversalRagSystem._property_labels:
+                    prop_label = (
+                        UniversalRagSystem._property_labels.get(f"{_CRM_NS}{prop_local}") or
+                        UniversalRagSystem._property_labels.get(prop_local) or ""
+                    )
+                raw_triples.append({
+                    "subject": ts_uri,
+                    "subject_label": entity_labels.get(ts_uri, ts_uri.split('/')[-1]),
+                    "predicate": f"{_CRM_NS}{prop_local}",
+                    "predicate_label": prop_label,
+                    "object": vals[0],
+                    "object_label": vals[0],
+                })
+                ts_date_count += 1
+
         logger.info(f"    FR graph: {len(fr_outgoing)} outgoing, {len(fr_incoming)} incoming, "
-                    f"{len(entity_labels)} labels, {len(raw_triples)} raw triples")
+                    f"{len(entity_labels)} labels, {len(raw_triples)} raw triples"
+                    + (f" ({ts_date_count} date literals)" if ts_date_count else ""))
 
         return dict(fr_outgoing), dict(fr_incoming), entity_labels, entity_types_map, raw_triples
 
@@ -1567,7 +1690,7 @@ class UniversalRagSystem:
         try:
             # Use dataset-specific output directory if not specified
             if output_dir is None:
-                output_dir = self._get_documents_dir()
+                output_dir = self._path('documents')
 
             # Create output directory if it doesn't exist
             os.makedirs(output_dir, exist_ok=True)
@@ -1844,7 +1967,7 @@ class UniversalRagSystem:
         logger.info(f"Found {total_entities} entities")
 
         # Clear entity_documents directory if it exists (using dataset-specific path)
-        output_dir = self._get_documents_dir()
+        output_dir = self._path('documents')
         if os.path.exists(output_dir):
             shutil.rmtree(output_dir)
             logger.info(f"Cleared existing {output_dir} directory")
@@ -2072,7 +2195,7 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
                     time.sleep(2)
 
             # Phase E: Save progress after each chunk
-            self.document_store.save_document_graph(self._get_document_graph_temp_path())
+            self.document_store.save_document_graph(self._path('graph_temp'))
             logger.info(f"  Chunk {chunk_num}/{total_chunks} complete, progress saved")
 
         if cached_count > 0:
@@ -2087,8 +2210,8 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         self._chain_thin_documents()
 
         # Rename temp file to final
-        temp_path = self._get_document_graph_temp_path()
-        final_path = self._get_document_graph_path()
+        temp_path = self._path('graph_temp')
+        final_path = self._path('graph')
         if os.path.exists(temp_path):
             os.replace(temp_path, final_path)
 
@@ -2225,7 +2348,7 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         during document graph building.
         """
 
-        vector_index_path = self._get_vector_index_dir()
+        vector_index_path = self._path('vector_dir')
         os.makedirs(vector_index_path, exist_ok=True)
 
         # Separate documents with and without pre-computed embeddings
@@ -2525,145 +2648,8 @@ Rules:
         return None
 
     def fetch_wikidata_info(self, wikidata_id):
-        """Fetch information from Wikidata for a given Q-ID"""
-        
-        # Handle rate limits with retries
-        max_retries = 3
-        retry_delay = 2
-        
-        for attempt in range(max_retries):
-            try:
-                # Use the Wikidata API to get entity data
-                url = f"https://www.wikidata.org/w/api.php"
-                params = {
-                    "action": "wbgetentities",
-                    "ids": wikidata_id,
-                    "format": "json",
-                    "languages": "en",
-                    "props": "labels|descriptions|claims|sitelinks"
-                }
-                
-                # Add proper headers including User-Agent
-                headers = {
-                    'User-Agent': 'Mozilla/5.0 (compatible; RAG-Bot/1.0; +http://example.com/bot)',
-                    'Accept': 'application/json'
-                }
-
-                # Use secure session instead of direct requests call
-                response = self._http_session.get(url, params=params, headers=headers, timeout=10)
-                
-                # Check if response is empty
-                if not response.text:
-                    logger.warning(f"Empty response from Wikidata API for {wikidata_id} (attempt {attempt+1}/{max_retries})")
-                    time.sleep(retry_delay)
-                    retry_delay *= 2
-                    continue
-                
-                # Check status code
-                if response.status_code != 200:
-                    logger.warning(f"Wikidata API returned status {response.status_code} for {wikidata_id} (attempt {attempt+1}/{max_retries})")
-                    time.sleep(retry_delay)
-                    retry_delay *= 2
-                    continue
-                
-                try:
-                    data = response.json()
-                except ValueError as e:
-                    logger.warning(f"Failed to parse JSON from Wikidata API for {wikidata_id} (attempt {attempt+1}/{max_retries}): {str(e)}")
-                    logger.debug(f"Response text: {response.text[:200]}")
-                    time.sleep(retry_delay)
-                    retry_delay *= 2
-                    continue
-                
-                if "entities" in data and wikidata_id in data["entities"]:
-                    entity = data["entities"][wikidata_id]
-                    
-                    # Extract useful information
-                    result = {
-                        "id": wikidata_id,
-                        "url": f"https://www.wikidata.org/wiki/{wikidata_id}"
-                    }
-                    
-                    # Get label
-                    if "labels" in entity and "en" in entity["labels"]:
-                        result["label"] = entity["labels"]["en"]["value"]
-                    
-                    # Get description
-                    if "descriptions" in entity and "en" in entity["descriptions"]:
-                        result["description"] = entity["descriptions"]["en"]["value"]
-                    
-                    # Get Wikipedia link if available
-                    if "sitelinks" in entity and "enwiki" in entity["sitelinks"]:
-                        result["wikipedia"] = {
-                            "title": entity["sitelinks"]["enwiki"]["title"],
-                            "url": f"https://en.wikipedia.org/wiki/{entity['sitelinks']['enwiki']['title'].replace(' ', '_')}"
-                        }
-                    
-                    # Get selected property values (customize these as needed)
-                    if "claims" in entity:
-                        result["properties"] = {}
-                        
-                        # Map of interesting Wikidata properties and their human-readable names
-                        property_map = {
-                            "P18": "image",           # image
-                            "P571": "inception",      # date created/founded
-                            "P17": "country",         # country
-                            "P131": "located_in",     # administrative territorial entity
-                            "P625": "coordinates",    # coordinate location
-                            "P1343": "described_by",  # described by source
-                            "P138": "named_after",    # named after
-                            "P180": "depicts",        # depicts
-                            "P31": "instance_of",     # instance of
-                            "P276": "location"        # location
-                        }
-                        
-                        for prop_id, prop_name in property_map.items():
-                            if prop_id in entity["claims"]:
-                                values = []
-                                for claim in entity["claims"][prop_id]:
-                                    if "mainsnak" in claim and "datavalue" in claim["mainsnak"]:
-                                        datavalue = claim["mainsnak"]["datavalue"]
-                                        
-                                        if datavalue["type"] == "wikibase-entityid":
-                                            # For entity references, we just store the Q-ID
-                                            values.append(datavalue["value"]["id"])
-                                        elif datavalue["type"] == "string":
-                                            # For string values
-                                            values.append(datavalue["value"])
-                                        elif datavalue["type"] == "time":
-                                            # For time values
-                                            values.append(datavalue["value"]["time"])
-                                        elif datavalue["type"] == "globecoordinate":
-                                            # For coordinates
-                                            values.append({
-                                                "latitude": datavalue["value"]["latitude"],
-                                                "longitude": datavalue["value"]["longitude"]
-                                            })
-                                
-                                # Only add property if we found values
-                                if values:
-                                    result["properties"][prop_name] = values[0] if len(values) == 1 else values
-                    
-                    return result
-                else:
-                    logger.warning(f"No entity data found for {wikidata_id} in response")
-                    return None
-                
-            except requests.exceptions.Timeout:
-                logger.warning(f"Wikidata API request timeout for {wikidata_id} (attempt {attempt+1}/{max_retries})")
-                time.sleep(retry_delay)
-                retry_delay *= 2
-            except requests.exceptions.RequestException as e:
-                logger.warning(f"Wikidata API request failed for {wikidata_id} (attempt {attempt+1}/{max_retries}): {str(e)}")
-                time.sleep(retry_delay)
-                retry_delay *= 2
-            except Exception as e:
-                logger.error(f"Unexpected error fetching Wikidata info for {wikidata_id} (attempt {attempt+1}/{max_retries}): {str(e)}")
-                time.sleep(retry_delay)
-                retry_delay *= 2
-        
-        logger.error(f"Failed to fetch Wikidata info after {max_retries} attempts for {wikidata_id}")
-        return None
+        """Fetch information from Wikidata for a given Q-ID."""
+        return _fetch_wikidata_info(wikidata_id, self._http_session)
 
 
     def compute_coherent_subgraph(self, candidates, adjacency_matrix, initial_scores, k=RetrievalConfig.DEFAULT_RETRIEVAL_K, alpha=RetrievalConfig.RELEVANCE_CONNECTIVITY_ALPHA, query_analysis=None):
@@ -2949,6 +2935,90 @@ Rules:
         candidates.sort(key=lambda x: x[1], reverse=True)
         return candidates[:k]
 
+    def _type_filtered_channel(self, query, results_with_scores, initial_pool_size, query_analysis):
+        """Run type-filtered FAISS+BM25 retrieval and merge into the main pool.
+
+        Returns an updated results_with_scores list with type-matching documents
+        injected, or the original list if no type filtering applies.
+        """
+        fc_doc_ids = getattr(self.document_store, '_fc_doc_ids', None)
+        if not (query_analysis and query_analysis.categories and fc_doc_ids):
+            return results_with_scores
+
+        # Collect allowed doc IDs from target FC categories
+        allowed_doc_ids = set()
+        for fc_name in query_analysis.categories:
+            allowed_doc_ids |= fc_doc_ids.get(fc_name, set())
+        if not allowed_doc_ids:
+            return results_with_scores
+
+        logger.info(f"Type-filtered channel: {len(allowed_doc_ids)} docs in target FCs "
+                    f"{query_analysis.categories}")
+
+        # Run type-filtered FAISS + BM25
+        typed_faiss = self.document_store.retrieve_faiss_typed(
+            query, k=initial_pool_size,
+            allowed_doc_ids=allowed_doc_ids,
+            fetch_k=RetrievalConfig.TYPE_FILTERED_FETCH_K,
+        )
+        typed_bm25 = self.document_store.retrieve_bm25_typed(
+            query, k=initial_pool_size,
+            allowed_doc_ids=allowed_doc_ids,
+        )
+
+        # RRF-fuse typed results
+        if typed_faiss and typed_bm25:
+            typed_fused = self._rrf_fuse(typed_faiss, typed_bm25, pool_size=initial_pool_size)
+        elif typed_faiss:
+            typed_fused = typed_faiss
+        else:
+            typed_fused = typed_bm25
+
+        # Fold PageRank into typed channel as a third signal (ENUM/AGG only)
+        if (typed_fused
+                and query_analysis.query_type in ("ENUMERATION", "AGGREGATION")
+                and self._aggregation_index
+                and "pagerank" in self._aggregation_index):
+            pagerank_candidates = self._get_pagerank_candidates(
+                query_analysis.categories, initial_pool_size
+            )
+            if pagerank_candidates:
+                typed_fused = self._rrf_fuse(
+                    typed_fused, pagerank_candidates,
+                    pool_size=initial_pool_size,
+                )
+                logger.info(f"PageRank channel: {len(pagerank_candidates)} candidates "
+                            f"fused into typed pool")
+
+        if not typed_fused:
+            logger.info("Type-filtered channel: no typed results found")
+            return results_with_scores
+
+        # Merge: reserve slots for type-matching docs
+        fraction = (RetrievalConfig.TYPE_CHANNEL_POOL_FRACTION_SPECIFIC
+                    if query_analysis.query_type == "SPECIFIC"
+                    else RetrievalConfig.TYPE_CHANNEL_POOL_FRACTION)
+        typed_slots = int(initial_pool_size * fraction)
+        main_slots = initial_pool_size - typed_slots
+
+        main_ids = {doc.id for doc, _ in results_with_scores}
+        main_pool = results_with_scores[:main_slots]
+        typed_new = [(doc, score) for doc, score in typed_fused if doc.id not in main_ids]
+        typed_pool = typed_fused[:typed_slots]
+
+        # Combine and deduplicate
+        merged = {}
+        for doc, score in main_pool:
+            merged[doc.id] = (doc, score)
+        for doc, score in typed_pool:
+            if doc.id not in merged:
+                merged[doc.id] = (doc, score)
+
+        result = sorted(merged.values(), key=lambda x: x[1], reverse=True)[:initial_pool_size]
+        logger.info(f"Type-filtered channel injected {len(typed_new)} new typed docs "
+                    f"into pool (pool now {len(result)})")
+        return result
+
     def retrieve(self, query, k=RetrievalConfig.DEFAULT_RETRIEVAL_K, initial_pool_size=60, alpha=RetrievalConfig.RELEVANCE_CONNECTIVITY_ALPHA, query_analysis=None):
         """
         Retrieve documents using hybrid FAISS+BM25 similarity + coherent subgraph extraction:
@@ -2979,111 +3049,24 @@ Rules:
         else:
             results_with_scores = faiss_results
 
-        # Type-filtered retrieval channel for all query types with FC categories
-        fc_doc_ids = getattr(self.document_store, '_fc_doc_ids', None)
-        if (query_analysis
-                and query_analysis.categories
-                and fc_doc_ids):
-            # Collect allowed doc IDs from target FC categories
-            allowed_doc_ids = set()
-            for fc_name in query_analysis.categories:
-                allowed_doc_ids |= fc_doc_ids.get(fc_name, set())
-
-            if allowed_doc_ids:
-                logger.info(f"Type-filtered channel: {len(allowed_doc_ids)} docs in target FCs "
-                            f"{query_analysis.categories}")
-
-                # Run type-filtered FAISS + BM25
-                typed_faiss = self.document_store.retrieve_faiss_typed(
-                    query, k=initial_pool_size,
-                    allowed_doc_ids=allowed_doc_ids,
-                    fetch_k=RetrievalConfig.TYPE_FILTERED_FETCH_K,
-                )
-                typed_bm25 = self.document_store.retrieve_bm25_typed(
-                    query, k=initial_pool_size,
-                    allowed_doc_ids=allowed_doc_ids,
-                )
-
-                # RRF-fuse typed results
-                if typed_faiss and typed_bm25:
-                    typed_fused = self._rrf_fuse(typed_faiss, typed_bm25, pool_size=initial_pool_size)
-                elif typed_faiss:
-                    typed_fused = typed_faiss
-                else:
-                    typed_fused = typed_bm25
-
-                # Fold PageRank into typed channel as a third signal (ENUM/AGG only)
-                if (typed_fused
-                        and query_analysis.query_type in ("ENUMERATION", "AGGREGATION")
-                        and self._aggregation_index
-                        and "pagerank" in self._aggregation_index):
-                    pagerank_candidates = self._get_pagerank_candidates(
-                        query_analysis.categories, initial_pool_size
-                    )
-                    if pagerank_candidates:
-                        typed_fused = self._rrf_fuse(
-                            typed_fused, pagerank_candidates,
-                            pool_size=initial_pool_size,
-                        )
-                        logger.info(f"PageRank channel: {len(pagerank_candidates)} candidates "
-                                    f"fused into typed pool")
-
-                if typed_fused:
-                    # Merge: reserve slots for type-matching docs
-                    fraction = (RetrievalConfig.TYPE_CHANNEL_POOL_FRACTION_SPECIFIC
-                                if query_analysis.query_type == "SPECIFIC"
-                                else RetrievalConfig.TYPE_CHANNEL_POOL_FRACTION)
-                    typed_slots = int(initial_pool_size * fraction)
-                    main_slots = initial_pool_size - typed_slots
-
-                    # IDs already in the main pool
-                    main_ids = {doc.id for doc, _ in results_with_scores}
-
-                    # Take top main_slots from unfiltered channel
-                    main_pool = results_with_scores[:main_slots]
-
-                    # Fill typed slots with new typed docs not already in main pool
-                    typed_new = [(doc, score) for doc, score in typed_fused
-                                 if doc.id not in main_ids]
-                    typed_pool = typed_fused[:typed_slots]  # May include overlap — that's fine for scoring
-
-                    # Combine and deduplicate
-                    merged = {}
-                    for doc, score in main_pool:
-                        merged[doc.id] = (doc, score)
-                    for doc, score in typed_pool:
-                        if doc.id not in merged:
-                            merged[doc.id] = (doc, score)
-
-                    results_with_scores = sorted(merged.values(), key=lambda x: x[1], reverse=True)
-                    results_with_scores = results_with_scores[:initial_pool_size]
-
-                    logger.info(f"Type-filtered channel injected {len(typed_new)} new typed docs "
-                                f"into pool (pool now {len(results_with_scores)})")
-                else:
-                    logger.info("Type-filtered channel: no typed results found")
+        # Type-filtered retrieval channel (FC-aware FAISS+BM25+PageRank)
+        results_with_scores = self._type_filtered_channel(
+            query, results_with_scores, initial_pool_size, query_analysis
+        )
 
         # Pre-filter non-informative types from candidate pool
-        NON_INFORMATIVE_TYPES = {
-            "Linguistic Object", "E33_Linguistic_Object",
-            "E33_E41_Linguistic_Appellation", "E41_E33_Linguistic_Appellation",
-            "Linguistic Appellation", "Inscription", "E34_Inscription",
-            "Appellation", "E41_Appellation", "PC67_refers_to",
-        }
-        MAX_NON_INFORMATIVE_RATIO = 0.25  # At most 25% of pool can be non-informative
-
         informative = []
         non_informative = []
         for doc, score in results_with_scores:
             doc_type = doc.metadata.get('type', '')
             all_types = set(doc.metadata.get('all_types', []))
-            is_non_informative = doc_type in NON_INFORMATIVE_TYPES or bool(all_types & NON_INFORMATIVE_TYPES)
+            is_non_informative = doc_type in RetrievalConfig.NON_INFORMATIVE_TYPES or bool(all_types & RetrievalConfig.NON_INFORMATIVE_TYPES)
             if is_non_informative:
                 non_informative.append((doc, score))
             else:
                 informative.append((doc, score))
 
-        max_non_informative = max(1, int(len(results_with_scores) * MAX_NON_INFORMATIVE_RATIO))
+        max_non_informative = max(1, int(len(results_with_scores) * RetrievalConfig.MAX_NON_INFORMATIVE_RATIO))
         if len(non_informative) > max_non_informative:
             non_informative.sort(key=lambda x: x[1], reverse=True)
             removed = len(non_informative) - max_non_informative
@@ -3286,116 +3269,16 @@ Rules:
             "http://www.w3.org/2000/01/rdf-schema#range",
         }
 
-        # Predicate label fragments to skip (case-insensitive check)
-        SKIP_LABEL_FRAGMENTS = {"label", "type", "same as", "see also"}
-
-        # High-priority predicate URI fragments (partial match on local name)
-        HIGH_PRIORITY_FRAGMENTS = {
-            "P4_has_time-span", "P82a_begin_of_the_begin", "P82b_end_of_the_end",
-            "P14_carried_out_by", "P14i_performed", "P108_has_produced",
-            "P108i_was_produced_by", "P7_took_place_at", "P55_has_current_location",
-            "P53_has_former_or_current_location", "P89_falls_within",
-            "P16_used_specific_object", "P16i_was_used_for",
-            "P12_occurred_in_the_presence_of", "P12i_was_present_at",
-            "P62_depicts", "P62i_is_depicted_by",
-            "P46_is_composed_of", "P46i_forms_part_of",
-            "P56_bears_feature", "P56i_is_found_on",
-            "K24_portray", "K24i_portrayed_by",
-            "P9_consists_of", "P9i_forms_part_of",
-        }
-
         # Time-span predicates for 1-hop enrichment
         TIME_SPAN_PREDICATES = {
             "http://www.cidoc-crm.org/cidoc-crm/P4_has_time-span",
             "http://www.cidoc-crm.org/cidoc-crm/P4i_is_time-span_of",
         }
-        DATE_PREDICATES = {
-            "P82a_begin_of_the_begin",
-            "P82b_end_of_the_end",
-            "P82_at_some_time_within",
-            "P81a_end_of_the_begin",
-            "P81b_begin_of_the_end",
-        }
 
         MAX_TRIPLES_PER_ENTITY = 15
         MAX_TOTAL_CHARS = 5000
 
-        def _is_skip_label(pred_label):
-            """Check if predicate label is too generic to be useful."""
-            if not pred_label:
-                return True
-            lower = pred_label.strip().lower()
-            if lower in SKIP_LABEL_FRAGMENTS:
-                return True
-            return False
-
-        def _is_blank_or_hash(value):
-            """Check if a value looks like a blank node or non-informative hash URI."""
-            if not value:
-                return True
-            if value.startswith("_:"):
-                return True
-            # Hash URIs with no meaningful label
-            if "#" in value and "/" not in value.split("#")[-1]:
-                return True
-            return False
-
-        def _predicate_priority(triple, entity_uri):
-            """Return priority score: 0 = highest (inter-doc), 1 = high, 2 = medium, 3 = low."""
-            other_uri = triple["object"] if triple["subject"] == entity_uri else triple["subject"]
-            # Highest: connects to another retrieved document
-            if other_uri in retrieved_uris:
-                return 0
-
-            pred = triple.get("predicate", "")
-            local_name = pred.split("/")[-1].split("#")[-1]
-
-            # High: key CIDOC-CRM predicates
-            for frag in HIGH_PRIORITY_FRAGMENTS:
-                if frag in local_name:
-                    return 1
-
-            # Medium: other named predicates
-            if triple.get("predicate_label"):
-                return 2
-
-            return 3
-
-        def _resolve_time_span(time_span_uri):
-            """Follow a time-span URI to extract begin/end date values."""
-            ts_triples = triples_index.get(time_span_uri, [])
-            dates = {}
-            for t in ts_triples:
-                if t["subject"] != time_span_uri:
-                    continue
-                pred_local = t["predicate"].split("/")[-1].split("#")[-1]
-                for dp in DATE_PREDICATES:
-                    if dp in pred_local:
-                        obj_val = t.get("object_label") or t.get("object", "")
-                        if obj_val and not obj_val.startswith("http"):
-                            # Use a short key for output
-                            if "begin" in dp:
-                                dates["began"] = obj_val
-                            elif "end" in dp:
-                                dates["ended"] = obj_val
-                            else:
-                                dates["date"] = obj_val
-            return dates
-
-        # Sort docs so informative types get budget priority for triples enrichment
-        PRIORITY_TYPES = {
-            "Actor", "E39_Actor", "E21_Person", "Person", "Group",
-            "Human-Made Object", "E22_Human-Made_Object", "E22_Man-Made_Object",
-            "Man-Made Object", "Physical Human-Made Thing",
-            "Activity", "E7_Activity", "Event", "E5_Event",
-            "Place", "E53_Place",
-        }
-
-        def _type_priority(doc):
-            doc_type = doc.metadata.get('type', '')
-            return 0 if doc_type in PRIORITY_TYPES else 1
-
-        sorted_docs = sorted(retrieved_docs, key=_type_priority)
+        sorted_docs = sorted(retrieved_docs, key=_triples_type_priority)
 
         # Fair budget allocation: cap per-entity chars so mega-entities can't starve others
         entities_with_data = sum(1 for doc in sorted_docs if triples_index.get(doc.id))
@@ -3438,7 +3321,7 @@ Rules:
                 if _is_blank_or_hash(other_label) and _is_blank_or_hash(other_uri):
                     continue
 
-                priority = _predicate_priority(t, entity_uri)
+                priority = _predicate_priority(t, entity_uri, retrieved_uris)
                 scored_triples.append((priority, t, other_label, other_uri, direction))
 
             # Sort by priority (lower = better)
@@ -3473,16 +3356,19 @@ Rules:
                 if line in seen_lines:
                     continue
                 seen_lines.add(line)
-                lines.append(line)
 
-                # 1-hop enrichment for time-span targets
+                # 1-hop enrichment: replace time-span UUID with resolved dates
                 if direction == "outgoing" and t.get("predicate") in TIME_SPAN_PREDICATES:
-                    dates = _resolve_time_span(other_uri)
-                    for date_key, date_val in dates.items():
-                        date_line = f"  - {date_key}: {date_val}"
-                        if date_line not in seen_lines:
-                            seen_lines.add(date_line)
-                            lines.append(date_line)
+                    dates = _resolve_time_span(other_uri, triples_index)
+                    if dates:
+                        for date_key, date_val in dates.items():
+                            date_line = f"  - {date_key}: {date_val}"
+                            if date_line not in seen_lines:
+                                seen_lines.add(date_line)
+                                lines.append(date_line)
+                        continue  # skip the raw time-span UUID line
+
+                lines.append(line)
 
             if not lines:
                 continue
@@ -3514,49 +3400,38 @@ Rules:
                     f"{len(result)} chars")
         return result
 
-    def answer_question(self, question, include_wikidata=True, chat_history=None):
-        """Answer a question using the universal RAG system with CIDOC-CRM knowledge and optional Wikidata context.
+    # ==================== Query Preparation ====================
 
-        Args:
-            question: The user's question
-            include_wikidata: Whether to fetch Wikidata context
-            chat_history: Optional list of {"role": "user"|"assistant", "content": str} dicts
-                         for conversation context (most recent last)
+    _EXCLUSION_PATTERNS = [
+        r'\b(?:aside\s+from|other\s+than|besides|apart\s+from|excluding|except(?:\s+for)?)\s+([^,?.!]+)',
+    ]
+
+    _VAGUE_STOPWORDS = frozenset({
+        'it', 'they', 'them', 'this', 'that', 'these', 'those',
+        'the', 'a', 'an', 'is', 'are', 'was', 'were', 'has', 'have',
+        'had', 'do', 'did', 'does', 'when', 'where', 'what', 'how',
+        'and', 'or', 'with', 'which', 'other', 'more', 'its', 'of',
+        'in', 'to', 'for', 'about', 'me', 'tell', 'happened', 'took',
+        'place', 'there', 'any',
+    })
+
+    def _prepare_retrieval(self, question, chat_history, k, initial_pool_size, query_analysis):
+        """Determine retrieval strategy and run retrieval.
+
+        Handles topic-pivot detection, dual retrieval with chat context,
+        and vague follow-up detection.
+
+        Returns:
+            List of retrieved GraphDocument objects.
         """
-        # Validate input
-        if not question or not question.strip():
-            return {
-                "answer": "Please provide a question.",
-                "sources": []
-            }
-
-        logger.info(f"Answering question directly: '{question}'")
-
-        # LLM-based query analysis for dynamic k and FC-aware boosting
-        query_analysis = self._analyze_query(question)
-
-        # Dynamic k based on query type
-        k_map = {
-            "SPECIFIC": RetrievalConfig.SPECIFIC_K,
-            "ENUMERATION": RetrievalConfig.ENUMERATION_K,
-            "AGGREGATION": RetrievalConfig.AGGREGATION_K,
-        }
-        k = k_map.get(query_analysis.query_type, RetrievalConfig.DEFAULT_RETRIEVAL_K)
-        initial_pool_size = k * RetrievalConfig.POOL_MULTIPLIER
-        logger.info(f"Dynamic retrieval: type={query_analysis.query_type}, k={k}, pool={initial_pool_size}")
-
         # Detect topic-pivot / exclusion patterns (e.g. "aside from X", "other than X")
-        _EXCLUSION_PATTERNS = [
-            r'\b(?:aside\s+from|other\s+than|besides|apart\s+from|excluding|except(?:\s+for)?)\s+([^,?.!]+)',
-        ]
         excluded_entities = []
         is_pivot_query = False
-        for pat in _EXCLUSION_PATTERNS:
+        for pat in self._EXCLUSION_PATTERNS:
             match = re.search(pat, question, re.IGNORECASE)
             if match:
                 is_pivot_query = True
                 excluded_name = match.group(1).strip()
-                # Split on "and"/"or" to handle "aside from Hodler and Amiet"
                 for part in re.split(r'\s+(?:and|or)\s+', excluded_name):
                     part = part.strip().rstrip(',')
                     if part:
@@ -3566,110 +3441,80 @@ Rules:
         clean_query = question
         if is_pivot_query:
             logger.info(f"Topic pivot detected — excluded entities: {excluded_entities}")
-            # Build clean query: remove the exclusion clause and entity names
-            for pat in _EXCLUSION_PATTERNS:
+            for pat in self._EXCLUSION_PATTERNS:
                 clean_query = re.sub(pat, '', clean_query, flags=re.IGNORECASE)
-            # Also remove any remaining mentions of excluded entity names
             for entity in excluded_entities:
                 clean_query = re.sub(r'\b' + re.escape(entity) + r'\b', '', clean_query, flags=re.IGNORECASE)
             clean_query = re.sub(r'\s+', ' ', clean_query).strip().rstrip(',').strip()
             if not clean_query:
-                clean_query = question  # fallback if cleaning removed everything
+                clean_query = question
             logger.info(f"Cleaned pivot query: '{clean_query}'")
 
-        if chat_history:
-            if is_pivot_query:
-                # Topic pivot: skip contextualized retrieval entirely — user is
-                # explicitly moving away from the previous topic, so prepending
-                # the last question would pollute the embedding with the excluded entity
-                logger.info(f"Pivot query: using cleaned raw retrieval only ('{clean_query}')")
-                retrieved_docs = self.retrieve(clean_query, k=k, initial_pool_size=initial_pool_size, query_analysis=query_analysis)
-            else:
-                # Dual retrieval: run contextualized query AND raw question separately,
-                # then merge.  The contextualized query uses only the immediately
-                # previous user message (not the current one, which is already the raw
-                # query).  This avoids two bugs:
-                #   1. Current question was duplicated (already in chat_history + appended)
-                #   2. Multiple previous topics polluted the embedding
-                prev_user_msgs = [
-                    m["content"] for m in chat_history[:-1] if m["role"] == "user"
-                ]
-                if prev_user_msgs:
-                    contextualized_query = f"{prev_user_msgs[-1]} {question}"
-                else:
-                    contextualized_query = question
-                logger.info(f"Dual retrieval — contextualized: '{contextualized_query[:200]}'")
-                logger.info(f"Dual retrieval — raw: '{question}'")
+        retrieval_kwargs = dict(k=k, initial_pool_size=initial_pool_size, query_analysis=query_analysis)
 
-                ctx_docs = self.retrieve(contextualized_query, k=k, initial_pool_size=initial_pool_size, query_analysis=query_analysis)
+        if not chat_history:
+            return self.retrieve(question, **retrieval_kwargs)
 
-                # Detect vague follow-ups: short questions dominated by pronouns/stopwords
-                # For these, the raw FAISS query retrieves irrelevant results, so skip it
-                q_words = set(re.findall(r'\b[a-z]+\b', question.lower()))
-                stopwords = {'it', 'they', 'them', 'this', 'that', 'these', 'those',
-                             'the', 'a', 'an', 'is', 'are', 'was', 'were', 'has', 'have',
-                             'had', 'do', 'did', 'does', 'when', 'where', 'what', 'how',
-                             'and', 'or', 'with', 'which', 'other', 'more', 'its', 'of',
-                             'in', 'to', 'for', 'about', 'me', 'tell', 'happened', 'took',
-                             'place', 'there', 'any'}
-                content_words = q_words - stopwords
-                is_vague = len(content_words) == 0 and len(question.split()) <= 10
-                if is_vague:
-                    logger.info(f"Vague follow-up detected, skipping raw retrieval: '{question}'")
+        if is_pivot_query:
+            logger.info(f"Pivot query: using cleaned raw retrieval only ('{clean_query}')")
+            return self.retrieve(clean_query, **retrieval_kwargs)
 
-                if is_vague:
-                    retrieved_docs = ctx_docs[:k]
-                else:
-                    raw_docs = self.retrieve(question, k=k, initial_pool_size=initial_pool_size, query_analysis=query_analysis)
+        # Dual retrieval: contextualized + raw, then interleaved merge
+        prev_user_msgs = [m["content"] for m in chat_history[:-1] if m["role"] == "user"]
+        contextualized_query = f"{prev_user_msgs[-1]} {question}" if prev_user_msgs else question
+        logger.info(f"Dual retrieval — contextualized: '{contextualized_query[:200]}'")
+        logger.info(f"Dual retrieval — raw: '{question}'")
 
-                    # Interleaved merge: alternate ctx and raw results so raw query
-                    # gets fair representation instead of being pushed to the tail
-                    seen_uris = set()
-                    retrieved_docs = []
-                    for i in range(max(len(ctx_docs), len(raw_docs))):
-                        if i < len(ctx_docs) and ctx_docs[i].id not in seen_uris:
-                            seen_uris.add(ctx_docs[i].id)
-                            retrieved_docs.append(ctx_docs[i])
-                        if i < len(raw_docs) and raw_docs[i].id not in seen_uris:
-                            seen_uris.add(raw_docs[i].id)
-                            retrieved_docs.append(raw_docs[i])
-                    retrieved_docs = retrieved_docs[:k]
-                    logger.info(f"Dual retrieval merged: {len(retrieved_docs)} unique docs "
-                                f"(ctx={len(ctx_docs)}, raw={len(raw_docs)})")
-        else:
-            retrieved_docs = self.retrieve(question, k=k, initial_pool_size=initial_pool_size, query_analysis=query_analysis)
+        ctx_docs = self.retrieve(contextualized_query, **retrieval_kwargs)
 
-        if not retrieved_docs:
-            return {
-                "answer": "I couldn't find relevant information to answer your question.",
-                "sources": []
-            }
+        # Detect vague follow-ups: short questions dominated by pronouns/stopwords
+        q_words = set(re.findall(r'\b[a-z]+\b', question.lower()))
+        content_words = q_words - self._VAGUE_STOPWORDS
+        is_vague = len(content_words) == 0 and len(question.split()) <= 10
+        if is_vague:
+            logger.info(f"Vague follow-up detected, skipping raw retrieval: '{question}'")
+            return ctx_docs[:k]
 
-        # Create context from retrieved documents with better references
+        raw_docs = self.retrieve(question, **retrieval_kwargs)
+
+        # Interleaved merge: alternate ctx and raw for fair representation
+        seen_uris = set()
+        merged = []
+        for i in range(max(len(ctx_docs), len(raw_docs))):
+            if i < len(ctx_docs) and ctx_docs[i].id not in seen_uris:
+                seen_uris.add(ctx_docs[i].id)
+                merged.append(ctx_docs[i])
+            if i < len(raw_docs) and raw_docs[i].id not in seen_uris:
+                seen_uris.add(raw_docs[i].id)
+                merged.append(raw_docs[i])
+        merged = merged[:k]
+        logger.info(f"Dual retrieval merged: {len(merged)} unique docs "
+                    f"(ctx={len(ctx_docs)}, raw={len(raw_docs)})")
+        return merged
+
+    # ==================== Answer Generation ====================
+
+    def _generate_answer(self, question, retrieved_docs, query_analysis,
+                         include_wikidata, chat_history):
+        """Build context, call LLM, assemble sources.
+
+        Returns:
+            Dict with "answer" and "sources" keys.
+        """
+        # Build document context and collect Wikidata candidates
         context = ""
-
-        # Track Wikidata IDs for retrieved entities
-        wikidata_context = ""
         entities_with_wikidata = []
 
-        # Truncate each doc if needed to prevent rate limit errors
-        # Roughly 4 chars per token, limit ~500 tokens per doc
-        MAX_DOC_CHARS = 2000
-
-        for i, doc in enumerate(retrieved_docs):
+        for doc in retrieved_docs:
             entity_uri = doc.id
             entity_label = doc.metadata.get("label", entity_uri.split('/')[-1])
 
-            # Build context without technical type information
             context += f"Entity: {entity_label}\n"
             doc_text = doc.text
-            if len(doc_text) > MAX_DOC_CHARS:
-                doc_text = doc_text[:MAX_DOC_CHARS] + "...[truncated]"
-            context += doc_text + "\n"
+            if len(doc_text) > RetrievalConfig.MAX_DOC_CHARS:
+                doc_text = doc_text[:RetrievalConfig.MAX_DOC_CHARS] + "...[truncated]"
+            context += doc_text + "\n\n"
 
-            context += "\n"
-
-            # Get Wikidata info if available and requested
             if include_wikidata:
                 wikidata_id = self.get_wikidata_for_entity(entity_uri)
                 if wikidata_id:
@@ -3679,33 +3524,29 @@ Rules:
                         "wikidata_id": wikidata_id
                     })
 
-        # Add structured triples enrichment from edges.parquet
+        # Add structured triples enrichment
         triples_enrichment = self._build_triples_enrichment(retrieved_docs)
         if triples_enrichment:
-            context += "\n## Structured Relationships\n\n"
-            context += triples_enrichment + "\n"
+            context += "\n## Structured Relationships\n\n" + triples_enrichment + "\n"
 
-        # Add pre-computed aggregation statistics for AGGREGATION/ENUMERATION queries
+        # Add aggregation statistics for ENUMERATION/AGGREGATION queries
         if query_analysis.query_type in ("AGGREGATION", "ENUMERATION"):
             agg_context = self._build_aggregation_context(query_analysis, retrieved_docs)
             if agg_context:
-                context += "\n## Dataset Statistics (pre-computed from full knowledge graph)\n\n"
-                context += agg_context + "\n"
+                context += "\n## Dataset Statistics (pre-computed from full knowledge graph)\n\n" + agg_context + "\n"
 
-        # If requested, fetch Wikidata information for top 2 most relevant entities
+        # Fetch Wikidata context for top 2 entities
+        wikidata_context = ""
         if include_wikidata and entities_with_wikidata:
             wikidata_context += "\nWikidata Context:\n"
-            for entity_info in entities_with_wikidata[:2]:  # Limit to top 2 entities
+            for entity_info in entities_with_wikidata[:2]:
                 wikidata_data = self.fetch_wikidata_info(entity_info["wikidata_id"])
                 if wikidata_data:
                     wikidata_context += f"\nWikidata information for {entity_info['entity_label']} ({entity_info['wikidata_id']}):\n"
-
                     if "label" in wikidata_data:
                         wikidata_context += f"- Label: {wikidata_data['label']}\n"
-
                     if "description" in wikidata_data:
                         wikidata_context += f"- Description: {wikidata_data['description']}\n"
-
                     if "properties" in wikidata_data:
                         for prop_name, prop_value in wikidata_data["properties"].items():
                             if isinstance(prop_value, dict) and "latitude" in prop_value:
@@ -3714,14 +3555,11 @@ Rules:
                                 wikidata_context += f"- {prop_name.replace('_', ' ').title()}: {', '.join(str(v) for v in prop_value)}\n"
                             else:
                                 wikidata_context += f"- {prop_name.replace('_', ' ').title()}: {prop_value}\n"
-
                     if "wikipedia" in wikidata_data:
                         wikidata_context += f"- Wikipedia: {wikidata_data['wikipedia']['title']}\n"
 
-        # Get CIDOC-CRM system prompt
+        # Build system prompt
         system_prompt = self.get_cidoc_system_prompt()
-
-        # Query-type-aware prompt tuning
         if query_analysis.query_type == "ENUMERATION":
             system_prompt += "\nList ALL matching entities from the retrieved information. Be comprehensive."
         elif query_analysis.query_type == "AGGREGATION":
@@ -3731,42 +3569,35 @@ Rules:
                 "from the full knowledge graph is included when available — use these "
                 "statistics for accurate counts. State if the count may be incomplete."
             )
-
-        # Add Wikidata instructions to system prompt
         if include_wikidata and wikidata_context:
             system_prompt += "\n\nI have also provided Wikidata information for some entities. When appropriate, incorporate this Wikidata information to enhance your answer with additional context, especially for factual details not present in the RDF data."
 
-        # Create enhanced prompt
+        # Build user prompt
         prompt = ""
-
-        # Include conversation history for follow-up context
         if chat_history:
             prompt += "Conversation so far:\n"
-            for msg in chat_history[-6:]:  # Last 3 exchanges
+            for msg in chat_history[-6:]:
                 role = "User" if msg["role"] == "user" else "Assistant"
                 prompt += f"{role}: {msg['content']}\n"
             prompt += "\n"
 
-        prompt += f"""Retrieved information:
-{context}
-"""
-
-        # Add Wikidata context if available
+        prompt += f"Retrieved information:\n{context}\n"
         if include_wikidata and wikidata_context:
             prompt += f"{wikidata_context}\n"
+        prompt += f"\nQuestion: {question}\n\nAnswer directly using only the retrieved information above. Use entity names, not codes.\n"
 
-        prompt += f"""
-Question: {question}
-
-Answer directly using only the retrieved information above. Use entity names, not codes.
-"""
-
-        # Generate answer using the provider
+        # Generate answer
         answer = self.llm_provider.generate(system_prompt, prompt)
 
-        # Prepare sources
+        # Build sources
+        sources = self._build_sources(retrieved_docs, entities_with_wikidata)
+
+        return {"answer": answer, "sources": sources}
+
+    def _build_sources(self, retrieved_docs, entities_with_wikidata):
+        """Build source entries from retrieved docs, enriched with images and Wikidata."""
         sources = []
-        entities_with_local_images = set()  # Track entities that have local images
+        entities_with_local_images = set()
 
         for i, doc in enumerate(retrieved_docs):
             entity_uri = doc.id
@@ -3783,24 +3614,15 @@ Answer directly using only the retrieved information above. Use entity names, no
                 "raw_triples": raw_triples
             }
 
-            # Add local images if present (priority over Wikidata)
             if local_images:
                 entities_with_local_images.add(entity_uri)
-                source_entry["images"] = [
-                    {
-                        "url": img_url,
-                        "source": "dataset"
-                    }
-                    for img_url in local_images
-                ]
+                source_entry["images"] = [{"url": img_url, "source": "dataset"} for img_url in local_images]
                 logger.info(f"Using {len(local_images)} local image(s) for {entity_label}")
 
             sources.append(source_entry)
 
-        # Enrich existing graph sources with Wikidata info (images, IDs)
-        # Build URI→source index for fast lookup
+        # Enrich with Wikidata IDs and images
         source_by_uri = {s["entity_uri"]: s for s in sources}
-
         for entity_info in entities_with_wikidata:
             entity_uri = entity_info["entity_uri"]
             existing = source_by_uri.get(entity_uri)
@@ -3810,44 +3632,72 @@ Answer directly using only the retrieved information above. Use entity names, no
             existing["wikidata_id"] = entity_info["wikidata_id"]
             existing["wikidata_url"] = f"https://www.wikidata.org/wiki/{entity_info['wikidata_id']}"
 
-            has_local_images = entity_uri in entities_with_local_images
-
-            # Only fetch Wikidata image if no local images exist
-            if has_local_images:
+            if entity_uri in entities_with_local_images:
                 logger.debug(f"Skipping Wikidata image for {entity_info['entity_label']} - local images available")
-            else:
-                # Fetch Wikidata info to get image (P18)
-                wikidata_data = self.fetch_wikidata_info(entity_info["wikidata_id"])
-                if wikidata_data and "properties" in wikidata_data:
-                    image_value = wikidata_data["properties"].get("image")
-                    if image_value:
-                        try:
-                            # Handle both single image and array of images
-                            if isinstance(image_value, list):
-                                image_filename = image_value[0] if image_value else None
-                            else:
-                                image_filename = image_value
+                continue
 
-                            if image_filename:
-                                if isinstance(image_filename, bytes):
-                                    image_filename_str = image_filename.decode('utf-8')
-                                else:
-                                    image_filename_str = str(image_filename)
+            wikidata_data = self.fetch_wikidata_info(entity_info["wikidata_id"])
+            if wikidata_data and "properties" in wikidata_data:
+                image_value = wikidata_data["properties"].get("image")
+                if image_value:
+                    try:
+                        image_filename = image_value[0] if isinstance(image_value, list) else image_value
+                        if image_filename:
+                            image_filename_str = image_filename.decode('utf-8') if isinstance(image_filename, bytes) else str(image_filename)
+                            encoded_filename = quote(image_filename_str, safe='')
+                            existing["image"] = {
+                                "url": f"https://commons.wikimedia.org/wiki/File:{encoded_filename}",
+                                "thumbnail_url": f"https://commons.wikimedia.org/wiki/Special:FilePath/{encoded_filename}?width=300",
+                                "full_url": f"https://commons.wikimedia.org/wiki/Special:FilePath/{encoded_filename}",
+                                "filename": image_filename_str,
+                                "source": "wikidata_p18"
+                            }
+                            logger.info(f"Found Wikidata image for {entity_info['entity_label']}: {image_filename_str}")
+                    except Exception as e:
+                        logger.warning(f"Error processing image filename for {entity_info['entity_label']}: {e}")
 
-                                encoded_filename = quote(image_filename_str, safe='')
+        return sources
 
-                                existing["image"] = {
-                                    "url": f"https://commons.wikimedia.org/wiki/File:{encoded_filename}",
-                                    "thumbnail_url": f"https://commons.wikimedia.org/wiki/Special:FilePath/{encoded_filename}?width=300",
-                                    "full_url": f"https://commons.wikimedia.org/wiki/Special:FilePath/{encoded_filename}",
-                                    "filename": image_filename_str,
-                                    "source": "wikidata_p18"
-                                }
-                                logger.info(f"Found Wikidata image for {entity_info['entity_label']}: {image_filename_str}")
-                        except Exception as e:
-                            logger.warning(f"Error processing image filename for {entity_info['entity_label']}: {e}")
+    # ==================== Main Entry Point ====================
 
-        return {
-            "answer": answer,
-            "sources": sources
+    def answer_question(self, question, include_wikidata=True, chat_history=None):
+        """Answer a question using the RAG pipeline.
+
+        Orchestrates three phases:
+        1. Query analysis + retrieval strategy (_prepare_retrieval)
+        2. Hybrid retrieval pipeline (retrieve)
+        3. Context assembly + LLM generation (_generate_answer)
+
+        Args:
+            question: The user's question
+            include_wikidata: Whether to fetch Wikidata context
+            chat_history: Optional list of {"role": "user"|"assistant", "content": str} dicts
+        """
+        if not question or not question.strip():
+            return {"answer": "Please provide a question.", "sources": []}
+
+        logger.info(f"Answering question: '{question}'")
+
+        # Phase 1: Query analysis
+        query_analysis = self._analyze_query(question)
+        k_map = {
+            "SPECIFIC": RetrievalConfig.SPECIFIC_K,
+            "ENUMERATION": RetrievalConfig.ENUMERATION_K,
+            "AGGREGATION": RetrievalConfig.AGGREGATION_K,
         }
+        k = k_map.get(query_analysis.query_type, RetrievalConfig.DEFAULT_RETRIEVAL_K)
+        initial_pool_size = k * RetrievalConfig.POOL_MULTIPLIER
+        logger.info(f"Dynamic retrieval: type={query_analysis.query_type}, k={k}, pool={initial_pool_size}")
+
+        # Phase 2: Retrieval (handles pivot detection, dual retrieval, vague follow-ups)
+        retrieved_docs = self._prepare_retrieval(
+            question, chat_history, k, initial_pool_size, query_analysis
+        )
+
+        if not retrieved_docs:
+            return {"answer": "I couldn't find relevant information to answer your question.", "sources": []}
+
+        # Phase 3: Context assembly + LLM answer generation
+        return self._generate_answer(
+            question, retrieved_docs, query_analysis, include_wikidata, chat_history
+        )

@@ -94,9 +94,6 @@ class RetrievalConfig:
     # Score combination weights
     RELEVANCE_CONNECTIVITY_ALPHA = 0.7  # Weight for combining relevance and connectivity scores
 
-    # Rate limiting
-    TOKENS_PER_MINUTE_LIMIT = 950_000  # Token limit for rate limiting (TPM)
-
     # Retrieval parameters
     DEFAULT_RETRIEVAL_K = 10  # Default number of documents to retrieve
     SPECIFIC_K = 10            # k for specific entity queries
@@ -2456,7 +2453,7 @@ Each file contains:
 
         # Global rate limit tracking (only used for API-based embeddings)
         global_token_count = 0
-        tokens_per_min_limit = RetrievalConfig.TOKENS_PER_MINUTE_LIMIT
+        tokens_per_min_limit = int(self.config.get("tokens_per_minute"))
         last_reset_time = time.time()
 
         # Check embedding cache for already processed entities

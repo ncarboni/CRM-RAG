@@ -83,6 +83,8 @@ class ConfigLoader:
                 "embedding_model": os.environ.get("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"),
                 "max_tokens": int(os.environ.get("OPENAI_MAX_TOKENS", "4096")),
                 # Concurrent embedding configuration (for parallel API calls)
+                "tokens_per_minute": int(os.environ.get("TOKENS_PER_MINUTE", "1000000")),
+                "requests_per_minute": int(os.environ.get("REQUESTS_PER_MINUTE", "500")),
                 "embedding_max_concurrent": int(os.environ.get("EMBEDDING_MAX_CONCURRENT", "10")),
                 "embedding_retry_attempts": int(os.environ.get("EMBEDDING_RETRY_ATTEMPTS", "3")),
                 "embedding_retry_delay": float(os.environ.get("EMBEDDING_RETRY_DELAY", "1.0")),

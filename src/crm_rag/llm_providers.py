@@ -109,7 +109,8 @@ class OpenAIProvider(BaseLLMProvider):
     def __init__(self, api_key: str, model: str = "gpt-4o", embedding_model: str = "text-embedding-3-small",
                  temperature: float = 0.7, max_tokens: Optional[int] = None,
                  embedding_max_concurrent: int = 10, embedding_retry_attempts: int = 3,
-                 embedding_retry_delay: float = 1.0, embedding_chunk_size: int = 100):
+                 embedding_retry_delay: float = 1.0, embedding_chunk_size: int = 100,
+                 tokens_per_minute: int = 1_000_000, requests_per_minute: int = 500):
         """
         Initialize OpenAI provider.
 
@@ -123,6 +124,8 @@ class OpenAIProvider(BaseLLMProvider):
             embedding_retry_attempts: Retry attempts per chunk on failure (default: 3)
             embedding_retry_delay: Base delay for exponential backoff in seconds (default: 1.0)
             embedding_chunk_size: Number of texts per API request (default: 100)
+            tokens_per_minute: TPM rate limit for embeddings (default: 1,000,000)
+            requests_per_minute: RPM rate limit for embeddings (default: 500)
         """
         self.api_key = api_key
         self.model = model
@@ -137,6 +140,15 @@ class OpenAIProvider(BaseLLMProvider):
         self.embedding_retry_attempts = embedding_retry_attempts
         self.embedding_retry_delay = embedding_retry_delay
         self.embedding_chunk_size = embedding_chunk_size
+        self.tokens_per_minute = tokens_per_minute
+        self.requests_per_minute = requests_per_minute
+
+        # Minimum delay between API requests derived from RPM (avoids burst 429s)
+        self._min_request_interval = 60.0 / requests_per_minute
+
+        # Persistent TPM tracking across calls
+        self._tpm_token_count = 0
+        self._tpm_window_start = time.time()
         
     def generate(self, system_prompt: str, user_prompt: str) -> str:
         """Generate a response using OpenAI API"""
@@ -160,7 +172,8 @@ class OpenAIProvider(BaseLLMProvider):
         if self._embeddings is None:
             self._embeddings = OpenAIEmbeddings(
                 model=self.embedding_model,
-                openai_api_key=self.api_key
+                openai_api_key=self.api_key,
+                chunk_size=2048
             )
 
         return self._embeddings.embed_query(text)
@@ -196,7 +209,8 @@ class OpenAIProvider(BaseLLMProvider):
         if self._embeddings is None:
             self._embeddings = OpenAIEmbeddings(
                 model=self.embedding_model,
-                openai_api_key=self.api_key
+                openai_api_key=self.api_key,
+                chunk_size=2048
             )
 
         # embed_documents sends texts in batches to the API (default chunk_size=1000)
@@ -319,7 +333,8 @@ class OpenAIProvider(BaseLLMProvider):
         if self._embeddings is None:
             self._embeddings = OpenAIEmbeddings(
                 model=self.embedding_model,
-                openai_api_key=self.api_key
+                openai_api_key=self.api_key,
+                chunk_size=2048
             )
 
         # Get length thresholds for dynamic batching
@@ -376,7 +391,8 @@ class OpenAIProvider(BaseLLMProvider):
                         # Create a new embeddings instance for thread safety
                         embeddings = OpenAIEmbeddings(
                             model=self.embedding_model,
-                            openai_api_key=self.api_key
+                            openai_api_key=self.api_key,
+                            chunk_size=2048
                         )
                         result = embeddings.embed_documents(chunk_texts)
                         # Pair embeddings with their original indices
@@ -406,19 +422,59 @@ class OpenAIProvider(BaseLLMProvider):
                 logger.error(f"Failed to embed chunk {chunk_idx} after {self.embedding_retry_attempts} attempts: {last_exception}")
                 return (chunk_idx, None)
 
-        # Process chunks concurrently
+        # Process chunks with RPM + TPM pacing (persistent across calls)
         completed_chunks = 0
-        with ThreadPoolExecutor(max_workers=self.embedding_max_concurrent) as executor:
-            # Submit chunks - each chunk is (chunk_id, [(original_idx, text), ...])
-            futures = {executor.submit(process_chunk, chunk_id, chunk_items): chunk_id
-                       for chunk_id, chunk_items in chunks}
+        last_submit_time = 0.0
 
+        logger.info(f"Rate limits: {self.requests_per_minute} RPM, {self.tokens_per_minute:,} TPM "
+                    f"(min interval: {self._min_request_interval*1000:.0f}ms)")
+
+        with ThreadPoolExecutor(max_workers=self.embedding_max_concurrent) as executor:
+            futures = {}
+            for chunk_id, chunk_items in chunks:
+                chunk_tokens = sum(len(text) // 4 for _, text in chunk_items)
+
+                # TPM gate: reset window if 60s elapsed, otherwise wait if over budget
+                now = time.time()
+                elapsed = now - self._tpm_window_start
+                if elapsed >= 60:
+                    self._tpm_token_count = 0
+                    self._tpm_window_start = now
+                elif self._tpm_token_count + chunk_tokens > self.tokens_per_minute:
+                    wait_time = 60 - elapsed + 1
+                    logger.info(f"TPM throttle: {self._tpm_token_count:,}+{chunk_tokens:,} > "
+                                f"{self.tokens_per_minute:,}, waiting {wait_time:.0f}s")
+                    time.sleep(wait_time)
+                    self._tpm_token_count = 0
+                    self._tpm_window_start = time.time()
+
+                # RPM pacing: wait between submissions to avoid burst 429s
+                since_last = time.time() - last_submit_time
+                if since_last < self._min_request_interval:
+                    time.sleep(self._min_request_interval - since_last)
+
+                self._tpm_token_count += chunk_tokens
+                last_submit_time = time.time()
+                futures[executor.submit(process_chunk, chunk_id, chunk_items)] = chunk_id
+
+                # Backpressure: drain a completed future before submitting more
+                if len(futures) >= self.embedding_max_concurrent:
+                    done = next(as_completed(futures))
+                    chunk_idx, indexed_embeddings = done.result()
+                    completed_chunks += 1
+                    del futures[done]
+                    if indexed_embeddings is not None:
+                        for orig_idx, embedding in indexed_embeddings:
+                            results[orig_idx] = embedding
+                    else:
+                        errors.append((chunk_idx, Exception("Failed after retries")))
+
+            # Collect remaining futures
             for future in as_completed(futures):
                 chunk_idx, indexed_embeddings = future.result()
                 completed_chunks += 1
 
                 if indexed_embeddings is not None:
-                    # Store embeddings by original index
                     for orig_idx, embedding in indexed_embeddings:
                         results[orig_idx] = embedding
                     if completed_chunks % 5 == 0 or completed_chunks == len(chunks):
@@ -1081,7 +1137,9 @@ def get_llm_provider(provider_name: str, config: Dict[str, Any]) -> BaseLLMProvi
             embedding_max_concurrent=int(config.get("embedding_max_concurrent", 10)),
             embedding_retry_attempts=int(config.get("embedding_retry_attempts", 3)),
             embedding_retry_delay=float(config.get("embedding_retry_delay", 1.0)),
-            embedding_chunk_size=int(config.get("embedding_chunk_size", 100))
+            embedding_chunk_size=int(config.get("embedding_chunk_size", 100)),
+            tokens_per_minute=int(config.get("tokens_per_minute", 1_000_000)),
+            requests_per_minute=int(config.get("requests_per_minute", 500))
         )
     elif provider_name == "anthropic":
         provider = AnthropicProvider(

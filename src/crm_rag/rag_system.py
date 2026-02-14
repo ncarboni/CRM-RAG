@@ -469,6 +469,7 @@ class UniversalRagSystem:
         self._aggregation_index = {}
         self._parquet_writer = None
         self._parquet_triple_count = 0
+        self._seen_triple_hashes: set = set()
 
         # Create a secure session for HTTP requests (e.g., Wikidata API)
         # Disable trust_env to prevent .netrc credential leaks (CVE fix)
@@ -955,19 +956,32 @@ class UniversalRagSystem:
 
         Creates the file on first call, appends on subsequent calls.
         Uses a persistent ParquetWriter for efficient streaming writes.
+        Deduplicates by (subject, predicate, object) hash to avoid bloat
+        from 2-hop intermediates being re-fetched across chunks.
         """
         import pyarrow as pa
 
         if not triples:
             return
 
+        # Deduplicate: skip triples already written in earlier chunks
+        unique_triples = []
+        for t in triples:
+            h = hash((t["subject"], t["predicate"], t["object"]))
+            if h not in self._seen_triple_hashes:
+                self._seen_triple_hashes.add(h)
+                unique_triples.append(t)
+
+        if not unique_triples:
+            return
+
         table = pa.table({
-            "s": [t["subject"] for t in triples],
-            "s_label": [t.get("subject_label", "") for t in triples],
-            "p": [t["predicate"] for t in triples],
-            "p_label": [t.get("predicate_label", "") for t in triples],
-            "o": [t["object"] for t in triples],
-            "o_label": [t.get("object_label", "") for t in triples],
+            "s": [t["subject"] for t in unique_triples],
+            "s_label": [t.get("subject_label", "") for t in unique_triples],
+            "p": [t["predicate"] for t in unique_triples],
+            "p_label": [t.get("predicate_label", "") for t in unique_triples],
+            "o": [t["object"] for t in unique_triples],
+            "o_label": [t.get("object_label", "") for t in unique_triples],
         })
 
         if self._parquet_writer is None:
@@ -978,7 +992,7 @@ class UniversalRagSystem:
             self._parquet_triple_count = 0
 
         self._parquet_writer.write_table(table)
-        self._parquet_triple_count += len(triples)
+        self._parquet_triple_count += len(unique_triples)
 
     def _close_edges_parquet(self) -> None:
         """Close the incremental Parquet writer and log final stats."""
@@ -987,15 +1001,21 @@ class UniversalRagSystem:
             self._parquet_writer = None
             edges_path = self._get_edges_parquet_path()
             size_mb = os.path.getsize(edges_path) / (1024 * 1024)
-            logger.info(f"Saved {self._parquet_triple_count:,} triples to {edges_path} ({size_mb:.1f} MB)")
+            dedup_count = len(self._seen_triple_hashes)
+            logger.info(f"Saved {self._parquet_triple_count:,} unique triples to {edges_path} "
+                        f"({size_mb:.1f} MB, {dedup_count:,} seen hashes)")
             self._parquet_triple_count = 0
+            self._seen_triple_hashes.clear()
 
     def _load_triples_index(self):
         """Load Parquet edges file and build entity -> triples index.
 
-        Reads the enriched edges.parquet (6 columns: s, s_label, p, p_label, o, o_label)
-        and creates a dict mapping each entity URI to its list of triple dicts.
-        Each triple appears under both its subject and object URI.
+        Reads the enriched edges.parquet in batches (6 columns) and creates
+        a dict mapping each entity URI to its list of triple dicts.
+        Only indexes triples where subject or object is a document entity.
+        Deduplicates rows by (s, p, o) hash to handle legacy pre-dedup files.
+
+        Also builds actor work-count index in the same pass (no second iteration).
 
         Falls back gracefully if the file is missing or uses the old 3-column format.
         """
@@ -1008,56 +1028,86 @@ class UniversalRagSystem:
 
         import pyarrow.parquet as pq
 
-        table = pq.read_table(edges_path)
-        columns = set(table.column_names)
+        pf = pq.ParquetFile(edges_path)
+        schema_names = set(pf.schema_arrow.names)
 
         # Check for enriched format (6 columns with labels)
-        has_labels = {"s_label", "p_label", "o_label"}.issubset(columns)
+        has_labels = {"s_label", "p_label", "o_label"}.issubset(schema_names)
         if not has_labels:
             logger.warning("edges.parquet uses old 3-column format — re-generate docs to get labels")
             self._triples_index = {}
             self._actor_work_counts = {}
             return
 
+        total_rows = pf.metadata.num_rows
+        logger.info(f"Loading triples index from {edges_path} ({total_rows:,} rows, batched)...")
+
+        doc_uris = set(self.document_store.docs.keys()) if self.document_store else set()
         index = {}
-        for s, s_label, p, p_label, o, o_label in zip(
-            table.column("s"), table.column("s_label"),
-            table.column("p"), table.column("p_label"),
-            table.column("o"), table.column("o_label"),
-        ):
-            triple = {
-                "subject": s.as_py(),
-                "subject_label": s_label.as_py(),
-                "predicate": p.as_py(),
-                "predicate_label": p_label.as_py(),
-                "object": o.as_py(),
-                "object_label": o_label.as_py(),
-            }
-            index.setdefault(triple["subject"], []).append(triple)
-            index.setdefault(triple["object"], []).append(triple)
+        seen = set()  # dedup by (s, p, o) hash for legacy files
+        rows_processed = 0
+        rows_deduped = 0
+
+        # Actor work-count structures (built in same pass)
+        creation_to_actors = {}   # event_uri → [actor_uri, ...]
+        work_to_events = {}       # work_uri → [event_uri, ...]
+
+        for batch in pf.iter_batches(batch_size=500_000):
+            s_col = batch.column("s")
+            s_label_col = batch.column("s_label")
+            p_col = batch.column("p")
+            p_label_col = batch.column("p_label")
+            o_col = batch.column("o")
+            o_label_col = batch.column("o_label")
+
+            for i in range(len(batch)):
+                s_py = s_col[i].as_py()
+                p_py = p_col[i].as_py()
+                o_py = o_col[i].as_py()
+
+                # Dedup
+                h = hash((s_py, p_py, o_py))
+                if h in seen:
+                    rows_deduped += 1
+                    continue
+                seen.add(h)
+                rows_processed += 1
+
+                # Actor work-count: track production chains (all triples, not just doc entities)
+                local = p_py.split("/")[-1].split("#")[-1]
+                if "P14_carried_out_by" in local or "P14i_performed" in local:
+                    if local.endswith("_carried_out_by"):
+                        creation_to_actors.setdefault(s_py, []).append(o_py)
+                    else:  # P14i: actor → event
+                        creation_to_actors.setdefault(o_py, []).append(s_py)
+                elif "P108i_was_produced_by" in local:
+                    work_to_events.setdefault(s_py, []).append(o_py)
+                elif "P16i_was_used_for" in local:
+                    if any(pat in o_py for pat in ("/creation", "/edition", "/impression")):
+                        work_to_events.setdefault(s_py, []).append(o_py)
+
+                # Triples index: only index if subject or object is a doc entity
+                s_in_docs = s_py in doc_uris
+                o_in_docs = o_py in doc_uris
+                if not s_in_docs and not o_in_docs:
+                    continue
+
+                triple = {
+                    "subject": s_py,
+                    "subject_label": s_label_col[i].as_py(),
+                    "predicate": p_py,
+                    "predicate_label": p_label_col[i].as_py(),
+                    "object": o_py,
+                    "object_label": o_label_col[i].as_py(),
+                }
+                if s_in_docs:
+                    index.setdefault(s_py, []).append(triple)
+                if o_in_docs:
+                    index.setdefault(o_py, []).append(triple)
 
         self._triples_index = index
 
-        # Build actor work-count index by tracing production chains:
-        # Work →[P108i]→ creation/impression →[P14]→ actor
-        # Work →[P16i]→ edition/creation/impression →[P14]→ actor
-        creation_to_actors = {}   # event_uri → [actor_uri, ...]
-        work_to_events = {}       # work_uri → [event_uri, ...]
-        for s, p, o in zip(table.column("s"), table.column("p"), table.column("o")):
-            s_py, p_py, o_py = s.as_py(), p.as_py(), o.as_py()
-            local = p_py.split("/")[-1].split("#")[-1]
-            if "P14_carried_out_by" in local or "P14i_performed" in local:
-                if local.endswith("_carried_out_by"):
-                    creation_to_actors.setdefault(s_py, []).append(o_py)
-                else:  # P14i: actor → event
-                    creation_to_actors.setdefault(o_py, []).append(s_py)
-            elif "P108i_was_produced_by" in local:
-                work_to_events.setdefault(s_py, []).append(o_py)
-            elif "P16i_was_used_for" in local:
-                # Only count production-type events (creation/edition/impression)
-                if any(pat in o_py for pat in ("/creation", "/edition", "/impression")):
-                    work_to_events.setdefault(s_py, []).append(o_py)
-
+        # Build actor work-count index from production chains
         actor_work_counts = {}
         for work_uri, event_uris in work_to_events.items():
             counted_actors = set()
@@ -1084,8 +1134,9 @@ class UniversalRagSystem:
             logger.info(f"Actor work-count index: {len(actor_work_counts)} actors, "
                         f"top: {', '.join(top_labels)}")
 
-        logger.info(f"Loaded triples index from {edges_path}: "
-                    f"{len(table)} triples, {len(index)} entities indexed")
+        dedup_msg = f", {rows_deduped:,} duplicates skipped" if rows_deduped else ""
+        logger.info(f"Loaded triples index: {rows_processed:,} unique triples, "
+                    f"{len(index):,} entities indexed{dedup_msg}")
 
     def _build_aggregation_index(self, all_fr_stats=None):
         """Build pre-computed aggregation metrics from FR traversal stats.
@@ -1311,10 +1362,11 @@ class UniversalRagSystem:
             self._aggregation_index = {}
 
     def _build_edges_from_parquet(self):
-        """Build edges from Parquet edges file. O(n*r) where r is number of triples.
+        """Build edges from Parquet edges file using batched reads.
 
-        Reads edges.parquet (saved during --generate-docs) and adds weighted edges
-        to the document store using proper CIDOC-CRM semantic weights.
+        Reads edges.parquet in 500K-row batches (only s/p/o columns) to avoid
+        loading the full file into memory. Adds weighted edges to the document
+        store using proper CIDOC-CRM semantic weights.
         """
         edges_path = os.path.join(os.path.dirname(self._path('documents')), "edges.parquet")
         if not os.path.exists(edges_path):
@@ -1323,27 +1375,33 @@ class UniversalRagSystem:
 
         import pyarrow.parquet as pq
 
-        logger.info(f"Loading edges from {edges_path}...")
-        table = pq.read_table(edges_path)
-        total_triples = len(table)
-        logger.info(f"Loaded {total_triples} triples")
+        logger.info(f"Loading edges from {edges_path} (batched)...")
+        pf = pq.ParquetFile(edges_path)
+        total_triples = pf.metadata.num_rows
+        logger.info(f"Parquet contains {total_triples:,} triples")
 
         doc_uris = set(self.document_store.docs.keys())
         edges_added = 0
         skipped = 0
 
-        for s, p, o in zip(table.column("s"), table.column("p"), table.column("o")):
-            s_str, p_str, o_str = s.as_py(), p.as_py(), o.as_py()
-            if s_str in doc_uris and o_str in doc_uris and s_str != o_str:
-                weight = _get_relationship_weight(p_str)
-                pred_name = p_str.split('/')[-1].split('#')[-1]
-                self.document_store.add_edge(s_str, o_str, pred_name, weight=weight)
-                edges_added += 1
-            else:
-                skipped += 1
+        for batch in pf.iter_batches(batch_size=500_000, columns=["s", "p", "o"]):
+            s_col = batch.column("s")
+            p_col = batch.column("p")
+            o_col = batch.column("o")
+            for i in range(len(batch)):
+                s_str = s_col[i].as_py()
+                p_str = p_col[i].as_py()
+                o_str = o_col[i].as_py()
+                if s_str in doc_uris and o_str in doc_uris and s_str != o_str:
+                    weight = _get_relationship_weight(p_str)
+                    pred_name = p_str.split('/')[-1].split('#')[-1]
+                    self.document_store.add_edge(s_str, o_str, pred_name, weight=weight)
+                    edges_added += 1
+                else:
+                    skipped += 1
 
-        logger.info(f"Added {edges_added} edges from Parquet file "
-                    f"({skipped} triples skipped — endpoints not in document store)")
+        logger.info(f"Added {edges_added:,} edges from Parquet file "
+                    f"({skipped:,} triples skipped — endpoints not in document store)")
 
 
     # ==================== FR-based Document Generation ====================

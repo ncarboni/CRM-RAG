@@ -2019,10 +2019,10 @@ class UniversalRagSystem:
         """Process RDF data into graph documents with enhanced CIDOC-CRM understanding"""
         logger.info("Processing RDF data with enhanced CIDOC-CRM understanding...")
 
-        # Get all entities
+        # Discover all data instance URIs (no literal pre-filtering)
         entities = self.get_all_entities()
         total_entities = len(entities)
-        logger.info(f"Found {total_entities} entities")
+        logger.info(f"Found {total_entities} data instance entities")
 
         # Clear entity_documents directory if it exists (using dataset-specific path)
         output_dir = self._path('documents')
@@ -2097,9 +2097,8 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         logger.info(f"Processing {total_entities} entities in {total_chunks} chunks of {chunk_size} (batch SPARQL)")
 
         for chunk_idx in range(0, total_entities, chunk_size):
-            chunk_entities = entities[chunk_idx:chunk_idx + chunk_size]
+            chunk_uris = entities[chunk_idx:chunk_idx + chunk_size]
             chunk_num = chunk_idx // chunk_size + 1
-            chunk_uris = [e["entity"] for e in chunk_entities]
 
             logger.info(f"=== Chunk {chunk_num}/{total_chunks} ({len(chunk_uris)} entities) ===")
 
@@ -2140,13 +2139,12 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
 
             # Phase B: Generate docs from pre-fetched data (zero SPARQL queries)
             # Filter out satellite entities
-            doc_entities = [e for e in chunk_entities if e["entity"] not in chunk_satellite_uris]
-            logger.info(f"  Phase B: Generating {len(doc_entities)} documents "
+            doc_uris = [uri for uri in chunk_uris if uri not in chunk_satellite_uris]
+            logger.info(f"  Phase B: Generating {len(doc_uris)} documents "
                         f"(skipping {len(chunk_satellite_uris)} satellites) (FR)...")
             chunk_docs = []  # List of (entity_uri, doc_text, metadata, cached_embedding)
 
-            for entity in tqdm(doc_entities, desc=f"Chunk {chunk_num}", unit="entity"):
-                entity_uri = entity["entity"]
+            for entity_uri in tqdm(doc_uris, desc=f"Chunk {chunk_num}", unit="entity"):
 
                 try:
                     literals = chunk_literals.get(entity_uri, {})
@@ -2579,16 +2577,25 @@ Rules:
 """
 
     def get_all_entities(self):
-        """Get all entities that have literal properties from SPARQL endpoint"""
+        """Get all data instance URIs from the SPARQL endpoint.
+
+        Discovers every IRI that appears as a subject and is not an ontology
+        schema element (class or property definition).  No literal filtering
+        is applied — downstream processing (FC mapping, FR traversal,
+        satellite absorption, thin-doc chaining) handles categorisation.
+
+        Returns:
+            List[str]: Entity URIs.
+        """
         query = """
         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX owl: <http://www.w3.org/2002/07/owl#>
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
-        SELECT DISTINCT ?entity ?property ?value
+        SELECT DISTINCT ?entity
         WHERE {
-            ?entity ?property ?value .
-            FILTER(isLiteral(?value))
+            ?entity ?p ?o .
+            FILTER(isIRI(?entity))
 
             # Exclude ontology schema elements (classes and properties)
             FILTER NOT EXISTS {
@@ -2613,36 +2620,20 @@ Rules:
             self.sparql.setQuery(query)
             results = self.sparql.query().convert()
 
-            # Group literals by entity
-            entity_map = {}
+            ontology_classes = UniversalRagSystem._ontology_classes or set()
+            skipped = 0
+            entities = []
+
             for result in results["results"]["bindings"]:
                 entity_uri = result["entity"]["value"]
-                prop = result["property"]["value"]
-                value = result["value"]["value"]
 
-                if entity_uri not in entity_map:
-                    entity_map[entity_uri] = {}
-
-                # Store literals by property, handling multiple values
-                prop_name = prop.split('/')[-1].split('#')[-1]
-                if prop_name not in entity_map[entity_uri]:
-                    entity_map[entity_uri][prop_name] = []
-                entity_map[entity_uri][prop_name].append(value)
-
-            # Convert to list format with labels, filtering out ontology classes
-            entities = []
-            ontology_classes = UniversalRagSystem._ontology_classes or set()
-            skipped_classes = 0
-
-            for entity_uri, literals in entity_map.items():
                 # Skip ontology class URIs (e.g., E41_Appellation, IC10_Attribute)
                 if entity_uri in ontology_classes:
-                    skipped_classes += 1
+                    skipped += 1
                     continue
 
-                # Also skip URIs that look like ontology definitions
-                # (cidoc-crm namespace, vir namespace with class patterns)
-                if any(pattern in entity_uri for pattern in [
+                # Skip URIs in ontology namespaces
+                if any(ns in entity_uri for ns in [
                     'cidoc-crm.org/cidoc-crm/E',
                     'cidoc-crm.org/cidoc-crm/P',
                     'w3id.org/vir#IC',
@@ -2650,25 +2641,14 @@ Rules:
                     'ics.forth.gr/isl/CRMdig/',
                     'cidoc-crm.org/extensions/'
                 ]):
-                    skipped_classes += 1
+                    skipped += 1
                     continue
 
-                # Try to find a label from various common properties
-                label = entity_uri.split('/')[-1]  # Default to URI fragment
-                for label_prop in ['label', 'prefLabel', 'name', 'title']:
-                    if label_prop in literals and literals[label_prop]:
-                        label = literals[label_prop][0]
-                        break
+                entities.append(entity_uri)
 
-                entities.append({
-                    "entity": entity_uri,
-                    "label": label,
-                    "literals": literals
-                })
-
-            if skipped_classes > 0:
-                logger.info(f"Skipped {skipped_classes} ontology class URIs")
-            logger.info(f"Retrieved {len(entities)} entities with literals")
+            if skipped > 0:
+                logger.info(f"Skipped {skipped} ontology schema URIs")
+            logger.info(f"Discovered {len(entities)} data instance entities")
             return entities
         except Exception as e:
             logger.error(f"Error fetching entities: {str(e)}")

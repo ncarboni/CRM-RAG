@@ -222,7 +222,7 @@ class_labels.json          # URI → English label (classes)
 - `initialize()`: Test connection, load or build document graph
 
 #### RDF Processing
-- `get_all_entities()`: Query SPARQL for all entities with literals
+- `get_all_entities()`: Discover all data instance URIs from SPARQL (excludes ontology schema only)
 - `create_enhanced_document()`: Convert entity to natural language document
   - Get entity types (with fallback strategy)
   - Get entity literals (labels, descriptions, WKT, dates)

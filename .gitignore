@@ -73,5 +73,6 @@ benchmarks/
 reports/
 
 # Articles
+docs/architecture/
 CIDOC2VEC.pdf
 TZOMPANAKI_2012_Fundamental_Categories_and_Relationships_for_intuitive_querying_CIDOC-CRM_based_repo.pdf

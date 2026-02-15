@@ -2076,6 +2076,51 @@
       ]
     },
     {
+      "id": "thing_actor_digitized_by",
+      "label": "digitized by",
+      "domain_fc": "Thing",
+      "range_fc": "Actor",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E39_Actor",
+      "parent_fr": "thing_actor_by",
+      "paths": [
+        {
+          "description": "Thing was digitized by Activity carried out by Actor (CRMdig)",
+          "steps": [
+            {
+              "property": "L1i_was_digitized_by",
+              "from": "D1_Digital_Object",
+              "to": "D2_Digitization_Process",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was output of digitization carried out by Actor (CRMdig)",
+          "steps": [
+            {
+              "property": "L11i_was_output_of",
+              "from": "D1_Digital_Object",
+              "to": "D7_Digital_Machine_Event",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "thing_event_refers_to",
       "label": "refers to or is about",
       "domain_fc": "Thing",
@@ -2328,6 +2373,84 @@
               "property": "P16i_was_used_for",
               "from": "E70_Thing",
               "to": "E7_Activity",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_event_digitized_in",
+      "label": "digitized in",
+      "domain_fc": "Thing",
+      "range_fc": "Event",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E5_Event",
+      "parent_fr": "thing_event_has_met",
+      "paths": [
+        {
+          "description": "Thing was digitized in Event (CRMdig)",
+          "steps": [
+            {
+              "property": "L1i_was_digitized_by",
+              "from": "D1_Digital_Object",
+              "to": "D2_Digitization_Process",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing was output of digitization Event (CRMdig)",
+          "steps": [
+            {
+              "property": "L11i_was_output_of",
+              "from": "D1_Digital_Object",
+              "to": "D7_Digital_Machine_Event",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "thing_event_is_referred_to_at",
+      "label": "is referred to at",
+      "domain_fc": "Thing",
+      "range_fc": "Event",
+      "crm_domain": "E70_Thing",
+      "crm_range": "E5_Event",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Thing is referred to by object created during Event",
+          "steps": [
+            {
+              "property": "P67i_is_referred_to_by",
+              "from": "E1_CRM_Entity",
+              "to": "E89_Propositional_Object",
+              "recursive": false
+            },
+            {
+              "property": "P94i_was_created_by",
+              "from": "E28_Conceptual_Object",
+              "to": "E65_Creation",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Thing is depicted by thing produced during Event",
+          "steps": [
+            {
+              "property": "P62i_is_depicted_by",
+              "from": "E1_CRM_Entity",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P108i_was_produced_by",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E12_Production",
               "recursive": false
             }
           ]
@@ -2877,6 +3000,125 @@
       ]
     },
     {
+      "id": "place_thing_is_referred_to_by",
+      "label": "is referred to by",
+      "domain_fc": "Place",
+      "range_fc": "Thing",
+      "crm_domain": "E53_Place",
+      "crm_range": "E70_Thing",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Place is referred to by propositional object",
+          "steps": [
+            {
+              "property": "P67i_is_referred_to_by",
+              "from": "E1_CRM_Entity",
+              "to": "E89_Propositional_Object",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Place is depicted by physical thing",
+          "steps": [
+            {
+              "property": "P62i_is_depicted_by",
+              "from": "E1_CRM_Entity",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "place_thing_refers_to",
+      "label": "refers to or is about",
+      "domain_fc": "Place",
+      "range_fc": "Thing",
+      "crm_domain": "E53_Place",
+      "crm_range": "E70_Thing",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Place produced thing that depicts Thing",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            },
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P62_depicts",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E70_Thing",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Place created object that refers to Thing",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            },
+            {
+              "property": "P94_has_created",
+              "from": "E65_Creation",
+              "to": "E28_Conceptual_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E70_Thing",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Place produced thing carrying information referring to Thing",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            },
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P128_carries",
+              "from": "E18_Physical_Thing",
+              "to": "E90_Symbolic_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E70_Thing",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "place_actor_has_met",
       "label": "has met",
       "domain_fc": "Place",
@@ -2944,6 +3186,149 @@
       ]
     },
     {
+      "id": "place_actor_is_referred_to_by",
+      "label": "is referred to by",
+      "domain_fc": "Place",
+      "range_fc": "Actor",
+      "crm_domain": "E53_Place",
+      "crm_range": "E39_Actor",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Place is referred to by object created by Actor",
+          "steps": [
+            {
+              "property": "P67i_is_referred_to_by",
+              "from": "E1_CRM_Entity",
+              "to": "E89_Propositional_Object",
+              "recursive": false
+            },
+            {
+              "property": "P94i_was_created_by",
+              "from": "E28_Conceptual_Object",
+              "to": "E65_Creation",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Place is depicted by thing produced by Actor",
+          "steps": [
+            {
+              "property": "P62i_is_depicted_by",
+              "from": "E1_CRM_Entity",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P108i_was_produced_by",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E12_Production",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "place_actor_refers_to",
+      "label": "refers to or is about",
+      "domain_fc": "Place",
+      "range_fc": "Actor",
+      "crm_domain": "E53_Place",
+      "crm_range": "E39_Actor",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Place produced thing that depicts Actor",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            },
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P62_depicts",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Place created object that refers to Actor",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            },
+            {
+              "property": "P94_has_created",
+              "from": "E65_Creation",
+              "to": "E28_Conceptual_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Place produced thing carrying information referring to Actor",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            },
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P128_carries",
+              "from": "E18_Physical_Thing",
+              "to": "E90_Symbolic_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "place_event_has_met",
       "label": "has met",
       "domain_fc": "Place",
@@ -2959,6 +3344,137 @@
               "property": "P7i_witnessed",
               "from": "E53_Place",
               "to": "E4_Period",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "place_event_is_referred_to_at",
+      "label": "is referred to at",
+      "domain_fc": "Place",
+      "range_fc": "Event",
+      "crm_domain": "E53_Place",
+      "crm_range": "E5_Event",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Place is referred to by object created during Event",
+          "steps": [
+            {
+              "property": "P67i_is_referred_to_by",
+              "from": "E1_CRM_Entity",
+              "to": "E89_Propositional_Object",
+              "recursive": false
+            },
+            {
+              "property": "P94i_was_created_by",
+              "from": "E28_Conceptual_Object",
+              "to": "E65_Creation",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Place is depicted by thing produced during Event",
+          "steps": [
+            {
+              "property": "P62i_is_depicted_by",
+              "from": "E1_CRM_Entity",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P108i_was_produced_by",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E12_Production",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "place_event_refers_to",
+      "label": "refers to or is about",
+      "domain_fc": "Place",
+      "range_fc": "Event",
+      "crm_domain": "E53_Place",
+      "crm_range": "E5_Event",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Place produced thing that depicts Event",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            },
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P62_depicts",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E5_Event",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Place created object that refers to Event",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            },
+            {
+              "property": "P94_has_created",
+              "from": "E65_Creation",
+              "to": "E28_Conceptual_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E5_Event",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Place produced thing carrying information referring to Event",
+          "steps": [
+            {
+              "property": "P7i_witnessed",
+              "from": "E53_Place",
+              "to": "E4_Period",
+              "recursive": false
+            },
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P128_carries",
+              "from": "E18_Physical_Thing",
+              "to": "E90_Symbolic_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E5_Event",
               "recursive": false
             }
           ]
@@ -3143,6 +3659,189 @@
             {
               "property": "P7_took_place_at",
               "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "actor_place_is_referred_to_at",
+      "label": "is referred to at",
+      "domain_fc": "Actor",
+      "range_fc": "Place",
+      "crm_domain": "E39_Actor",
+      "crm_range": "E53_Place",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Actor is referred to by object whose carrier is located at Place",
+          "steps": [
+            {
+              "property": "P67i_is_referred_to_by",
+              "from": "E1_CRM_Entity",
+              "to": "E89_Propositional_Object",
+              "recursive": false
+            },
+            {
+              "property": "P128i_is_carried_by",
+              "from": "E90_Symbolic_Object",
+              "to": "E18_Physical_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P53_has_former_or_current_location",
+              "from": "E18_Physical_Thing",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor is referred to by object created at Place",
+          "steps": [
+            {
+              "property": "P67i_is_referred_to_by",
+              "from": "E1_CRM_Entity",
+              "to": "E89_Propositional_Object",
+              "recursive": false
+            },
+            {
+              "property": "P94i_was_created_by",
+              "from": "E28_Conceptual_Object",
+              "to": "E65_Creation",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor is depicted by thing located at Place",
+          "steps": [
+            {
+              "property": "P62i_is_depicted_by",
+              "from": "E1_CRM_Entity",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P53_has_former_or_current_location",
+              "from": "E18_Physical_Thing",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor is depicted by thing produced at Place",
+          "steps": [
+            {
+              "property": "P62i_is_depicted_by",
+              "from": "E1_CRM_Entity",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P108i_was_produced_by",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E12_Production",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "actor_place_refers_to",
+      "label": "refers to or is about",
+      "domain_fc": "Actor",
+      "range_fc": "Place",
+      "crm_domain": "E39_Actor",
+      "crm_range": "E53_Place",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Actor produced thing that depicts Place",
+          "steps": [
+            {
+              "property": "P14B_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P62_depicts",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor created object that refers to Place",
+          "steps": [
+            {
+              "property": "P14B_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P94_has_created",
+              "from": "E65_Creation",
+              "to": "E28_Conceptual_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor produced thing carrying information referring to Place",
+          "steps": [
+            {
+              "property": "P14B_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P128_carries",
+              "from": "E18_Physical_Thing",
+              "to": "E90_Symbolic_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
               "to": "E53_Place",
               "recursive": false
             }
@@ -3494,6 +4193,125 @@
       ]
     },
     {
+      "id": "actor_thing_is_referred_to_by",
+      "label": "is referred to by",
+      "domain_fc": "Actor",
+      "range_fc": "Thing",
+      "crm_domain": "E39_Actor",
+      "crm_range": "E70_Thing",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Actor is referred to by propositional object",
+          "steps": [
+            {
+              "property": "P67i_is_referred_to_by",
+              "from": "E1_CRM_Entity",
+              "to": "E89_Propositional_Object",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor is depicted by physical thing",
+          "steps": [
+            {
+              "property": "P62i_is_depicted_by",
+              "from": "E1_CRM_Entity",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "actor_thing_refers_to",
+      "label": "refers to or is about",
+      "domain_fc": "Actor",
+      "range_fc": "Thing",
+      "crm_domain": "E39_Actor",
+      "crm_range": "E70_Thing",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Actor produced thing that depicts Thing",
+          "steps": [
+            {
+              "property": "P14B_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P62_depicts",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E70_Thing",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor created object that refers to Thing",
+          "steps": [
+            {
+              "property": "P14B_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P94_has_created",
+              "from": "E65_Creation",
+              "to": "E28_Conceptual_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E70_Thing",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor produced thing carrying information referring to Thing",
+          "steps": [
+            {
+              "property": "P14B_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P128_carries",
+              "from": "E18_Physical_Thing",
+              "to": "E90_Symbolic_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E70_Thing",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "actor_actor_has_met",
       "label": "has met",
       "domain_fc": "Actor",
@@ -3725,6 +4543,149 @@
       ]
     },
     {
+      "id": "actor_actor_is_referred_to_by",
+      "label": "is referred to by",
+      "domain_fc": "Actor",
+      "range_fc": "Actor",
+      "crm_domain": "E39_Actor",
+      "crm_range": "E39_Actor",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Actor is referred to by object created by Actor",
+          "steps": [
+            {
+              "property": "P67i_is_referred_to_by",
+              "from": "E1_CRM_Entity",
+              "to": "E89_Propositional_Object",
+              "recursive": false
+            },
+            {
+              "property": "P94i_was_created_by",
+              "from": "E28_Conceptual_Object",
+              "to": "E65_Creation",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor is depicted by thing produced by Actor",
+          "steps": [
+            {
+              "property": "P62i_is_depicted_by",
+              "from": "E1_CRM_Entity",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P108i_was_produced_by",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E12_Production",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "actor_actor_refers_to",
+      "label": "refers to or is about",
+      "domain_fc": "Actor",
+      "range_fc": "Actor",
+      "crm_domain": "E39_Actor",
+      "crm_range": "E39_Actor",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Actor produced thing that depicts Actor",
+          "steps": [
+            {
+              "property": "P14B_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P62_depicts",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor created object that refers to Actor",
+          "steps": [
+            {
+              "property": "P14B_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P94_has_created",
+              "from": "E65_Creation",
+              "to": "E28_Conceptual_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor produced thing carrying information referring to Actor",
+          "steps": [
+            {
+              "property": "P14B_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P128_carries",
+              "from": "E18_Physical_Thing",
+              "to": "E90_Symbolic_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "actor_event_has_met",
       "label": "has met",
       "domain_fc": "Actor",
@@ -3802,6 +4763,137 @@
       ]
     },
     {
+      "id": "actor_event_is_referred_to_at",
+      "label": "is referred to at",
+      "domain_fc": "Actor",
+      "range_fc": "Event",
+      "crm_domain": "E39_Actor",
+      "crm_range": "E5_Event",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Actor is referred to by object created during Event",
+          "steps": [
+            {
+              "property": "P67i_is_referred_to_by",
+              "from": "E1_CRM_Entity",
+              "to": "E89_Propositional_Object",
+              "recursive": false
+            },
+            {
+              "property": "P94i_was_created_by",
+              "from": "E28_Conceptual_Object",
+              "to": "E65_Creation",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor is depicted by thing produced during Event",
+          "steps": [
+            {
+              "property": "P62i_is_depicted_by",
+              "from": "E1_CRM_Entity",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P108i_was_produced_by",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E12_Production",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "actor_event_refers_to",
+      "label": "refers to or is about",
+      "domain_fc": "Actor",
+      "range_fc": "Event",
+      "crm_domain": "E39_Actor",
+      "crm_range": "E5_Event",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Actor produced thing that depicts Event",
+          "steps": [
+            {
+              "property": "P14B_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P62_depicts",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E5_Event",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor created object that refers to Event",
+          "steps": [
+            {
+              "property": "P14B_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P94_has_created",
+              "from": "E65_Creation",
+              "to": "E28_Conceptual_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E5_Event",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Actor produced thing carrying information referring to Event",
+          "steps": [
+            {
+              "property": "P14B_performed",
+              "from": "E39_Actor",
+              "to": "E7_Activity",
+              "recursive": false
+            },
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P128_carries",
+              "from": "E18_Physical_Thing",
+              "to": "E90_Symbolic_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E5_Event",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "actor_concept_has_type",
       "label": "has type",
       "domain_fc": "Actor",
@@ -3838,6 +4930,171 @@
             {
               "property": "P7_took_place_at",
               "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_place_is_referred_to_at",
+      "label": "is referred to at",
+      "domain_fc": "Event",
+      "range_fc": "Place",
+      "crm_domain": "E5_Event",
+      "crm_range": "E53_Place",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Event is referred to by object whose carrier is located at Place",
+          "steps": [
+            {
+              "property": "P67i_is_referred_to_by",
+              "from": "E1_CRM_Entity",
+              "to": "E89_Propositional_Object",
+              "recursive": false
+            },
+            {
+              "property": "P128i_is_carried_by",
+              "from": "E90_Symbolic_Object",
+              "to": "E18_Physical_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P53_has_former_or_current_location",
+              "from": "E18_Physical_Thing",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event is referred to by object created at Place",
+          "steps": [
+            {
+              "property": "P67i_is_referred_to_by",
+              "from": "E1_CRM_Entity",
+              "to": "E89_Propositional_Object",
+              "recursive": false
+            },
+            {
+              "property": "P94i_was_created_by",
+              "from": "E28_Conceptual_Object",
+              "to": "E65_Creation",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event is depicted by thing located at Place",
+          "steps": [
+            {
+              "property": "P62i_is_depicted_by",
+              "from": "E1_CRM_Entity",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P53_has_former_or_current_location",
+              "from": "E18_Physical_Thing",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event is depicted by thing produced at Place",
+          "steps": [
+            {
+              "property": "P62i_is_depicted_by",
+              "from": "E1_CRM_Entity",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P108i_was_produced_by",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E12_Production",
+              "recursive": false
+            },
+            {
+              "property": "P7_took_place_at",
+              "from": "E4_Period",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_place_refers_to",
+      "label": "refers to or is about",
+      "domain_fc": "Event",
+      "range_fc": "Place",
+      "crm_domain": "E5_Event",
+      "crm_range": "E53_Place",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Event produced thing that depicts Place",
+          "steps": [
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P62_depicts",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event created object that refers to Place",
+          "steps": [
+            {
+              "property": "P94_has_created",
+              "from": "E65_Creation",
+              "to": "E28_Conceptual_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E53_Place",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event produced thing carrying information referring to Place",
+          "steps": [
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P128_carries",
+              "from": "E18_Physical_Thing",
+              "to": "E90_Symbolic_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
               "to": "E53_Place",
               "recursive": false
             }
@@ -4066,6 +5323,107 @@
       ]
     },
     {
+      "id": "event_thing_is_referred_to_by",
+      "label": "is referred to by",
+      "domain_fc": "Event",
+      "range_fc": "Thing",
+      "crm_domain": "E5_Event",
+      "crm_range": "E70_Thing",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Event is referred to by propositional object",
+          "steps": [
+            {
+              "property": "P67i_is_referred_to_by",
+              "from": "E1_CRM_Entity",
+              "to": "E89_Propositional_Object",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event is depicted by physical thing",
+          "steps": [
+            {
+              "property": "P62i_is_depicted_by",
+              "from": "E1_CRM_Entity",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_thing_refers_to",
+      "label": "refers to or is about",
+      "domain_fc": "Event",
+      "range_fc": "Thing",
+      "crm_domain": "E5_Event",
+      "crm_range": "E70_Thing",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Event produced thing that depicts Thing",
+          "steps": [
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P62_depicts",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E70_Thing",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event created object that refers to Thing",
+          "steps": [
+            {
+              "property": "P94_has_created",
+              "from": "E65_Creation",
+              "to": "E28_Conceptual_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E70_Thing",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event produced thing carrying information referring to Thing",
+          "steps": [
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P128_carries",
+              "from": "E18_Physical_Thing",
+              "to": "E90_Symbolic_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E70_Thing",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "event_actor_by",
       "label": "by",
       "domain_fc": "Event",
@@ -4264,6 +5622,131 @@
       ]
     },
     {
+      "id": "event_actor_is_referred_to_by",
+      "label": "is referred to by",
+      "domain_fc": "Event",
+      "range_fc": "Actor",
+      "crm_domain": "E5_Event",
+      "crm_range": "E39_Actor",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Event is referred to by object created by Actor",
+          "steps": [
+            {
+              "property": "P67i_is_referred_to_by",
+              "from": "E1_CRM_Entity",
+              "to": "E89_Propositional_Object",
+              "recursive": false
+            },
+            {
+              "property": "P94i_was_created_by",
+              "from": "E28_Conceptual_Object",
+              "to": "E65_Creation",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event is depicted by thing produced by Actor",
+          "steps": [
+            {
+              "property": "P62i_is_depicted_by",
+              "from": "E1_CRM_Entity",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P108i_was_produced_by",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E12_Production",
+              "recursive": false
+            },
+            {
+              "property": "P14_carried_out_by",
+              "from": "E7_Activity",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_actor_refers_to",
+      "label": "refers to or is about",
+      "domain_fc": "Event",
+      "range_fc": "Actor",
+      "crm_domain": "E5_Event",
+      "crm_range": "E39_Actor",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Event produced thing that depicts Actor",
+          "steps": [
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P62_depicts",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event created object that refers to Actor",
+          "steps": [
+            {
+              "property": "P94_has_created",
+              "from": "E65_Creation",
+              "to": "E28_Conceptual_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event produced thing carrying information referring to Actor",
+          "steps": [
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P128_carries",
+              "from": "E18_Physical_Thing",
+              "to": "E90_Symbolic_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E39_Actor",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "event_event_from",
       "label": "from (is part of)",
       "domain_fc": "Event",
@@ -4324,6 +5807,119 @@
               "from": "E92_Spacetime_Volume",
               "to": "E92_Spacetime_Volume",
               "recursive": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_event_is_referred_to_at",
+      "label": "is referred to at",
+      "domain_fc": "Event",
+      "range_fc": "Event",
+      "crm_domain": "E5_Event",
+      "crm_range": "E5_Event",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Event is referred to by object created during Event",
+          "steps": [
+            {
+              "property": "P67i_is_referred_to_by",
+              "from": "E1_CRM_Entity",
+              "to": "E89_Propositional_Object",
+              "recursive": false
+            },
+            {
+              "property": "P94i_was_created_by",
+              "from": "E28_Conceptual_Object",
+              "to": "E65_Creation",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event is depicted by thing produced during Event",
+          "steps": [
+            {
+              "property": "P62i_is_depicted_by",
+              "from": "E1_CRM_Entity",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P108i_was_produced_by",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E12_Production",
+              "recursive": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event_event_refers_to",
+      "label": "refers to or is about",
+      "domain_fc": "Event",
+      "range_fc": "Event",
+      "crm_domain": "E5_Event",
+      "crm_range": "E5_Event",
+      "parent_fr": null,
+      "paths": [
+        {
+          "description": "Event produced thing that depicts Event",
+          "steps": [
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P62_depicts",
+              "from": "E24_Physical_Human-Made_Thing",
+              "to": "E5_Event",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event created object that refers to Event",
+          "steps": [
+            {
+              "property": "P94_has_created",
+              "from": "E65_Creation",
+              "to": "E28_Conceptual_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E5_Event",
+              "recursive": false
+            }
+          ]
+        },
+        {
+          "description": "Event produced thing carrying information referring to Event",
+          "steps": [
+            {
+              "property": "P108_has_produced",
+              "from": "E12_Production",
+              "to": "E24_Physical_Human-Made_Thing",
+              "recursive": false
+            },
+            {
+              "property": "P128_carries",
+              "from": "E18_Physical_Thing",
+              "to": "E90_Symbolic_Object",
+              "recursive": false
+            },
+            {
+              "property": "P67_refers_to",
+              "from": "E89_Propositional_Object",
+              "to": "E5_Event",
+              "recursive": false
             }
           ]
         }
@@ -4529,9 +6125,9 @@
     }
   ],
   "validation": {
-    "total_frs": 76,
-    "total_unique_properties_used": 92,
+    "total_frs": 101,
+    "total_unique_properties_used": 95,
     "properties_missing_from_v7_1_3": [],
-    "total_paths": 237
+    "total_paths": 304
   }
 }

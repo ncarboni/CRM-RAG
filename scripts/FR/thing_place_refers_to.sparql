@@ -1,0 +1,95 @@
+PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>
+PREFIX crmdig: <http://www.ics.forth.gr/isl/CRMdig/>
+
+# FR: refers to or is about (Thing -> Place)
+SELECT DISTINCT ?thing ?place WHERE {
+    { ?thing crm:P62_depicts/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P67_refers_to/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P62_depicts/crm:P53_has_former_or_current_location/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P67_refers_to/crm:P53_has_former_or_current_location/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P128_carries/crm:P67_refers_to/crm:P53_has_former_or_current_location/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P128_carries/crm:P67_refers_to/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130_shows_features_of*/crm:P62_depicts/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130_shows_features_of*/crm:P67_refers_to/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130_shows_features_of*/crm:P62_depicts/crm:P53_has_former_or_current_location/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130_shows_features_of*/crm:P67_refers_to/crm:P53_has_former_or_current_location/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130_shows_features_of*/crm:P128_carries/crm:P67_refers_to/crm:P53_has_former_or_current_location/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130_shows_features_of*/crm:P128_carries/crm:P67_refers_to/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130i_features_are_also_found_on*/crm:P62_depicts/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130i_features_are_also_found_on*/crm:P67_refers_to/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130i_features_are_also_found_on*/crm:P62_depicts/crm:P53_has_former_or_current_location/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130i_features_are_also_found_on*/crm:P67_refers_to/crm:P53_has_former_or_current_location/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130i_features_are_also_found_on*/crm:P128_carries/crm:P67_refers_to/crm:P53_has_former_or_current_location/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130i_features_are_also_found_on*/crm:P128_carries/crm:P67_refers_to/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P46_is_composed_of*/crm:P62_depicts/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P46_is_composed_of*/crm:P62_depicts/crm:P53_has_former_or_current_location/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P46_is_composed_of*/crm:P128_carries/crm:P67_refers_to/crm:P53_has_former_or_current_location/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P46_is_composed_of*/crm:P128_carries/crm:P67_refers_to/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P106_is_composed_of*/crm:P67_refers_to/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P106_is_composed_of*/crm:P67_refers_to/crm:P53_has_former_or_current_location/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P148_has_component*/crm:P67_refers_to/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P148_has_component*/crm:P67_refers_to/crm:P53_has_former_or_current_location/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130_shows_features_of*/crm:P46_is_composed_of*/crm:P62_depicts/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130_shows_features_of*/crm:P46_is_composed_of*/crm:P62_depicts/crm:P53_has_former_or_current_location/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130_shows_features_of*/crm:P46_is_composed_of*/crm:P128_carries/crm:P67_refers_to/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130_shows_features_of*/crm:P46_is_composed_of*/crm:P128_carries/crm:P67_refers_to/crm:P53_has_former_or_current_location/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130_shows_features_of*/crm:P106_is_composed_of*/crm:P67_refers_to/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130_shows_features_of*/crm:P106_is_composed_of*/crm:P67_refers_to/crm:P53_has_former_or_current_location/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130_shows_features_of*/crm:P148_has_component*/crm:P67_refers_to/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130_shows_features_of*/crm:P148_has_component*/crm:P67_refers_to/crm:P53_has_former_or_current_location/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130i_features_are_also_found_on*/crm:P46_is_composed_of*/crm:P62_depicts/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130i_features_are_also_found_on*/crm:P46_is_composed_of*/crm:P62_depicts/crm:P53_has_former_or_current_location/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130i_features_are_also_found_on*/crm:P46_is_composed_of*/crm:P128_carries/crm:P67_refers_to/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130i_features_are_also_found_on*/crm:P46_is_composed_of*/crm:P128_carries/crm:P67_refers_to/crm:P53_has_former_or_current_location/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130i_features_are_also_found_on*/crm:P106_is_composed_of*/crm:P67_refers_to/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130i_features_are_also_found_on*/crm:P106_is_composed_of*/crm:P67_refers_to/crm:P53_has_former_or_current_location/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130i_features_are_also_found_on*/crm:P148_has_component*/crm:P67_refers_to/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:P130i_features_are_also_found_on*/crm:P148_has_component*/crm:P67_refers_to/crm:P53_has_former_or_current_location/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:F1_is_derivative_of*/crm:L11i_was_output_of/crm:P9i_forms_part_of*/crm:L1_digitized/crm:P53_has_former_or_current_location/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:F1_is_derivative_of*/crm:L11i_was_output_of/crm:P9i_forms_part_of*/crm:L1_digitized/crm:P62_depicts/crm:P89i_contains* ?place . }
+    UNION
+    { ?thing crm:F1_is_derivative_of*/crm:L11i_was_output_of/crm:P9i_forms_part_of*/crm:L1_digitized/crm:P128_carries/crm:P67_refers_to/crm:P89i_contains* ?place . }
+}

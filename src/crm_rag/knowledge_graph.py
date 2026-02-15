@@ -90,6 +90,11 @@ class KnowledgeGraph:
     def add_fr_edges(self, all_fr_stats: List[Tuple]) -> None:
         """Add FR shortcut edges + set FC on source vertices.
 
+        FR edges *replace* the RDF edges they cover: after adding FR edges,
+        any RDF edge connecting the same (source, target) vertex pair is
+        removed.  This prevents double-counting in the adjacency matrix and
+        keeps the graph semantically clean.
+
         Args:
             all_fr_stats: List of (entity_uri, entity_label, fr_stats_dict).
                 fr_stats_dict has "fc" and "fr_results" keys.
@@ -113,6 +118,18 @@ class KnowledgeGraph:
                     new_attrs["edge_type"].append("fr")
         if new_edges:
             self._graph.add_edges(new_edges, new_attrs)
+
+        # Remove RDF edges that are now covered by FR edges (same src→tgt pair)
+        fr_pairs = set(new_edges)
+        if fr_pairs:
+            rdf_to_delete = [
+                e.index for e in self._graph.es
+                if e["edge_type"] == "rdf" and (e.source, e.target) in fr_pairs
+            ]
+            if rdf_to_delete:
+                self._graph.delete_edges(rdf_to_delete)
+                logger.info(f"Removed {len(rdf_to_delete)} RDF edges replaced by FR edges")
+
         logger.info(f"Added {len(new_edges)} FR edges from {len(all_fr_stats)} entities")
 
     def mark_doc_vertices(self, doc_uris: Set[str],
@@ -167,7 +184,7 @@ class KnowledgeGraph:
             return []
 
         scores = self._graph.personalized_pagerank(
-            directed=True,
+            directed=False,
             damping=damping,
             reset_vertices=seed_vids,
             weights="weight",
@@ -196,6 +213,13 @@ class KnowledgeGraph:
         logger.info(f"KnowledgeGraph saved to {path} ({size_mb:.1f} MB, "
                     f"{self._graph.vcount()} vertices, {self._graph.ecount()} edges)")
 
+    def export_graphml(self, path: str) -> None:
+        """Export the graph as GraphML for visualization in Gephi / Cytoscape."""
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        self._graph.write_graphml(path)
+        size_mb = os.path.getsize(path) / (1024 * 1024)
+        logger.info(f"GraphML exported to {path} ({size_mb:.1f} MB)")
+
     def load(self, path: str) -> None:
         self._graph = ig.Graph.Read_Pickle(path)
         self._uri_to_vid = {v["name"]: v.index for v in self._graph.vs}
@@ -204,8 +228,12 @@ class KnowledgeGraph:
 
     # ── Triple queries (replaces _triples_index) ──
 
-    def get_triples(self, entity_uri: str, edge_type: str = "rdf") -> List[Dict]:
+    def get_triples(self, entity_uri: str, edge_type: Optional[str] = None) -> List[Dict]:
         """Return triples incident on entity_uri as list of dicts.
+
+        Args:
+            entity_uri: Entity URI to query.
+            edge_type: Filter by edge type ("rdf" or "fr").  None returns all.
 
         Each dict has: subject, subject_label, predicate, predicate_label,
                        object, object_label.
@@ -215,7 +243,7 @@ class KnowledgeGraph:
             return []
         result = []
         for e in self._graph.es[self._graph.incident(vid, mode="all")]:
-            if e["edge_type"] != edge_type:
+            if edge_type is not None and e["edge_type"] != edge_type:
                 continue
             src = self._graph.vs[e.source]
             tgt = self._graph.vs[e.target]
@@ -230,19 +258,16 @@ class KnowledgeGraph:
         return result
 
     def triple_count(self, entity_uri: str) -> int:
-        """Count of RDF triples incident on entity_uri."""
+        """Count of edges (RDF + FR) incident on entity_uri."""
         vid = self._uri_to_vid.get(entity_uri)
         if vid is None:
             return 0
-        return sum(
-            1 for e in self._graph.es[self._graph.incident(vid, mode="all")]
-            if e["edge_type"] == "rdf"
-        )
+        return len(self._graph.incident(vid, mode="all"))
 
-    def get_rdf_neighbors(self, entity_uri: str,
-                          filter_uris: Optional[Set[str]] = None
-                          ) -> List[Tuple[str, str, float]]:
-        """Return (neighbor_uri, predicate_local_name, weight) for RDF edges.
+    def get_neighbors(self, entity_uri: str,
+                      filter_uris: Optional[Set[str]] = None
+                      ) -> List[Tuple[str, str, float]]:
+        """Return (neighbor_uri, predicate_local_name, weight) for all edges.
 
         If filter_uris is given, only return neighbors whose URI is in the set.
         """
@@ -251,8 +276,6 @@ class KnowledgeGraph:
             return []
         result = []
         for e in self._graph.es[self._graph.incident(vid, mode="all")]:
-            if e["edge_type"] != "rdf":
-                continue
             other_vid = e.target if e.source == vid else e.source
             other_uri = self._graph.vs[other_vid]["name"]
             if filter_uris is not None and other_uri not in filter_uris:
@@ -261,6 +284,9 @@ class KnowledgeGraph:
             local_name = pred.split("/")[-1].split("#")[-1]
             result.append((other_uri, local_name, e["weight"]))
         return result
+
+    # Backward-compatible alias
+    get_rdf_neighbors = get_neighbors
 
     def resolve_time_span(self, ts_uri: str) -> Dict[str, str]:
         """Follow a time-span URI to extract begin/end date values."""
@@ -294,12 +320,15 @@ class KnowledgeGraph:
                                max_hops: int = 2) -> np.ndarray:
         """Build weighted adjacency matrix with virtual 2-hop edges.
 
-        Uses RDF edges from the full graph (including non-doc intermediaries)
-        for both 1-hop direct edges and 2-hop virtual edges.
+        Uses all edges (RDF + FR) from the full graph for both 1-hop direct
+        edges and 2-hop virtual edges.  FR edges carry weight=1.0 (strong
+        semantic shortcuts); remaining RDF edges use their stored CIDOC-CRM
+        weights.
 
         Args:
             doc_ids: Candidate document URIs.
-            weight_fn: Callable(predicate_uri) -> float for CIDOC-CRM weights.
+            weight_fn: Unused (kept for API compatibility); edge weights are
+                read from the stored ``weight`` attribute.
             max_hops: Discount factor denominator for virtual edges.
 
         Returns:
@@ -317,11 +346,9 @@ class KnowledgeGraph:
             if vid is None:
                 continue
             for e in self._graph.es[self._graph.incident(vid, mode="all")]:
-                if e["edge_type"] != "rdf":
-                    continue
                 other_vid = e.target if e.source == vid else e.source
                 other_uri = self._graph.vs[other_vid]["name"]
-                weight = weight_fn(e["predicate"])
+                weight = e["weight"]
 
                 if other_uri in doc_to_idx:
                     j = doc_to_idx[other_uri]
@@ -489,14 +516,31 @@ class KnowledgeGraph:
         return summaries
 
     def actor_work_counts(self) -> Dict[str, int]:
-        """Compute actor→work counts from production chain predicates.
+        """Compute actor→work counts from FR shortcuts and remaining RDF chain.
 
-        Traces: Work -[P108i_was_produced_by/P16i_was_used_for]-> Event
-                -[P14_carried_out_by]-> Actor.
+        Uses two passes:
+        1. FR shortcuts (thing_actor_created_by / thing_actor_used_by)
+           give direct Work→Actor links.
+        2. Remaining RDF chain: Work→Event→Actor via P108i/P16i + P14.
 
         Returns:
             Dict of actor_uri -> work count.
         """
+        # Per-actor set of work URIs (avoids double-counting across passes)
+        actor_works: Dict[str, set] = {}
+
+        # Pass 1: FR shortcuts (Thing→Actor)
+        for e in self._graph.es:
+            if e["edge_type"] != "fr":
+                continue
+            fr_id = e["predicate"]
+            if "thing_actor" not in fr_id:
+                continue
+            work_uri = self._graph.vs[e.source]["name"]
+            actor_uri = self._graph.vs[e.target]["name"]
+            actor_works.setdefault(actor_uri, set()).add(work_uri)
+
+        # Pass 2: remaining RDF chain (edges not replaced by FR)
         creation_to_actors: Dict[str, List[str]] = {}
         work_to_events: Dict[str, List[str]] = {}
 
@@ -519,15 +563,12 @@ class KnowledgeGraph:
                 if any(pat in tgt_uri for pat in ("/creation", "/edition", "/impression")):
                     work_to_events.setdefault(src_uri, []).append(tgt_uri)
 
-        counts: Dict[str, int] = {}
         for work_uri, event_uris in work_to_events.items():
-            counted = set()
             for event_uri in event_uris:
                 for actor_uri in creation_to_actors.get(event_uri, []):
-                    counted.add(actor_uri)
-            for actor_uri in counted:
-                counts[actor_uri] = counts.get(actor_uri, 0) + 1
-        return counts
+                    actor_works.setdefault(actor_uri, set()).add(work_uri)
+
+        return {actor: len(works) for actor, works in actor_works.items()}
 
     def get_label(self, uri: str) -> str:
         """Get label for a URI, falling back to local name."""

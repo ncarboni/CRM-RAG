@@ -836,7 +836,7 @@ class UniversalRagSystem:
         skipped_exempt = 0
         for doc_id, doc in store.docs.items():
             if len(doc.text) < threshold:
-                neighbors = self.knowledge_graph.get_rdf_neighbors(doc_id, filter_uris=doc_uris)
+                neighbors = self.knowledge_graph.get_neighbors(doc_id, filter_uris=doc_uris)
                 if not neighbors:
                     continue
                 # Exempt entities whose FC category makes them independently important
@@ -877,7 +877,7 @@ class UniversalRagSystem:
             # Absorb into ALL unique neighbors that won't exceed size cap
             absorbed_into: list[str] = []
             current_doc_uris = set(store.docs.keys())
-            for n_id, _pred, _weight in self.knowledge_graph.get_rdf_neighbors(doc_id, filter_uris=current_doc_uris):
+            for n_id, _pred, _weight in self.knowledge_graph.get_neighbors(doc_id, filter_uris=current_doc_uris):
                 if n_id == doc_id or n_id not in store.docs:
                     continue
                 if len(store.docs[n_id].text) + chain_len > max_target_size:
@@ -1820,6 +1820,10 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         # Save knowledge graph (triples + PageRank + stats all in one file)
         self.knowledge_graph.save(self._path('knowledge_graph'))
 
+        # Export GraphML for visualization (Gephi / Cytoscape)
+        graphml_path = self._path('knowledge_graph').replace('.pkl', '.graphml')
+        self.knowledge_graph.export_graphml(graphml_path)
+
         # Generate validation report for missing classes and properties
         self.generate_validation_report()
 
@@ -2501,8 +2505,9 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
     def _ppr_retrieval(self, query, query_analysis, pool_size):
         """Run Personalized PageRank retrieval seeded by constraint entities.
 
-        Identifies constraint entities (matching context_categories) via BM25,
-        then runs PPR from those seeds to discover connected entities.
+        Identifies constraint entities (matching context_categories) via
+        type-filtered FAISS, then runs PPR from those seeds to discover
+        connected entities through FR edges.
 
         Returns:
             List of (GraphDocument, ppr_score) tuples, or empty list if
@@ -2523,21 +2528,14 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         if not allowed_ids:
             return []
 
-        # BM25 on query to find constraint entities
-        bm25_results = self.document_store.retrieve_bm25(query, k=50)
-        if not bm25_results:
+        # Type-filtered FAISS to find semantically relevant constraint entities
+        typed_results = self.document_store.retrieve_faiss_typed(
+            query, k=RetrievalConfig.PPR_SEED_MAX, allowed_doc_ids=allowed_ids,
+        )
+        if not typed_results:
             return []
 
-        # Filter to context-category matches
-        seed_uris = []
-        for doc, _score in bm25_results:
-            if doc.id in allowed_ids:
-                seed_uris.append(doc.id)
-                if len(seed_uris) >= RetrievalConfig.PPR_SEED_MAX:
-                    break
-
-        if not seed_uris:
-            return []
+        seed_uris = [doc.id for doc, _score in typed_results]
 
         seed_labels = [self.knowledge_graph.get_label(u) for u in seed_uris]
         logger.info(f"PPR seeds ({len(seed_uris)}): {', '.join(seed_labels)}")

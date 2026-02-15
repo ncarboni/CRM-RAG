@@ -73,6 +73,9 @@ _TYPE_PRED_LOCALS = {"P2_has_type", "P2i_is_type_of"}
 # Predicate local names that give iconographic attributes
 _ATTR_PRED_LOCALS = {"K14_has_attribute", "P3_has_note"}
 
+# Predicate local names that give venue/place info
+_VENUE_PRED_LOCALS = {"P7_took_place_at", "P7i_witnessed"}
+
 
 def build_target_enrichments(
     target_uris: Set[str],
@@ -96,6 +99,7 @@ def build_target_enrichments(
     for uri in target_uris:
         type_tag = None
         attributes = []
+        venue = None
 
         for pred, obj in outgoing.get(uri, []):
             local_pred = pred.split('/')[-1].split('#')[-1]
@@ -107,6 +111,9 @@ def build_target_enrichments(
                 attr_label = entity_labels.get(obj, obj.split('/')[-1])
                 if attr_label:
                     attributes.append(attr_label)
+
+            if local_pred in _VENUE_PRED_LOCALS and not venue:
+                venue = entity_labels.get(obj, obj.split('/')[-1])
 
         # Fallback: CRM class label
         if not type_tag and entity_types_map and class_labels:
@@ -120,10 +127,11 @@ def build_target_enrichments(
                         type_tag = label
                         break
 
-        if type_tag or attributes:
+        if type_tag or attributes or venue:
             enrichments[uri] = {
                 "type_tag": type_tag,
                 "attributes": attributes[:5],
+                "venue": venue,
             }
 
     return enrichments
@@ -759,12 +767,12 @@ class FRTraversal:
                         time_span_dates: Dict[str, str] = None) -> str:
         """Format a list of (uri, label) targets with optional type tags, attributes, and dates.
 
-        Deduplicates identical labels: if the same label appears N>1 times,
-        shows it once with " x{N}".
+        Disambiguates same-label targets using date, venue, and type tag
+        instead of generic " x{N}" counts.
 
         Args:
             targets: [(uri, label), ...]
-            target_enrichments: uri -> {"type_tag": str|None, "attributes": [str]}
+            target_enrichments: uri -> {"type_tag": str|None, "attributes": [str], "venue": str|None}
             include_attrs: If True, include attributes for depiction-like predicates
             time_span_dates: uri -> formatted date string for time-span targets
 
@@ -773,21 +781,17 @@ class FRTraversal:
         """
         time_dates = time_span_dates or {}
 
-        # Build formatted label for each target
-        raw_parts = []
+        # Build (uri, base_label, formatted_label) for each target
+        entries = []  # [(uri, base_label, formatted_label)]
         for uri, label in targets:
-            # Time-span date resolution: replace or enrich label with resolved date
             date_str = time_dates.get(uri)
             if date_str:
-                # For E52_Time-Span targets, replace label entirely with date
                 enr = (target_enrichments or {}).get(uri)
                 tag = enr.get("type_tag") if enr else None
                 if tag and tag != "Time-Span":
-                    # Event target with time-span — append date
-                    raw_parts.append(f"{label} ({date_str})")
+                    entries.append((uri, label, f"{label} ({date_str})"))
                 else:
-                    # Pure time-span — just show the date
-                    raw_parts.append(date_str)
+                    entries.append((uri, label, date_str))
                 continue
 
             enr = (target_enrichments or {}).get(uri)
@@ -796,30 +800,54 @@ class FRTraversal:
                 attrs = enr.get("attributes", []) if include_attrs else []
                 if tag and attrs:
                     annotation = ", ".join([tag] + attrs)
-                    raw_parts.append(f"{label} ({annotation})")
+                    entries.append((uri, label, f"{label} ({annotation})"))
                 elif tag:
-                    raw_parts.append(f"{label} ({tag})")
+                    entries.append((uri, label, f"{label} ({tag})"))
                 elif attrs:
-                    raw_parts.append(f"{label} ({', '.join(attrs)})")
+                    entries.append((uri, label, f"{label} ({', '.join(attrs)})"))
                 else:
-                    raw_parts.append(label)
+                    entries.append((uri, label, label))
             else:
-                raw_parts.append(label)
+                entries.append((uri, label, label))
 
-        # Deduplicate identical formatted labels
-        from collections import Counter
-        label_counts = Counter(raw_parts)
-        seen = set()
+        # Group by formatted label to find collisions
+        from collections import defaultdict
+        label_groups = defaultdict(list)
+        for uri, base_label, fmt_label in entries:
+            label_groups[fmt_label].append(uri)
+
+        # Build final parts, disambiguating same-label groups
         parts = []
-        for p in raw_parts:
-            if p in seen:
+        seen_uris = set()
+        for uri, base_label, fmt_label in entries:
+            if uri in seen_uris:
                 continue
-            seen.add(p)
-            count = label_counts[p]
-            if count > 1:
-                parts.append(f"{p} x{count}")
+            seen_uris.add(uri)
+
+            if len(label_groups[fmt_label]) <= 1:
+                # Unique label — keep as-is
+                parts.append(fmt_label)
             else:
-                parts.append(p)
+                # Collision — rebuild with disambiguation
+                date_str = time_dates.get(uri, "")
+                enr = (target_enrichments or {}).get(uri)
+                venue = enr.get("venue", "") if enr else ""
+
+                disambig = []
+                enr_tag = enr.get("type_tag") if enr else None
+                if enr_tag and enr_tag != "Time-Span":
+                    disambig.append(enr_tag)
+                if date_str:
+                    disambig.append(date_str)
+                if venue:
+                    disambig.append(venue)
+
+                if disambig:
+                    parts.append(f"{base_label} ({', '.join(disambig)})")
+                else:
+                    # URI suffix fallback
+                    suffix = uri.rsplit('/', 1)[-1][:30]
+                    parts.append(f"{base_label} [{suffix}]")
 
         return ", ".join(parts)
 

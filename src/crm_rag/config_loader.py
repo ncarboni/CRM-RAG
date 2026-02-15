@@ -207,3 +207,33 @@ class ConfigLoader:
         except Exception as e:
             logger.error(f"Error loading interface config: {str(e)}, using defaults")
             return default_config
+
+    @staticmethod
+    def load_prompts() -> Dict[str, str]:
+        """Load LLM prompts from config/prompts.yaml.
+
+        Returns a dict of prompt strings keyed by name.
+        Raises FileNotFoundError if the file is missing.
+        """
+        base_dir = str(PROJECT_ROOT)
+        prompts_path = os.path.join(base_dir, 'config', 'prompts.yaml')
+
+        if not os.path.exists(prompts_path):
+            raise FileNotFoundError(
+                f"Prompts config not found at {prompts_path}. "
+                "Copy config/prompts.yaml from the repository."
+            )
+
+        with open(prompts_path, 'r', encoding='utf-8') as f:
+            prompts = yaml.safe_load(f)
+
+        required_keys = [
+            "query_classifier_system", "query_analysis", "system",
+            "system_enumeration", "system_aggregation", "system_wikidata", "user",
+        ]
+        missing = [k for k in required_keys if k not in prompts]
+        if missing:
+            raise ValueError(f"prompts.yaml is missing required keys: {missing}")
+
+        logger.info(f"Loaded {len(prompts)} prompts from {prompts_path}")
+        return prompts

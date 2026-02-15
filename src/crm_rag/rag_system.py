@@ -44,6 +44,7 @@ from crm_rag.document_formatter import (
 )
 from crm_rag.sparql_helpers import BatchSparqlClient
 from crm_rag.knowledge_graph import KnowledgeGraph
+from crm_rag.config_loader import ConfigLoader
 
 logger = logging.getLogger(__name__)
 
@@ -55,39 +56,6 @@ class QueryAnalysis:
     query_type: str  # SPECIFIC, ENUMERATION, or AGGREGATION
     categories: List[str]  # Primary FC categories (what the user wants returned)
     context_categories: List[str] = None  # Contextual FCs (mentioned but not the answer type)
-
-QUERY_ANALYSIS_PROMPT = """Classify this question about cultural heritage data.
-
-Query type (pick one):
-- SPECIFIC: asks about a particular entity ("tell me about X", "where is X")
-- ENUMERATION: asks to list entities ("which paintings…", "list all…", "what artists…")
-- AGGREGATION: asks to count or rank ("how many…", "top 10…", "most…")
-
-Categories — pick from: Thing, Actor, Place, Event, Concept, Time.
-- "categories": the entity types the user wants as the ANSWER (1-2). What should the result list contain?
-- "context_categories": entity types mentioned as FILTERS or CONTEXT but not the answer (0-2).
-
-Examples:
-- "Which pieces from Swiss Artists are in the museum?" → categories=["Thing"], context=["Actor","Place"]
-- "List artists who exhibited in Paris" → categories=["Actor"], context=["Place","Event"]
-- "How many churches are in Cyprus?" → categories=["Thing"], context=["Place"]
-- "Tell me about Hodler" → categories=["Actor"]
-- "What events took place in 1905?" → categories=["Event"], context=["Time"]
-- "Which saints are depicted in the church?" → categories=["Actor","Thing"], context=["Place"]
-
-Category definitions:
-- Thing: objects, artworks, buildings, features, visual representations, iconographic subjects
-- Actor: people, artists, groups, organizations, donors, saints, historical figures
-- Place: locations, cities, regions
-- Event: activities, creation, production, exhibitions
-- Concept: types, materials, techniques
-- Time: dates, periods
-
-Return ONLY valid JSON: {{"query_type": "...", "categories": ["..."], "context_categories": ["..."]}}
-
-Question: "{question}"
-"""
-
 
 def _fetch_wikidata_info(wikidata_id, session):
     """Fetch information from Wikidata for a given Q-ID.
@@ -289,6 +257,10 @@ class RetrievalConfig:
     # Diversity penalty (MMR-style) for coherent subgraph extraction
     DIVERSITY_PENALTY = 0.2  # Weight for penalizing embedding similarity to already-selected docs
 
+    # Personalized PageRank retrieval
+    PPR_SEED_MAX = 5       # Max seed entities for PPR
+    PPR_DAMPING = 0.85     # PPR damping factor
+
     # Type-filtered retrieval channel
     TYPE_FILTERED_FETCH_K = 10000   # Raw FAISS results scanned before type filtering
     TYPE_CHANNEL_POOL_FRACTION = 0.5  # Fraction of pool reserved for type-matching docs (ENUM/AGG)
@@ -463,6 +435,9 @@ class UniversalRagSystem:
 
         # Initialize FR traversal for FR-based document generation
         self.fr_traversal = self._init_fr_traversal()
+
+        # Load LLM prompts from config/prompts.yaml (falls back to defaults)
+        self.prompts = ConfigLoader.load_prompts()
 
     # ==================== Path Helper Methods ====================
     # These methods return dataset-specific paths for multi-dataset support
@@ -1245,6 +1220,28 @@ class UniversalRagSystem:
             entity_types_map=entity_types_map,
             class_labels=UniversalRagSystem._class_labels,
         )
+
+        # Resolve time-span dates for target entities (triples already in KG)
+        _P4_LOCALS = {"P4_has_time-span", "P4i_is_time-span_of"}
+        time_span_dates = dict(time_span_dates) if time_span_dates else {}
+
+        for target_uri in all_target_uris:
+            if target_uri in time_span_dates:
+                continue
+            for pred, obj in fr_outgoing.get(target_uri, []):
+                pred_local = pred.split('/')[-1].split('#')[-1]
+                if pred_local in _P4_LOCALS:
+                    # obj is E52_Time-Span URI — try satellite dates first
+                    if obj in time_span_dates:
+                        time_span_dates[target_uri] = time_span_dates[obj]
+                        break
+                    # Fallback: resolve from knowledge graph
+                    date_info = self.knowledge_graph.resolve_time_span(obj)
+                    if date_info:
+                        formatted = self.fr_traversal._format_time_entry(date_info)
+                        if formatted:
+                            time_span_dates[target_uri] = formatted
+                    break
 
         text = self.fr_traversal.format_fr_document(
             entity_uri=entity_uri,
@@ -2075,8 +2072,8 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         valid_categories = {"Thing", "Actor", "Place", "Event", "Concept", "Time"}
 
         try:
-            prompt = QUERY_ANALYSIS_PROMPT.format(question=question)
-            raw = self.llm_provider.generate("You are a query classifier. Return only valid JSON.", prompt)
+            prompt = self.prompts["query_analysis"].format(question=question)
+            raw = self.llm_provider.generate(self.prompts["query_classifier_system"], prompt)
 
             # Extract JSON from response (handle markdown code blocks)
             raw = raw.strip()
@@ -2105,18 +2102,7 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
 
     def get_cidoc_system_prompt(self):
         """Get a system prompt with CIDOC-CRM knowledge"""
-
-        return """You are a cultural heritage expert who provides clear, accessible answers about artworks, churches, frescoes, and historical figures.
-
-Rules:
-- ONLY use information from the retrieved context provided below. Never invent or guess.
-- Write in clear, natural language. Translate ontological vocabulary into everyday words: "denotes" → "depicts", "is composed of" → "consists of", "bears feature" → "has". Never use ontology codes (E22_, IC9_, D1_, P62_, etc.) or raw Wikidata codes.
-- Use specific entity names (e.g. "Panagia Phorbiottisa") not generic terms.
-- When describing a panel or artwork, explain WHO is depicted in it and WHAT ROLE each figure has (saint, donor, founder, etc.). If a panel depicts multiple figures, explicitly state that they appear together and describe each one.
-- When asked about "other" entities of a type, list ALL matching entities from the context, even if they are from different locations. Include entities even if you cannot determine their exact location — state what you know and note what is unclear. Do not say "no other" unless you have truly found none in the context.
-- Answer directly and concisely. Do not add disclaimers about data limitations unless you truly have no relevant information at all.
-- If conversation history is provided, use it to understand what the user is referring to (e.g. "the church" = the church discussed earlier).
-"""
+        return self.prompts["system"]
 
     def get_all_entities(self):
         """Get all data instance URIs from the SPARQL endpoint.
@@ -2232,7 +2218,7 @@ Rules:
         return _fetch_wikidata_info(wikidata_id, self._http_session)
 
 
-    def compute_coherent_subgraph(self, candidates, adjacency_matrix, initial_scores, k=RetrievalConfig.DEFAULT_RETRIEVAL_K, alpha=RetrievalConfig.RELEVANCE_CONNECTIVITY_ALPHA, query_analysis=None):
+    def compute_coherent_subgraph(self, candidates, adjacency_matrix, initial_scores, k=RetrievalConfig.DEFAULT_RETRIEVAL_K, alpha=RetrievalConfig.RELEVANCE_CONNECTIVITY_ALPHA):
         """
         Extract a coherent subgraph using greedy selection that balances individual relevance and connectivity.
 
@@ -2242,7 +2228,6 @@ Rules:
             initial_scores: Initial relevance scores for each candidate (n,)
             k: Number of documents to select
             alpha: Weight for individual relevance vs connectivity (0-1, higher = more emphasis on relevance)
-            query_analysis: Optional QueryAnalysis for FC-aware type boosting
 
         Returns:
             List of selected GraphDocument objects in order of selection
@@ -2281,24 +2266,6 @@ Rules:
                     if mod is not None:
                         break
             candidate_type_mods[i] = mod if mod is not None else 0.0
-
-        # FC-aware boosting: boost candidates whose types match query target categories
-        fc_boost_count = 0
-        FC_BOOST = 0.10  # +10% score boost for FC-matching candidates
-        if query_analysis and query_analysis.categories:
-            fc_mapping = self._load_fc_class_mapping()
-            target_classes = set()
-            for fc_name in query_analysis.categories:
-                target_classes.update(fc_mapping.get(fc_name, []))
-
-            if target_classes:
-                for i, c in enumerate(candidates):
-                    all_types = set(c.metadata.get('all_types', []))
-                    if all_types & target_classes:
-                        candidate_type_mods[i] += FC_BOOST
-                        fc_boost_count += 1
-                logger.info(f"FC-aware boosting: {fc_boost_count}/{n} candidates match "
-                            f"target categories {query_analysis.categories} (+{FC_BOOST})")
 
         logger.info(f"\n{'='*80}")
         logger.info(f"COHERENT SUBGRAPH EXTRACTION")
@@ -2510,6 +2477,89 @@ Rules:
         candidates.sort(key=lambda x: x[1], reverse=True)
         return candidates[:k]
 
+    def _rrf_fuse_multi(self, ranked_lists, pool_size, k_rrf=60):
+        """N-way Reciprocal Rank Fusion over multiple ranked lists.
+
+        Args:
+            ranked_lists: List of lists, each containing (GraphDocument, score) tuples.
+            pool_size: Maximum number of results to return.
+            k_rrf: RRF constant (default 60).
+
+        Returns:
+            List of (GraphDocument, rrf_score) sorted by fused score descending.
+        """
+        scores = {}
+        doc_map = {}
+        for ranked in ranked_lists:
+            for rank, (doc, _) in enumerate(ranked):
+                scores[doc.id] = scores.get(doc.id, 0) + 1.0 / (k_rrf + rank + 1)
+                doc_map[doc.id] = doc
+
+        sorted_ids = sorted(scores, key=scores.get, reverse=True)[:pool_size]
+        return [(doc_map[did], scores[did]) for did in sorted_ids]
+
+    def _ppr_retrieval(self, query, query_analysis, pool_size):
+        """Run Personalized PageRank retrieval seeded by constraint entities.
+
+        Identifies constraint entities (matching context_categories) via BM25,
+        then runs PPR from those seeds to discover connected entities.
+
+        Returns:
+            List of (GraphDocument, ppr_score) tuples, or empty list if
+            no valid seeds found.
+        """
+        ctx_cats = query_analysis.context_categories if query_analysis.context_categories else []
+        if not ctx_cats:
+            return []
+
+        fc_doc_ids = getattr(self.document_store, '_fc_doc_ids', None)
+        if not fc_doc_ids:
+            return []
+
+        # Collect doc IDs matching context categories
+        allowed_ids = set()
+        for fc_name in ctx_cats:
+            allowed_ids |= fc_doc_ids.get(fc_name, set())
+        if not allowed_ids:
+            return []
+
+        # BM25 on query to find constraint entities
+        bm25_results = self.document_store.retrieve_bm25(query, k=50)
+        if not bm25_results:
+            return []
+
+        # Filter to context-category matches
+        seed_uris = []
+        for doc, _score in bm25_results:
+            if doc.id in allowed_ids:
+                seed_uris.append(doc.id)
+                if len(seed_uris) >= RetrievalConfig.PPR_SEED_MAX:
+                    break
+
+        if not seed_uris:
+            return []
+
+        seed_labels = [self.knowledge_graph.get_label(u) for u in seed_uris]
+        logger.info(f"PPR seeds ({len(seed_uris)}): {', '.join(seed_labels)}")
+
+        # Run Personalized PageRank
+        ppr_results = self.knowledge_graph.personalized_pagerank(
+            seed_uris=seed_uris,
+            damping=RetrievalConfig.PPR_DAMPING,
+            top_n=pool_size,
+            doc_only=True,
+        )
+
+        # Convert to (GraphDocument, score) tuples
+        results = []
+        for uri, score in ppr_results:
+            doc = self.document_store.docs.get(uri)
+            if doc:
+                results.append((doc, score))
+
+        logger.info(f"PPR retrieval: {len(results)} candidates from {len(seed_uris)} seeds")
+        return results
+
     def _type_filtered_channel(self, query, results_with_scores, initial_pool_size, query_analysis):
         """Run type-filtered FAISS+BM25 retrieval and merge into the main pool.
 
@@ -2605,7 +2655,7 @@ Rules:
             k: Number of documents to return
             initial_pool_size: Size of initial candidate pool (should be > k)
             alpha: Balance between relevance (higher) and connectivity (lower)
-            query_analysis: Optional QueryAnalysis for FC-aware type boosting in subgraph extraction
+            query_analysis: Optional QueryAnalysis for type-filtered channel and PPR retrieval
         """
         logger.info(f"Retrieving documents for query: '{query}'")
 
@@ -2618,8 +2668,28 @@ Rules:
 
         # BM25 retrieval and RRF fusion
         bm25_results = self.document_store.retrieve_bm25(query, k=initial_pool_size)
-        if bm25_results:
+
+        # PPR retrieval (graph-based, seeded by constraint entities)
+        ppr_results = []
+        if (query_analysis and query_analysis.context_categories
+                and self.knowledge_graph.vertex_count > 0):
+            ppr_results = self._ppr_retrieval(query, query_analysis, initial_pool_size)
+
+        # Fuse: 2-way or 3-way RRF depending on PPR availability
+        if bm25_results and ppr_results:
+            results_with_scores = self._rrf_fuse_multi(
+                [faiss_results, bm25_results, ppr_results],
+                pool_size=initial_pool_size,
+            )
+            logger.info(f"3-way RRF fusion: FAISS + BM25 + PPR → {len(results_with_scores)} candidates")
+        elif bm25_results:
             results_with_scores = self._rrf_fuse(faiss_results, bm25_results, pool_size=initial_pool_size)
+        elif ppr_results:
+            results_with_scores = self._rrf_fuse_multi(
+                [faiss_results, ppr_results],
+                pool_size=initial_pool_size,
+            )
+            logger.info(f"2-way RRF fusion: FAISS + PPR → {len(results_with_scores)} candidates")
         else:
             results_with_scores = faiss_results
 
@@ -2679,7 +2749,6 @@ Rules:
             initial_scores=faiss_scores,
             k=k,
             alpha=alpha,
-            query_analysis=query_analysis
         )
 
         logger.info(f"Retrieved and selected {len(selected_docs)} coherent documents")
@@ -3132,16 +3201,11 @@ Rules:
         # Build system prompt
         system_prompt = self.get_cidoc_system_prompt()
         if query_analysis.query_type == "ENUMERATION":
-            system_prompt += "\nList ALL matching entities from the retrieved information. Be comprehensive."
+            system_prompt += "\n" + self.prompts["system_enumeration"]
         elif query_analysis.query_type == "AGGREGATION":
-            system_prompt += (
-                "\nCount or rank entities based on the retrieved information. "
-                "A 'Dataset Statistics' section with pre-computed counts and rankings "
-                "from the full knowledge graph is included when available — use these "
-                "statistics for accurate counts. State if the count may be incomplete."
-            )
+            system_prompt += "\n" + self.prompts["system_aggregation"]
         if include_wikidata and wikidata_context:
-            system_prompt += "\n\nI have also provided Wikidata information for some entities. When appropriate, incorporate this Wikidata information to enhance your answer with additional context, especially for factual details not present in the RDF data."
+            system_prompt += "\n\n" + self.prompts["system_wikidata"]
 
         # Build user prompt
         prompt = ""
@@ -3155,7 +3219,7 @@ Rules:
         prompt += f"Retrieved information:\n{context}\n"
         if include_wikidata and wikidata_context:
             prompt += f"{wikidata_context}\n"
-        prompt += f"\nQuestion: {question}\n\nAnswer directly using only the retrieved information above. Use entity names, not codes.\n"
+        prompt += f"\nQuestion: {question}\n\n{self.prompts['user']}\n"
 
         # Generate answer
         answer = self.llm_provider.generate(system_prompt, prompt)

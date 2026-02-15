@@ -27,17 +27,19 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 QUESTIONS = [
-    "Which pieces from Swiss Artists are in the Musée d'art et d'histoire in Geneva ?",
-    "Which paintings depict geneva?",
+    "Which pieces from Swiss Artists are in the Musée d'art et d'histoire in Geneva?",
+    "Which paintings depict Geneva?",
     "Tell me more about Ferdinand Hodler and its paintings",
-    "Tell me more about Guerrier au morgenstern",
-    "Guerrier au morgenstern and Fondation Pierre Gianadda, it has been exhibited in which exhibition?",
-    "When it happened and with which other pieces?",
-    "In which exhibitions and where the work of hodler has been featured?",
-    "When they took place?",
+    "Give me the list of exhibitions that hodler participated in",
+    "What other pieces were exhibited in Hodler // Parallélisme ?",
+    "Where the painting Le Lac Léman et le Salève avec cygnes was exhibited?",
+    "Only this exhibitions?",
+    "Are there any articles talking about the exhibitions of Hodler?",
+    "Are there any articles referencing Ferdinand Hodler?",
+    "Are there more articles?",
+    'Tell me about the article "Une exposition Hodler".',
     "Aside from Hodler, are there any relevant Swiss Artist?",
-    "What Hans Schweizer did?",
-    "Which are the top 10 Swiss Artist in the Musée d'art et d'histoire?",
+    "Which are the top 10 Swiss Artists in the Musée d'art et d'histoire?",
 ]
 
 

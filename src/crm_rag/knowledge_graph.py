@@ -146,6 +146,46 @@ class KnowledgeGraph:
         logger.info(f"PageRank computed on {subgraph.vcount()} nodes / "
                     f"{subgraph.ecount()} FR edges, {scored} scores stored")
 
+    def personalized_pagerank(
+        self,
+        seed_uris: List[str],
+        damping: float = 0.85,
+        top_n: int = 100,
+        doc_only: bool = True,
+    ) -> List[Tuple[str, float]]:
+        """Compute Personalized PageRank seeded on given URIs.
+
+        Returns list of (uri, ppr_score) sorted descending, excluding seeds.
+        """
+        seed_vids = []
+        for uri in seed_uris:
+            vid = self._uri_to_vid.get(uri)
+            if vid is not None:
+                seed_vids.append(vid)
+
+        if not seed_vids:
+            return []
+
+        scores = self._graph.personalized_pagerank(
+            directed=True,
+            damping=damping,
+            reset_vertices=seed_vids,
+            weights="weight",
+        )
+
+        seed_set = set(seed_vids)
+        results = []
+        for vid, score in enumerate(scores):
+            if vid in seed_set or score <= 0:
+                continue
+            v = self._graph.vs[vid]
+            if doc_only and not v["is_doc"]:
+                continue
+            results.append((v["name"], score))
+
+        results.sort(key=lambda x: x[1], reverse=True)
+        return results[:top_n]
+
     # ── Persistence ──
 
     def save(self, path: str) -> None:

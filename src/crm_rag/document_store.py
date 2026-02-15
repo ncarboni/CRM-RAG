@@ -8,7 +8,6 @@ import os
 import pickle
 from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, field
-import numpy as np
 from langchain_core.documents import Document
 from langchain_community.vectorstores import FAISS
 
@@ -27,15 +26,6 @@ class GraphDocument:
     text: str
     metadata: Dict[str, Any] = field(default_factory=dict)
     embedding: Optional[List[float]] = None
-    neighbors: List[Dict[str, Any]] = field(default_factory=list)
-    
-    def add_neighbor(self, neighbor_doc, edge_type, weight=1.0):
-        """Add a connection to another document with weight"""
-        self.neighbors.append({
-            "doc_id": neighbor_doc.id,
-            "edge_type": edge_type,
-            "weight": weight
-        })
 
 
 class GraphDocumentStore:
@@ -80,12 +70,6 @@ class GraphDocumentStore:
         self.docs[doc_id] = doc
         return doc
 
-    def add_edge(self, doc_id1, doc_id2, edge_type, weight=1.0):
-        """Add an edge between two documents with weight"""
-        if doc_id1 in self.docs and doc_id2 in self.docs:
-            self.docs[doc_id1].add_neighbor(self.docs[doc_id2], edge_type, weight)
-            self.docs[doc_id2].add_neighbor(self.docs[doc_id1], edge_type, weight)
-    
     def rebuild_vector_store(self):
         """Build/rebuild the vector store for initial retrieval using pre-computed embeddings"""
         # Check if documents have pre-computed embeddings
@@ -187,112 +171,6 @@ class GraphDocumentStore:
 
         logger.info(f"Retrieved {len(retrieved)} documents")
         return retrieved
-
-    def create_adjacency_matrix(self, doc_ids, triples_index, weight_fn, max_hops=2):
-        """Create an adjacency matrix with virtual 2-hop edges through the full RDF graph.
-
-        Uses the triples index (built from edges.parquet) rather than in-memory
-        document neighbor lists.  This ensures the adjacency matrix reflects the
-        full knowledge-graph topology — including entities removed by thin-doc
-        chaining that still serve as valid intermediaries for 2-hop paths
-        (e.g., Artist -> E12_Production -> Artwork).
-
-        Args:
-            doc_ids: List of candidate document IDs (entity URIs)
-            triples_index: Dict mapping entity_uri -> [triple_dicts] from Parquet.
-                Each triple dict has keys: subject, predicate, object (+ labels).
-            weight_fn: Callable(predicate_uri) -> float for CIDOC-CRM semantic weights.
-            max_hops: Maximum hops (used for virtual edge discount factor)
-        """
-        doc_to_idx = {doc_id: i for i, doc_id in enumerate(doc_ids)}
-        n = len(doc_ids)
-        adj_matrix = np.zeros((n, n), dtype=np.float64)
-
-        # 1-hop: direct edges between candidates (from full RDF graph)
-        direct_edges = 0
-        # Virtual 2-hop: intermediate_node -> [(candidate_idx, weight)]
-        intermediate_index = {}
-
-        for i, doc_id in enumerate(doc_ids):
-            for triple in triples_index.get(doc_id, []):
-                # Determine the other endpoint
-                if triple["subject"] == doc_id:
-                    other = triple["object"]
-                else:
-                    other = triple["subject"]
-
-                weight = weight_fn(triple["predicate"])
-
-                if other in doc_to_idx:
-                    # 1-hop: both endpoints are candidates
-                    j = doc_to_idx[other]
-                    if weight > adj_matrix[i, j]:
-                        adj_matrix[i, j] = weight
-                    direct_edges += 1
-                else:
-                    # Intermediate outside the candidate pool — collect for 2-hop
-                    if other not in intermediate_index:
-                        intermediate_index[other] = []
-                    intermediate_index[other].append((i, weight))
-
-        # For each intermediate connecting 2+ candidates, add virtual edges
-        virtual_edges = 0
-        for intermediate_id, connections in intermediate_index.items():
-            if len(connections) < 2:
-                continue
-            for ci in range(len(connections)):
-                idx_a, weight_a = connections[ci]
-                for cj in range(ci + 1, len(connections)):
-                    idx_b, weight_b = connections[cj]
-                    virtual_weight = (weight_a * weight_b) * (1.0 / max_hops)
-                    if virtual_weight > adj_matrix[idx_a, idx_b]:
-                        adj_matrix[idx_a, idx_b] = virtual_weight
-                        adj_matrix[idx_b, idx_a] = virtual_weight
-                        virtual_edges += 1
-
-        logger.info(f"Adjacency: {direct_edges} direct edges, {virtual_edges} virtual 2-hop edges "
-                    f"(via {sum(1 for c in intermediate_index.values() if len(c) >= 2)} intermediates)")
-
-        # Add self-loops to prevent isolated nodes
-        adj_matrix = adj_matrix + np.eye(n)
-
-        # Log adjacency matrix statistics before normalization
-        non_zero_count = np.count_nonzero(adj_matrix - np.eye(n))  # Exclude self-loops
-        total_possible = n * n - n  # Exclude diagonal
-        density = (non_zero_count / total_possible) if total_possible > 0 else 0.0
-
-        logger.info(f"=== Adjacency Matrix Statistics (before normalization) ===")
-        logger.info(f"  Size: {n}x{n} nodes")
-        logger.info(f"  Non-zero edges: {non_zero_count} ({density*100:.1f}% density)")
-        logger.info(f"  Value range: [{np.min(adj_matrix):.3f}, {np.max(adj_matrix):.3f}]")
-        logger.info(f"  Mean weight: {np.mean(adj_matrix):.3f}")
-        logger.info(f"  Std weight: {np.std(adj_matrix):.3f}")
-
-        # Symmetric normalization: D^(-1/2) * A * D^(-1/2)
-        rowsum = np.array(adj_matrix.sum(1))
-        d_inv_sqrt = np.zeros_like(rowsum)
-        non_zero_mask = rowsum > 1e-10
-
-        if np.any(non_zero_mask):
-            d_inv_sqrt[non_zero_mask] = np.power(rowsum[non_zero_mask], -0.5)
-            d_inv_sqrt = np.nan_to_num(d_inv_sqrt, nan=0.0, posinf=0.0, neginf=0.0)
-            d_mat_inv_sqrt = np.diag(d_inv_sqrt)
-
-            with np.errstate(invalid='ignore', divide='ignore'):
-                adj_normalized = adj_matrix.dot(d_mat_inv_sqrt).transpose().dot(d_mat_inv_sqrt)
-                adj_normalized = np.nan_to_num(adj_normalized, nan=0.0, posinf=0.0, neginf=0.0)
-        else:
-            logger.warning("All rows in adjacency matrix are zero, using identity matrix")
-            adj_normalized = np.eye(n)
-
-        # Log adjacency matrix statistics after normalization
-        logger.info(f"=== Adjacency Matrix Statistics (after symmetric normalization) ===")
-        logger.info(f"  Value range: [{np.min(adj_normalized):.3f}, {np.max(adj_normalized):.3f}]")
-        logger.info(f"  Mean: {np.mean(adj_normalized):.3f}")
-        logger.info(f"  Std: {np.std(adj_normalized):.3f}")
-        logger.info(f"  Row sum range: [{np.min(np.sum(adj_normalized, axis=1)):.3f}, {np.max(np.sum(adj_normalized, axis=1)):.3f}]")
-
-        return adj_normalized
 
     # ==================== BM25 Sparse Retrieval ====================
 

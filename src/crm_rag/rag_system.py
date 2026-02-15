@@ -43,6 +43,7 @@ from crm_rag.document_formatter import (
     get_relationship_weight as _get_relationship_weight,
 )
 from crm_rag.sparql_helpers import BatchSparqlClient
+from crm_rag.knowledge_graph import KnowledgeGraph
 
 logger = logging.getLogger(__name__)
 
@@ -215,11 +216,6 @@ _HIGH_PRIORITY_FRAGMENTS = {
     "P9_consists_of", "P9i_forms_part_of",
 }
 
-_DATE_PREDICATES = {
-    "P82a_begin_of_the_begin", "P82b_end_of_the_end",
-    "P82_at_some_time_within", "P81a_end_of_the_begin", "P81b_begin_of_the_end",
-}
-
 _TRIPLES_PRIORITY_TYPES = frozenset({
     "Actor", "E39_Actor", "E21_Person", "Person", "Group",
     "Human-Made Object", "E22_Human-Made_Object", "E22_Man-Made_Object",
@@ -260,27 +256,6 @@ def _predicate_priority(triple, entity_uri, retrieved_uris):
     if triple.get("predicate_label"):
         return 2
     return 3
-
-
-def _resolve_time_span(time_span_uri, triples_index):
-    """Follow a time-span URI to extract begin/end date values."""
-    ts_triples = triples_index.get(time_span_uri, [])
-    dates = {}
-    for t in ts_triples:
-        if t["subject"] != time_span_uri:
-            continue
-        pred_local = t["predicate"].split("/")[-1].split("#")[-1]
-        for dp in _DATE_PREDICATES:
-            if dp in pred_local:
-                obj_val = t.get("object_label") or t.get("object", "")
-                if obj_val and not obj_val.startswith("http"):
-                    if "begin" in dp:
-                        dates["began"] = obj_val
-                    elif "end" in dp:
-                        dates["ended"] = obj_val
-                    else:
-                        dates["date"] = obj_val
-    return dates
 
 
 def _triples_type_priority(doc):
@@ -464,12 +439,9 @@ class UniversalRagSystem:
             self.embedding_cache = None
             logger.info("Embedding cache disabled")
 
-        # Initialize document store
+        # Initialize document store and knowledge graph
         self.document_store = None
-        self._aggregation_index = {}
-        self._parquet_writer = None
-        self._parquet_triple_count = 0
-        self._seen_triple_hashes: set = set()
+        self.knowledge_graph = KnowledgeGraph()
 
         # Create a secure session for HTTP requests (e.g., Wikidata API)
         # Disable trust_env to prevent .netrc credential leaks (CVE fix)
@@ -504,14 +476,14 @@ class UniversalRagSystem:
         base = self.data_dir if self.data_dir else str(PROJECT_ROOT / 'data')
         cache = f'{base}/cache/{self.dataset_id}'
         paths = {
-            'cache':        cache,
-            'graph':        f'{cache}/document_graph.pkl',
-            'graph_temp':   f'{cache}/document_graph_temp.pkl',
-            'vector_dir':   f'{cache}/vector_index',
-            'vector_index': f'{cache}/vector_index/index.faiss',
-            'bm25_dir':     f'{cache}/bm25_index',
-            'aggregation':  f'{cache}/aggregation_index.json',
-            'documents':    f'{base}/documents/{self.dataset_id}/entity_documents',
+            'cache':           cache,
+            'graph':           f'{cache}/document_graph.pkl',
+            'graph_temp':      f'{cache}/document_graph_temp.pkl',
+            'vector_dir':      f'{cache}/vector_index',
+            'vector_index':    f'{cache}/vector_index/index.faiss',
+            'bm25_dir':        f'{cache}/bm25_index',
+            'knowledge_graph': f'{cache}/knowledge_graph.pkl',
+            'documents':       f'{base}/documents/{self.dataset_id}/entity_documents',
         }
         return paths[key]
 
@@ -708,8 +680,12 @@ class UniversalRagSystem:
 
             if graph_loaded and vector_loaded:
                 logger.info("Successfully loaded existing document graph and vector store")
-                self._load_triples_index()
-                self._load_aggregation_index()
+                # Load knowledge graph (replaces triples_index + aggregation_index)
+                kg_path = self._path('knowledge_graph')
+                if os.path.exists(kg_path):
+                    self.knowledge_graph.load(kg_path)
+                else:
+                    logger.warning(f"Knowledge graph not found at {kg_path}")
                 # Load or build BM25 index
                 bm25_dir = self._path('bm25_dir')
                 if not self.document_store.load_bm25_index(bm25_dir):
@@ -855,11 +831,15 @@ class UniversalRagSystem:
         # FC categories exempt from chaining (carry irreplaceable temporal/spatial info)
         _EXEMPT_FC_PREFIXES = ("[Event]", "[Actor]")
 
-        # Collect candidates: thin docs that have at least one neighbor
+        # Collect candidates: thin docs that have at least one RDF neighbor in the doc store
+        doc_uris = set(store.docs.keys())
         candidates = []
         skipped_exempt = 0
         for doc_id, doc in store.docs.items():
-            if len(doc.text) < threshold and doc.neighbors:
+            if len(doc.text) < threshold:
+                neighbors = self.knowledge_graph.get_rdf_neighbors(doc_id, filter_uris=doc_uris)
+                if not neighbors:
+                    continue
                 # Exempt entities whose FC category makes them independently important
                 if any(doc.text.lstrip().startswith(pfx) for pfx in _EXEMPT_FC_PREFIXES):
                     skipped_exempt += 1
@@ -897,13 +877,9 @@ class UniversalRagSystem:
 
             # Absorb into ALL unique neighbors that won't exceed size cap
             absorbed_into: list[str] = []
-            seen_neighbors: set[str] = set()
-            for neighbor_info in doc.neighbors:
-                n_id = neighbor_info["doc_id"]
-                if n_id in seen_neighbors:
-                    continue  # skip duplicate neighbor entries (different edge types)
-                seen_neighbors.add(n_id)
-                if n_id not in store.docs or n_id == doc_id:
+            current_doc_uris = set(store.docs.keys())
+            for n_id, _pred, _weight in self.knowledge_graph.get_rdf_neighbors(doc_id, filter_uris=current_doc_uris):
+                if n_id == doc_id or n_id not in store.docs:
                     continue
                 if len(store.docs[n_id].text) + chain_len > max_target_size:
                     continue  # would exceed size cap
@@ -928,15 +904,6 @@ class UniversalRagSystem:
             # Remove thin doc from store
             del store.docs[doc_id]
 
-            # Clean up neighbor lists pointing to the removed doc
-            for neighbor_info in doc.neighbors:
-                n_id = neighbor_info["doc_id"]
-                if n_id in store.docs:
-                    store.docs[n_id].neighbors = [
-                        n for n in store.docs[n_id].neighbors
-                        if n["doc_id"] != doc_id
-                    ]
-
             chained_map[doc_id] = absorbed_into[0]
 
         logger.info(
@@ -947,461 +914,7 @@ class UniversalRagSystem:
 
         return chained_map
 
-    def _get_edges_parquet_path(self) -> str:
-        """Return the path to the edges Parquet file."""
-        return os.path.join(os.path.dirname(self._path('documents')), "edges.parquet")
 
-    def _append_edges_parquet(self, triples: List[Dict]) -> None:
-        """Append triples to the Parquet edges file incrementally.
-
-        Creates the file on first call, appends on subsequent calls.
-        Uses a persistent ParquetWriter for efficient streaming writes.
-        Deduplicates by (subject, predicate, object) hash to avoid bloat
-        from 2-hop intermediates being re-fetched across chunks.
-        """
-        import pyarrow as pa
-
-        if not triples:
-            return
-
-        # Deduplicate: skip triples already written in earlier chunks
-        unique_triples = []
-        for t in triples:
-            h = hash((t["subject"], t["predicate"], t["object"]))
-            if h not in self._seen_triple_hashes:
-                self._seen_triple_hashes.add(h)
-                unique_triples.append(t)
-
-        if not unique_triples:
-            return
-
-        table = pa.table({
-            "s": [t["subject"] for t in unique_triples],
-            "s_label": [t.get("subject_label", "") for t in unique_triples],
-            "p": [t["predicate"] for t in unique_triples],
-            "p_label": [t.get("predicate_label", "") for t in unique_triples],
-            "o": [t["object"] for t in unique_triples],
-            "o_label": [t.get("object_label", "") for t in unique_triples],
-        })
-
-        if self._parquet_writer is None:
-            import pyarrow.parquet as pq
-            edges_path = self._get_edges_parquet_path()
-            os.makedirs(os.path.dirname(edges_path), exist_ok=True)
-            self._parquet_writer = pq.ParquetWriter(edges_path, table.schema)
-            self._parquet_triple_count = 0
-
-        self._parquet_writer.write_table(table)
-        self._parquet_triple_count += len(unique_triples)
-
-    def _close_edges_parquet(self) -> None:
-        """Close the incremental Parquet writer and log final stats."""
-        if self._parquet_writer is not None:
-            self._parquet_writer.close()
-            self._parquet_writer = None
-            edges_path = self._get_edges_parquet_path()
-            size_mb = os.path.getsize(edges_path) / (1024 * 1024)
-            dedup_count = len(self._seen_triple_hashes)
-            logger.info(f"Saved {self._parquet_triple_count:,} unique triples to {edges_path} "
-                        f"({size_mb:.1f} MB, {dedup_count:,} seen hashes)")
-            self._parquet_triple_count = 0
-            self._seen_triple_hashes.clear()
-
-    def _load_triples_index(self):
-        """Load Parquet edges file and build entity -> triples index.
-
-        Reads the enriched edges.parquet in batches (6 columns) and creates
-        a dict mapping each entity URI to its list of triple dicts.
-        Only indexes triples where subject or object is a document entity.
-        Deduplicates rows by (s, p, o) hash to handle legacy pre-dedup files.
-
-        Also builds actor work-count index in the same pass (no second iteration).
-
-        Falls back gracefully if the file is missing or uses the old 3-column format.
-        """
-        edges_path = os.path.join(os.path.dirname(self._path('documents')), "edges.parquet")
-        if not os.path.exists(edges_path):
-            logger.warning(f"No edges file at {edges_path} — raw_triples will be empty in responses")
-            self._triples_index = {}
-            self._actor_work_counts = {}
-            return
-
-        import pyarrow.parquet as pq
-
-        pf = pq.ParquetFile(edges_path)
-        schema_names = set(pf.schema_arrow.names)
-
-        # Check for enriched format (6 columns with labels)
-        has_labels = {"s_label", "p_label", "o_label"}.issubset(schema_names)
-        if not has_labels:
-            logger.warning("edges.parquet uses old 3-column format — re-generate docs to get labels")
-            self._triples_index = {}
-            self._actor_work_counts = {}
-            return
-
-        total_rows = pf.metadata.num_rows
-        logger.info(f"Loading triples index from {edges_path} ({total_rows:,} rows, batched)...")
-
-        doc_uris = set(self.document_store.docs.keys()) if self.document_store else set()
-        index = {}
-        seen = set()  # dedup by (s, p, o) hash for legacy files
-        rows_processed = 0
-        rows_deduped = 0
-
-        # Actor work-count structures (built in same pass)
-        creation_to_actors = {}   # event_uri → [actor_uri, ...]
-        work_to_events = {}       # work_uri → [event_uri, ...]
-
-        for batch in pf.iter_batches(batch_size=500_000):
-            s_col = batch.column("s")
-            s_label_col = batch.column("s_label")
-            p_col = batch.column("p")
-            p_label_col = batch.column("p_label")
-            o_col = batch.column("o")
-            o_label_col = batch.column("o_label")
-
-            for i in range(len(batch)):
-                s_py = s_col[i].as_py()
-                p_py = p_col[i].as_py()
-                o_py = o_col[i].as_py()
-
-                # Dedup
-                h = hash((s_py, p_py, o_py))
-                if h in seen:
-                    rows_deduped += 1
-                    continue
-                seen.add(h)
-                rows_processed += 1
-
-                # Actor work-count: track production chains (all triples, not just doc entities)
-                local = p_py.split("/")[-1].split("#")[-1]
-                if "P14_carried_out_by" in local or "P14i_performed" in local:
-                    if local.endswith("_carried_out_by"):
-                        creation_to_actors.setdefault(s_py, []).append(o_py)
-                    else:  # P14i: actor → event
-                        creation_to_actors.setdefault(o_py, []).append(s_py)
-                elif "P108i_was_produced_by" in local:
-                    work_to_events.setdefault(s_py, []).append(o_py)
-                elif "P16i_was_used_for" in local:
-                    if any(pat in o_py for pat in ("/creation", "/edition", "/impression")):
-                        work_to_events.setdefault(s_py, []).append(o_py)
-
-                # Triples index: only index if subject or object is a doc entity
-                s_in_docs = s_py in doc_uris
-                o_in_docs = o_py in doc_uris
-                if not s_in_docs and not o_in_docs:
-                    continue
-
-                triple = {
-                    "subject": s_py,
-                    "subject_label": s_label_col[i].as_py(),
-                    "predicate": p_py,
-                    "predicate_label": p_label_col[i].as_py(),
-                    "object": o_py,
-                    "object_label": o_label_col[i].as_py(),
-                }
-                if s_in_docs:
-                    index.setdefault(s_py, []).append(triple)
-                if o_in_docs:
-                    index.setdefault(o_py, []).append(triple)
-
-        self._triples_index = index
-
-        # Build actor work-count index from production chains
-        actor_work_counts = {}
-        for work_uri, event_uris in work_to_events.items():
-            counted_actors = set()
-            for event_uri in event_uris:
-                for actor_uri in creation_to_actors.get(event_uri, []):
-                    counted_actors.add(actor_uri)
-            for actor_uri in counted_actors:
-                actor_work_counts[actor_uri] = actor_work_counts.get(actor_uri, 0) + 1
-
-        self._actor_work_counts = actor_work_counts
-        if actor_work_counts:
-            top_3 = sorted(actor_work_counts.items(), key=lambda x: -x[1])[:3]
-            top_labels = []
-            for uri, count in top_3:
-                label = uri.split("/")[-1]
-                for t in index.get(uri, [])[:5]:
-                    if t.get("subject") == uri and t.get("subject_label"):
-                        label = t["subject_label"]
-                        break
-                    if t.get("object") == uri and t.get("object_label"):
-                        label = t["object_label"]
-                        break
-                top_labels.append(f"{label}({count})")
-            logger.info(f"Actor work-count index: {len(actor_work_counts)} actors, "
-                        f"top: {', '.join(top_labels)}")
-
-        dedup_msg = f", {rows_deduped:,} duplicates skipped" if rows_deduped else ""
-        logger.info(f"Loaded triples index: {rows_processed:,} unique triples, "
-                    f"{len(index):,} entities indexed{dedup_msg}")
-
-    def _build_aggregation_index(self, all_fr_stats=None):
-        """Build pre-computed aggregation metrics from FR traversal stats.
-
-        Uses the FR traversal results accumulated during document generation
-        to count multi-hop CIDOC-CRM relationships (e.g. Actor→Event→Thing).
-        Falls back to empty index if no FR stats provided and no cached index.
-
-        Args:
-            all_fr_stats: List of (entity_uri, entity_label, fr_stats_dict)
-                accumulated during process_rdf_data(). Each fr_stats_dict has
-                "fc" (str) and "fr_results" (list of FR match dicts).
-        """
-        if not all_fr_stats:
-            logger.info("No FR stats provided — skipping aggregation index build")
-            self._aggregation_index = {}
-            return
-
-        logger.info(f"Building FR-based aggregation index from {len(all_fr_stats)} entities...")
-
-        # --- 1. Entity type counts from document store ---
-        type_counts: Dict[str, int] = {}
-        if self.document_store:
-            for doc in self.document_store.docs.values():
-                doc_type = doc.metadata.get("type", "Unknown")
-                type_counts[doc_type] = type_counts.get(doc_type, 0) + 1
-
-        # --- 2. FC entity counts ---
-        fc_counts: Dict[str, int] = {}
-        for _uri, _label, stats in all_fr_stats:
-            fc = stats.get("fc")
-            if fc:
-                fc_counts[fc] = fc_counts.get(fc, 0) + 1
-
-        # --- 3. FR summaries — single pass over accumulated FR results ---
-        # Per-FR accumulators
-        source_counts: Dict[str, Dict[str, int]] = {}   # fr_id → {entity_uri → target_count}
-        source_labels: Dict[str, Dict[str, str]] = {}   # fr_id → {entity_uri → label}
-        target_counts: Dict[str, Dict[str, int]] = {}   # fr_id → {target_uri → appearance_count}
-        target_labels: Dict[str, Dict[str, str]] = {}   # fr_id → {target_uri → label}
-
-        for entity_uri, entity_label, stats in all_fr_stats:
-            for fr in stats.get("fr_results", []):
-                fr_id = fr["fr_id"]
-
-                if fr_id not in source_counts:
-                    source_counts[fr_id] = {}
-                    source_labels[fr_id] = {}
-                    target_counts[fr_id] = {}
-                    target_labels[fr_id] = {}
-
-                source_counts[fr_id][entity_uri] = \
-                    source_counts[fr_id].get(entity_uri, 0) + fr["total_count"]
-                source_labels[fr_id][entity_uri] = entity_label
-
-                for t_uri, t_label in fr["targets"]:
-                    target_counts[fr_id][t_uri] = target_counts[fr_id].get(t_uri, 0) + 1
-                    target_labels[fr_id][t_uri] = t_label
-
-        # Build FR metadata lookup from fr_traversal
-        fr_meta = {}
-        if self.fr_traversal:
-            for fr in self.fr_traversal.fr_list:
-                fr_meta[fr["id"]] = {
-                    "label": fr["label"],
-                    "domain_fc": fr["domain_fc"],
-                    "range_fc": fr["range_fc"],
-                }
-
-        def _top_n(counts_dict, labels_dict, n=50):
-            sorted_items = sorted(counts_dict.items(), key=lambda x: x[1], reverse=True)[:n]
-            return [
-                {"uri": uri, "label": labels_dict.get(uri, uri.rsplit("/", 1)[-1]), "count": count}
-                for uri, count in sorted_items
-            ]
-
-        # Build per-FR summary
-        fr_summaries = {}
-        for fr_id in source_counts:
-            meta = fr_meta.get(fr_id, {})
-            total_connections = sum(source_counts[fr_id].values())
-            fr_summaries[fr_id] = {
-                "label": meta.get("label", fr_id),
-                "domain_fc": meta.get("domain_fc", ""),
-                "range_fc": meta.get("range_fc", ""),
-                "total_connections": total_connections,
-                "unique_sources": len(source_counts[fr_id]),
-                "unique_targets": len(target_counts[fr_id]),
-                "top_sources": _top_n(source_counts[fr_id], source_labels[fr_id]),
-                "top_targets": _top_n(target_counts[fr_id], target_labels[fr_id]),
-            }
-
-        agg_index = {
-            "entity_type_counts": type_counts,
-            "fc_counts": fc_counts,
-            "fr_summaries": fr_summaries,
-            "total_entities": len(self.document_store.docs) if self.document_store else 0,
-        }
-
-        # Compute PageRank on the FR graph
-        pagerank_data = self._compute_pagerank(all_fr_stats, top_n=500)
-        if pagerank_data:
-            agg_index["pagerank"] = pagerank_data
-
-        # Save to JSON
-        out_path = self._path('aggregation')
-        os.makedirs(os.path.dirname(out_path), exist_ok=True)
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(agg_index, f, ensure_ascii=False, indent=2)
-
-        self._aggregation_index = agg_index
-        active_frs = [fid for fid, s in fr_summaries.items() if s["total_connections"] > 0]
-        logger.info(
-            f"Built FR-based aggregation index: {len(type_counts)} types, "
-            f"{len(fc_counts)} FCs, {len(active_frs)} active FRs — saved to {out_path}"
-        )
-
-    def _compute_pagerank(self, all_fr_stats, top_n=500):
-        """Compute PageRank on the FR graph for centrality-based retrieval.
-
-        Builds a directed graph from FR traversal results (multi-hop semantic
-        connections) and runs PageRank. Returns top entities per FC for use
-        in the type-filtered retrieval channel.
-
-        Args:
-            all_fr_stats: List of (entity_uri, entity_label, fr_stats_dict).
-            top_n: Number of top entities to keep per FC.
-
-        Returns:
-            Dict with "metadata", "by_fc", and "global_top" keys, or None on failure.
-        """
-        import networkx as nx
-
-        G = nx.DiGraph()
-
-        # Track entity metadata (label, fc)
-        entity_meta = {}  # uri → {"label": str, "fc": str}
-
-        for entity_uri, entity_label, stats in all_fr_stats:
-            fc = stats.get("fc", "")
-            entity_meta[entity_uri] = {"label": entity_label, "fc": fc}
-
-            for fr in stats.get("fr_results", []):
-                for target_uri, target_label in fr["targets"]:
-                    if G.has_edge(entity_uri, target_uri):
-                        G[entity_uri][target_uri]["weight"] += 1
-                    else:
-                        G.add_edge(entity_uri, target_uri, weight=1)
-                    # Store target label if not already tracked
-                    if target_uri not in entity_meta:
-                        entity_meta[target_uri] = {"label": target_label, "fc": ""}
-
-        if G.number_of_nodes() == 0:
-            logger.info("PageRank: empty graph, skipping")
-            return None
-
-        # Run PageRank
-        pr_scores = nx.pagerank(G, alpha=0.85, weight="weight")
-
-        # Filter to entities that have documents in the store
-        doc_ids = set(self.document_store.docs.keys()) if self.document_store else set()
-
-        # Partition by FC and build ranked lists
-        by_fc = {}  # fc → [(uri, label, score), ...]
-        global_list = []
-
-        for uri, score in pr_scores.items():
-            if uri not in doc_ids:
-                continue
-            meta = entity_meta.get(uri, {})
-            label = meta.get("label", uri.rsplit("/", 1)[-1])
-            fc = meta.get("fc", "")
-
-            entry = {"uri": uri, "label": label, "score": score}
-            global_list.append({**entry, "fc": fc})
-
-            if fc:
-                by_fc.setdefault(fc, []).append(entry)
-
-        # Sort and truncate
-        for fc in by_fc:
-            by_fc[fc] = sorted(by_fc[fc], key=lambda x: x["score"], reverse=True)[:top_n]
-        global_top = sorted(global_list, key=lambda x: x["score"], reverse=True)[:top_n]
-
-        scored_count = len(global_list)
-        logger.info(
-            f"PageRank computed: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges, "
-            f"{scored_count} entities with docs, {len(by_fc)} FCs"
-        )
-
-        return {
-            "metadata": {
-                "num_nodes": G.number_of_nodes(),
-                "num_edges": G.number_of_edges(),
-                "alpha": 0.85,
-            },
-            "by_fc": {fc: entries for fc, entries in by_fc.items()},
-            "global_top": global_top,
-        }
-
-    def _load_aggregation_index(self):
-        """Load pre-computed aggregation index from JSON.
-
-        Graceful fallback: if file missing or corrupt, sets empty dict.
-        """
-        path = self._path('aggregation')
-        if not os.path.exists(path):
-            logger.info("No aggregation index found — AGGREGATION queries will work without pre-computed stats")
-            self._aggregation_index = {}
-            return
-
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                self._aggregation_index = json.load(f)
-            fr_count = len(self._aggregation_index.get('fr_summaries', {}))
-            logger.info(
-                f"Loaded aggregation index from {path}: "
-                f"{self._aggregation_index.get('total_entities', '?')} entities, "
-                f"{fr_count} FRs"
-            )
-        except Exception as e:
-            logger.warning(f"Failed to load aggregation index from {path}: {e}")
-            self._aggregation_index = {}
-
-    def _build_edges_from_parquet(self):
-        """Build edges from Parquet edges file using batched reads.
-
-        Reads edges.parquet in 500K-row batches (only s/p/o columns) to avoid
-        loading the full file into memory. Adds weighted edges to the document
-        store using proper CIDOC-CRM semantic weights.
-        """
-        edges_path = os.path.join(os.path.dirname(self._path('documents')), "edges.parquet")
-        if not os.path.exists(edges_path):
-            logger.warning(f"No edges file found at {edges_path}, skipping edge building")
-            return
-
-        import pyarrow.parquet as pq
-
-        logger.info(f"Loading edges from {edges_path} (batched)...")
-        pf = pq.ParquetFile(edges_path)
-        total_triples = pf.metadata.num_rows
-        logger.info(f"Parquet contains {total_triples:,} triples")
-
-        doc_uris = set(self.document_store.docs.keys())
-        edges_added = 0
-        skipped = 0
-
-        for batch in pf.iter_batches(batch_size=500_000, columns=["s", "p", "o"]):
-            s_col = batch.column("s")
-            p_col = batch.column("p")
-            o_col = batch.column("o")
-            for i in range(len(batch)):
-                s_str = s_col[i].as_py()
-                p_str = p_col[i].as_py()
-                o_str = o_col[i].as_py()
-                if s_str in doc_uris and o_str in doc_uris and s_str != o_str:
-                    weight = _get_relationship_weight(p_str)
-                    pred_name = p_str.split('/')[-1].split('#')[-1]
-                    self.document_store.add_edge(s_str, o_str, pred_name, weight=weight)
-                    edges_added += 1
-                else:
-                    skipped += 1
-
-        logger.info(f"Added {edges_added:,} edges from Parquet file "
-                    f"({skipped:,} triples skipped — endpoints not in document store)")
 
 
     # ==================== FR-based Document Generation ====================
@@ -1464,7 +977,7 @@ class UniversalRagSystem:
                 # Collect intermediates not in our chunk (events, places reached at step 1)
                 if obj not in chunk_set:
                     intermediate_uris.add(obj)
-                # Collect raw triple for edges.parquet
+                # Collect raw triple for knowledge graph
                 pred_label = ""
                 if UniversalRagSystem._property_labels:
                     simple_pred = pred.split('/')[-1].split('#')[-1]
@@ -1493,7 +1006,7 @@ class UniversalRagSystem:
                     entity_labels[subj] = subj.split('/')[-1].split('#')[-1]
                 if subj not in chunk_set:
                     intermediate_uris.add(subj)
-                # Collect raw triple for edges.parquet
+                # Collect raw triple for knowledge graph
                 pred_label = ""
                 if UniversalRagSystem._property_labels:
                     simple_pred = pred.split('/')[-1].split('#')[-1]
@@ -1527,7 +1040,7 @@ class UniversalRagSystem:
                         entity_labels[obj] = obj_label
                     elif obj not in entity_labels:
                         entity_labels[obj] = obj.split('/')[-1].split('#')[-1]
-                    # Collect raw triple for edges.parquet
+                    # Collect raw triple for knowledge graph
                     pred_label = ""
                     if UniversalRagSystem._property_labels:
                         simple_pred = pred.split('/')[-1].split('#')[-1]
@@ -1553,7 +1066,7 @@ class UniversalRagSystem:
                         entity_labels[subj] = subj_label
                     elif subj not in entity_labels:
                         entity_labels[subj] = subj.split('/')[-1].split('#')[-1]
-                    # Collect raw triple for edges.parquet
+                    # Collect raw triple for knowledge graph
                     pred_label = ""
                     if UniversalRagSystem._property_labels:
                         simple_pred = pred.split('/')[-1].split('#')[-1]
@@ -1579,8 +1092,8 @@ class UniversalRagSystem:
 
         # Add date literals for E52_Time-Span entities to raw_triples.
         # batch_query_outgoing uses FILTER(isURI(?o)) so P82a/P82b literal values
-        # are excluded.  We fetch them here so _resolve_time_span can find them
-        # in the triples index at query time.
+        # are excluded.  We fetch them here so knowledge_graph.resolve_time_span()
+        # can find them at query time.
         _E52_URI = "http://www.cidoc-crm.org/cidoc-crm/E52_Time-Span"
         _CRM_NS = "http://www.cidoc-crm.org/cidoc-crm/"
         _TS_DATE_PROPS = {
@@ -2121,9 +1634,9 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
             # Build graph indexes for FR traversal
             fr_outgoing, fr_incoming, entity_labels_map, entity_types_map, chunk_raw_triples = \
                 self._build_fr_graph_for_chunk(chunk_uris, chunk_types, chunk_literals)
-            self._append_edges_parquet(chunk_raw_triples)
+            self.knowledge_graph.add_triples(chunk_raw_triples, _get_relationship_weight)
             logger.info(f"    FR graph built: {len(chunk_raw_triples)} raw triples")
-            del chunk_raw_triples  # free immediately after writing to Parquet
+            del chunk_raw_triples  # free immediately after ingestion
 
             # Identify satellites for this chunk
             chunk_satellite_uris = set()
@@ -2257,10 +1770,14 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         if cached_count > 0:
             logger.info(f"Used {cached_count} cached embeddings")
 
-        # Finalize incremental Parquet writes and build edges
-        self._close_edges_parquet()
-        logger.info("Creating document graph edges...")
-        self._build_edges_from_parquet()
+        # Finalize knowledge graph: FR edges, PageRank, doc marking
+        self.knowledge_graph.add_fr_edges(all_fr_stats)
+        doc_types = {
+            doc_id: doc.metadata.get("type", "Unknown")
+            for doc_id, doc in self.document_store.docs.items()
+        }
+        self.knowledge_graph.mark_doc_vertices(set(self.document_store.docs.keys()), doc_types)
+        self.knowledge_graph.compute_pagerank(alpha=0.85)
 
         # Chain thin documents into their richest neighbors (before FAISS/BM25 indexing)
         self._chain_thin_documents()
@@ -2275,11 +1792,8 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         logger.info("Building vector store...")
         self.build_vector_store_batched()
 
-        # Build triples index from Parquet for query-time lookup
-        self._load_triples_index()
-
-        # Build aggregation index for pre-computed counts/rankings
-        self._build_aggregation_index(all_fr_stats)
+        # Save knowledge graph (triples + PageRank + stats all in one file)
+        self.knowledge_graph.save(self._path('knowledge_graph'))
 
         # Generate validation report for missing classes and properties
         self.generate_validation_report()
@@ -2855,7 +2369,7 @@ Rules:
                 type_mod = candidate_type_mods[idx]
                 combined_score = base_score * (1.0 + type_mod)
                 # Mega-entity penalty: high-triple-count entities provide diluted context
-                triples_count = len(self._triples_index.get(candidates[idx].id, []))
+                triples_count = self.knowledge_graph.triple_count(candidates[idx].id)
                 if triples_count > RetrievalConfig.MEGA_ENTITY_TRIPLES_THRESHOLD:
                     combined_score -= RetrievalConfig.MEGA_ENTITY_PENALTY
                 all_scores.append((idx, combined_score, relevance, connectivity_norm, div_penalty, type_mod))
@@ -2873,7 +2387,7 @@ Rules:
                 logger.info(f"      Connectivity: {conn:.3f} (weight={1-alpha:.1f}) → contrib={(1-alpha)*conn:.3f}")
                 logger.info(f"      Diversity penalty: -{div_pen:.3f}")
                 type_mod_str = f", type_mod={t_mod:+.2f}" if t_mod != 0 else ""
-                tc = len(self._triples_index.get(candidates[idx].id, []))
+                tc = self.knowledge_graph.triple_count(candidates[idx].id)
                 mega_str = f", MEGA(-{RetrievalConfig.MEGA_ENTITY_PENALTY:.2f}, {tc} triples)" if tc > RetrievalConfig.MEGA_ENTITY_TRIPLES_THRESHOLD else ""
                 logger.info(f"      Combined: {combined:.3f}{type_mod_str}{mega_str}")
 
@@ -2942,7 +2456,7 @@ Rules:
     def _get_pagerank_candidates(self, categories, k):
         """Get top PageRank entities for target FC categories.
 
-        Looks up pre-computed PageRank scores from the aggregation index
+        Queries the knowledge graph for top PageRank entities per FC
         and returns GraphDocument objects ranked by centrality.
 
         Args:
@@ -2952,15 +2466,10 @@ Rules:
         Returns:
             List of (GraphDocument, pagerank_score) tuples.
         """
-        pagerank = self._aggregation_index.get("pagerank", {})
-        by_fc = pagerank.get("by_fc", {})
-        if not by_fc:
-            return []
-
         candidates = []
         seen = set()
         for fc in categories:
-            for entry in by_fc.get(fc, []):
+            for entry in self.knowledge_graph.get_pagerank_top(fc=fc, top_n=k):
                 uri = entry["uri"]
                 if uri in seen:
                     continue
@@ -3015,8 +2524,7 @@ Rules:
         # Fold PageRank into typed channel as a third signal (ENUM/AGG only)
         if (typed_fused
                 and query_analysis.query_type in ("ENUMERATION", "AGGREGATION")
-                and self._aggregation_index
-                and "pagerank" in self._aggregation_index):
+                and self.knowledge_graph.vertex_count > 0):
             pagerank_candidates = self._get_pagerank_candidates(
                 query_analysis.categories, initial_pool_size
             )
@@ -3129,9 +2637,8 @@ Rules:
         doc_ids = [doc.id for doc in initial_docs]
 
         # Create weighted adjacency matrix with virtual 2-hop edges through full RDF graph
-        adjacency_matrix = self.document_store.create_adjacency_matrix(
+        adjacency_matrix = self.knowledge_graph.build_adjacency_matrix(
             doc_ids,
-            triples_index=getattr(self, '_triples_index', {}),
             weight_fn=_get_relationship_weight,
             max_hops=RetrievalConfig.MAX_ADJACENCY_HOPS,
         )
@@ -3153,12 +2660,13 @@ Rules:
     def _build_aggregation_context(self, query_analysis, retrieved_docs):
         """Build pre-computed aggregation statistics context for the LLM prompt.
 
-        Uses FR-based aggregation index with multi-hop relationship summaries.
-        Returns a formatted string (capped at ~3000 chars) with entity type counts,
-        FC counts, and per-category FR summaries (top sources and targets).
-        Returns "" if no aggregation index is available.
+        Queries the knowledge graph for entity type counts, FC counts,
+        PageRank top entities, actor work counts, and FR summaries.
+        Returns a formatted string (capped at ~3000 chars).
+        Returns "" if knowledge graph has no data.
         """
-        if not self._aggregation_index:
+        kg = self.knowledge_graph
+        if kg.vertex_count == 0:
             return ""
 
         # Primary categories drive PageRank labels; union with context for FR filtering
@@ -3169,9 +2677,9 @@ Rules:
         lines = []
 
         # --- Compact entity type counts ---
-        type_counts = self._aggregation_index.get("entity_type_counts", {})
-        total_entities = self._aggregation_index.get("total_entities", 0)
-        fc_counts = self._aggregation_index.get("fc_counts", {})
+        type_counts = kg.get_entity_type_counts()
+        total_entities = kg.total_doc_entities()
+        fc_counts = kg.get_fc_counts()
         if type_counts:
             lines.append(f"**Dataset overview**: {total_entities} entities")
             sorted_types = sorted(type_counts.items(), key=lambda x: x[1], reverse=True)[:15]
@@ -3184,38 +2692,35 @@ Rules:
             lines.append(f"Fundamental Categories: {', '.join(fc_parts)}")
 
         # PageRank top entities per PRIMARY FC only
-        pagerank = self._aggregation_index.get("pagerank", {})
-        by_fc_pr = pagerank.get("by_fc", {})
-        if by_fc_pr and primary:
+        if primary:
             for fc in sorted(primary):
-                fc_entries = by_fc_pr.get(fc, [])
+                fc_entries = kg.get_pagerank_top(fc=fc, top_n=20)
                 if fc_entries:
-                    top_labels = [e["label"] for e in fc_entries[:20]]
+                    top_labels = [e["label"] for e in fc_entries]
                     lines.append(f"Top {fc}s by graph centrality: {', '.join(top_labels)}")
 
         # Work-count ranking for Actor queries (traced from P108i → P14 chain)
-        actor_work_counts = getattr(self, '_actor_work_counts', {})
-        if actor_work_counts and "Actor" in primary:
-            # Resolve actor URIs to labels via triples index
-            triples_index = getattr(self, '_triples_index', {})
-            sorted_actors = sorted(actor_work_counts.items(), key=lambda x: -x[1])[:30]
-            labeled_actors = []
-            for uri, count in sorted_actors:
-                label = uri.split("/")[-1]
-                for t in triples_index.get(uri, [])[:5]:
-                    if t.get("subject") == uri and t.get("subject_label"):
-                        label = t["subject_label"]
-                        break
-                    if t.get("object") == uri and t.get("object_label"):
-                        label = t["object_label"]
-                        break
-                labeled_actors.append(f"{label} ({count})")
-            lines.append(f"Top Actors by work count: {', '.join(labeled_actors)}")
+        if "Actor" in primary:
+            actor_counts = kg.actor_work_counts()
+            if actor_counts:
+                sorted_actors = sorted(actor_counts.items(), key=lambda x: -x[1])[:30]
+                labeled_actors = [
+                    f"{kg.get_label(uri)} ({count})" for uri, count in sorted_actors
+                ]
+                lines.append(f"Top Actors by work count: {', '.join(labeled_actors)}")
 
         lines.append("")
 
         # --- FR summaries filtered by primary + context categories ---
-        fr_summaries = self._aggregation_index.get("fr_summaries", {})
+        fr_meta = {}
+        if self.fr_traversal:
+            for fr in self.fr_traversal.fr_list:
+                fr_meta[fr["id"]] = {
+                    "label": fr["label"],
+                    "domain_fc": fr["domain_fc"],
+                    "range_fc": fr["range_fc"],
+                }
+        fr_summaries = kg.get_fr_summaries(fr_meta)
         if not fr_summaries:
             result = "\n".join(lines)
             if len(result) > 3000:
@@ -3275,7 +2780,7 @@ Rules:
         return result
 
     def _build_triples_enrichment(self, retrieved_docs):
-        """Build structured triple enrichment text from _triples_index for retrieved documents.
+        """Build structured triple enrichment text from knowledge graph for retrieved documents.
 
         For each retrieved document, pulls its raw triples and formats them as
         human-readable relationship lines. Prioritizes inter-document triples and
@@ -3288,8 +2793,8 @@ Rules:
         Returns:
             Formatted string with structured relationships, or empty string.
         """
-        triples_index = getattr(self, '_triples_index', None)
-        if not triples_index:
+        kg = self.knowledge_graph
+        if kg.vertex_count == 0:
             return ""
 
         retrieved_uris = {doc.id for doc in retrieved_docs}
@@ -3319,7 +2824,7 @@ Rules:
         sorted_docs = sorted(retrieved_docs, key=_triples_type_priority)
 
         # Fair budget allocation: cap per-entity chars so mega-entities can't starve others
-        entities_with_data = sum(1 for doc in sorted_docs if triples_index.get(doc.id))
+        entities_with_data = sum(1 for doc in sorted_docs if kg.triple_count(doc.id) > 0)
         max_chars_per_entity = max(200, MAX_TOTAL_CHARS // max(entities_with_data, 1))
 
         # Build per-entity enrichment
@@ -3329,7 +2834,7 @@ Rules:
         for doc in sorted_docs:
             entity_uri = doc.id
             entity_label = doc.metadata.get("label", entity_uri.split("/")[-1])
-            raw_triples = triples_index.get(entity_uri, [])
+            raw_triples = kg.get_triples(entity_uri)
             if not raw_triples:
                 continue
 
@@ -3397,7 +2902,7 @@ Rules:
 
                 # 1-hop enrichment: replace time-span UUID with resolved dates
                 if direction == "outgoing" and t.get("predicate") in TIME_SPAN_PREDICATES:
-                    dates = _resolve_time_span(other_uri, triples_index)
+                    dates = kg.resolve_time_span(other_uri)
                     if dates:
                         for date_key, date_val in dates.items():
                             date_line = f"  - {date_key}: {date_val}"
@@ -3640,7 +3145,7 @@ Rules:
         for i, doc in enumerate(retrieved_docs):
             entity_uri = doc.id
             entity_label = doc.metadata.get("label", entity_uri.split('/')[-1])
-            raw_triples = getattr(self, '_triples_index', {}).get(entity_uri, [])
+            raw_triples = self.knowledge_graph.get_triples(entity_uri)
             local_images = doc.metadata.get("images", [])
 
             source_entry = {

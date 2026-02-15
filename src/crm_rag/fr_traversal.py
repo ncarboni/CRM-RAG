@@ -56,6 +56,13 @@ def classify_satellite(entity_types: Set[str]) -> str:
     return "other"
 
 
+# High-cardinality summary threshold: above this, show count + examples
+SUMMARY_THRESHOLD = 5
+
+# Noise detection patterns for FR target labels
+_RE_PURE_NUMERIC = re.compile(r'^\d+$')
+_RE_UUID = re.compile(r'^[0-9a-fA-F-]{32,}')
+
 # FR labels where targets should include attributes (depiction predicates)
 _DEPICTION_LABELS = {"denotes", "portray", "is target of portray",
                      "is denoted by", "is target of is composed of"}
@@ -484,8 +491,9 @@ class FRTraversal:
             return f"until {end}"
         if within:
             return str(within)
-        # Fall back to the label if no date values were found
-        return label
+        # No P82/P81 date values found — return empty rather than using the
+        # label which is not an authoritative date source.
+        return ""
 
     def format_absorbed_satellites(self, satellite_info: Dict[str, list],
                                    parent_label: str) -> List[str]:
@@ -523,8 +531,9 @@ class FRTraversal:
         # Time-spans -> "Time-span: ..." with actual date values when available
         time_entries = satellite_info.get("time", [])
         if time_entries:
-            formatted = [self._format_time_entry(e) for e in time_entries[:5]]
-            lines.append(f"Time-span: {', '.join(formatted)}")
+            formatted = [s for s in (self._format_time_entry(e) for e in time_entries[:5]) if s]
+            if formatted:
+                lines.append(f"Time-span: {', '.join(formatted)}")
 
         # References (PC67_refers_to reification nodes) -> "Referenced in: ..."
         ref_labels = satellite_info.get("reference", [])
@@ -536,13 +545,116 @@ class FRTraversal:
 
         return lines
 
+    @staticmethod
+    def _base_label(label: str) -> str:
+        """Strip enrichment tag in parentheses to get the base label for dedup."""
+        # "digital (300404202)" → "digital"
+        idx = label.rfind(" (")
+        return label[:idx].strip() if idx > 0 else label.strip()
+
+    @staticmethod
+    def _is_noise_label(label: str) -> bool:
+        """Check if a target label is noise (numeric ID, UUID)."""
+        base = FRTraversal._base_label(label)
+        if _RE_PURE_NUMERIC.match(base):
+            return True
+        if _RE_UUID.match(base):
+            return True
+        return False
+
+    @staticmethod
+    def _is_low_uniqueness(targets: List[Tuple[str, str]], total_count: int) -> bool:
+        """Check if an FR line has low-uniqueness generic labels.
+
+        Returns True when ≤2 unique base labels AND total_count > SUMMARY_THRESHOLD.
+        E.g. "creation" repeated 66 times, "digital" repeated 183 times.
+        """
+        if total_count <= SUMMARY_THRESHOLD:
+            return False
+        unique_bases = {FRTraversal._base_label(lbl) for _, lbl in targets}
+        return len(unique_bases) <= 2
+
+    @staticmethod
+    def _dedup_fr_results(fr_results: List[dict]) -> List[dict]:
+        """Remove FR results whose target URIs overlap >80% with a larger FR.
+
+        When two FRs share >80% of targets, keep the one with more targets.
+        E.g. "is origin of" (66 targets) vs "is generator of" (66 targets)
+        — if they share >80%, keep the first one encountered with more targets.
+        """
+        if len(fr_results) <= 1:
+            return fr_results
+
+        # Build target URI sets per FR result
+        uri_sets = []
+        for fr in fr_results:
+            uris = {uri for uri, _lbl in fr["targets"]}
+            # Include unseen targets (total_count > shown) — use shown URIs as proxy
+            uri_sets.append(uris)
+
+        keep = [True] * len(fr_results)
+        for i in range(len(fr_results)):
+            if not keep[i]:
+                continue
+            total_i = fr_results[i].get("total_count", len(uri_sets[i]))
+            for j in range(i + 1, len(fr_results)):
+                if not keep[j]:
+                    continue
+                total_j = fr_results[j].get("total_count", len(uri_sets[j]))
+                # Check overlap using the shown targets
+                if not uri_sets[i] or not uri_sets[j]:
+                    continue
+                overlap = len(uri_sets[i] & uri_sets[j])
+                smaller = min(len(uri_sets[i]), len(uri_sets[j]))
+                if smaller > 0 and overlap / smaller > 0.8:
+                    # Drop the one with fewer total targets
+                    if total_i >= total_j:
+                        keep[j] = False
+                    else:
+                        keep[i] = False
+                        break
+
+        return [fr for fr, k in zip(fr_results, keep) if k]
+
+    def _format_fr_line(self, fr_label: str, targets: List[Tuple[str, str]],
+                        total_count: int, target_enrichments: Dict[str, Dict] = None,
+                        include_attrs: bool = False,
+                        time_span_dates: Dict[str, str] = None) -> Optional[str]:
+        """Format a single FR/direct-predicate line, applying noise filter and summary mode.
+
+        Returns None if the line should be skipped (all noise).
+        """
+        # Noise filter: skip if ALL targets are noise labels
+        non_noise = [(uri, lbl) for uri, lbl in targets
+                     if not self._is_noise_label(lbl)]
+        if not non_noise and targets:
+            return None
+
+        # Low-uniqueness filter: skip if ≤2 unique base labels and high cardinality
+        if self._is_low_uniqueness(targets, total_count):
+            return None
+
+        fr_label_cap = fr_label[0].upper() + fr_label[1:]
+
+        if total_count > SUMMARY_THRESHOLD:
+            # Summary mode: count + 3 examples
+            examples = self._format_targets(
+                targets[:3], target_enrichments, include_attrs, time_span_dates)
+            return f"{fr_label_cap}: {total_count} items including {examples}"
+        else:
+            # List mode: show all
+            formatted = self._format_targets(
+                targets, target_enrichments, include_attrs, time_span_dates)
+            return f"{fr_label_cap}: {formatted}"
+
     def format_fr_document(self, entity_uri: str, label: str,
                            types_display: List[str], literals: dict,
                            fr_results: List[dict],
                            direct_predicates: List[dict] = None,
                            fc: str = None,
                            absorbed_lines: List[str] = None,
-                           target_enrichments: Dict[str, Dict] = None) -> str:
+                           target_enrichments: Dict[str, Dict] = None,
+                           time_span_dates: Dict[str, str] = None) -> str:
         """Format an FR-organized entity document for FAISS embedding.
 
         Args:
@@ -556,6 +668,7 @@ class FRTraversal:
             absorbed_lines: Lines from absorbed satellite entities
             target_enrichments: Output from build_target_enrichments() —
                 maps target URI → {"type_tag": str, "attributes": [str]}
+            time_span_dates: URI → formatted date string for time-span resolution
 
         Returns:
             Document text (no frontmatter — that's handled by save_document)
@@ -603,72 +716,111 @@ class FRTraversal:
             lines.extend(absorbed_lines)
             lines.append("")
 
-        # FR results (one line per FR, ~20 lines max)
+        # Deduplicate overlapping FR results (>80% shared targets)
+        deduped_frs = self._dedup_fr_results(fr_results)
+
+        # FR results + direct predicates (deduplicated by formatted line text)
+        seen_lines = set()
         fr_line_count = 0
-        for fr_result in fr_results:
+
+        for fr_result in deduped_frs:
             if fr_line_count >= 20:
                 break
-            fr_label = fr_result["fr_label"]
-            fr_label_cap = fr_label[0].upper() + fr_label[1:]
-            include_attrs = fr_label.lower() in _DEPICTION_LABELS
-            formatted = self._format_targets(
-                fr_result["targets"], target_enrichments, include_attrs)
+            include_attrs = fr_result["fr_label"].lower() in _DEPICTION_LABELS
             total = fr_result.get("total_count", len(fr_result["targets"]))
-            shown = len(fr_result["targets"])
-            if total > shown:
-                formatted += f" ... and {total - shown} more"
-            lines.append(f"{fr_label_cap}: {formatted}")
-            fr_line_count += 1
+            line = self._format_fr_line(
+                fr_result["fr_label"], fr_result["targets"], total,
+                target_enrichments, include_attrs, time_span_dates)
+            if line and line not in seen_lines:
+                seen_lines.add(line)
+                lines.append(line)
+                fr_line_count += 1
 
         # Direct (non-FR) predicates — VIR extensions etc.
         if direct_predicates:
             for dp in direct_predicates:
                 if fr_line_count >= 25:
                     break
-                pred_label = dp["predicate_label"]
-                pred_cap = pred_label[0].upper() + pred_label[1:]
-                include_attrs = pred_label.lower() in _DEPICTION_LABELS
-                formatted = self._format_targets(
-                    dp["targets"], target_enrichments, include_attrs)
+                include_attrs = dp["predicate_label"].lower() in _DEPICTION_LABELS
                 total = dp.get("total_count", len(dp["targets"]))
-                shown = len(dp["targets"])
-                if total > shown:
-                    formatted += f" ... and {total - shown} more"
-                lines.append(f"{pred_cap}: {formatted}")
-                fr_line_count += 1
+                line = self._format_fr_line(
+                    dp["predicate_label"], dp["targets"], total,
+                    target_enrichments, include_attrs, time_span_dates)
+                if line and line not in seen_lines:
+                    seen_lines.add(line)
+                    lines.append(line)
+                    fr_line_count += 1
 
         return "\n".join(lines)
 
     def _format_targets(self, targets: List[Tuple[str, str]],
                         target_enrichments: Dict[str, Dict] = None,
-                        include_attrs: bool = False) -> str:
-        """Format a list of (uri, label) targets with optional type tags and attributes.
+                        include_attrs: bool = False,
+                        time_span_dates: Dict[str, str] = None) -> str:
+        """Format a list of (uri, label) targets with optional type tags, attributes, and dates.
+
+        Deduplicates identical labels: if the same label appears N>1 times,
+        shows it once with " x{N}".
 
         Args:
             targets: [(uri, label), ...]
             target_enrichments: uri -> {"type_tag": str|None, "attributes": [str]}
             include_attrs: If True, include attributes for depiction-like predicates
+            time_span_dates: uri -> formatted date string for time-span targets
 
         Returns:
-            Comma-separated string like "Saint Anastasia (Saint, cross of martyrdom, bottle of medicine)"
+            Comma-separated string like "Saint Anastasia (Saint, cross of martyrdom)"
         """
-        parts = []
+        time_dates = time_span_dates or {}
+
+        # Build formatted label for each target
+        raw_parts = []
         for uri, label in targets:
+            # Time-span date resolution: replace or enrich label with resolved date
+            date_str = time_dates.get(uri)
+            if date_str:
+                # For E52_Time-Span targets, replace label entirely with date
+                enr = (target_enrichments or {}).get(uri)
+                tag = enr.get("type_tag") if enr else None
+                if tag and tag != "Time-Span":
+                    # Event target with time-span — append date
+                    raw_parts.append(f"{label} ({date_str})")
+                else:
+                    # Pure time-span — just show the date
+                    raw_parts.append(date_str)
+                continue
+
             enr = (target_enrichments or {}).get(uri)
             if enr:
                 tag = enr.get("type_tag")
                 attrs = enr.get("attributes", []) if include_attrs else []
                 if tag and attrs:
                     annotation = ", ".join([tag] + attrs)
-                    parts.append(f"{label} ({annotation})")
+                    raw_parts.append(f"{label} ({annotation})")
                 elif tag:
-                    parts.append(f"{label} ({tag})")
+                    raw_parts.append(f"{label} ({tag})")
                 elif attrs:
-                    parts.append(f"{label} ({', '.join(attrs)})")
+                    raw_parts.append(f"{label} ({', '.join(attrs)})")
                 else:
-                    parts.append(label)
+                    raw_parts.append(label)
             else:
-                parts.append(label)
+                raw_parts.append(label)
+
+        # Deduplicate identical formatted labels
+        from collections import Counter
+        label_counts = Counter(raw_parts)
+        seen = set()
+        parts = []
+        for p in raw_parts:
+            if p in seen:
+                continue
+            seen.add(p)
+            count = label_counts[p]
+            if count > 1:
+                parts.append(f"{p} x{count}")
+            else:
+                parts.append(p)
+
         return ", ".join(parts)
 
     def format_minimal_document(self, entity_uri: str, label: str,

@@ -5,10 +5,17 @@ Contains pure functions for predicate filtering, class name checks,
 and relationship weight assignment. Extracted from UniversalRagSystem.
 """
 
+import json
 import logging
 import re
 
+from crm_rag import PROJECT_ROOT
+
 logger = logging.getLogger(__name__)
+
+# Module-level cache for relationship weights (loaded once on first call)
+_relationship_weights = None
+_default_weight = 0.5
 
 
 def is_schema_predicate(predicate):
@@ -69,10 +76,28 @@ def is_technical_class_name(class_name, ontology_classes=None):
     return False
 
 
+def _load_relationship_weights():
+    """Load relationship weights from config/relationship_weights.json (once)."""
+    global _relationship_weights, _default_weight
+    if _relationship_weights is not None:
+        return
+    path = PROJECT_ROOT / "config" / "relationship_weights.json"
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        _relationship_weights = data.get("weights", {})
+        _default_weight = data.get("default_weight", 0.5)
+        logger.info(f"Loaded {len(_relationship_weights)} relationship weights from {path}")
+    except FileNotFoundError:
+        logger.warning(f"Relationship weights file not found: {path}, using default {_default_weight}")
+        _relationship_weights = {}
+
+
 def get_relationship_weight(predicate_uri):
     """
     Get weight for a CIDOC-CRM relationship predicate.
     Higher weights indicate more semantically important relationships.
+    Weights are loaded from config/relationship_weights.json.
 
     Args:
         predicate_uri: Full URI of the predicate
@@ -80,56 +105,11 @@ def get_relationship_weight(predicate_uri):
     Returns:
         Float weight between 0 and 1
     """
+    _load_relationship_weights()
     local_name = predicate_uri.split('/')[-1].split('#')[-1]
 
-    weights = {
-        # Spatial relationships (high weight - location is key context)
-        "P89_falls_within": 0.9,
-        "P89i_contains": 0.9,
-        "P55_has_current_location": 0.9,
-        "P55i_currently_holds": 0.9,
-
-        # Physical composition
-        "P56_bears_feature": 0.8,
-        "P56i_is_found_on": 0.8,
-        "P46_is_composed_of": 0.8,
-        "P46i_forms_part_of": 0.8,
-
-        # Creation/Production (important for authorship)
-        "P108_has_produced": 0.85,
-        "P108i_was_produced_by": 0.85,
-        "P14_carried_out_by": 0.85,
-        "P14i_performed": 0.85,
-        "P94_has_created": 0.85,
-        "P94i_was_created_by": 0.85,
-
-        # Visual representation (VIR)
-        "K24_portray": 0.7,
-        "K24i_is_portrayed_in": 0.7,
-        "K34_illustrates": 0.7,
-        "K34i_is_illustrated_by": 0.7,
-
-        # Type classification
-        "P2_has_type": 0.6,
-        "P2i_is_type_of": 0.6,
-
-        # Documentation/Reference
-        "P67_refers_to": 0.5,
-        "P67i_is_referred_to_by": 0.5,
-        "P70_documents": 0.5,
-        "P70i_is_documented_in": 0.5,
-
-        # Temporal
-        "P4_has_time-span": 0.6,
-        "P4i_is_time-span_of": 0.6,
-
-        # Identification
-        "P1_is_identified_by": 0.4,
-        "P1i_identifies": 0.4,
-    }
-
-    weight = weights.get(predicate_uri)
+    weight = _relationship_weights.get(predicate_uri)
     if weight is None:
-        weight = weights.get(local_name, 0.5)
+        weight = _relationship_weights.get(local_name, _default_weight)
 
     return weight

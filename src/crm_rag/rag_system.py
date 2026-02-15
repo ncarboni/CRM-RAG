@@ -735,7 +735,8 @@ class UniversalRagSystem:
         fr_incoming: Dict[str, List[Tuple[str, str]]],
         entity_labels_map: Dict[str, str],
         all_literals: Dict[str, Dict[str, List[str]]] = None,
-    ) -> Tuple[set, Dict[str, Dict[str, list]]]:
+        fr_outgoing: Dict[str, List[Tuple[str, str]]] = None,
+    ) -> Tuple[set, Dict[str, Dict[str, list]], Dict[str, str]]:
         """Identify satellite entities and map them to parents using pre-fetched data.
 
         Two-pass: first identify all satellites, then find parents.
@@ -746,17 +747,18 @@ class UniversalRagSystem:
             entity_labels_map: entity_uri -> label
             all_literals: entity_uri -> {prop_name: [values]} for looking up
                 time-span date values (P82a, P82b, P82)
+            fr_outgoing: entity_uri -> [(pred, obj), ...] (outgoing edges) —
+                used as fallback for date resolution when literals lack P82/P81
 
         Returns:
-            (satellite_uris, parent_satellites) where parent_satellites is
-            parent_uri -> {kind: [label_or_dict, ...]}
-            For time satellites, entries are dicts: {"label": str, "begin": str|None,
-            "end": str|None, "within": str|None}
+            (satellite_uris, parent_satellites, time_span_dates) where:
+            - parent_satellites: parent_uri -> {kind: [label_or_dict, ...]}
+            - time_span_dates: uri -> formatted date string (for E52 and parent events)
         """
         from collections import defaultdict
 
         if not self.fr_traversal:
-            return set(), {}
+            return set(), {}, {}
 
         # Date property local names to look for on E52_Time-Span entities
         # P82a/P82b = outer bounds, P81a/P81b = inner bounds (used by MAH)
@@ -775,34 +777,56 @@ class UniversalRagSystem:
             if self.fr_traversal.is_minimal_doc_entity(types):
                 satellite_uris.add(uri)
 
-        # Pass 2: find parent for each satellite
+        # Pass 2: find parent for each satellite and resolve time-span dates
         parent_satellites = defaultdict(lambda: defaultdict(list))
+        # Maps E52 URI → formatted date string, and event parent URI → date string
+        time_span_dates: Dict[str, str] = {}
 
         for sat_uri in satellite_uris:
             sat_label = entity_labels_map.get(sat_uri, sat_uri.split('/')[-1])
             sat_kind = classify_satellite(all_types.get(sat_uri, set()))
 
             # For time satellites, look up actual date values from literals
-            if sat_kind == "time" and all_literals:
-                sat_lits = all_literals.get(sat_uri, {})
+            if sat_kind == "time":
                 date_info = {"label": sat_label, "begin": None, "end": None, "within": None}
-                for prop_name, key in _TIME_PROPS.items():
-                    vals = sat_lits.get(prop_name, [])
-                    if vals:
-                        date_info[key] = vals[0]
+                # Primary: look in all_literals (works when FILTER(isLiteral) catches dates)
+                if all_literals:
+                    sat_lits = all_literals.get(sat_uri, {})
+                    for prop_name, key in _TIME_PROPS.items():
+                        vals = sat_lits.get(prop_name, [])
+                        if vals and not date_info[key]:
+                            date_info[key] = vals[0]
+
+                # Fallback: check fr_outgoing edges (MAH stores P82a/P82b as typed resources)
+                if fr_outgoing and not any(date_info[k] for k in ("begin", "end", "within")):
+                    for pred, obj in fr_outgoing.get(sat_uri, []):
+                        pred_local = pred.split('/')[-1].split('#')[-1]
+                        if pred_local in _TIME_PROPS and not date_info[_TIME_PROPS[pred_local]]:
+                            date_info[_TIME_PROPS[pred_local]] = entity_labels_map.get(
+                                obj, obj.split('/')[-1])
+
                 sat_entry = date_info
+
+                # Build time_span_dates for FR target resolution
+                formatted_date = self.fr_traversal._format_time_entry(date_info)
+                if formatted_date:
+                    time_span_dates[sat_uri] = formatted_date
             else:
                 sat_entry = sat_label
 
             for pred, subj in fr_incoming.get(sat_uri, []):
                 if subj not in satellite_uris:
                     parent_satellites[subj][sat_kind].append(sat_entry)
+                    # For time satellites, also map the parent event URI to the date
+                    if sat_kind == "time" and sat_uri in time_span_dates:
+                        time_span_dates[subj] = time_span_dates[sat_uri]
                     break
 
         logger.info(f"Satellite absorption: {len(satellite_uris)} satellites → "
-                    f"{len(parent_satellites)} parent entities enriched")
+                    f"{len(parent_satellites)} parent entities enriched, "
+                    f"{len(time_span_dates)} time-span dates resolved")
 
-        return satellite_uris, parent_satellites
+        return satellite_uris, parent_satellites, time_span_dates
 
     def _chain_thin_documents(self) -> Dict[str, str]:
         """Chain thin documents into ALL graph neighbors.
@@ -1152,6 +1176,7 @@ class UniversalRagSystem:
         entity_labels: Dict[str, str],
         entity_types_map: Dict[str, set],
         absorbed_lines: List[str] = None,
+        time_span_dates: Dict[str, str] = None,
     ) -> Tuple[str, str, List[str], dict]:
         """Create FR-organized document from pre-fetched data.
 
@@ -1166,6 +1191,7 @@ class UniversalRagSystem:
             entity_labels: Full graph label index
             entity_types_map: Full graph entity types (uri -> set of type URIs)
             absorbed_lines: Lines from absorbed satellite entities
+            time_span_dates: URI → formatted date string for time-span resolution
 
         Returns:
             (text, label, type_labels, fr_stats) where fr_stats contains
@@ -1230,6 +1256,7 @@ class UniversalRagSystem:
             fc=fc,
             absorbed_lines=absorbed_lines,
             target_enrichments=target_enrichments,
+            time_span_dates=time_span_dates,
         )
 
         # FR stats for aggregation index (piggyback on existing traversal)
@@ -1301,7 +1328,7 @@ class UniversalRagSystem:
 
             if images:
                 metadata_lines.append("Images:")
-                for img_url in images:
+                for img_url in images[:5]:
                     metadata_lines.append(f"  - {img_url}")
 
             metadata_lines.append("---")
@@ -1639,12 +1666,12 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
             del chunk_raw_triples  # free immediately after ingestion
 
             # Identify satellites for this chunk
-            chunk_satellite_uris = set()
-            chunk_parent_satellites = {}
-            chunk_satellite_uris, chunk_parent_satellites = self._identify_satellites_from_prefetched(
-                chunk_types, fr_incoming, entity_labels_map,
-                all_literals=chunk_literals,
-            )
+            chunk_satellite_uris, chunk_parent_satellites, chunk_time_span_dates = \
+                self._identify_satellites_from_prefetched(
+                    chunk_types, fr_incoming, entity_labels_map,
+                    all_literals=chunk_literals,
+                    fr_outgoing=fr_outgoing,
+                )
             all_satellite_uris.update(chunk_satellite_uris)
 
             chunk_wikidata = self.batch_sparql.batch_fetch_wikidata_ids(chunk_uris)
@@ -1695,6 +1722,7 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
                         literals, fr_outgoing, fr_incoming,
                         entity_labels_map, entity_types_map,
                         absorbed_lines=absorbed_lines,
+                        time_span_dates=chunk_time_span_dates,
                     )
                     if fr_stats:
                         all_fr_stats.append((entity_uri, entity_label, fr_stats))

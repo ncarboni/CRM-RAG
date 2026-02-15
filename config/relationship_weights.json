@@ -1,0 +1,40 @@
+{
+  "_comment": "CIDOC-CRM relationship weights for adjacency scoring. Higher = more semantically important. Default for unlisted predicates: 0.5. Values should be between 0 and 1.",
+  "default_weight": 0.5,
+  "weights": {
+    "P89_falls_within": 0.9,
+    "P89i_contains": 0.9,
+    "P55_has_current_location": 0.9,
+    "P55i_currently_holds": 0.9,
+
+    "P108_has_produced": 0.85,
+    "P108i_was_produced_by": 0.85,
+    "P14_carried_out_by": 0.85,
+    "P14i_performed": 0.85,
+    "P94_has_created": 0.85,
+    "P94i_was_created_by": 0.85,
+
+    "P56_bears_feature": 0.8,
+    "P56i_is_found_on": 0.8,
+    "P46_is_composed_of": 0.8,
+    "P46i_forms_part_of": 0.8,
+
+    "K24_portray": 0.7,
+    "K24i_is_portrayed_in": 0.7,
+    "K34_illustrates": 0.7,
+    "K34i_is_illustrated_by": 0.7,
+
+    "P2_has_type": 0.6,
+    "P2i_is_type_of": 0.6,
+    "P4_has_time-span": 0.6,
+    "P4i_is_time-span_of": 0.6,
+
+    "P67_refers_to": 0.5,
+    "P67i_is_referred_to_by": 0.5,
+    "P70_documents": 0.5,
+    "P70i_is_documented_in": 0.5,
+
+    "P1_is_identified_by": 0.4,
+    "P1i_identifies": 0.4
+  }
+}

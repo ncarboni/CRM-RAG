@@ -1,0 +1,57 @@
+[
+  {
+    "fr_id": "thing_concept_a",
+    "igraph_count": 150,
+    "sparql_count": 150,
+    "both_count": 150,
+    "igraph_only_count": 0,
+    "sparql_only_count": 0,
+    "match": true,
+    "igraph_time_s": 0.4,
+    "sparql_time_s": 0.02
+  },
+  {
+    "fr_id": "place_place_b",
+    "igraph_count": 49,
+    "sparql_count": 49,
+    "both_count": 49,
+    "igraph_only_count": 0,
+    "sparql_only_count": 0,
+    "match": true,
+    "igraph_time_s": 0.03,
+    "sparql_time_s": 0.01
+  },
+  {
+    "fr_id": "thing_place_a_subset",
+    "igraph_count": 63,
+    "sparql_count": 63,
+    "both_count": 63,
+    "igraph_only_count": 0,
+    "sparql_only_count": 0,
+    "match": true,
+    "igraph_time_s": 0.02,
+    "sparql_time_s": 0.01
+  },
+  {
+    "fr_id": "thing_actor_d_created_by",
+    "igraph_count": 0,
+    "sparql_count": 0,
+    "both_count": 0,
+    "igraph_only_count": 0,
+    "sparql_only_count": 0,
+    "match": true,
+    "igraph_time_s": 0.0,
+    "sparql_time_s": 0.0
+  },
+  {
+    "fr_id": "thing_actor_d",
+    "igraph_count": 0,
+    "sparql_count": 0,
+    "both_count": 0,
+    "igraph_only_count": 0,
+    "sparql_only_count": 0,
+    "match": true,
+    "igraph_time_s": 0.0,
+    "sparql_time_s": 0.0
+  }
+]

@@ -1781,37 +1781,55 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         )
         self.knowledge_graph.add_fr_edges(all_fr_stats)
 
+        # Event contraction: delete covered event vertices from igraph.
+        # An event is "covered" if it has outgoing edges (RDF or FR) to
+        # non-satellite, non-Event entities — meaning FR shortcuts bypass it.
+        # We check both edge types because add_fr_edges() replaces some RDF
+        # edges with FR edges before this point.
+        # Standalone events (e.g. historical periods with only appellation/
+        # wikidata edges) keep their vertices.
+        g = self.knowledge_graph._graph
+        # Build minimal satellite set from types (same check as Pass 1 of
+        # _identify_satellites_from_graph, before that method runs)
+        satellite_set = set()
+        for uri, types in all_types.items():
+            if self.fr_traversal.is_minimal_doc_entity(types):
+                satellite_set.add(uri)
+
+        covered_event_vids = []
+        covered_event_uris = set()
+        for uri, types in all_types.items():
+            vid = self.knowledge_graph._uri_to_vid.get(uri)
+            if vid is None or g.vs[vid]["fc"] != "Event":
+                continue
+            for eid in g.incident(vid, mode="out"):
+                e = g.es[eid]
+                if e["edge_type"] not in ("rdf", "fr"):
+                    continue
+                target = g.vs[e.target]
+                target_fc = target["fc"]
+                if target_fc and target_fc != "Event" and target["name"] not in satellite_set:
+                    covered_event_vids.append(vid)
+                    covered_event_uris.add(uri)
+                    break
+
+        if covered_event_vids:
+            self.knowledge_graph._graph.delete_vertices(covered_event_vids)
+            # Rebuild URI→VID mapping (igraph re-indexes after deletion)
+            self.knowledge_graph._uri_to_vid = {
+                v["name"]: v.index for v in self.knowledge_graph._graph.vs
+            }
+            # Remove deleted events from all_types so downstream code skips them
+            for uri in covered_event_uris:
+                del all_types[uri]
+        logger.info(f"Event contraction: deleted {len(covered_event_vids)} covered "
+                    f"event vertices from knowledge graph")
+        del satellite_set, covered_event_vids, covered_event_uris
+
         # Identify satellites using igraph + accumulated types
         all_satellite_uris, all_parent_satellites, all_time_span_dates = \
             self._identify_satellites_from_graph(all_types)
 
-        # Event contraction: skip document generation for events traversed by FRs.
-        # An event is "covered" if it has ≥1 incoming FR edge from a Thing, Actor,
-        # or Place — meaning a non-event entity has FR shortcuts through this event.
-        # Standalone events (e.g. historical periods) keep their documents.
-        g = self.knowledge_graph._graph
-        _COVERED_FCS = frozenset(("Thing", "Actor", "Place"))
-        covered_events = set()
-        for uri in all_types:
-            if uri in all_satellite_uris:
-                continue
-            vid = self.knowledge_graph._uri_to_vid.get(uri)
-            if vid is None or g.vs[vid]["fc"] != "Event":
-                continue
-            for eid in g.incident(vid, mode="in"):
-                e = g.es[eid]
-                if e["edge_type"] != "fr":
-                    continue
-                if g.vs[e.source]["fc"] in _COVERED_FCS:
-                    covered_events.add(uri)
-                    break
-        all_satellite_uris |= covered_events
-        logger.info(f"Event contraction: {len(covered_events)} covered events "
-                    f"removed from document generation")
-
-        # Mark doc vertices and compute PageRank
-        # (satellites won't get documents, so we mark doc vertices after Phase 3,
-        # but we need satellite info now)
         logger.info(f"Phase 2 complete: {len(all_fr_stats)} entities with FR edges, "
                     f"{len(all_satellite_uris)} satellites identified")
 

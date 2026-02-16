@@ -280,6 +280,8 @@ def materialize_fr_edges(
                 continue
 
             for vid in source_vids:
+                if walker.g.vs[vid]["fc"] != fr.domain_fc:
+                    continue
                 targets = walker.walk_path(vid, path.steps)
                 if not targets:
                     continue

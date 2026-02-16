@@ -597,13 +597,16 @@ class FRTraversal:
             if enr:
                 tag = enr.get("type_tag")
                 attrs = enr.get("attributes", []) if include_attrs else []
-                if tag and attrs:
-                    annotation = ", ".join([tag] + attrs)
-                    entries.append((uri, label, f"{label} ({annotation})"))
-                elif tag:
-                    entries.append((uri, label, f"{label} ({tag})"))
-                elif attrs:
-                    entries.append((uri, label, f"{label} ({', '.join(attrs)})"))
+                coords = enr.get("coordinates")
+                parts_list = []
+                if tag:
+                    parts_list.append(tag)
+                if attrs:
+                    parts_list.extend(attrs)
+                if coords:
+                    parts_list.append(coords)
+                if parts_list:
+                    entries.append((uri, label, f"{label} ({', '.join(parts_list)})"))
                 else:
                     entries.append((uri, label, label))
             else:

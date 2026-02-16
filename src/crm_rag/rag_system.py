@@ -1026,7 +1026,7 @@ class UniversalRagSystem:
         for uri in chunk_uris:
             literals = chunk_literals.get(uri, {})
             label = uri.split('/')[-1]
-            for label_prop in ['label', 'prefLabel', 'name', 'title']:
+            for label_prop in ['label', 'prefLabel', 'P190_has_symbolic_content', 'name', 'title', 'value', 'description']:
                 if label_prop in literals and literals[label_prop]:
                     label = literals[label_prop][0]
                     break
@@ -1281,12 +1281,14 @@ class UniversalRagSystem:
         _TYPE_PRED_LOCALS = {"P2_has_type", "P2i_is_type_of"}
         _ATTR_PRED_LOCALS = {"K14_has_attribute", "P3_has_note"}
         _VENUE_PRED_LOCALS = {"P7_took_place_at", "P7i_witnessed"}
+        _COORD_PRED_LOCALS = {"P168_place_is_defined_by", "P168i_defines_place"}
 
         enrichments = {}
         for uri in target_uris:
             type_tag = None
             attributes = []
             venue = None
+            coordinates = None
 
             triples = self.knowledge_graph.get_triples(uri, edge_type="rdf")
             for t in triples:
@@ -1305,6 +1307,9 @@ class UniversalRagSystem:
                 if pred_local in _VENUE_PRED_LOCALS and not venue:
                     venue = t["object_label"] or t["object"].split('/')[-1]
 
+                if pred_local in _COORD_PRED_LOCALS and not coordinates:
+                    coordinates = t["object_label"] or t["object"].split('/')[-1]
+
             # Fallback: CRM class label from vertex fc attribute
             if not type_tag:
                 vid = self.knowledge_graph._uri_to_vid.get(uri)
@@ -1314,11 +1319,12 @@ class UniversalRagSystem:
                     if doc_type and doc_type not in ("Unknown", "Entity"):
                         type_tag = doc_type
 
-            if type_tag or attributes or venue:
+            if type_tag or attributes or venue or coordinates:
                 enrichments[uri] = {
                     "type_tag": type_tag,
                     "attributes": attributes[:5],
                     "venue": venue,
+                    "coordinates": coordinates,
                 }
 
         return enrichments

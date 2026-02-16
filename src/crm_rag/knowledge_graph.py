@@ -38,6 +38,7 @@ _ACTOR_CHAIN_PREDICATES = {
 _DATE_PREDICATES = {
     "P82a_begin_of_the_begin", "P82b_end_of_the_end",
     "P82_at_some_time_within", "P81a_end_of_the_begin", "P81b_begin_of_the_end",
+    "P81_ongoing_throughout", "P170i_time_is_defined_by",
 }
 
 

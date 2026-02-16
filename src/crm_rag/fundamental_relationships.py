@@ -1568,6 +1568,129 @@ place_event_c = FR("place_event_c", "is referred to at", "Place", "Event", "E53_
 # Place-Concept (was missing from list)
 # Already present as place_concept_a above
 
+# =============================================================================
+# EVENT-TIME / THING-TIME / ACTOR-TIME
+# =============================================================================
+
+event_time_a = FR(
+    "event_time_a", "occurred at time", "Event", "Time",
+    "E2_Temporal_Entity", "E52_Time-Span",
+    [P("et_a_01", "has time-span",
+       S("P4_has_time-span", "E2", "E52_Time-Span"),
+       S("P86_falls_within", "E52_Time-Span", "E52_Time-Span", rec=True))],
+)
+
+thing_time_a = FR(
+    "thing_time_a", "has time", "Thing", "Time",
+    "E77_Persistent_Item", "E52_Time-Span",
+    [P("tt_a_01", "was present at -> time-span",
+       S("P12i_was_present_at", "E77", "E5"),
+       S("P9i_forms_part_of", "E5", "E5", rec=True),
+       S("P4_has_time-span", "E2", "E52_Time-Span"),
+       S("P86_falls_within", "E52_Time-Span", "E52_Time-Span", rec=True)),
+     P("tt_a_02", "changed ownership -> time-span",
+       S("P24i_changed_ownership_through", "E18", "E8"),
+       S("P9i_forms_part_of", "E8", "E5", rec=True),
+       S("P4_has_time-span", "E2", "E52_Time-Span"),
+       S("P86_falls_within", "E52_Time-Span", "E52_Time-Span", rec=True))],
+)
+
+thing_time_a_created = FR(
+    "thing_time_a_created", "was created at time", "Thing", "Time",
+    "E77_Persistent_Item", "E52_Time-Span",
+    [P("tt_a_cr_01", "brought into existence -> time-span",
+       S("P92i_was_brought_into_existence_by", "E77", "E63"),
+       S("P9i_forms_part_of", "E63", "E5", rec=True),
+       S("P4_has_time-span", "E2", "E52_Time-Span"),
+       S("P86_falls_within", "E52_Time-Span", "E52_Time-Span", rec=True))],
+    specialization_of="thing_time_a",
+)
+
+thing_time_a_modified = FR(
+    "thing_time_a_modified", "was modified at time", "Thing", "Time",
+    "E77_Persistent_Item", "E52_Time-Span",
+    [P("tt_a_mo_01", "modified by -> time-span",
+       S("P31i_was_modified_by", "E18", "E7"),
+       S("P9i_forms_part_of", "E7", "E5", rec=True),
+       S("P4_has_time-span", "E2", "E52_Time-Span"),
+       S("P86_falls_within", "E52_Time-Span", "E52_Time-Span", rec=True))],
+    specialization_of="thing_time_a",
+)
+
+thing_time_a_moved = FR(
+    "thing_time_a_moved", "was moved at time", "Thing", "Time",
+    "E19_Physical_Object", "E52_Time-Span",
+    [P("tt_a_mv_01", "moved by -> time-span",
+       S("P25i_moved_by", "E19", "E9"),
+       S("P9i_forms_part_of", "E9", "E5", rec=True),
+       S("P4_has_time-span", "E2", "E52_Time-Span"),
+       S("P86_falls_within", "E52_Time-Span", "E52_Time-Span", rec=True))],
+    specialization_of="thing_time_a",
+)
+
+thing_time_a_destroyed = FR(
+    "thing_time_a_destroyed", "was destroyed at time", "Thing", "Time",
+    "E77_Persistent_Item", "E52_Time-Span",
+    [P("tt_a_de_01", "taken out of existence -> time-span",
+       S("P93i_was_taken_out_of_existence_by", "E77", "E64"),
+       S("P9i_forms_part_of", "E64", "E5", rec=True),
+       S("P4_has_time-span", "E2", "E52_Time-Span"),
+       S("P86_falls_within", "E52_Time-Span", "E52_Time-Span", rec=True))],
+    specialization_of="thing_time_a",
+)
+
+actor_time_a = FR(
+    "actor_time_a", "participated at time", "Actor", "Time",
+    "E39_Actor", "E52_Time-Span",
+    [P("at_a_01", "participated in -> time-span",
+       S("P11i_participated_in", "E39", "E5"),
+       S("P9i_forms_part_of", "E5", "E5", rec=True),
+       S("P4_has_time-span", "E2", "E52_Time-Span"),
+       S("P86_falls_within", "E52_Time-Span", "E52_Time-Span", rec=True))],
+)
+
+actor_time_b = FR(
+    "actor_time_b", "was born or formed at time", "Actor", "Time",
+    "E39_Actor", "E52_Time-Span",
+    [P("at_b_01", "brought into existence -> time-span",
+       S("P92i_was_brought_into_existence_by", "E39", "E63"),
+       S("P9i_forms_part_of", "E63", "E5", rec=True),
+       S("P4_has_time-span", "E2", "E52_Time-Span"),
+       S("P86_falls_within", "E52_Time-Span", "E52_Time-Span", rec=True))],
+)
+
+actor_time_b_born = FR(
+    "actor_time_b_born", "was born at time", "Actor", "Time",
+    "E21_Person", "E52_Time-Span",
+    [P("at_b_bo_01", "was born -> time-span",
+       S("P98i_was_born", "E21", "E67"),
+       S("P9i_forms_part_of", "E67", "E5", rec=True),
+       S("P4_has_time-span", "E2", "E52_Time-Span"),
+       S("P86_falls_within", "E52_Time-Span", "E52_Time-Span", rec=True))],
+    specialization_of="actor_time_b",
+)
+
+actor_time_c = FR(
+    "actor_time_c", "died or dissolved at time", "Actor", "Time",
+    "E39_Actor", "E52_Time-Span",
+    [P("at_c_01", "taken out of existence -> time-span",
+       S("P93i_was_taken_out_of_existence_by", "E39", "E64"),
+       S("P9i_forms_part_of", "E64", "E5", rec=True),
+       S("P4_has_time-span", "E2", "E52_Time-Span"),
+       S("P86_falls_within", "E52_Time-Span", "E52_Time-Span", rec=True))],
+)
+
+actor_time_c_died = FR(
+    "actor_time_c_died", "died at time", "Actor", "Time",
+    "E21_Person", "E52_Time-Span",
+    [P("at_c_di_01", "died in -> time-span",
+       S("P100i_died_in", "E21", "E69"),
+       S("P9i_forms_part_of", "E69", "E5", rec=True),
+       S("P4_has_time-span", "E2", "E52_Time-Span"),
+       S("P86_falls_within", "E52_Time-Span", "E52_Time-Span", rec=True))],
+    specialization_of="actor_time_c",
+)
+
 
 ALL_FRS = [
     # Thing-Place
@@ -1629,6 +1752,14 @@ ALL_FRS = [
     # Concept-*
     concept_place_a, concept_thing_a, concept_actor_a, concept_event_a,
     concept_concept_a, concept_concept_b,
+    # Event-Time
+    event_time_a,
+    # Thing-Time
+    thing_time_a, thing_time_a_created, thing_time_a_modified,
+    thing_time_a_moved, thing_time_a_destroyed,
+    # Actor-Time
+    actor_time_a, actor_time_b, actor_time_b_born,
+    actor_time_c, actor_time_c_died,
 ]
 
 # ==========================================================================
@@ -2529,13 +2660,14 @@ def generate_sparql_by_entity(all_frs=None):
     if all_frs is None:
         all_frs = build_fully_expanded()
 
-    FC_ORDER = ["Thing", "Place", "Actor", "Event", "Concept"]
+    FC_ORDER = ["Thing", "Place", "Actor", "Event", "Concept", "Time"]
     FC_HEADERS = {
         "Thing": "THING",
         "Place": "PLACE",
         "Actor": "ACTOR",
         "Event": "EVENT-TIME",
         "Concept": "CONCEPT",
+        "Time": "TIME",
     }
 
     by_pair = defaultdict(list)

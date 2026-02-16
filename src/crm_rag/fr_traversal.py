@@ -432,8 +432,11 @@ class FRTraversal:
         Returns None if the line should be skipped (all noise).
         """
         # Noise filter: skip if ALL targets are noise labels
+        # Exempt targets with resolved dates (E52 Time-Spans have UUID labels
+        # but carry meaningful date values via resolve_time_span)
+        time_dates = time_span_dates or {}
         non_noise = [(uri, lbl) for uri, lbl in targets
-                     if not self._is_noise_label(lbl)]
+                     if not self._is_noise_label(lbl) or uri in time_dates]
         if not non_noise and targets:
             return None
 

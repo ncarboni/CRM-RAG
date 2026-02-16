@@ -1239,7 +1239,26 @@ class UniversalRagSystem:
         for target_uri in all_target_uris:
             if target_uri in time_span_dates:
                 continue
-            # Look for P4_has_time-span in igraph
+
+            # Case 1: target IS an E52 Time-Span (from Time FRs ending at E52)
+            target_vid = self.knowledge_graph._uri_to_vid.get(target_uri)
+            if target_vid is not None:
+                target_fc = self.knowledge_graph._graph.vs[target_vid]["fc"]
+                if target_fc == "Time":
+                    date_info = self.knowledge_graph.resolve_time_span(target_uri)
+                    if date_info:
+                        # Convert resolve_time_span keys to _format_time_entry keys
+                        entry = {
+                            "begin": date_info.get("began"),
+                            "end": date_info.get("ended"),
+                            "within": date_info.get("date"),
+                        }
+                        formatted = self.fr_traversal._format_time_entry(entry)
+                        if formatted:
+                            time_span_dates[target_uri] = formatted
+                    continue
+
+            # Case 2: target has P4_has_time-span (events pointing to E52)
             triples = self.knowledge_graph.get_triples(target_uri, edge_type="rdf")
             for t in triples:
                 if t["subject"] == target_uri:
@@ -1251,7 +1270,12 @@ class UniversalRagSystem:
                             break
                         date_info = self.knowledge_graph.resolve_time_span(ts_uri)
                         if date_info:
-                            formatted = self.fr_traversal._format_time_entry(date_info)
+                            entry = {
+                                "begin": date_info.get("began"),
+                                "end": date_info.get("ended"),
+                                "within": date_info.get("date"),
+                            }
+                            formatted = self.fr_traversal._format_time_entry(entry)
                             if formatted:
                                 time_span_dates[target_uri] = formatted
                         break
@@ -1760,6 +1784,30 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         # Identify satellites using igraph + accumulated types
         all_satellite_uris, all_parent_satellites, all_time_span_dates = \
             self._identify_satellites_from_graph(all_types)
+
+        # Event contraction: skip document generation for events traversed by FRs.
+        # An event is "covered" if it has ≥1 incoming FR edge from a Thing, Actor,
+        # or Place — meaning a non-event entity has FR shortcuts through this event.
+        # Standalone events (e.g. historical periods) keep their documents.
+        g = self.knowledge_graph._graph
+        _COVERED_FCS = frozenset(("Thing", "Actor", "Place"))
+        covered_events = set()
+        for uri in all_types:
+            if uri in all_satellite_uris:
+                continue
+            vid = self.knowledge_graph._uri_to_vid.get(uri)
+            if vid is None or g.vs[vid]["fc"] != "Event":
+                continue
+            for eid in g.incident(vid, mode="in"):
+                e = g.es[eid]
+                if e["edge_type"] != "fr":
+                    continue
+                if g.vs[e.source]["fc"] in _COVERED_FCS:
+                    covered_events.add(uri)
+                    break
+        all_satellite_uris |= covered_events
+        logger.info(f"Event contraction: {len(covered_events)} covered events "
+                    f"removed from document generation")
 
         # Mark doc vertices and compute PageRank
         # (satellites won't get documents, so we mark doc vertices after Phase 3,

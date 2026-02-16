@@ -313,6 +313,164 @@ class KnowledgeGraph:
                             dates["date"] = obj_val
         return dates
 
+    # ── FR neighbor queries (for document generation from materialized graph) ──
+
+    def get_fr_neighbors(self, entity_uri: str,
+                         max_results_per_fr: int = 10) -> List[Dict]:
+        """Return materialized FR edges incident on entity_uri, grouped by FR ID.
+
+        Output format matches what fr_traversal.format_fr_document() expects:
+          [{"fr_id": ..., "fr_label": ..., "targets": [(uri, label), ...],
+            "total_count": N}]
+
+        Only returns FR edges where entity_uri is the *source*.
+        """
+        vid = self._uri_to_vid.get(entity_uri)
+        if vid is None:
+            return []
+
+        # Group by FR ID (predicate attr on FR edges)
+        fr_groups: Dict[str, Dict] = {}  # fr_id -> {"label": ..., "targets": set}
+
+        for eid in self._graph.incident(vid, mode="out"):
+            e = self._graph.es[eid]
+            if e["edge_type"] != "fr":
+                continue
+            fr_id = e["predicate"]
+            fr_label = e["predicate_label"]
+            tgt = self._graph.vs[e.target]
+            target_uri = tgt["name"]
+            target_label = tgt["label"] or target_uri.rsplit("/", 1)[-1]
+
+            if fr_id not in fr_groups:
+                fr_groups[fr_id] = {"label": fr_label, "targets": set()}
+            fr_groups[fr_id]["targets"].add((target_uri, target_label))
+
+        results = []
+        for fr_id, data in fr_groups.items():
+            all_targets = data["targets"]
+            total_count = len(all_targets)
+            targets = list(all_targets)[:max_results_per_fr]
+            results.append({
+                "fr_id": fr_id,
+                "fr_label": data["label"],
+                "targets": targets,
+                "total_count": total_count,
+            })
+
+        return results
+
+    def get_direct_rdf_predicates(
+        self,
+        entity_uri: str,
+        step0_predicates: Set[str],
+        entity_fc: Optional[str] = None,
+        schema_filter=None,
+        property_labels: Optional[Dict[str, str]] = None,
+        max_per_predicate: int = 10,
+    ) -> List[Dict]:
+        """Return remaining RDF edges (non-FR, non-schema) for VIR extensions etc.
+
+        Replaces fr_traversal.collect_direct_predicates() with igraph-native logic.
+
+        Args:
+            entity_uri: The entity URI.
+            step0_predicates: Set of predicate local names that are step-0 in FR paths.
+                Edges matching these are skipped (already covered by FR edges).
+            entity_fc: FC of the entity (unused in current filtering but kept for API compat).
+            schema_filter: Optional callable(pred_uri) -> bool for schema filtering.
+            property_labels: Optional predicate URI/local -> English label mapping.
+            max_per_predicate: Max targets per predicate.
+
+        Returns:
+            [{"predicate_label": ..., "targets": [(uri, label), ...], "total_count": N}]
+        """
+        vid = self._uri_to_vid.get(entity_uri)
+        if vid is None:
+            return []
+
+        _inverse_local = {}  # Will be populated from edges if needed
+        property_labels = property_labels or {}
+
+        results: Dict[str, Set[Tuple[str, str]]] = {}  # pred_label -> set of (uri, label)
+
+        def _get_label(pred_uri: str, local_name: str) -> str:
+            """Get human-readable label for a predicate."""
+            label = property_labels.get(pred_uri)
+            if label:
+                return label
+            label = property_labels.get(local_name)
+            if label:
+                return label
+            import re
+            stripped = re.sub(r'^[A-Z]\d+[a-z]?_', '', local_name)
+            return stripped.replace('_', ' ')
+
+        def _local(uri: str) -> str:
+            if "#" in uri:
+                return uri.rsplit("#", 1)[-1]
+            return uri.rsplit("/", 1)[-1]
+
+        # Process outgoing RDF edges
+        for eid in self._graph.incident(vid, mode="out"):
+            e = self._graph.es[eid]
+            if e["edge_type"] != "rdf":
+                continue
+            pred_uri = e["predicate"]
+            if schema_filter and schema_filter(pred_uri):
+                continue
+            pred_local = _local(pred_uri)
+            # Skip rdf:type
+            if "rdf-syntax-ns#type" in pred_uri or pred_local == "type":
+                continue
+            # Skip step-0 FR predicates
+            if pred_local in step0_predicates:
+                continue
+
+            label = _get_label(pred_uri, pred_local)
+            tgt = self._graph.vs[e.target]
+            obj_label = tgt["label"] or _local(tgt["name"])
+            results.setdefault(label, set()).add((tgt["name"], obj_label))
+
+        # Process incoming RDF edges (show as inverse)
+        for eid in self._graph.incident(vid, mode="in"):
+            e = self._graph.es[eid]
+            if e["edge_type"] != "rdf":
+                continue
+            pred_uri = e["predicate"]
+            if schema_filter and schema_filter(pred_uri):
+                continue
+            pred_local = _local(pred_uri)
+            if "rdf-syntax-ns#type" in pred_uri or pred_local == "type":
+                continue
+            # Skip step-0 FR predicates (check inverse too)
+            if pred_local in step0_predicates:
+                continue
+
+            # Use inverse label if available
+            inv_label = f"is target of {_get_label(pred_uri, pred_local)}"
+            src = self._graph.vs[e.source]
+            subj_label = src["label"] or _local(src["name"])
+            results.setdefault(inv_label, set()).add((src["name"], subj_label))
+
+        output = []
+        for pred_label, target_set in results.items():
+            total_count = len(target_set)
+            targets = list(target_set)[:max_per_predicate]
+            output.append({
+                "predicate_label": pred_label,
+                "targets": targets,
+                "total_count": total_count,
+            })
+
+        return output
+
+    def assign_fc(self, uri: str, fc: str) -> None:
+        """Set the Fundamental Category on a vertex."""
+        vid = self._uri_to_vid.get(uri)
+        if vid is not None:
+            self._graph.vs[vid]["fc"] = fc
+
     # ── Adjacency matrix (replaces document_store.create_adjacency_matrix) ──
 
     def build_adjacency_matrix(self, doc_ids: List[str],

@@ -1,11 +1,12 @@
 """
-Fundamental Relationship (FR) path-guided traversal for CIDOC-CRM entity documents.
+Fundamental Relationship (FR) formatting and classification for CIDOC-CRM entity documents.
 
-Based on Tzompanaki & Doerr (2012), this module walks curated multi-step property
-paths between fundamental categories (Thing, Actor, Place, Event, Concept, Time)
-to produce identity-focused entity documents for FAISS embedding.
-
-Used by universal_rag_system.py for document generation.
+Based on Tzompanaki & Doerr (2012).  FR path traversal is now handled by
+fr_materializer.py (igraph-native walker).  This module provides:
+  - FC classification (get_fc)
+  - Satellite identification (is_minimal_doc_entity, classify_satellite)
+  - Document formatting (format_fr_document, format_minimal_document, etc.)
+  - Target enrichments (build_target_enrichments)
 """
 
 import json
@@ -138,23 +139,21 @@ def build_target_enrichments(
 
 
 class FRTraversal:
-    """Fundamental Relationship path matcher for CIDOC-CRM entity documents."""
+    """FR classification, formatting, and satellite handling for CIDOC-CRM documents.
 
-    def __init__(self, fr_json_path: str, inverse_properties_path: str,
+    FR path traversal is handled by fr_materializer.py.  This class provides
+    FC classification, document formatting, and satellite identification.
+    """
+
+    def __init__(self, inverse_properties_path: str,
                  fc_mapping_path: str, property_labels: dict = None):
         """
         Args:
-            fr_json_path: Path to fundamental_relationships_cidoc_crm.json
             inverse_properties_path: Path to data/labels/inverse_properties.json
             fc_mapping_path: Path to config/fc_class_mapping.json
             property_labels: Optional dict of predicate URI/local-name -> English label
         """
         self.property_labels = property_labels or {}
-
-        # Load FR definitions
-        with open(fr_json_path, 'r', encoding='utf-8') as f:
-            fr_data = json.load(f)
-        self.fr_list = fr_data["fundamental_relationships"]
 
         # Load inverse properties (full URI -> full URI, bidirectional)
         with open(inverse_properties_path, 'r', encoding='utf-8') as f:
@@ -179,8 +178,21 @@ class FRTraversal:
             for cls in class_list:
                 self._class_to_fc[cls] = fc_name
 
-        # Index: (fc, property_local_name) -> True for step-0 properties per domain FC
-        # Used by collect_direct_predicates to avoid duplication with FR results
+        # Load FR definitions from new module for FR metadata (fr_list for _build_aggregation_context)
+        from crm_rag.fundamental_relationships import build_fully_expanded
+        expanded_frs = build_fully_expanded()
+        self.fr_list = [
+            {
+                "id": fr.id,
+                "label": fr.label,
+                "domain_fc": fr.domain_fc,
+                "range_fc": fr.range_fc,
+                "paths": [{"steps": [{"property": s.property} for s in p.steps]} for p in fr.paths],
+            }
+            for fr in expanded_frs
+        ]
+
+        # Build step0 predicate index from new FR definitions
         self._step0_props = self._build_step0_index()
 
         logger.info(f"FRTraversal loaded: {len(self.fr_list)} FRs, "
@@ -243,219 +255,6 @@ class FRTraversal:
             if local in MINIMAL_DOC_CLASSES:
                 return True
         return False
-
-    def match_fr_paths(self, entity_uri: str, entity_types: Set[str],
-                       outgoing: Dict[str, List[Tuple[str, str]]],
-                       incoming: Dict[str, List[Tuple[str, str]]],
-                       entity_labels: Dict[str, str],
-                       entity_types_map: Dict[str, Set[str]] = None,
-                       max_results_per_fr: int = 10) -> List[dict]:
-        """Match FR paths from an entity and return reached targets.
-
-        Args:
-            entity_uri: The entity to traverse from
-            entity_types: rdf:type URIs of the entity
-            outgoing: uri -> [(pred_uri, object_uri), ...] for the full graph
-            incoming: uri -> [(pred_uri, subject_uri), ...] for the full graph
-            entity_labels: uri -> label for the full graph
-            entity_types_map: uri -> set of type URIs (for FC checking of targets)
-            max_results_per_fr: Max target entities per FR to prevent explosion
-
-        Returns:
-            List of dicts: [{"fr_id": ..., "fr_label": ..., "targets": [(uri, label), ...],
-                            "total_count": int}]
-        """
-        entity_fc = self.get_fc(entity_types)
-        if not entity_fc:
-            return []
-
-        results = []
-        seen_targets = {}  # fr_id -> set of target URIs (dedup across paths of same FR)
-
-        for fr in self.fr_list:
-            if fr["domain_fc"] != entity_fc:
-                continue
-
-            fr_id = fr["id"]
-            fr_label = fr["label"]
-
-            if fr_id not in seen_targets:
-                seen_targets[fr_id] = set()
-
-            for path in fr["paths"]:
-                # Walk this path starting from entity_uri
-                current_nodes = {entity_uri}
-
-                for step in path["steps"]:
-                    prop_local = self._local_name(step["property"])
-                    inv_local = self._inverse_local.get(prop_local)
-                    is_recursive = step.get("recursive", False)
-
-                    next_nodes = set()
-
-                    if is_recursive:
-                        # BFS until no new nodes
-                        frontier = set(current_nodes)
-                        visited_rec = set(current_nodes)
-                        while frontier:
-                            new_frontier = set()
-                            for node in frontier:
-                                targets = self._follow_property(
-                                    node, prop_local, inv_local, outgoing, incoming
-                                )
-                                for t in targets:
-                                    if t not in visited_rec:
-                                        visited_rec.add(t)
-                                        new_frontier.add(t)
-                            frontier = new_frontier
-                        # All reachable nodes minus the starting set
-                        next_nodes = visited_rec - current_nodes
-                    else:
-                        for node in current_nodes:
-                            targets = self._follow_property(
-                                node, prop_local, inv_local, outgoing, incoming
-                            )
-                            next_nodes.update(targets)
-
-                    # Remove the origin entity from targets to prevent self-reference
-                    next_nodes.discard(entity_uri)
-
-                    if not next_nodes:
-                        break
-                    current_nodes = next_nodes
-                else:
-                    # Path completed successfully - current_nodes are the targets
-                    # Optionally filter by range FC if entity_types_map provided
-                    range_fc = fr.get("range_fc")
-                    valid_targets = set()
-                    for t in current_nodes:
-                        if entity_types_map and range_fc:
-                            t_types = entity_types_map.get(t, set())
-                            t_fc = self.get_fc(t_types)
-                            if t_fc and t_fc != range_fc:
-                                continue
-                        valid_targets.add(t)
-
-                    new_targets = valid_targets - seen_targets[fr_id]
-                    seen_targets[fr_id].update(new_targets)
-
-            # After processing all paths for this FR, collect results
-            all_targets = seen_targets.get(fr_id, set())
-            if all_targets:
-                total_count = len(all_targets)
-                # Limit targets per FR
-                target_list = []
-                for t in list(all_targets)[:max_results_per_fr]:
-                    label = entity_labels.get(t, self._local_name(t))
-                    target_list.append((t, label))
-
-                results.append({
-                    "fr_id": fr_id,
-                    "fr_label": fr_label,
-                    "targets": target_list,
-                    "total_count": total_count,
-                })
-
-        return results
-
-    def _follow_property(self, node: str, prop_local: str, inv_local: Optional[str],
-                         outgoing: Dict[str, List[Tuple[str, str]]],
-                         incoming: Dict[str, List[Tuple[str, str]]]) -> Set[str]:
-        """Follow a property from a node, checking both outgoing and inverse incoming."""
-        targets = set()
-
-        # Check outgoing edges for property match
-        for pred, obj in outgoing.get(node, []):
-            pred_local = self._local_name(pred)
-            if pred_local == prop_local:
-                targets.add(obj)
-
-        # Check incoming edges for inverse property match
-        # If the step property is P14_carried_out_by, and the inverse is P14i_performed,
-        # then we look for incoming edges where pred_local == P14_carried_out_by
-        # (since incoming stores (pred, subj) where the triple is subj --pred--> node)
-        # So an incoming (P14_carried_out_by, subj) means subj --P14_carried_out_by--> node
-        # We want: node --P14i_performed--> subj, which is equivalent
-        if inv_local:
-            for pred, subj in incoming.get(node, []):
-                pred_local = self._local_name(pred)
-                if pred_local == inv_local:
-                    targets.add(subj)
-
-        return targets
-
-    def collect_direct_predicates(self, entity_uri: str,
-                                  outgoing: Dict[str, List[Tuple[str, str]]],
-                                  incoming: Dict[str, List[Tuple[str, str]]],
-                                  entity_labels: Dict[str, str],
-                                  entity_types: Set[str] = None,
-                                  schema_filter=None,
-                                  max_per_predicate: int = 10) -> List[dict]:
-        """Collect direct (1-hop) non-FR, non-schema predicates for VIR extensions etc.
-
-        Only filters predicates that appear as step-0 of FR paths for this entity's
-        FC. This ensures predicates like P108i_was_produced_by (which appears at step 1+
-        in FR paths but not step 0 for Thing) are still included.
-
-        Args:
-            entity_uri: The entity
-            outgoing: Full graph outgoing index
-            incoming: Full graph incoming index
-            entity_labels: Full graph label index
-            entity_types: rdf:type URIs of the entity (for FC determination)
-            schema_filter: Optional callable(pred_uri) -> bool for schema filtering
-            max_per_predicate: Max targets per predicate
-
-        Returns:
-            List of dicts: [{"predicate_label": ..., "targets": [(uri, label), ...]}]
-        """
-        entity_fc = self.get_fc(entity_types) if entity_types else None
-        results = defaultdict(set)  # pred_label -> set of (uri, label)
-
-        for pred, obj in outgoing.get(entity_uri, []):
-            if schema_filter and schema_filter(pred):
-                continue
-            pred_local = self._local_name(pred)
-            # Only skip if this property is a step-0 FR property for this entity's FC
-            if entity_fc and (entity_fc, pred_local) in self._step0_props:
-                continue
-            # Skip rdf:type — handled separately
-            if 'rdf-syntax-ns#type' in pred or pred_local == 'type':
-                continue
-            label = self._get_predicate_label(pred, pred_local)
-            obj_label = entity_labels.get(obj, self._local_name(obj))
-            results[label].add((obj, obj_label))
-
-        for pred, subj in incoming.get(entity_uri, []):
-            if schema_filter and schema_filter(pred):
-                continue
-            pred_local = self._local_name(pred)
-            inv_local = self._inverse_local.get(pred_local)
-            # For incoming, the entity sees the inverse. Check if that inverse is step-0.
-            check_local = inv_local or pred_local
-            if entity_fc and (entity_fc, check_local) in self._step0_props:
-                continue
-            if 'rdf-syntax-ns#type' in pred or pred_local == 'type':
-                continue
-            # For incoming, use inverse label if available
-            if inv_local:
-                inv_label = self._get_predicate_label(None, inv_local)
-            else:
-                inv_label = f"is target of {self._get_predicate_label(pred, pred_local)}"
-            subj_label = entity_labels.get(subj, self._local_name(subj))
-            results[inv_label].add((subj, subj_label))
-
-        # Convert to list, cap per predicate
-        output = []
-        for pred_label, target_set in results.items():
-            total_count = len(target_set)
-            targets = list(target_set)[:max_per_predicate]
-            output.append({
-                "predicate_label": pred_label,
-                "targets": targets,
-                "total_count": total_count,
-            })
-        return output
 
     def _get_predicate_label(self, full_uri: Optional[str], local_name: str) -> str:
         """Get human-readable label for a predicate."""

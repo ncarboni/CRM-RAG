@@ -492,12 +492,10 @@ class UniversalRagSystem:
 
         Raises FileNotFoundError if any required config file is missing.
         """
-        fr_json = str(PROJECT_ROOT / 'config' / 'fundamental_relationships_cidoc_crm.json')
         inverse_props = str(PROJECT_ROOT / 'data' / 'labels' / 'inverse_properties.json')
         fc_mapping = str(PROJECT_ROOT / 'config' / 'fc_class_mapping.json')
 
         for path, label in [
-            (fr_json, "FR JSON"),
             (inverse_props, "Inverse properties"),
             (fc_mapping, "FC class mapping"),
         ]:
@@ -508,12 +506,11 @@ class UniversalRagSystem:
                 )
 
         traversal = FRTraversal(
-            fr_json_path=fr_json,
             inverse_properties_path=inverse_props,
             fc_mapping_path=fc_mapping,
             property_labels=UniversalRagSystem._property_labels
         )
-        logger.info("FR traversal initialized for document generation")
+        logger.info("FR traversal initialized for document formatting")
         return traversal
 
     def _ensure_ontology_extraction(self):
@@ -803,6 +800,84 @@ class UniversalRagSystem:
 
         return satellite_uris, parent_satellites, time_span_dates
 
+    def _identify_satellites_from_graph(
+        self,
+        all_types: Dict[str, set],
+    ) -> Tuple[set, Dict[str, Dict[str, list]], Dict[str, str]]:
+        """Identify satellite entities using igraph + all_types (no SPARQL/dicts).
+
+        Phase 2 replacement: uses knowledge graph edges instead of fr_incoming dicts.
+        Time-span date resolution uses knowledge_graph.resolve_time_span().
+
+        Args:
+            all_types: entity_uri -> set of type URIs
+
+        Returns:
+            (satellite_uris, parent_satellites, time_span_dates) same as dict-based version.
+        """
+        from collections import defaultdict
+
+        if not self.fr_traversal:
+            return set(), {}, {}
+
+        # Pass 1: identify all satellites
+        satellite_uris = set()
+        for uri, types in all_types.items():
+            if self.fr_traversal.is_minimal_doc_entity(types):
+                satellite_uris.add(uri)
+
+        # Pass 2: find parent for each satellite using igraph incoming edges
+        parent_satellites = defaultdict(lambda: defaultdict(list))
+        time_span_dates: Dict[str, str] = {}
+
+        for sat_uri in satellite_uris:
+            sat_label = self.knowledge_graph.get_label(sat_uri)
+            sat_kind = classify_satellite(all_types.get(sat_uri, set()))
+
+            # For time satellites, resolve dates from igraph
+            if sat_kind == "time":
+                date_info = self.knowledge_graph.resolve_time_span(sat_uri)
+                if date_info:
+                    # resolve_time_span returns {"began": ..., "ended": ...}
+                    # Convert to format expected by _format_time_entry
+                    entry = {
+                        "label": sat_label,
+                        "begin": date_info.get("began"),
+                        "end": date_info.get("ended"),
+                        "within": date_info.get("date"),
+                    }
+                else:
+                    entry = {"label": sat_label, "begin": None, "end": None, "within": None}
+
+                sat_entry = entry
+                formatted_date = self.fr_traversal._format_time_entry(entry)
+                if formatted_date:
+                    time_span_dates[sat_uri] = formatted_date
+            else:
+                sat_entry = sat_label
+
+            # Find parent via igraph incoming RDF edges
+            vid = self.knowledge_graph._uri_to_vid.get(sat_uri)
+            if vid is None:
+                continue
+            for eid in self.knowledge_graph._graph.incident(vid, mode="in"):
+                e = self.knowledge_graph._graph.es[eid]
+                if e["edge_type"] != "rdf":
+                    continue
+                parent_vid = e.source
+                parent_uri = self.knowledge_graph._graph.vs[parent_vid]["name"]
+                if parent_uri not in satellite_uris:
+                    parent_satellites[parent_uri][sat_kind].append(sat_entry)
+                    if sat_kind == "time" and sat_uri in time_span_dates:
+                        time_span_dates[parent_uri] = time_span_dates[sat_uri]
+                    break
+
+        logger.info(f"Satellite absorption (graph): {len(satellite_uris)} satellites → "
+                    f"{len(parent_satellites)} parent entities enriched, "
+                    f"{len(time_span_dates)} time-span dates resolved")
+
+        return satellite_uris, parent_satellites, time_span_dates
+
     def _chain_thin_documents(self) -> Dict[str, str]:
         """Chain thin documents into ALL graph neighbors.
 
@@ -918,16 +993,17 @@ class UniversalRagSystem:
 
     # ==================== FR-based Document Generation ====================
 
-    def _build_fr_graph_for_chunk(
+    def _fetch_triples_for_chunk(
         self,
         chunk_uris: List[str],
         chunk_types: Dict[str, set],
         chunk_literals: Dict[str, Dict[str, List[str]]],
-    ) -> Tuple[Dict, Dict, Dict, Dict, List[Dict]]:
-        """Build the outgoing/incoming/entity_labels indexes that FR traversal needs.
+    ) -> Tuple[Dict[str, str], List[Dict]]:
+        """Fetch outgoing/incoming edges and load into igraph as raw triples.
 
-        Uses SPARQL batch queries. Fetches 2 hops: direct edges from chunk entities
-        plus edges from intermediate URIs reached at step 1 (events, types, etc.).
+        Phase 1 replacement for _build_fr_graph_for_chunk(): only collects
+        raw triples + entity labels (no dict index building).  Still fetches
+        2-hop intermediates for complete triple coverage in igraph.
 
         Args:
             chunk_uris: Entity URIs in this chunk
@@ -935,20 +1011,14 @@ class UniversalRagSystem:
             chunk_literals: Pre-fetched literals (for extracting labels)
 
         Returns:
-            (fr_outgoing, fr_incoming, entity_labels, entity_types_map, raw_triples)
-            where fr_outgoing/fr_incoming use 2-tuple format (pred, target) per FR spec.
+            (entity_labels, raw_triples) where entity_labels maps uri -> label
         """
-        from collections import defaultdict
-
         chunk_set = set(chunk_uris)
 
         # Step 1: Batch query outgoing and incoming for chunk entities
         raw_outgoing = self.batch_sparql.batch_query_outgoing(chunk_uris)
         raw_incoming = self.batch_sparql.batch_query_incoming(chunk_uris)
 
-        # Build FR-format indexes (2-tuple: pred, target) and collect labels
-        fr_outgoing = defaultdict(list)  # uri -> [(pred, obj)]
-        fr_incoming = defaultdict(list)  # uri -> [(pred, subj)]
         entity_labels = {}
         raw_triples = []
 
@@ -962,33 +1032,32 @@ class UniversalRagSystem:
                     break
             entity_labels[uri] = label
 
+        def _pred_label(pred):
+            if UniversalRagSystem._property_labels:
+                simple_pred = pred.split('/')[-1].split('#')[-1]
+                return (
+                    UniversalRagSystem._property_labels.get(pred) or
+                    UniversalRagSystem._property_labels.get(simple_pred) or ""
+                )
+            return ""
+
         # Process outgoing: raw format is (pred, obj, obj_label)
         intermediate_uris = set()
         for uri, rels in raw_outgoing.items():
             for pred, obj, obj_label in rels:
                 if _is_schema_predicate(pred):
                     continue
-                fr_outgoing[uri].append((pred, obj))
                 if obj_label:
                     entity_labels[obj] = obj_label
                 elif obj not in entity_labels:
                     entity_labels[obj] = obj.split('/')[-1].split('#')[-1]
-                # Collect intermediates not in our chunk (events, places reached at step 1)
                 if obj not in chunk_set:
                     intermediate_uris.add(obj)
-                # Collect raw triple for knowledge graph
-                pred_label = ""
-                if UniversalRagSystem._property_labels:
-                    simple_pred = pred.split('/')[-1].split('#')[-1]
-                    pred_label = (
-                        UniversalRagSystem._property_labels.get(pred) or
-                        UniversalRagSystem._property_labels.get(simple_pred) or ""
-                    )
                 raw_triples.append({
                     "subject": uri,
                     "subject_label": entity_labels.get(uri, ""),
                     "predicate": pred,
-                    "predicate_label": pred_label,
+                    "predicate_label": _pred_label(pred),
                     "object": obj,
                     "object_label": entity_labels.get(obj, ""),
                 })
@@ -998,34 +1067,25 @@ class UniversalRagSystem:
             for subj, pred, subj_label in rels:
                 if _is_schema_predicate(pred):
                     continue
-                fr_incoming[uri].append((pred, subj))
                 if subj_label:
                     entity_labels[subj] = subj_label
                 elif subj not in entity_labels:
                     entity_labels[subj] = subj.split('/')[-1].split('#')[-1]
                 if subj not in chunk_set:
                     intermediate_uris.add(subj)
-                # Collect raw triple for knowledge graph
-                pred_label = ""
-                if UniversalRagSystem._property_labels:
-                    simple_pred = pred.split('/')[-1].split('#')[-1]
-                    pred_label = (
-                        UniversalRagSystem._property_labels.get(pred) or
-                        UniversalRagSystem._property_labels.get(simple_pred) or ""
-                    )
                 raw_triples.append({
                     "subject": subj,
                     "subject_label": entity_labels.get(subj, ""),
                     "predicate": pred,
-                    "predicate_label": pred_label,
+                    "predicate_label": _pred_label(pred),
                     "object": uri,
                     "object_label": entity_labels.get(uri, ""),
                 })
 
-        # Step 2: Fetch edges for intermediate URIs (2-hop coverage for FR paths)
+        # Step 2: Fetch edges for intermediate URIs (2-hop coverage)
         if intermediate_uris:
             intermediate_list = list(intermediate_uris)
-            logger.info(f"    FR: fetching edges for {len(intermediate_list)} intermediate URIs...")
+            logger.info(f"    Fetching edges for {len(intermediate_list)} intermediate URIs...")
 
             inter_outgoing = self.batch_sparql.batch_query_outgoing(intermediate_list)
             inter_incoming = self.batch_sparql.batch_query_incoming(intermediate_list)
@@ -1034,24 +1094,15 @@ class UniversalRagSystem:
                 for pred, obj, obj_label in rels:
                     if _is_schema_predicate(pred):
                         continue
-                    fr_outgoing[uri].append((pred, obj))
                     if obj_label:
                         entity_labels[obj] = obj_label
                     elif obj not in entity_labels:
                         entity_labels[obj] = obj.split('/')[-1].split('#')[-1]
-                    # Collect raw triple for knowledge graph
-                    pred_label = ""
-                    if UniversalRagSystem._property_labels:
-                        simple_pred = pred.split('/')[-1].split('#')[-1]
-                        pred_label = (
-                            UniversalRagSystem._property_labels.get(pred) or
-                            UniversalRagSystem._property_labels.get(simple_pred) or ""
-                        )
                     raw_triples.append({
                         "subject": uri,
                         "subject_label": entity_labels.get(uri, ""),
                         "predicate": pred,
-                        "predicate_label": pred_label,
+                        "predicate_label": _pred_label(pred),
                         "object": obj,
                         "object_label": entity_labels.get(obj, ""),
                     })
@@ -1060,39 +1111,24 @@ class UniversalRagSystem:
                 for subj, pred, subj_label in rels:
                     if _is_schema_predicate(pred):
                         continue
-                    fr_incoming[uri].append((pred, subj))
                     if subj_label:
                         entity_labels[subj] = subj_label
                     elif subj not in entity_labels:
                         entity_labels[subj] = subj.split('/')[-1].split('#')[-1]
-                    # Collect raw triple for knowledge graph
-                    pred_label = ""
-                    if UniversalRagSystem._property_labels:
-                        simple_pred = pred.split('/')[-1].split('#')[-1]
-                        pred_label = (
-                            UniversalRagSystem._property_labels.get(pred) or
-                            UniversalRagSystem._property_labels.get(simple_pred) or ""
-                        )
                     raw_triples.append({
                         "subject": subj,
                         "subject_label": entity_labels.get(subj, ""),
                         "predicate": pred,
-                        "predicate_label": pred_label,
+                        "predicate_label": _pred_label(pred),
                         "object": uri,
                         "object_label": entity_labels.get(uri, ""),
                     })
 
-            # Fetch types for intermediates (needed for FR range-FC filtering)
+            # Fetch types for intermediates
             inter_types = self.batch_sparql.batch_fetch_types(intermediate_list)
             chunk_types.update(inter_types)
 
-        # entity_types_map = chunk_types (already updated with intermediates)
-        entity_types_map = chunk_types
-
         # Add date literals for E52_Time-Span entities to raw_triples.
-        # batch_query_outgoing uses FILTER(isURI(?o)) so P82a/P82b literal values
-        # are excluded.  We fetch them here so knowledge_graph.resolve_time_span()
-        # can find them at query time.
         _E52_URI = "http://www.cidoc-crm.org/cidoc-crm/E52_Time-Span"
         _CRM_NS = "http://www.cidoc-crm.org/cidoc-crm/"
         _TS_DATE_PROPS = {
@@ -1104,8 +1140,6 @@ class UniversalRagSystem:
         ts_from_chunk = [u for u in chunk_uris if _E52_URI in chunk_types.get(u, set())]
         ts_from_inter = [u for u in intermediate_uris if _E52_URI in chunk_types.get(u, set())]
 
-        # Chunk time-spans already have literals in chunk_literals;
-        # intermediate time-spans need a fresh fetch.
         inter_ts_lits = (
             self.batch_sparql.batch_fetch_literals(ts_from_inter) if ts_from_inter else {}
         )
@@ -1117,43 +1151,38 @@ class UniversalRagSystem:
             for prop_local, vals in ts_lits.items():
                 if prop_local not in _TS_DATE_PROPS or not vals:
                     continue
-                prop_label = ""
-                if UniversalRagSystem._property_labels:
-                    prop_label = (
-                        UniversalRagSystem._property_labels.get(f"{_CRM_NS}{prop_local}") or
-                        UniversalRagSystem._property_labels.get(prop_local) or ""
-                    )
                 raw_triples.append({
                     "subject": ts_uri,
                     "subject_label": entity_labels.get(ts_uri, ts_uri.split('/')[-1]),
                     "predicate": f"{_CRM_NS}{prop_local}",
-                    "predicate_label": prop_label,
+                    "predicate_label": _pred_label(f"{_CRM_NS}{prop_local}"),
                     "object": vals[0],
                     "object_label": vals[0],
                 })
                 ts_date_count += 1
 
-        logger.info(f"    FR graph: {len(fr_outgoing)} outgoing, {len(fr_incoming)} incoming, "
-                    f"{len(entity_labels)} labels, {len(raw_triples)} raw triples"
+        logger.info(f"    Triples: {len(raw_triples)} raw triples, "
+                    f"{len(entity_labels)} labels"
                     + (f" ({ts_date_count} date literals)" if ts_date_count else ""))
 
-        return dict(fr_outgoing), dict(fr_incoming), entity_labels, entity_types_map, raw_triples
+        return entity_labels, raw_triples
 
-    def _create_fr_document_from_prefetched(
+    def _create_document_from_graph(
         self,
         entity_uri: str,
         entity_label: str,
         raw_types: set,
         entity_type_labels: List[str],
         literals: Dict[str, List[str]],
-        fr_outgoing: Dict,
-        fr_incoming: Dict,
-        entity_labels: Dict[str, str],
-        entity_types_map: Dict[str, set],
         absorbed_lines: List[str] = None,
         time_span_dates: Dict[str, str] = None,
-    ) -> Tuple[str, str, List[str], dict]:
-        """Create FR-organized document from pre-fetched data.
+        step0_predicates: set = None,
+    ) -> Tuple[str, str, List[str]]:
+        """Create document from materialized FR edges in igraph.
+
+        Phase 3 replacement for _create_fr_document_from_prefetched(): reads
+        FR results and direct predicates from the knowledge graph instead of
+        doing dict-based traversal.
 
         Args:
             entity_uri: Entity URI
@@ -1161,16 +1190,12 @@ class UniversalRagSystem:
             raw_types: Set of rdf:type URIs
             entity_type_labels: Human-readable type label strings
             literals: prop_name -> [values] dict
-            fr_outgoing: Full graph outgoing index (uri -> [(pred, obj)])
-            fr_incoming: Full graph incoming index (uri -> [(pred, subj)])
-            entity_labels: Full graph label index
-            entity_types_map: Full graph entity types (uri -> set of type URIs)
             absorbed_lines: Lines from absorbed satellite entities
-            time_span_dates: URI → formatted date string for time-span resolution
+            time_span_dates: URI -> formatted date string for time-span resolution
+            step0_predicates: Set of step-0 predicate local names for FR filtering
 
         Returns:
-            (text, label, type_labels, fr_stats) where fr_stats contains
-            the entity's FC and FR traversal results for aggregation indexing.
+            (text, label, type_labels)
         """
         types_display = [t for t in entity_type_labels if not _is_technical_class_name(t, UniversalRagSystem._ontology_classes)]
 
@@ -1179,31 +1204,23 @@ class UniversalRagSystem:
             text = self.fr_traversal.format_minimal_document(
                 entity_uri, entity_label, types_display, literals
             )
-            return text, entity_label, entity_type_labels, {}
+            return text, entity_label, entity_type_labels
 
-        # Full FR traversal
         fc = self.fr_traversal.get_fc(raw_types)
 
-        fr_results = self.fr_traversal.match_fr_paths(
-            entity_uri=entity_uri,
-            entity_types=raw_types,
-            outgoing=fr_outgoing,
-            incoming=fr_incoming,
-            entity_labels=entity_labels,
-            entity_types_map=entity_types_map,
-        )
+        # Read materialized FR edges from igraph
+        fr_results = self.knowledge_graph.get_fr_neighbors(entity_uri)
 
-        # Collect direct non-FR predicates (VIR extensions etc.)
-        direct_preds = self.fr_traversal.collect_direct_predicates(
+        # Read remaining RDF predicates (non-FR, non-schema)
+        direct_preds = self.knowledge_graph.get_direct_rdf_predicates(
             entity_uri=entity_uri,
-            outgoing=fr_outgoing,
-            incoming=fr_incoming,
-            entity_labels=entity_labels,
-            entity_types=raw_types,
+            step0_predicates=step0_predicates or set(),
+            entity_fc=fc,
             schema_filter=_is_schema_predicate,
+            property_labels=UniversalRagSystem._property_labels,
         )
 
-        # Build target enrichments (type tags + attributes for FR targets)
+        # Build target enrichments from igraph outgoing edges
         all_target_uris = set()
         for fr in fr_results:
             for uri, _lbl in fr["targets"]:
@@ -1212,36 +1229,32 @@ class UniversalRagSystem:
             for uri, _lbl in dp["targets"]:
                 all_target_uris.add(uri)
 
-        from crm_rag.fr_traversal import build_target_enrichments
-        target_enrichments = build_target_enrichments(
-            target_uris=all_target_uris,
-            outgoing=fr_outgoing,
-            entity_labels=entity_labels,
-            entity_types_map=entity_types_map,
-            class_labels=UniversalRagSystem._class_labels,
-        )
+        # Build enrichments from igraph triples (replaces dict-based build_target_enrichments)
+        target_enrichments = self._build_target_enrichments_from_graph(all_target_uris)
 
-        # Resolve time-span dates for target entities (triples already in KG)
+        # Resolve time-span dates for target entities
         _P4_LOCALS = {"P4_has_time-span", "P4i_is_time-span_of"}
         time_span_dates = dict(time_span_dates) if time_span_dates else {}
 
         for target_uri in all_target_uris:
             if target_uri in time_span_dates:
                 continue
-            for pred, obj in fr_outgoing.get(target_uri, []):
-                pred_local = pred.split('/')[-1].split('#')[-1]
-                if pred_local in _P4_LOCALS:
-                    # obj is E52_Time-Span URI — try satellite dates first
-                    if obj in time_span_dates:
-                        time_span_dates[target_uri] = time_span_dates[obj]
+            # Look for P4_has_time-span in igraph
+            triples = self.knowledge_graph.get_triples(target_uri, edge_type="rdf")
+            for t in triples:
+                if t["subject"] == target_uri:
+                    pred_local = t["predicate"].split('/')[-1].split('#')[-1]
+                    if pred_local in _P4_LOCALS:
+                        ts_uri = t["object"]
+                        if ts_uri in time_span_dates:
+                            time_span_dates[target_uri] = time_span_dates[ts_uri]
+                            break
+                        date_info = self.knowledge_graph.resolve_time_span(ts_uri)
+                        if date_info:
+                            formatted = self.fr_traversal._format_time_entry(date_info)
+                            if formatted:
+                                time_span_dates[target_uri] = formatted
                         break
-                    # Fallback: resolve from knowledge graph
-                    date_info = self.knowledge_graph.resolve_time_span(obj)
-                    if date_info:
-                        formatted = self.fr_traversal._format_time_entry(date_info)
-                        if formatted:
-                            time_span_dates[target_uri] = formatted
-                    break
 
         text = self.fr_traversal.format_fr_document(
             entity_uri=entity_uri,
@@ -1256,13 +1269,59 @@ class UniversalRagSystem:
             time_span_dates=time_span_dates,
         )
 
-        # FR stats for aggregation index (piggyback on existing traversal)
-        fr_stats = {
-            "fc": fc,
-            "fr_results": fr_results,
-        }
+        return text, entity_label, entity_type_labels
 
-        return text, entity_label, entity_type_labels, fr_stats
+    def _build_target_enrichments_from_graph(
+        self, target_uris: set
+    ) -> Dict[str, Dict]:
+        """Build type tags and attribute summaries for FR targets from igraph.
+
+        Replaces the dict-based build_target_enrichments() for Phase 3.
+        """
+        _TYPE_PRED_LOCALS = {"P2_has_type", "P2i_is_type_of"}
+        _ATTR_PRED_LOCALS = {"K14_has_attribute", "P3_has_note"}
+        _VENUE_PRED_LOCALS = {"P7_took_place_at", "P7i_witnessed"}
+
+        enrichments = {}
+        for uri in target_uris:
+            type_tag = None
+            attributes = []
+            venue = None
+
+            triples = self.knowledge_graph.get_triples(uri, edge_type="rdf")
+            for t in triples:
+                if t["subject"] != uri:
+                    continue
+                pred_local = t["predicate"].split('/')[-1].split('#')[-1]
+
+                if pred_local in _TYPE_PRED_LOCALS and not type_tag:
+                    type_tag = t["object_label"] or t["object"].split('/')[-1]
+
+                if pred_local in _ATTR_PRED_LOCALS:
+                    attr_label = t["object_label"] or t["object"].split('/')[-1]
+                    if attr_label:
+                        attributes.append(attr_label)
+
+                if pred_local in _VENUE_PRED_LOCALS and not venue:
+                    venue = t["object_label"] or t["object"].split('/')[-1]
+
+            # Fallback: CRM class label from vertex fc attribute
+            if not type_tag:
+                vid = self.knowledge_graph._uri_to_vid.get(uri)
+                if vid is not None:
+                    v = self.knowledge_graph._graph.vs[vid]
+                    doc_type = v["doc_type"]
+                    if doc_type and doc_type not in ("Unknown", "Entity"):
+                        type_tag = doc_type
+
+            if type_tag or attributes or venue:
+                enrichments[uri] = {
+                    "type_tag": type_tag,
+                    "attributes": attributes[:5],
+                    "venue": venue,
+                }
+
+        return enrichments
 
     # ==================== End FR-based Document Generation ====================
 
@@ -1553,15 +1612,21 @@ class UniversalRagSystem:
             logger.info("=" * 80 + "\n")
 
     def process_rdf_data(self):
-        """Process RDF data into graph documents with enhanced CIDOC-CRM understanding"""
-        logger.info("Processing RDF data with enhanced CIDOC-CRM understanding...")
+        """Process RDF data into graph documents with enhanced CIDOC-CRM understanding.
 
-        # Discover all data instance URIs (no literal pre-filtering)
+        Three-phase pipeline:
+          Phase 1: Load RDF triples into igraph (chunked SPARQL, 1000/chunk)
+          Phase 2: Materialize FR edges on full igraph, identify satellites, compute PageRank
+          Phase 3: Generate documents from materialized graph (chunked SPARQL for literals)
+        """
+        logger.info("Processing RDF data (3-phase pipeline)...")
+
+        # Discover all data instance URIs
         entities = self.get_all_entities()
         total_entities = len(entities)
         logger.info(f"Found {total_entities} data instance entities")
 
-        # Clear entity_documents directory if it exists (using dataset-specific path)
+        # Clear entity_documents directory
         output_dir = self._path('documents')
         if os.path.exists(output_dir):
             shutil.rmtree(output_dir)
@@ -1597,11 +1662,120 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         readme_path = os.path.join(output_dir, "README.md")
         with open(readme_path, 'w', encoding='utf-8') as f:
             f.write(readme_content)
-        
-        # Create document nodes with enhanced content using chunked batch SPARQL
-        logger.info("Creating enhanced document nodes (chunked batch SPARQL)...")
 
-        # Determine embedding sub-batch size based on embedding provider
+        chunk_size = RetrievalConfig.BATCH_QUERY_SIZE
+        total_chunks = (total_entities + chunk_size - 1) // chunk_size
+
+        # =====================================================================
+        # PHASE 1: Load RDF triples into igraph
+        # =====================================================================
+        logger.info(f"\n{'='*80}")
+        logger.info(f"PHASE 1: Loading RDF triples into igraph ({total_chunks} chunks)")
+        logger.info(f"{'='*80}")
+
+        # Accumulate lightweight metadata across chunks
+        all_types: Dict[str, set] = {}         # uri -> set of type URIs
+        all_entity_labels: Dict[str, str] = {}  # uri -> label string
+
+        for chunk_idx in range(0, total_entities, chunk_size):
+            chunk_uris = entities[chunk_idx:chunk_idx + chunk_size]
+            chunk_num = chunk_idx // chunk_size + 1
+
+            logger.info(f"  Phase 1 chunk {chunk_num}/{total_chunks} ({len(chunk_uris)} entities)")
+
+            # Fetch types (compact — just sets of type URIs)
+            chunk_types = self.batch_sparql.batch_fetch_types(chunk_uris)
+            all_types.update(chunk_types)
+
+            # Fetch literals only for label extraction (will re-fetch in Phase 3)
+            chunk_literals = self.batch_sparql.batch_fetch_literals(chunk_uris)
+
+            # Fetch triples and load into igraph
+            entity_labels, raw_triples = self._fetch_triples_for_chunk(
+                chunk_uris, chunk_types, chunk_literals
+            )
+            self.knowledge_graph.add_triples(raw_triples, _get_relationship_weight)
+            all_entity_labels.update(entity_labels)
+
+            logger.info(f"    {len(raw_triples)} triples loaded, "
+                        f"graph: {self.knowledge_graph.vertex_count} vertices, "
+                        f"{self.knowledge_graph.edge_count} edges")
+
+            del raw_triples, chunk_literals  # free immediately
+
+        logger.info(f"Phase 1 complete: {self.knowledge_graph.vertex_count} vertices, "
+                    f"{self.knowledge_graph.edge_count} edges, "
+                    f"{len(all_types)} entity types accumulated")
+
+        # =====================================================================
+        # PHASE 2: Materialize FR edges on full igraph
+        # =====================================================================
+        logger.info(f"\n{'='*80}")
+        logger.info(f"PHASE 2: Materializing FR edges")
+        logger.info(f"{'='*80}")
+
+        # Assign FC to all vertices from stored types
+        fc_assigned = 0
+        for uri, types in all_types.items():
+            fc = self.fr_traversal.get_fc(types)
+            if fc:
+                self.knowledge_graph.assign_fc(uri, fc)
+                fc_assigned += 1
+        logger.info(f"  FC assigned to {fc_assigned} vertices")
+
+        # Load inverse property map
+        inverse_props_path = str(PROJECT_ROOT / 'data' / 'labels' / 'inverse_properties.json')
+        with open(inverse_props_path, 'r', encoding='utf-8') as f:
+            inverse_full = json.load(f)
+        inverse_map = {}
+        for uri_a, uri_b in inverse_full.items():
+            local_a = uri_a.rsplit("/", 1)[-1].rsplit("#", 1)[-1]
+            local_b = uri_b.rsplit("/", 1)[-1].rsplit("#", 1)[-1]
+            inverse_map[local_a] = local_b
+            inverse_map[local_b] = local_a
+
+        # Load subPropertyOf hierarchy for sub-property resolution in FR walker
+        taxonomy_path = str(PROJECT_ROOT / 'data' / 'labels' / 'crm_taxonomy.json')
+        with open(taxonomy_path, 'r', encoding='utf-8') as f:
+            taxonomy = json.load(f)
+        property_children = taxonomy.get("propertyChildren", {})
+        logger.info(f"  Loaded subPropertyOf hierarchy: {len(property_children)} parent properties")
+
+        # Run igraph-native FR materialization
+        from crm_rag.fr_materializer import materialize_fr_edges, get_step0_predicates
+        from crm_rag.fundamental_relationships import build_fully_expanded
+
+        fr_definitions = build_fully_expanded()
+        all_fr_stats = materialize_fr_edges(
+            self.knowledge_graph, inverse_map, fr_definitions, property_children
+        )
+        self.knowledge_graph.add_fr_edges(all_fr_stats)
+
+        # Identify satellites using igraph + accumulated types
+        all_satellite_uris, all_parent_satellites, all_time_span_dates = \
+            self._identify_satellites_from_graph(all_types)
+
+        # Mark doc vertices and compute PageRank
+        # (satellites won't get documents, so we mark doc vertices after Phase 3,
+        # but we need satellite info now)
+        logger.info(f"Phase 2 complete: {len(all_fr_stats)} entities with FR edges, "
+                    f"{len(all_satellite_uris)} satellites identified")
+
+        # Get step0 predicates for direct predicate filtering in Phase 3
+        step0_preds = get_step0_predicates(fr_definitions, property_children)
+
+        # Free large Phase 2 temporaries
+        del all_fr_stats, inverse_map, inverse_full, fr_definitions
+        del taxonomy, property_children
+
+        # =====================================================================
+        # PHASE 3: Generate documents from materialized graph
+        # =====================================================================
+        logger.info(f"\n{'='*80}")
+        logger.info(f"PHASE 3: Generating documents ({total_chunks} chunks)")
+        logger.info(f"{'='*80}")
+
+        # Embedding setup
         if self.use_batch_embedding:
             embedding_batch_size = int(self.config.get("embedding_batch_size", 64))
             logger.info(f"Using batch embedding with embedding_batch_size={embedding_batch_size}")
@@ -1609,85 +1783,47 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
             embedding_batch_size = RetrievalConfig.DEFAULT_BATCH_SIZE
             logger.info(f"Using sequential embedding with embedding_batch_size={embedding_batch_size}")
 
-        # Global rate limit tracking (only used for API-based embeddings)
         global_token_count = 0
         tokens_per_min_limit = int(self.config.get("tokens_per_minute"))
         last_reset_time = time.time()
 
-        # Check embedding cache for already processed entities
         cached_count = 0
         if self.embedding_cache:
             cache_stats = self.embedding_cache.get_stats()
             logger.info(f"Embedding cache: {cache_stats['count']} cached embeddings ({cache_stats['size_mb']} MB)")
 
-        # Accumulate satellite URIs across all chunks
-        all_satellite_uris = set()
-        # Accumulate FR stats across all chunks for aggregation index
-        all_fr_stats = []  # [(entity_uri, entity_label, fr_stats_dict), ...]
-
-        # Pre-fetch image index (single SPARQL query, shared across all chunks)
+        # Pre-fetch image index (single SPARQL query)
         image_index = self.batch_sparql.build_image_index(self.dataset_config)
-
-        # SPARQL pre-fetch chunk size (matches existing batch query infrastructure)
-        chunk_size = RetrievalConfig.BATCH_QUERY_SIZE
-        total_chunks = (total_entities + chunk_size - 1) // chunk_size
-        logger.info(f"Processing {total_entities} entities in {total_chunks} chunks of {chunk_size} (batch SPARQL)")
 
         for chunk_idx in range(0, total_entities, chunk_size):
             chunk_uris = entities[chunk_idx:chunk_idx + chunk_size]
             chunk_num = chunk_idx // chunk_size + 1
 
-            logger.info(f"=== Chunk {chunk_num}/{total_chunks} ({len(chunk_uris)} entities) ===")
+            logger.info(f"  Phase 3 chunk {chunk_num}/{total_chunks} ({len(chunk_uris)} entities)")
 
-            # Phase A: Batch pre-fetch all data for this chunk
-            logger.info(f"  Phase A: Batch pre-fetching data for {len(chunk_uris)} entities...")
-
+            # Re-fetch only literals, type_labels, wikidata (no outgoing/incoming)
             chunk_literals = self.batch_sparql.batch_fetch_literals(chunk_uris)
-            logger.info(f"    Literals: {len(chunk_literals)} entities")
 
-            chunk_types = self.batch_sparql.batch_fetch_types(chunk_uris)
-            logger.info(f"    Types: {len(chunk_types)} entities")
-
-            # Collect all type URIs for batch label fetching
+            chunk_types = {uri: all_types.get(uri, set()) for uri in chunk_uris}
             chunk_type_uris = set()
             for types in chunk_types.values():
                 chunk_type_uris.update(types)
             chunk_type_labels = self.batch_sparql.batch_fetch_type_labels(chunk_type_uris)
-            logger.info(f"    Type labels: {len(chunk_type_labels)} types")
-
-            # Build graph indexes for FR traversal
-            fr_outgoing, fr_incoming, entity_labels_map, entity_types_map, chunk_raw_triples = \
-                self._build_fr_graph_for_chunk(chunk_uris, chunk_types, chunk_literals)
-            self.knowledge_graph.add_triples(chunk_raw_triples, _get_relationship_weight)
-            logger.info(f"    FR graph built: {len(chunk_raw_triples)} raw triples")
-            del chunk_raw_triples  # free immediately after ingestion
-
-            # Identify satellites for this chunk
-            chunk_satellite_uris, chunk_parent_satellites, chunk_time_span_dates = \
-                self._identify_satellites_from_prefetched(
-                    chunk_types, fr_incoming, entity_labels_map,
-                    all_literals=chunk_literals,
-                    fr_outgoing=fr_outgoing,
-                )
-            all_satellite_uris.update(chunk_satellite_uris)
 
             chunk_wikidata = self.batch_sparql.batch_fetch_wikidata_ids(chunk_uris)
-            logger.info(f"    Wikidata IDs: {len(chunk_wikidata)} entities")
 
-            # Phase B: Generate docs from pre-fetched data (zero SPARQL queries)
             # Filter out satellite entities
-            doc_uris = [uri for uri in chunk_uris if uri not in chunk_satellite_uris]
-            logger.info(f"  Phase B: Generating {len(doc_uris)} documents "
-                        f"(skipping {len(chunk_satellite_uris)} satellites) (FR)...")
-            chunk_docs = []  # List of (entity_uri, doc_text, metadata, cached_embedding)
+            doc_uris = [uri for uri in chunk_uris if uri not in all_satellite_uris]
+            logger.info(f"    Generating {len(doc_uris)} documents "
+                        f"(skipping {len(chunk_uris) - len(doc_uris)} satellites)")
 
+            chunk_docs = []
             for entity_uri in tqdm(doc_uris, desc=f"Chunk {chunk_num}", unit="entity"):
-
                 try:
                     literals = chunk_literals.get(entity_uri, {})
                     types = chunk_types.get(entity_uri, set())
 
-                    # Build type labels for this entity
+                    # Build type labels
                     entity_type_labels = []
                     for type_uri in types:
                         type_label = None
@@ -1700,29 +1836,23 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
                         entity_type_labels.append(type_label)
 
                     # Extract entity label
-                    entity_label = entity_uri.split('/')[-1]
-                    for label_prop in ['label', 'prefLabel', 'name', 'title']:
-                        if label_prop in literals and literals[label_prop]:
-                            entity_label = literals[label_prop][0]
-                            break
+                    entity_label = all_entity_labels.get(entity_uri, entity_uri.split('/')[-1])
 
                     # Get absorbed satellite info
-                    sat_info = chunk_parent_satellites.get(entity_uri)
+                    sat_info = all_parent_satellites.get(entity_uri)
                     absorbed_lines = None
                     if sat_info:
                         absorbed_lines = self.fr_traversal.format_absorbed_satellites(
                             dict(sat_info), entity_label
                         )
 
-                    doc_text, entity_label, entity_types, fr_stats = self._create_fr_document_from_prefetched(
+                    doc_text, entity_label, entity_types = self._create_document_from_graph(
                         entity_uri, entity_label, types, entity_type_labels,
-                        literals, fr_outgoing, fr_incoming,
-                        entity_labels_map, entity_types_map,
+                        literals,
                         absorbed_lines=absorbed_lines,
-                        time_span_dates=chunk_time_span_dates,
+                        time_span_dates=all_time_span_dates,
+                        step0_predicates=step0_preds,
                     )
-                    if fr_stats:
-                        all_fr_stats.append((entity_uri, entity_label, fr_stats))
 
                     # Determine primary entity type
                     primary_type = "Unknown"
@@ -1734,10 +1864,8 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
                         ]
                         primary_type = human_readable_types[0] if human_readable_types else "Entity"
 
-                    # Get Wikidata ID from pre-fetched batch data
                     wikidata_id = chunk_wikidata.get(entity_uri)
 
-                    # Save document to disk with rich frontmatter
                     self.save_entity_document(
                         entity_uri, doc_text, entity_label,
                         entity_type=primary_type,
@@ -1751,11 +1879,10 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
                         "type": primary_type,
                         "uri": entity_uri,
                         "all_types": entity_types,
-                        "wikidata_id": wikidata_id,  # May be None
+                        "wikidata_id": wikidata_id,
                         "images": image_index.get(entity_uri, [])
                     }
 
-                    # Check embedding cache
                     cached_embedding = None
                     if self.embedding_cache:
                         cached_embedding = self.embedding_cache.get(entity_uri)
@@ -1768,12 +1895,11 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
                     logger.error(f"Error processing entity {entity_uri}: {str(e)}")
                     continue
 
-            # Phase C: Free pre-fetched data before embedding
+            # Free chunk data
             del chunk_literals, chunk_types, chunk_type_uris, chunk_type_labels, chunk_wikidata
-            del fr_outgoing, fr_incoming, entity_labels_map, entity_types_map
 
-            # Phase D: Embed in sub-batches
-            logger.info(f"  Phase D: Embedding {len(chunk_docs)} documents...")
+            # Embed in sub-batches
+            logger.info(f"    Embedding {len(chunk_docs)} documents...")
             for sub_idx in range(0, len(chunk_docs), embedding_batch_size):
                 sub_batch = chunk_docs[sub_idx:sub_idx + embedding_batch_size]
 
@@ -1783,20 +1909,20 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
                     global_token_count, last_reset_time = self._process_sequential_embeddings(
                         sub_batch, global_token_count, last_reset_time, tokens_per_min_limit
                     )
-
-                    # For API-based embeddings, pause between sub-batches
                     logger.info(f"    Completed sub-batch of {len(sub_batch)} documents, pausing for 2 seconds...")
                     time.sleep(2)
 
-            # Phase E: Save progress after each chunk
+            # Save progress after each chunk
             self.document_store.save_document_graph(self._path('graph_temp'))
-            logger.info(f"  Chunk {chunk_num}/{total_chunks} complete, progress saved")
+            logger.info(f"    Chunk {chunk_num}/{total_chunks} complete, progress saved")
 
         if cached_count > 0:
             logger.info(f"Used {cached_count} cached embeddings")
 
-        # Finalize knowledge graph: FR edges, PageRank, doc marking
-        self.knowledge_graph.add_fr_edges(all_fr_stats)
+        # Free accumulated Phase 1/2 data
+        del all_types, all_entity_labels, all_satellite_uris, all_parent_satellites, all_time_span_dates
+
+        # Finalize knowledge graph
         doc_types = {
             doc_id: doc.metadata.get("type", "Unknown")
             for doc_id, doc in self.document_store.docs.items()
@@ -1813,21 +1939,21 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         if os.path.exists(temp_path):
             os.replace(temp_path, final_path)
 
-        # Build vector store with batched embedding requests
+        # Build vector store
         logger.info("Building vector store...")
         self.build_vector_store_batched()
 
-        # Save knowledge graph (triples + PageRank + stats all in one file)
+        # Save knowledge graph
         self.knowledge_graph.save(self._path('knowledge_graph'))
 
-        # Export GraphML for visualization (Gephi / Cytoscape)
+        # Export GraphML for visualization
         graphml_path = self._path('knowledge_graph').replace('.pkl', '.graphml')
         self.knowledge_graph.export_graphml(graphml_path)
 
-        # Generate validation report for missing classes and properties
+        # Generate validation report
         self.generate_validation_report()
 
-        logger.info("RDF data processing complete with enhanced CIDOC-CRM understanding")
+        logger.info("RDF data processing complete (3-phase pipeline)")
 
     def _process_batch_embeddings(self, batch_docs):
         """
@@ -2222,16 +2348,19 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         return _fetch_wikidata_info(wikidata_id, self._http_session)
 
 
-    def compute_coherent_subgraph(self, candidates, adjacency_matrix, initial_scores, k=RetrievalConfig.DEFAULT_RETRIEVAL_K, alpha=RetrievalConfig.RELEVANCE_CONNECTIVITY_ALPHA):
+    def compute_coherent_subgraph(self, candidates, initial_scores, k=RetrievalConfig.DEFAULT_RETRIEVAL_K, alpha=RetrievalConfig.RELEVANCE_CONNECTIVITY_ALPHA, ppr_scores=None, adjacency_matrix=None):
         """
         Extract a coherent subgraph using greedy selection that balances individual relevance and connectivity.
 
+        Connectivity can be provided via PPR scores (preferred) or adjacency matrix (legacy).
+
         Args:
             candidates: List of GraphDocument objects
-            adjacency_matrix: Weighted adjacency matrix (n x n)
             initial_scores: Initial relevance scores for each candidate (n,)
             k: Number of documents to select
             alpha: Weight for individual relevance vs connectivity (0-1, higher = more emphasis on relevance)
+            ppr_scores: PPR scores array (n,) — used as connectivity signal when provided
+            adjacency_matrix: Legacy adjacency matrix (n x n) — used if ppr_scores is None
 
         Returns:
             List of selected GraphDocument objects in order of selection
@@ -2240,8 +2369,15 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         selected_indices = []
         selected_mask = np.zeros(n, dtype=bool)
 
+        use_ppr = ppr_scores is not None
+
         # Normalize initial scores to [0, 1] using min-max normalization
         normalized_scores = self.normalize_scores(initial_scores)
+
+        # Pre-compute normalized PPR scores (if using PPR mode)
+        normalized_ppr = None
+        if use_ppr:
+            normalized_ppr = self.normalize_scores(ppr_scores)
 
         # Pre-compute cosine similarity matrix for MMR diversity penalty
         diversity_penalty_weight = RetrievalConfig.DIVERSITY_PENALTY
@@ -2262,7 +2398,6 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         for i, c in enumerate(candidates):
             primary_type = c.metadata.get('type', '')
             all_types = c.metadata.get('all_types', [])
-            # Check primary type first, then fall back to all_types
             mod = type_modifiers.get(primary_type, None)
             if mod is None and all_types:
                 for t in all_types:
@@ -2271,8 +2406,9 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
                         break
             candidate_type_mods[i] = mod if mod is not None else 0.0
 
+        connectivity_mode = "PPR" if use_ppr else "adjacency"
         logger.info(f"\n{'='*80}")
-        logger.info(f"COHERENT SUBGRAPH EXTRACTION")
+        logger.info(f"COHERENT SUBGRAPH EXTRACTION ({connectivity_mode})")
         logger.info(f"{'='*80}")
         logger.info(f"Parameters: k={k}, alpha={alpha} (relevance weight), diversity_penalty={diversity_penalty_weight}")
         logger.info(f"Candidates: {n} documents")
@@ -2282,7 +2418,11 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         logger.info(f"  Mean: {np.mean(normalized_scores):.3f}")
         logger.info(f"  Std: {np.std(normalized_scores):.3f}")
 
-        # Log type modifier distribution
+        if use_ppr:
+            nonzero_ppr = np.sum(normalized_ppr > 0)
+            logger.info(f"\n--- PPR Connectivity Scores ---")
+            logger.info(f"  Non-zero: {nonzero_ppr}/{n}, Max: {np.max(normalized_ppr):.3f}, Mean: {np.mean(normalized_ppr):.3f}")
+
         boosted = np.sum(candidate_type_mods > 0)
         penalized = np.sum(candidate_type_mods < 0)
         neutral = np.sum(candidate_type_mods == 0)
@@ -2316,81 +2456,77 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
             if len(selected_indices) >= n:
                 break
 
-            # Collect connectivity scores for all unselected candidates
-            connectivity_scores = []
             candidate_indices = []
+            connectivity_scores = []
 
             for idx in range(n):
                 if selected_mask[idx]:
                     continue
 
-                # Connectivity component: sum of weighted edges to already-selected documents
-                connectivity = 0.0
-                for selected_idx in selected_indices:
-                    # Check both directions in adjacency matrix
-                    edge_weight = max(
-                        adjacency_matrix[idx, selected_idx],
-                        adjacency_matrix[selected_idx, idx]
-                    )
-                    connectivity += edge_weight
-
-                # Average by number of selected documents to avoid bias toward later iterations
-                if len(selected_indices) > 0:
-                    connectivity = connectivity / len(selected_indices)
+                if use_ppr:
+                    # PPR mode: connectivity = pre-computed PPR score (static per candidate)
+                    connectivity = normalized_ppr[idx]
+                else:
+                    # Legacy adjacency mode: average edge weight to selected docs
+                    connectivity = 0.0
+                    for selected_idx in selected_indices:
+                        edge_weight = max(
+                            adjacency_matrix[idx, selected_idx],
+                            adjacency_matrix[selected_idx, idx]
+                        )
+                        connectivity += edge_weight
+                    if len(selected_indices) > 0:
+                        connectivity = connectivity / len(selected_indices)
 
                 connectivity_scores.append(connectivity)
                 candidate_indices.append(idx)
 
-            # Normalize connectivity scores to [0, 1] for this iteration
-            if len(connectivity_scores) > 0:
-                connectivity_array = np.array(connectivity_scores)
-                normalized_connectivity = self.normalize_scores(connectivity_array)
-            else:
+            if not connectivity_scores:
                 break
+
+            connectivity_array = np.array(connectivity_scores)
+            if use_ppr:
+                # PPR scores are already normalized globally; use directly
+                normalized_connectivity = connectivity_array
+            else:
+                normalized_connectivity = self.normalize_scores(connectivity_array)
 
             logger.info(f"\n{'='*80}")
             logger.info(f"SELECTION ROUND {iteration+1}/{k}")
             logger.info(f"{'='*80}")
-            logger.info(f"Strategy: Combine relevance ({alpha:.1f}) + connectivity ({1-alpha:.1f})")
-            logger.info(f"Connectivity scores (normalized): min={np.min(normalized_connectivity):.3f}, "
+            logger.info(f"Strategy: Combine relevance ({alpha:.1f}) + {connectivity_mode} ({1-alpha:.1f})")
+            logger.info(f"Connectivity scores: min={np.min(normalized_connectivity):.3f}, "
                        f"max={np.max(normalized_connectivity):.3f}, mean={np.mean(normalized_connectivity):.3f}")
 
-            # Compute all scores and collect top candidates
             all_scores = []
             for i, idx in enumerate(candidate_indices):
                 relevance = normalized_scores[idx]
                 connectivity_norm = normalized_connectivity[i]
-                # MMR diversity penalty: penalize similarity to most-similar already-selected doc
                 max_sim = max(sim_matrix[idx, sel_idx] for sel_idx in selected_indices)
                 div_penalty = diversity_penalty_weight * max_sim
                 base_score = alpha * relevance + (1 - alpha) * connectivity_norm - div_penalty
-                # Apply type-based modifier
                 type_mod = candidate_type_mods[idx]
                 combined_score = base_score * (1.0 + type_mod)
-                # Mega-entity penalty: high-triple-count entities provide diluted context
                 triples_count = self.knowledge_graph.triple_count(candidates[idx].id)
                 if triples_count > RetrievalConfig.MEGA_ENTITY_TRIPLES_THRESHOLD:
                     combined_score -= RetrievalConfig.MEGA_ENTITY_PENALTY
                 all_scores.append((idx, combined_score, relevance, connectivity_norm, div_penalty, type_mod))
 
-            # Sort by combined score
             all_scores.sort(key=lambda x: x[1], reverse=True)
 
-            # Show top 3 candidates for this iteration
             logger.info(f"\n--- Top 3 Candidates for Round {iteration+1} ---")
             for rank, (idx, combined, rel, conn, div_pen, t_mod) in enumerate(all_scores[:3], 1):
                 label = candidates[idx].metadata.get('label', 'Unknown')
                 etype = candidates[idx].metadata.get('type', '')
                 logger.info(f"  {rank}. {label} ({etype})")
                 logger.info(f"      Relevance: {rel:.3f} (weight={alpha:.1f}) → contrib={alpha*rel:.3f}")
-                logger.info(f"      Connectivity: {conn:.3f} (weight={1-alpha:.1f}) → contrib={(1-alpha)*conn:.3f}")
+                logger.info(f"      {connectivity_mode}: {conn:.3f} (weight={1-alpha:.1f}) → contrib={(1-alpha)*conn:.3f}")
                 logger.info(f"      Diversity penalty: -{div_pen:.3f}")
                 type_mod_str = f", type_mod={t_mod:+.2f}" if t_mod != 0 else ""
                 tc = self.knowledge_graph.triple_count(candidates[idx].id)
                 mega_str = f", MEGA(-{RetrievalConfig.MEGA_ENTITY_PENALTY:.2f}, {tc} triples)" if tc > RetrievalConfig.MEGA_ENTITY_TRIPLES_THRESHOLD else ""
                 logger.info(f"      Combined: {combined:.3f}{type_mod_str}{mega_str}")
 
-            # Select the best
             best_idx, best_score, best_rel, best_connectivity_norm, best_div_penalty, best_type_mod = all_scores[0]
 
             if best_idx == -1:
@@ -2416,7 +2552,6 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
             logger.info(f"  {i}. {label} [{etype}] (relevance={normalized_scores[idx]:.3f}{mod_str})")
         logger.info(f"{'='*80}\n")
 
-        # Return selected documents in order
         return [candidates[idx] for idx in selected_indices]
 
     def _rrf_fuse(self, faiss_results, bm25_results, pool_size, k_rrf=60):
@@ -2729,21 +2864,29 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
             logger.info(f"Retrieved {len(initial_docs)} documents (less than k={k})")
             return initial_docs
 
-        # Create a subgraph of the retrieved documents
-        doc_ids = [doc.id for doc in initial_docs]
-
-        # Create weighted adjacency matrix with virtual 2-hop edges through full RDF graph
-        adjacency_matrix = self.knowledge_graph.build_adjacency_matrix(
-            doc_ids,
-            weight_fn=_get_relationship_weight,
-            max_hops=RetrievalConfig.MAX_ADJACENCY_HOPS,
+        # Compute PPR connectivity scores from top seed nodes
+        n_seeds = min(RetrievalConfig.PPR_SEED_MAX, len(initial_docs))
+        seed_uris = [doc.id for doc in initial_docs[:n_seeds]]
+        ppr_scores_list = self.knowledge_graph.personalized_pagerank(
+            seed_uris=seed_uris,
+            damping=RetrievalConfig.PPR_DAMPING,
+            top_n=len(initial_docs) * 2,
+            doc_only=False,
         )
+        ppr_score_map = {uri: score for uri, score in ppr_scores_list}
+        # Also give seeds a score (they get excluded by PPR, but we need them)
+        for uri in seed_uris:
+            if uri not in ppr_score_map:
+                ppr_score_map[uri] = 1.0  # Seeds get max score
 
-        # Extract coherent subgraph using actual FAISS similarity scores
-        logger.info(f"Extracting coherent subgraph of size {k} from {len(initial_docs)} candidates")
+        # Build PPR score array aligned with candidate ordering
+        ppr_scores = np.array([ppr_score_map.get(doc.id, 0.0) for doc in initial_docs])
+
+        # Extract coherent subgraph using PPR as connectivity signal
+        logger.info(f"Extracting coherent subgraph of size {k} from {len(initial_docs)} candidates (PPR connectivity)")
         selected_docs = self.compute_coherent_subgraph(
             candidates=initial_docs,
-            adjacency_matrix=adjacency_matrix,
+            ppr_scores=ppr_scores,
             initial_scores=faiss_scores,
             k=k,
             alpha=alpha,

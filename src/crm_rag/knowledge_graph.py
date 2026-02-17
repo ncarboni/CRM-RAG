@@ -215,11 +215,108 @@ class KnowledgeGraph:
                     f"{self._graph.vcount()} vertices, {self._graph.ecount()} edges)")
 
     def export_graphml(self, path: str) -> None:
-        """Export the graph as GraphML for visualization in Gephi / Cytoscape."""
+        """Export the graph as GraphML for visualization.
+
+        Produces two files:
+          - <path>          — full graph (all RDF + FR edges)
+          - <path_fr_only>  — FR edges only (with isolated vertices removed)
+        """
         os.makedirs(os.path.dirname(path), exist_ok=True)
+
+        # Full graph
         self._graph.write_graphml(path)
         size_mb = os.path.getsize(path) / (1024 * 1024)
-        logger.info(f"GraphML exported to {path} ({size_mb:.1f} MB)")
+        logger.info(
+            f"GraphML (full) exported to {path} ({size_mb:.1f} MB, "
+            f"{self._graph.vcount()} vertices, {self._graph.ecount()} edges)"
+        )
+
+        # FR-only subgraph
+        fr_eids = [e.index for e in self._graph.es if e["edge_type"] == "fr"]
+        if fr_eids:
+            subgraph = self._graph.subgraph_edges(fr_eids, delete_vertices=True)
+            base, ext = os.path.splitext(path)
+            fr_path = f"{base}_fr_only{ext}"
+            subgraph.write_graphml(fr_path)
+            size_mb_fr = os.path.getsize(fr_path) / (1024 * 1024)
+            logger.info(
+                f"GraphML (FR-only) exported to {fr_path} ({size_mb_fr:.1f} MB, "
+                f"{subgraph.vcount()} vertices, {subgraph.ecount()} edges)"
+            )
+        else:
+            logger.warning("No FR edges found — skipping FR-only export")
+
+    def export_json(self, edge_type: Optional[str] = "fr",
+                     max_edges: int = 500_000) -> Dict:
+        """Export the graph as a JSON-serializable dict for web visualization.
+
+        Args:
+            edge_type: Filter edges — "fr" for FR-only, "rdf" for RDF-only,
+                       or None for all edges.
+            max_edges: Safety cap; if exceeded, edges are truncated and
+                       ``metadata.truncated`` is set to True.
+
+        Returns:
+            {"nodes": [...], "edges": [...], "metadata": {...}}
+        """
+        if edge_type == "fr":
+            fr_eids = [e.index for e in self._graph.es if e["edge_type"] == "fr"]
+            if not fr_eids:
+                return {"nodes": [], "edges": [],
+                        "metadata": {"node_count": 0, "edge_count": 0,
+                                     "truncated": False, "fc_counts": {}}}
+            g = self._graph.subgraph_edges(fr_eids, delete_vertices=True)
+        elif edge_type == "rdf":
+            rdf_eids = [e.index for e in self._graph.es if e["edge_type"] == "rdf"]
+            if not rdf_eids:
+                return {"nodes": [], "edges": [],
+                        "metadata": {"node_count": 0, "edge_count": 0,
+                                     "truncated": False, "fc_counts": {}}}
+            g = self._graph.subgraph_edges(rdf_eids, delete_vertices=True)
+        else:
+            g = self._graph
+
+        truncated = g.ecount() > max_edges
+
+        nodes = []
+        for v in g.vs:
+            nodes.append({
+                "id": v["name"],
+                "label": v["label"] or v["name"].rsplit("/", 1)[-1],
+                "fc": v["fc"] or "",
+                "pagerank": v["pagerank"],
+                "is_doc": v["is_doc"],
+                "doc_type": v["doc_type"] or "",
+            })
+
+        edges = []
+        edge_iter = range(min(g.ecount(), max_edges))
+        for idx in edge_iter:
+            e = g.es[idx]
+            edges.append({
+                "source": g.vs[e.source]["name"],
+                "target": g.vs[e.target]["name"],
+                "predicate_label": e["predicate_label"],
+                "weight": e["weight"],
+                "edge_type": e["edge_type"],
+            })
+
+        fc_counts: Dict[str, int] = {}
+        for v in g.vs:
+            fc = v["fc"]
+            if fc:
+                fc_counts[fc] = fc_counts.get(fc, 0) + 1
+
+        return {
+            "nodes": nodes,
+            "edges": edges,
+            "metadata": {
+                "node_count": g.vcount(),
+                "edge_count": g.ecount(),
+                "truncated": truncated,
+                "fc_counts": fc_counts,
+            },
+        }
 
     def load(self, path: str) -> None:
         self._graph = ig.Graph.Read_Pickle(path)

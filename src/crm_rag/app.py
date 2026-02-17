@@ -204,6 +204,33 @@ def create_app(config, datasets_config, interface_config, dataset_manager):
             "default_dataset": datasets_config.get('default_dataset'),
         })
 
+    @app.route('/graph')
+    def graph():
+        """Graph visualization page"""
+        return render_template('graph.html', interface=interface_config)
+
+    @app.route('/api/graph/data', methods=['GET'])
+    def graph_data():
+        """API endpoint returning graph nodes/edges for visualization."""
+        dataset_id = request.args.get('dataset_id') or datasets_config.get('default_dataset')
+        if not dataset_id:
+            return jsonify({"error": "dataset_id is required"}), 400
+
+        edge_type_param = request.args.get('edge_type', 'fr')
+        edge_type = None if edge_type_param == 'all' else edge_type_param
+
+        try:
+            current_rag = dataset_manager.get_dataset(dataset_id)
+        except (ValueError, RuntimeError) as e:
+            return jsonify({"error": str(e)}), 500
+
+        kg = getattr(current_rag, 'knowledge_graph', None)
+        if kg is None:
+            return jsonify({"error": "Knowledge graph not loaded for this dataset"}), 404
+
+        data = kg.export_json(edge_type=edge_type)
+        return jsonify(data)
+
     return app
 
 

@@ -329,6 +329,9 @@ class RetrievalConfig:
     })
     MAX_NON_INFORMATIVE_RATIO = 0.25
 
+    # Checkpoint frequency: save document graph every N chunks (Phase 3)
+    CHECKPOINT_INTERVAL = 10
+
 
 class UniversalRagSystem:
     """Universal RAG system with graph-based document retrieval"""
@@ -1177,6 +1180,7 @@ class UniversalRagSystem:
         absorbed_lines: List[str] = None,
         time_span_dates: Dict[str, str] = None,
         step0_predicates: set = None,
+        enrichments_cache: Dict[str, Dict] = None,
     ) -> Tuple[str, str, List[str]]:
         """Create document from materialized FR edges in igraph.
 
@@ -1193,6 +1197,9 @@ class UniversalRagSystem:
             absorbed_lines: Lines from absorbed satellite entities
             time_span_dates: URI -> formatted date string for time-span resolution
             step0_predicates: Set of step-0 predicate local names for FR filtering
+            enrichments_cache: Pre-computed enrichments dict from
+                _precompute_phase3_caches(). When provided, skips per-entity
+                _build_target_enrichments_from_graph() and time-span resolution.
 
         Returns:
             (text, label, type_labels)
@@ -1220,7 +1227,7 @@ class UniversalRagSystem:
             property_labels=UniversalRagSystem._property_labels,
         )
 
-        # Build target enrichments from igraph outgoing edges
+        # Collect target URIs
         all_target_uris = set()
         for fr in fr_results:
             for uri, _lbl in fr["targets"]:
@@ -1229,46 +1236,45 @@ class UniversalRagSystem:
             for uri, _lbl in dp["targets"]:
                 all_target_uris.add(uri)
 
-        # Build enrichments from igraph triples (replaces dict-based build_target_enrichments)
-        target_enrichments = self._build_target_enrichments_from_graph(all_target_uris)
+        # Build target enrichments and resolve time-span dates
+        if enrichments_cache is not None:
+            # ── Fast path: pre-computed caches (O(1) per target) ──
+            target_enrichments = {}
+            for uri in all_target_uris:
+                cached = enrichments_cache.get(uri)
+                if cached is not None:
+                    target_enrichments[uri] = cached
+                else:
+                    # Lightweight fallback: vertex doc_type attribute
+                    vid = self.knowledge_graph._uri_to_vid.get(uri)
+                    if vid is not None:
+                        doc_type = self.knowledge_graph._graph.vs[vid]["doc_type"]
+                        if doc_type and doc_type not in ("Unknown", "Entity"):
+                            target_enrichments[uri] = {
+                                "type_tag": doc_type, "attributes": [],
+                                "venue": None, "coordinates": None,
+                            }
+            # time_span_dates already fully resolved by _precompute_phase3_caches
+            if time_span_dates is None:
+                time_span_dates = {}
+        else:
+            # ── Legacy path: per-entity resolution ──
+            target_enrichments = self._build_target_enrichments_from_graph(all_target_uris)
 
-        # Resolve time-span dates for target entities
-        _P4_LOCALS = {"P4_has_time-span", "P4i_is_time-span_of"}
-        time_span_dates = dict(time_span_dates) if time_span_dates else {}
+            _P4_LOCALS = {"P4_has_time-span", "P4i_is_time-span_of"}
+            if time_span_dates is None:
+                time_span_dates = {}
 
-        for target_uri in all_target_uris:
-            if target_uri in time_span_dates:
-                continue
-
-            # Case 1: target IS an E52 Time-Span (from Time FRs ending at E52)
-            target_vid = self.knowledge_graph._uri_to_vid.get(target_uri)
-            if target_vid is not None:
-                target_fc = self.knowledge_graph._graph.vs[target_vid]["fc"]
-                if target_fc == "Time":
-                    date_info = self.knowledge_graph.resolve_time_span(target_uri)
-                    if date_info:
-                        # Convert resolve_time_span keys to _format_time_entry keys
-                        entry = {
-                            "begin": date_info.get("began"),
-                            "end": date_info.get("ended"),
-                            "within": date_info.get("date"),
-                        }
-                        formatted = self.fr_traversal._format_time_entry(entry)
-                        if formatted:
-                            time_span_dates[target_uri] = formatted
+            for target_uri in all_target_uris:
+                if target_uri in time_span_dates:
                     continue
 
-            # Case 2: target has P4_has_time-span (events pointing to E52)
-            triples = self.knowledge_graph.get_triples(target_uri, edge_type="rdf")
-            for t in triples:
-                if t["subject"] == target_uri:
-                    pred_local = t["predicate"].split('/')[-1].split('#')[-1]
-                    if pred_local in _P4_LOCALS:
-                        ts_uri = t["object"]
-                        if ts_uri in time_span_dates:
-                            time_span_dates[target_uri] = time_span_dates[ts_uri]
-                            break
-                        date_info = self.knowledge_graph.resolve_time_span(ts_uri)
+                # Case 1: target IS an E52 Time-Span
+                target_vid = self.knowledge_graph._uri_to_vid.get(target_uri)
+                if target_vid is not None:
+                    target_fc = self.knowledge_graph._graph.vs[target_vid]["fc"]
+                    if target_fc == "Time":
+                        date_info = self.knowledge_graph.resolve_time_span(target_uri)
                         if date_info:
                             entry = {
                                 "begin": date_info.get("began"),
@@ -1278,7 +1284,30 @@ class UniversalRagSystem:
                             formatted = self.fr_traversal._format_time_entry(entry)
                             if formatted:
                                 time_span_dates[target_uri] = formatted
-                        break
+                        continue
+
+                # Case 2: target has P4_has_time-span (events pointing to E52)
+                triples = self.knowledge_graph.get_triples(target_uri, edge_type="rdf")
+                for t in triples:
+                    if t["subject"] == target_uri:
+                        pred_local = t["predicate"].split('/')[-1].split('#')[-1]
+                        if pred_local in _P4_LOCALS:
+                            ts_uri = t["object"]
+                            if ts_uri in time_span_dates:
+                                time_span_dates[target_uri] = time_span_dates[ts_uri]
+                                break
+                            date_info = self.knowledge_graph.resolve_time_span(ts_uri)
+                            if date_info:
+                                entry = {
+                                    "begin": date_info.get("began"),
+                                    "end": date_info.get("ended"),
+                                    "within": date_info.get("date"),
+                                }
+                                formatted = self.fr_traversal._format_time_entry(entry)
+                                if formatted:
+                                    time_span_dates[ts_uri] = formatted
+                                    time_span_dates[target_uri] = formatted
+                            break
 
         text = self.fr_traversal.format_fr_document(
             entity_uri=entity_uri,
@@ -1352,6 +1381,141 @@ class UniversalRagSystem:
                 }
 
         return enrichments
+
+    def _precompute_phase3_caches(
+        self, existing_time_span_dates: Dict[str, str]
+    ) -> Tuple[Dict[str, Dict], Dict[str, str]]:
+        """Pre-compute target enrichments and time-span dates in one igraph pass.
+
+        Replaces per-entity _build_target_enrichments_from_graph() and
+        time-span resolution in _create_document_from_graph() with O(1) dict
+        lookups during Phase 3.
+
+        Args:
+            existing_time_span_dates: Time-span dates already resolved during
+                satellite identification (Phase 2).
+
+        Returns:
+            (enrichments_cache, time_span_dates)
+        """
+        import time as _time
+        t0 = _time.monotonic()
+
+        g = self.knowledge_graph._graph
+        n_edges = g.ecount()
+        n_verts = g.vcount()
+
+        # ── Bulk-fetch edge/vertex attributes (C-level) ──
+        edge_types = g.es["edge_type"]
+        predicates = g.es["predicate"]
+        edgelist = g.get_edgelist()
+        vertex_labels = g.vs["label"]
+        vertex_names = g.vs["name"]
+
+        # ── Predicate sets ──
+        _TYPE_PREDS = frozenset({"P2_has_type", "P2i_is_type_of"})
+        _ATTR_PREDS = frozenset({"K14_has_attribute", "P3_has_note"})
+        _VENUE_PREDS = frozenset({"P7_took_place_at", "P7i_witnessed"})
+        _COORD_PREDS = frozenset({"P168_place_is_defined_by", "P168i_defines_place"})
+        _ALL_ENRICH = _TYPE_PREDS | _ATTR_PREDS | _VENUE_PREDS | _COORD_PREDS
+        _P4_PREDS = frozenset({"P4_has_time-span", "P4i_is_time-span_of"})
+        _ALL_RELEVANT = _ALL_ENRICH | _P4_PREDS
+
+        # ── Accumulators ──
+        type_tags: Dict[int, str] = {}
+        attrs: Dict[int, List[str]] = {}
+        venues: Dict[int, str] = {}
+        coords: Dict[int, str] = {}
+        p4_mappings: List[Tuple[str, str]] = []  # (event_uri, e52_uri)
+
+        # ── Single pass over all edges ──
+        for idx in range(n_edges):
+            if edge_types[idx] != "rdf":
+                continue
+            pred = predicates[idx]
+            pos = max(pred.rfind('/'), pred.rfind('#'))
+            local = pred[pos + 1:]
+
+            if local not in _ALL_RELEVANT:
+                continue
+
+            src_vid, tgt_vid = edgelist[idx]
+
+            if local in _ALL_ENRICH:
+                obj_label = vertex_labels[tgt_vid] or vertex_names[tgt_vid].rsplit('/', 1)[-1]
+                if local in _TYPE_PREDS:
+                    if src_vid not in type_tags:
+                        type_tags[src_vid] = obj_label
+                elif local in _ATTR_PREDS:
+                    bucket = attrs.get(src_vid)
+                    if bucket is None:
+                        attrs[src_vid] = [obj_label]
+                    elif len(bucket) < 5:
+                        bucket.append(obj_label)
+                elif local in _VENUE_PREDS:
+                    if src_vid not in venues:
+                        venues[src_vid] = obj_label
+                else:  # _COORD_PREDS
+                    if src_vid not in coords:
+                        coords[src_vid] = obj_label
+            else:
+                # P4 mapping: event → E52 time-span
+                p4_mappings.append((vertex_names[src_vid], vertex_names[tgt_vid]))
+
+        # ── Build enrichments dict (keyed by URI) ──
+        enrichments: Dict[str, Dict] = {}
+        enriched_vids = set(type_tags) | set(attrs) | set(venues) | set(coords)
+        doc_types = g.vs["doc_type"]
+
+        for vid in enriched_vids:
+            tt = type_tags.get(vid)
+            # Doc_type fallback when no edge-based type_tag
+            if tt is None:
+                dt = doc_types[vid]
+                if dt and dt not in ("Unknown", "Entity"):
+                    tt = dt
+            enrichments[vertex_names[vid]] = {
+                "type_tag": tt,
+                "attributes": attrs.get(vid, []),
+                "venue": venues.get(vid),
+                "coordinates": coords.get(vid),
+            }
+
+        del type_tags, attrs, venues, coords, enriched_vids
+
+        # ── Resolve time-span dates ──
+        dates = dict(existing_time_span_dates)
+
+        # Pass A: resolve all Time-fc vertices (E52 Time-Span)
+        vertex_fcs = g.vs["fc"]
+        for vid in range(n_verts):
+            if vertex_fcs[vid] != "Time":
+                continue
+            uri = vertex_names[vid]
+            if uri in dates:
+                continue
+            date_info = self.knowledge_graph.resolve_time_span(uri)
+            if date_info:
+                entry = {
+                    "begin": date_info.get("began"),
+                    "end": date_info.get("ended"),
+                    "within": date_info.get("date"),
+                }
+                formatted = self.fr_traversal._format_time_entry(entry)
+                if formatted:
+                    dates[uri] = formatted
+
+        # Pass B: map events → time-span dates via collected P4 edges
+        for event_uri, e52_uri in p4_mappings:
+            if event_uri not in dates and e52_uri in dates:
+                dates[event_uri] = dates[e52_uri]
+
+        elapsed = _time.monotonic() - t0
+        logger.info(f"Pre-computed {len(enrichments):,} target enrichments, "
+                    f"{len(dates):,} time-span dates in {elapsed:.1f}s "
+                    f"(scanned {n_edges:,} edges, {n_verts:,} vertices)")
+
+        return enrichments, dates
 
     # ==================== End FR-based Document Generation ====================
 
@@ -1840,6 +2004,11 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         del all_fr_stats, inverse_map, inverse_full, fr_definitions
         del taxonomy, property_children
 
+        # Pre-compute target enrichments and time-span dates (single igraph pass)
+        all_enrichments, all_time_span_dates = self._precompute_phase3_caches(
+            all_time_span_dates
+        )
+
         # =====================================================================
         # PHASE 3: Generate documents from materialized graph
         # =====================================================================
@@ -1924,6 +2093,7 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
                         absorbed_lines=absorbed_lines,
                         time_span_dates=all_time_span_dates,
                         step0_predicates=step0_preds,
+                        enrichments_cache=all_enrichments,
                     )
 
                     # Determine primary entity type
@@ -1984,15 +2154,19 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
                     logger.info(f"    Completed sub-batch of {len(sub_batch)} documents, pausing for 2 seconds...")
                     time.sleep(2)
 
-            # Save progress after each chunk
-            self.document_store.save_document_graph(self._path('graph_temp'))
-            logger.info(f"    Chunk {chunk_num}/{total_chunks} complete, progress saved")
+            # Save progress periodically (not every chunk)
+            if chunk_num % RetrievalConfig.CHECKPOINT_INTERVAL == 0 or chunk_num == total_chunks:
+                self.document_store.save_document_graph(self._path('graph_temp'))
+                logger.info(f"    Chunk {chunk_num}/{total_chunks} complete, progress saved")
+            else:
+                logger.info(f"    Chunk {chunk_num}/{total_chunks} complete")
 
         if cached_count > 0:
             logger.info(f"Used {cached_count} cached embeddings")
 
         # Free accumulated Phase 1/2 data
-        del all_types, all_entity_labels, all_satellite_uris, all_parent_satellites, all_time_span_dates
+        del all_types, all_entity_labels, all_satellite_uris, all_parent_satellites
+        del all_time_span_dates, all_enrichments
 
         # Finalize knowledge graph
         doc_types = {

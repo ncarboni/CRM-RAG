@@ -68,6 +68,32 @@ def _build_property_families(
     return result
 
 
+class StepTrieNode:
+    """Trie node representing a single FR step (property + recursive flag).
+
+    Children are keyed by (property, recursive) tuples.  Terminal nodes
+    mark the end of at least one complete FR path.
+    """
+
+    __slots__ = ("property", "recursive", "children", "is_terminal")
+
+    def __init__(self, prop: str, recursive: bool):
+        self.property = prop
+        self.recursive = recursive
+        self.children: Dict[Tuple[str, bool], "StepTrieNode"] = {}
+        self.is_terminal = False
+
+
+class StepTrieRoot:
+    """Sentinel root of a step trie (has no step of its own)."""
+
+    __slots__ = ("children", "is_terminal")
+
+    def __init__(self):
+        self.children: Dict[Tuple[str, bool], StepTrieNode] = {}
+        self.is_terminal = False
+
+
 class IGraphFRWalker:
     """Walk FR property paths on an igraph knowledge graph.
 
@@ -96,10 +122,36 @@ class IGraphFRWalker:
         self._pred_to_sources: Dict[str, Set[int]] = {}
         self._inv_pred_to_targets: Dict[str, Set[int]] = {}
 
+        # Per-vertex predicate adjacency: O(1) lookups instead of O(degree) scans
+        self._out_by_pred: Dict[int, Dict[str, Set[int]]] = {}
+        self._in_by_pred: Dict[int, Dict[str, Set[int]]] = {}
+
         for e in self.g.es:
             pred_local = _local_name(e["predicate"])
             self._pred_to_eids.setdefault(pred_local, []).append(e.index)
             self._pred_to_sources.setdefault(pred_local, set()).add(e.source)
+
+            # Outgoing: source → pred → {targets}
+            src_map = self._out_by_pred.get(e.source)
+            if src_map is None:
+                src_map = {}
+                self._out_by_pred[e.source] = src_map
+            tgt_set = src_map.get(pred_local)
+            if tgt_set is None:
+                tgt_set = set()
+                src_map[pred_local] = tgt_set
+            tgt_set.add(e.target)
+
+            # Incoming: target → pred → {sources}
+            tgt_map = self._in_by_pred.get(e.target)
+            if tgt_map is None:
+                tgt_map = {}
+                self._in_by_pred[e.target] = tgt_map
+            src_set = tgt_map.get(pred_local)
+            if src_set is None:
+                src_set = set()
+                tgt_map[pred_local] = src_set
+            src_set.add(e.source)
 
         # Build inverse target index: for each predicate P with inverse P_i,
         # record target vertices of P as "sources reachable via P_i"
@@ -117,6 +169,7 @@ class IGraphFRWalker:
         logger.info(
             f"Predicate index: {len(self._pred_to_eids)} unique predicates, "
             f"{self.g.ecount()} edges total, "
+            f"{len(self._out_by_pred)} vertices with outgoing pred index, "
             f"{n_families} properties with sub-property expansion"
         )
 
@@ -125,8 +178,11 @@ class IGraphFRWalker:
 
         Checks outgoing edges for prop_local (+ sub-properties) AND incoming
         edges for the inverse of prop_local (+ sub-properties of the inverse).
+
+        Uses per-vertex predicate dicts for O(|family|) lookups instead of
+        O(degree) edge scans.
         """
-        targets = set()
+        targets: Set[int] = set()
 
         # Expand prop_local to include all sub-properties
         prop_family = self._prop_family.get(prop_local, frozenset({prop_local}))
@@ -139,18 +195,22 @@ class IGraphFRWalker:
             else frozenset()
         )
 
-        # Outgoing: edges where vid is source, predicate in prop_family
-        for eid in self.g.incident(vid, mode="out"):
-            e = self.g.es[eid]
-            if _local_name(e["predicate"]) in prop_family:
-                targets.add(e.target)
+        # Outgoing: dict lookup per family member
+        out_map = self._out_by_pred.get(vid)
+        if out_map:
+            for p in prop_family:
+                t = out_map.get(p)
+                if t:
+                    targets |= t
 
-        # Incoming: edges where vid is target, predicate in inv_family
+        # Incoming: dict lookup per inverse family member
         if inv_family:
-            for eid in self.g.incident(vid, mode="in"):
-                e = self.g.es[eid]
-                if _local_name(e["predicate"]) in inv_family:
-                    targets.add(e.source)
+            in_map = self._in_by_pred.get(vid)
+            if in_map:
+                for p in inv_family:
+                    s = in_map.get(p)
+                    if s:
+                        targets |= s
 
         return targets
 
@@ -208,6 +268,96 @@ class IGraphFRWalker:
         return sources
 
 
+# ── Trie construction & walking ─────────────────────────────────────
+
+
+def _build_step_trie(paths) -> StepTrieRoot:
+    """Build a step trie from a list of PropertyPath objects.
+
+    Each path's steps are inserted into the trie keyed by (property, recursive).
+    Paths sharing a common prefix share trie nodes, so the expensive BFS at each
+    node is computed once and reused across all children.
+    """
+    root = StepTrieRoot()
+    for path in paths:
+        if not path.steps:
+            root.is_terminal = True
+            continue
+        node = root
+        for step in path.steps:
+            key = (step.property, step.recursive)
+            if key not in node.children:
+                node.children[key] = StepTrieNode(step.property, step.recursive)
+            node = node.children[key]
+        node.is_terminal = True
+    return root
+
+
+def _count_trie_nodes(root: StepTrieRoot) -> int:
+    """Count total nodes in a step trie (excluding root sentinel)."""
+    count = 0
+    stack = list(root.children.values())
+    while stack:
+        node = stack.pop()
+        count += 1
+        stack.extend(node.children.values())
+    return count
+
+
+def _apply_step(walker: IGraphFRWalker, frontier: Set[int],
+                prop: str, recursive: bool) -> Set[int]:
+    """Apply a single FR step to a frontier of vertex IDs.
+
+    For recursive steps, performs BFS closure (zero-or-more semantics).
+    For non-recursive steps, performs a single hop.
+    """
+    if recursive:
+        visited = set(frontier)
+        bfs_front = set(frontier)
+        while bfs_front:
+            next_front: Set[int] = set()
+            for vid in bfs_front:
+                for r in walker.follow_predicate(vid, prop):
+                    if r not in visited:
+                        visited.add(r)
+                        next_front.add(r)
+            bfs_front = next_front
+        return visited
+    else:
+        result: Set[int] = set()
+        for vid in frontier:
+            result.update(walker.follow_predicate(vid, prop))
+        return result
+
+
+def _walk_trie(walker: IGraphFRWalker, start_vid: int,
+               applicable_children: Dict[Tuple[str, bool], StepTrieNode]
+               ) -> Set[int]:
+    """Walk a step trie from a single source vertex, collecting all targets.
+
+    At each trie node, the frontier is computed once and shared across all
+    children.  Terminal nodes contribute their frontier to the result set.
+    """
+    targets: Set[int] = set()
+
+    # Iterative DFS: stack of (children_dict, frontier)
+    stack: list = [(applicable_children, frozenset({start_vid}))]
+
+    while stack:
+        children, frontier = stack.pop()
+        for _key, child in children.items():
+            next_frontier = _apply_step(walker, frontier, child.property,
+                                        child.recursive)
+            if not next_frontier:
+                continue
+            if child.is_terminal:
+                targets.update(next_frontier)
+            if child.children:
+                stack.append((child.children, frozenset(next_frontier)))
+
+    return targets
+
+
 def materialize_fr_edges(
     kg,
     inverse_map: Dict[str, str],
@@ -257,6 +407,11 @@ def materialize_fr_edges(
     # Track FR metadata for stats
     fr_meta: Dict[str, Tuple[str, str, str]] = {}  # fr_id -> (label, domain_fc, range_fc)
 
+    # Pre-fetch vertex attributes for batch access (avoids per-vertex dict lookup)
+    vs_name = walker.g.vs["name"]
+    vs_label = walker.g.vs["label"]
+    vs_fc = walker.g.vs["fc"]
+
     overall_start = time.time()
 
     for fr in fr_definitions:
@@ -264,43 +419,65 @@ def materialize_fr_edges(
         fr_id = fr.id
         fr_label = fr.label
         fr_meta[fr_id] = (fr_label, fr.domain_fc, fr.range_fc)
+        domain_fc = fr.domain_fc
+
+        # Build step trie for this FR — shared prefixes are traversed once
+        trie_root = _build_step_trie(fr.paths)
+        n_trie = _count_trie_nodes(trie_root)
+        n_steps = sum(len(p.steps) for p in fr.paths)
+
+        # Compute source sets per root child (step-0 predicate routing)
+        step0_sources: Dict[Tuple[str, bool], Set[int]] = {}
+        for key, child in trie_root.children.items():
+            step0_sources[key] = walker.get_step0_sources(child.property)
+
+        # Union all source sets, filter by domain FC
+        all_sources: Set[int] = set()
+        for s in step0_sources.values():
+            all_sources |= s
+        domain_sources = {vid for vid in all_sources if vs_fc[vid] == domain_fc}
 
         fr_pairs = 0
 
-        for path in fr.paths:
-            if not path.steps:
+        for vid in domain_sources:
+            # Build applicable root children for this vertex
+            applicable: Dict[Tuple[str, bool], StepTrieNode] = {}
+            for key, child in trie_root.children.items():
+                if vid in step0_sources[key]:
+                    applicable[key] = child
+
+            if not applicable:
                 continue
 
-            # Get step-0 predicate
-            step0_prop = path.steps[0].property
+            targets = _walk_trie(walker, vid, applicable)
+            # Also collect targets if root is terminal (empty-path FR)
+            if trie_root.is_terminal:
+                targets.add(vid)
 
-            # Get candidate source vertices from predicate index
-            source_vids = walker.get_step0_sources(step0_prop)
-            if not source_vids:
+            if not targets:
                 continue
 
-            for vid in source_vids:
-                if walker.g.vs[vid]["fc"] != fr.domain_fc:
-                    continue
-                targets = walker.walk_path(vid, path.steps)
-                if not targets:
-                    continue
+            # Remove self-references
+            targets.discard(vid)
+            if not targets:
+                continue
 
-                source_uri = walker.g.vs[vid]["name"]
-                source_label = walker.g.vs[vid]["label"] or _local_name(source_uri)
+            source_uri = vs_name[vid]
+            source_label = vs_label[vid] or _local_name(source_uri)
 
-                for tvid in targets:
-                    if tvid == vid:
-                        continue  # Skip self-references
-                    target_uri = walker.g.vs[tvid]["name"]
-                    target_label = walker.g.vs[tvid]["label"] or _local_name(target_uri)
-                    entity_fr_targets[source_uri][fr_id].add((target_uri, target_label))
-                    fr_pairs += 1
+            for tvid in targets:
+                target_uri = vs_name[tvid]
+                target_label = vs_label[tvid] or _local_name(target_uri)
+                entity_fr_targets[source_uri][fr_id].add((target_uri, target_label))
+                fr_pairs += 1
 
         elapsed = time.time() - fr_start
         total_fr_edges += fr_pairs
         if fr_pairs > 0:
-            logger.info(f"  {fr_id} ({fr_label}): {fr_pairs} pairs in {elapsed:.1f}s")
+            logger.info(
+                f"  {fr_id} ({fr_label}): {fr_pairs} pairs in {elapsed:.1f}s "
+                f"[{len(fr.paths)} paths, {n_steps} steps -> {n_trie} trie nodes]"
+            )
 
     # Convert to the format expected by kg.add_fr_edges()
     all_fr_stats = []

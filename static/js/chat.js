@@ -69,6 +69,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Update interface elements
                 updateInterface(data.interface);
 
+                // Load entity exploration panel
+                loadTopEntities(datasetId);
+
                 // Clear chat and show welcome message
                 clearChat();
                 addWelcomeMessage(data.interface.welcome_message);
@@ -190,11 +193,97 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load system info on page load (for single-dataset mode fallback)
     loadSystemInfo();
 
+    // FC color palette for entity exploration panel
+    const FC_COLORS = {
+        Thing: '#4FC3F7',
+        Actor: '#FF8A65',
+        Place: '#81C784',
+        Event: '#BA68C8',
+        Concept: '#FFD54F',
+        Time: '#F06292'
+    };
+    const FC_ORDER = ['Thing', 'Actor', 'Place', 'Event', 'Concept', 'Time'];
+
+    // Load top PageRank entities for the exploration panel
+    async function loadTopEntities(datasetId) {
+        const rightColumn = document.getElementById('right-column');
+        const explorationCard = document.getElementById('entity-exploration-card');
+        const container = document.getElementById('entity-cards-container');
+        const countBadge = document.getElementById('entity-count-badge');
+        if (!rightColumn || !explorationCard || !container) return;
+
+        try {
+            const response = await fetch(`/api/datasets/${datasetId}/top-entities?top_n=30`);
+            if (!response.ok) return;
+
+            const data = await response.json();
+            const entities = data.entities || [];
+            if (entities.length === 0) return;
+
+            // Show the column and exploration card
+            rightColumn.style.display = 'block';
+            explorationCard.style.display = 'block';
+            countBadge.textContent = entities.length;
+
+            // Group by FC
+            const groups = {};
+            entities.forEach(entity => {
+                const fc = entity.fc || 'Thing';
+                if (!groups[fc]) groups[fc] = [];
+                groups[fc].push(entity);
+            });
+
+            // Render in canonical FC order
+            let html = '';
+            FC_ORDER.forEach(fc => {
+                const items = groups[fc];
+                if (!items || items.length === 0) return;
+                const color = FC_COLORS[fc] || '#999';
+
+                html += `<div class="fc-group">`;
+                html += `<div class="fc-group-header">
+                    <span class="fc-dot" style="background-color: ${color}"></span>
+                    <span>${fc}</span>
+                    <span class="fc-group-count">${items.length}</span>
+                </div>`;
+
+                items.forEach((entity, idx) => {
+                    const label = entity.label || entity.uri;
+                    html += `<div class="entity-card" style="border-left-color: ${color}"
+                                  data-label="${label.replace(/"/g, '&quot;')}"
+                                  title="${label}">
+                        <div class="entity-card-body">
+                            <div class="entity-card-label">${label}</div>
+                        </div>
+                        <span class="entity-card-rank">#${idx + 1}</span>
+                    </div>`;
+                });
+
+                html += `</div>`;
+            });
+
+            container.innerHTML = html;
+
+            // Click handlers — send "Tell me about <label>"
+            container.querySelectorAll('.entity-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    const label = this.getAttribute('data-label');
+                    questionInput.value = `Tell me about ${label}`;
+                    sendQuestion(`Tell me about ${label}`);
+                });
+            });
+
+        } catch (error) {
+            console.error('Error loading top entities:', error);
+        }
+    }
+
     // Function to update the image gallery panel
     function updateImageGallery(sources) {
         const galleryContainer = document.getElementById('image-gallery');
-        const galleryColumn = document.getElementById('image-gallery-column');
-        if (!galleryContainer || !galleryColumn) return;
+        const galleryCard = document.getElementById('image-gallery-card');
+        const rightColumn = document.getElementById('right-column');
+        if (!galleryContainer || !galleryCard) return;
 
         // Collect all images from sources (deduplicate by URL)
         const imageMap = new Map();
@@ -240,15 +329,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         const images = Array.from(imageMap.values());
 
-        // If no images, hide the gallery column
+        // If no images, hide the gallery card
         if (images.length === 0) {
-            galleryColumn.style.display = 'none';
+            galleryCard.style.display = 'none';
             galleryContainer.innerHTML = '';
             return;
         }
 
-        // Show the gallery column
-        galleryColumn.style.display = 'block';
+        // Show the right column and gallery card
+        if (rightColumn) rightColumn.style.display = 'block';
+        galleryCard.style.display = 'block';
 
         // Build gallery HTML
         let galleryHtml = '<div class="image-gallery-grid" id="image-gallery-grid">';
@@ -291,16 +381,16 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update the count and check if all images failed
             const galleryGrid = document.getElementById('image-gallery-grid');
             const galleryCount = document.getElementById('gallery-count');
-            const galleryColumn = document.getElementById('image-gallery-column');
+            const galleryCard = document.getElementById('image-gallery-card');
 
             if (galleryGrid) {
                 const visibleItems = galleryGrid.querySelectorAll('.gallery-item:not([style*="display: none"])');
                 const count = visibleItems.length;
 
                 if (count === 0) {
-                    // All images failed, hide the gallery
-                    if (galleryColumn) {
-                        galleryColumn.style.display = 'none';
+                    // All images failed, hide the gallery card
+                    if (galleryCard) {
+                        galleryCard.style.display = 'none';
                     }
                 } else if (galleryCount) {
                     // Update the count
@@ -313,12 +403,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to clear/hide the image gallery
     function clearImageGallery() {
         const galleryContainer = document.getElementById('image-gallery');
-        const galleryColumn = document.getElementById('image-gallery-column');
+        const galleryCard = document.getElementById('image-gallery-card');
         if (galleryContainer) {
             galleryContainer.innerHTML = '';
         }
-        if (galleryColumn) {
-            galleryColumn.style.display = 'none';
+        if (galleryCard) {
+            galleryCard.style.display = 'none';
         }
     }
 

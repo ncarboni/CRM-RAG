@@ -231,6 +231,23 @@ def create_app(config, datasets_config, interface_config, dataset_manager):
         data = kg.export_json(edge_type=edge_type)
         return jsonify(data)
 
+    @app.route('/api/datasets/<dataset_id>/top-entities', methods=['GET'])
+    def top_entities(dataset_id):
+        """Return top PageRank entities for the exploration panel."""
+        top_n = min(int(request.args.get('top_n', 20)), 100)
+
+        try:
+            current_rag = dataset_manager.get_dataset(dataset_id)
+        except (ValueError, RuntimeError) as e:
+            return jsonify({"error": str(e)}), 500
+
+        kg = getattr(current_rag, 'knowledge_graph', None)
+        if kg is None:
+            return jsonify({"error": "Knowledge graph not loaded for this dataset"}), 404
+
+        entities = kg.get_pagerank_top(top_n=top_n, per_fc=5)
+        return jsonify({"entities": entities})
+
     return app
 
 

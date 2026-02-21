@@ -675,8 +675,16 @@ class KnowledgeGraph:
 
     # ── Dataset statistics (replaces aggregation_index.json) ──
 
-    def get_pagerank_top(self, fc: Optional[str] = None, top_n: int = 500) -> List[Dict]:
-        """Top entities by PageRank (doc vertices only), optionally filtered by FC."""
+    def get_pagerank_top(self, fc: Optional[str] = None, top_n: int = 500,
+                         per_fc: Optional[int] = None) -> List[Dict]:
+        """Top entities by PageRank (doc vertices only), optionally filtered by FC.
+
+        Args:
+            fc: If set, only return entities with this FC category.
+            top_n: Maximum number of results to return.
+            per_fc: If set, cap entries per FC category to this number
+                    (ensures representation from all categories).
+        """
         entries = []
         for v in self._graph.vs:
             if not v["is_doc"]:
@@ -689,8 +697,20 @@ class KnowledgeGraph:
                 "uri": v["name"],
                 "label": v["label"],
                 "score": v["pagerank"],
+                "fc": v["fc"],
+                "doc_type": v["doc_type"],
             })
         entries.sort(key=lambda x: x["score"], reverse=True)
+        if per_fc is not None:
+            fc_counts: Dict[str, int] = {}
+            filtered = []
+            for e in entries:
+                e_fc = e["fc"] or ""
+                if fc_counts.get(e_fc, 0) >= per_fc:
+                    continue
+                fc_counts[e_fc] = fc_counts.get(e_fc, 0) + 1
+                filtered.append(e)
+            return filtered[:top_n]
         return entries[:top_n]
 
     def get_entity_type_counts(self) -> Dict[str, int]:

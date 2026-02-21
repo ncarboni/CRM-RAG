@@ -80,9 +80,21 @@
         </div>
     </div>
 
-    <!-- Image Gallery Column - Hidden by default -->
-    <div class="col-lg-4" id="image-gallery-column" style="display: none;">
-        <div class="card image-gallery-card" id="image-gallery-card">
+    <!-- Right Column: Exploration Panel + Image Gallery -->
+    <div class="col-lg-4" id="right-column" style="display: none;">
+        <!-- Entity Exploration Panel -->
+        <div class="card entity-exploration-card" id="entity-exploration-card" style="display: none;">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <h5 class="mb-0"><i class="fas fa-compass me-2"></i>Explore Entities</h5>
+                <span class="badge bg-secondary" id="entity-count-badge">0</span>
+            </div>
+            <div class="card-body p-0">
+                <div id="entity-cards-container" class="entity-cards-container"></div>
+            </div>
+        </div>
+
+        <!-- Image Gallery -->
+        <div class="card image-gallery-card" id="image-gallery-card" style="display: none;">
             <div class="card-header">
                 <h5 class="mb-0"><i class="fas fa-images me-2"></i>Related Images</h5>
             </div>

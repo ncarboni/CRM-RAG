@@ -863,6 +863,7 @@ class UniversalRagSystem:
             vid = self.knowledge_graph._uri_to_vid.get(sat_uri)
             if vid is None:
                 continue
+            found_parent = False
             for eid in self.knowledge_graph._graph.incident(vid, mode="in"):
                 e = self.knowledge_graph._graph.es[eid]
                 if e["edge_type"] != "rdf":
@@ -873,7 +874,23 @@ class UniversalRagSystem:
                     parent_satellites[parent_uri][sat_kind].append(sat_entry)
                     if sat_kind == "time" and sat_uri in time_span_dates:
                         time_span_dates[parent_uri] = time_span_dates[sat_uri]
+                    found_parent = True
                     break
+
+            # FR fallback: if RDF parent was deleted by event contraction,
+            # look for an incoming FR edge (e.g. thing_time_a E22→E52)
+            if not found_parent:
+                for eid in self.knowledge_graph._graph.incident(vid, mode="in"):
+                    e = self.knowledge_graph._graph.es[eid]
+                    if e["edge_type"] != "fr":
+                        continue
+                    parent_vid = e.source
+                    parent_uri = self.knowledge_graph._graph.vs[parent_vid]["name"]
+                    if parent_uri not in satellite_uris:
+                        parent_satellites[parent_uri][sat_kind].append(sat_entry)
+                        if sat_kind == "time" and sat_uri in time_span_dates:
+                            time_span_dates[parent_uri] = time_span_dates[sat_uri]
+                        break
 
         logger.info(f"Satellite absorption (graph): {len(satellite_uris)} satellites → "
                     f"{len(parent_satellites)} parent entities enriched, "
@@ -1945,13 +1962,13 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         )
         self.knowledge_graph.add_fr_edges(all_fr_stats)
 
-        # Event contraction: delete covered event vertices from igraph.
-        # An event is "covered" if it has outgoing edges (RDF or FR) to
-        # non-satellite, non-Event entities — meaning FR shortcuts bypass it.
-        # We check both edge types because add_fr_edges() replaces some RDF
-        # edges with FR edges before this point.
-        # Standalone events (e.g. historical periods with only appellation/
-        # wikidata edges) keep their vertices.
+        # Identity-based event contraction: delete anonymous event vertices.
+        # An event is "anonymous" if it has no meaningful label AND no
+        # P1_is_identified_by → appellation satellite.  Anonymous events are
+        # fully captured by FR shortcuts (thing_actor_d, thing_place_c,
+        # thing_time_a already connect the primary entity to the event's
+        # targets).  Named events ("Biennale 2024", "Battle of Waterloo")
+        # survive because they carry identity worth documenting.
         g = self.knowledge_graph._graph
         # Build minimal satellite set from types (same check as Pass 1 of
         # _identify_satellites_from_graph, before that method runs)
@@ -1960,35 +1977,55 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
             if self.fr_traversal.is_minimal_doc_entity(types):
                 satellite_set.add(uri)
 
-        covered_event_vids = []
-        covered_event_uris = set()
+        delete_vids = []
+        delete_uris = set()
+        preserved_count = 0
         for uri, types in all_types.items():
             vid = self.knowledge_graph._uri_to_vid.get(uri)
             if vid is None or g.vs[vid]["fc"] != "Event":
                 continue
+
+            # Gate 1: meaningful label (not just URI fragment fallback)
+            label = g.vs[vid]["label"]
+            if label:
+                uri_fragment = uri.rsplit("/", 1)[-1]
+                if label != uri_fragment:
+                    preserved_count += 1
+                    continue
+
+            # Gate 2: outgoing P1_is_identified_by → appellation satellite
+            has_appellation = False
             for eid in g.incident(vid, mode="out"):
                 e = g.es[eid]
-                if e["edge_type"] not in ("rdf", "fr"):
+                if e["edge_type"] != "rdf":
                     continue
-                target = g.vs[e.target]
-                target_fc = target["fc"]
-                if target_fc and target_fc != "Event" and target["name"] not in satellite_set:
-                    covered_event_vids.append(vid)
-                    covered_event_uris.add(uri)
+                pred = e["predicate"] or ""
+                if "P1_is_identified_by" not in pred and "P1i_identifies" not in pred:
+                    continue
+                target_uri = g.vs[e.target]["name"]
+                if target_uri in satellite_set:
+                    has_appellation = True
                     break
+            if has_appellation:
+                preserved_count += 1
+                continue
 
-        if covered_event_vids:
-            self.knowledge_graph._graph.delete_vertices(covered_event_vids)
+            # Anonymous event → delete
+            delete_vids.append(vid)
+            delete_uris.add(uri)
+
+        if delete_vids:
+            self.knowledge_graph._graph.delete_vertices(delete_vids)
             # Rebuild URI→VID mapping (igraph re-indexes after deletion)
             self.knowledge_graph._uri_to_vid = {
                 v["name"]: v.index for v in self.knowledge_graph._graph.vs
             }
             # Remove deleted events from all_types so downstream code skips them
-            for uri in covered_event_uris:
+            for uri in delete_uris:
                 del all_types[uri]
-        logger.info(f"Event contraction: deleted {len(covered_event_vids)} covered "
-                    f"event vertices from knowledge graph")
-        del satellite_set, covered_event_vids, covered_event_uris
+        logger.info(f"Event contraction: deleted {len(delete_vids)} anonymous "
+                    f"event vertices, preserved {preserved_count} named events")
+        del satellite_set, delete_vids, delete_uris
 
         # Identify satellites using igraph + accumulated types
         all_satellite_uris, all_parent_satellites, all_time_span_dates = \

@@ -39,15 +39,13 @@ URI: http://example.org/painting1
 - The Night Watch has current owner Rijksmuseum
 ```
 
-### 1.2 Relationship Traversal
+### 1.2 Fundamental Relationship (FR) Traversal
 
-Documents include relationships up to a configurable depth (default: 2 hops). The traversal uses event-aware logic based on CIDOC-CRM semantics:
+Documents are generated using Fundamental Relationships (FRs) — predefined semantic paths through the CIDOC-CRM ontology that connect entities across event intermediaries. The FR materializer (`fr_materializer.py`) walks the igraph knowledge graph using predicate-first traversal to create direct shortcut edges (e.g., `thing_actor_d` connects an artwork to its creator through a production event).
 
-- **Events** (E5 subclasses) act as connection points between entities
-- For non-event entities, direct relationships are included
-- For event entities, the traversal continues through connected events
+Anonymous intermediate events (E12_Production, E11_Modification, etc.) that have no meaningful label or appellation are contracted — their vertices are deleted from igraph after FR edges bypass them. Named events ("Biennale 2024", "Battle of Waterloo") survive as first-class entities with their own documents.
 
-This captures the temporal and causal structure common in cultural heritage data, where events mediate relationships between objects, people, and places.
+This captures the temporal and causal structure common in cultural heritage data while keeping documents focused on meaningful entities.
 
 ### 1.3 Image Indexing
 
@@ -171,36 +169,29 @@ Edge weights reflect relationship importance:
 | P2 has type | 0.6 | Classification |
 | Default | 0.5 | Unknown relationship |
 
-### 3.2 Multi-hop Adjacency
+### 3.2 Multi-Stage Retrieval
 
-The retrieval system builds a multi-hop adjacency matrix to find connected documents:
+The retrieval pipeline combines three channels fused via Reciprocal Rank Fusion (RRF):
 
-```
-A_multihop = A + (A²)/2 + (A³)/3 + ...
-```
+1. **FAISS** dense vector similarity search
+2. **BM25** sparse keyword search
+3. **PPR** (Personalized PageRank) seeded by query constraint entities
 
-Where A is the direct adjacency matrix. The division by hop count reduces the influence of distant connections.
-
-The matrix is then normalized symmetrically:
-
-```
-A_normalized = D^(-1/2) × A × D^(-1/2)
-```
-
-Where D is the degree matrix. This prevents high-degree nodes from dominating the retrieval.
+An additional type-filtered channel runs FC-aware FAISS + BM25 + PageRank retrieval for ENUMERATION and AGGREGATION queries.
 
 ### 3.3 Coherent Subgraph Extraction
 
 When retrieving documents for a query, the system balances:
-- **Relevance**: How well the document matches the query (vector similarity)
-- **Connectivity**: How well the document connects to other selected documents
+- **Relevance**: How well the document matches the query (RRF-fused score)
+- **PPR connectivity**: How close the document is to query-relevant entities in the knowledge graph
+- **Diversity**: MMR penalty to prevent near-identical entities from flooding results
 
 The selection algorithm:
 
-1. Retrieve initial candidates via vector similarity
-2. Score candidates using PageRank on the document graph
-3. Combine scores: `α × vector_score + (1-α) × pagerank_score`
-4. Greedy selection balancing relevance and connectivity
+1. Retrieve initial candidate pool via FAISS + BM25 + PPR → RRF fusion
+2. Score candidates using Personalized PageRank seeded from top 5 candidates
+3. Greedy selection: `α × relevance + (1-α) × PPR - diversity_penalty` (α=0.7)
+4. Type-based score modifiers boost/penalize by entity type
 
 This produces a coherent set of documents that are both relevant to the query and contextually connected to each other.
 
@@ -250,11 +241,13 @@ This enables:
 
 | Component | File | Key Functions |
 |-----------|------|---------------|
-| Document generation | `src/crm_rag/rag_system.py` | `process_rdf_data()`, `_create_fr_document_from_prefetched()` |
+| Document generation | `src/crm_rag/rag_system.py` | `process_rdf_data()`, `_create_document_from_graph()` |
+| FR materialization | `src/crm_rag/fr_materializer.py` | `materialize_fr_edges()`, `IGraphFRWalker` |
 | Image indexing | `src/crm_rag/sparql_helpers.py` | `BatchSparqlClient.build_image_index()` |
 | Batch SPARQL queries | `src/crm_rag/sparql_helpers.py` | `BatchSparqlClient` class |
 | Document formatting | `src/crm_rag/document_formatter.py` | `is_schema_predicate()`, `get_relationship_weight()` |
 | Dynamic batching | `src/crm_rag/llm_providers.py` | `get_embeddings_batch()`, `_get_effective_batch_size()` |
 | Embedding cache | `src/crm_rag/embedding_cache.py` | `EmbeddingCache` class |
-| Document graph | `src/crm_rag/document_store.py` | `GraphDocumentStore`, `create_adjacency_matrix()` |
-| Retrieval | `src/crm_rag/rag_system.py` | `cidoc_aware_retrieval()`, `compute_coherent_subgraph()` |
+| Knowledge graph | `src/crm_rag/knowledge_graph.py` | `KnowledgeGraph`, `personalized_pagerank()` |
+| Document store | `src/crm_rag/document_store.py` | `GraphDocumentStore`, `retrieve_faiss_typed()` |
+| Retrieval | `src/crm_rag/rag_system.py` | `retrieve()`, `compute_coherent_subgraph()` |

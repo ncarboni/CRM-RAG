@@ -704,105 +704,6 @@ class UniversalRagSystem:
 
         return True
 
-    def _identify_satellites_from_prefetched(
-        self,
-        all_types: Dict[str, set],
-        fr_incoming: Dict[str, List[Tuple[str, str]]],
-        entity_labels_map: Dict[str, str],
-        all_literals: Dict[str, Dict[str, List[str]]] = None,
-        fr_outgoing: Dict[str, List[Tuple[str, str]]] = None,
-    ) -> Tuple[set, Dict[str, Dict[str, list]], Dict[str, str]]:
-        """Identify satellite entities and map them to parents using pre-fetched data.
-
-        Two-pass: first identify all satellites, then find parents.
-
-        Args:
-            all_types: entity_uri -> set of type URIs
-            fr_incoming: entity_uri -> [(pred, subj), ...] (incoming edges)
-            entity_labels_map: entity_uri -> label
-            all_literals: entity_uri -> {prop_name: [values]} for looking up
-                time-span date values (P82a, P82b, P82)
-            fr_outgoing: entity_uri -> [(pred, obj), ...] (outgoing edges) —
-                used as fallback for date resolution when literals lack P82/P81
-
-        Returns:
-            (satellite_uris, parent_satellites, time_span_dates) where:
-            - parent_satellites: parent_uri -> {kind: [label_or_dict, ...]}
-            - time_span_dates: uri -> formatted date string (for E52 and parent events)
-        """
-        from collections import defaultdict
-
-        if not self.fr_traversal:
-            return set(), {}, {}
-
-        # Date property local names to look for on E52_Time-Span entities
-        # P82a/P82b = outer bounds, P81a/P81b = inner bounds (used by MAH)
-        # If both exist, first match wins (P82a before P81a)
-        _TIME_PROPS = {
-            "P82a_begin_of_the_begin": "begin",
-            "P82b_end_of_the_end": "end",
-            "P82_at_some_time_within": "within",
-            "P81a_end_of_the_begin": "begin",
-            "P81b_begin_of_the_end": "end",
-        }
-
-        # Pass 1: identify all satellites
-        satellite_uris = set()
-        for uri, types in all_types.items():
-            if self.fr_traversal.is_minimal_doc_entity(types):
-                satellite_uris.add(uri)
-
-        # Pass 2: find parent for each satellite and resolve time-span dates
-        parent_satellites = defaultdict(lambda: defaultdict(list))
-        # Maps E52 URI → formatted date string, and event parent URI → date string
-        time_span_dates: Dict[str, str] = {}
-
-        for sat_uri in satellite_uris:
-            sat_label = entity_labels_map.get(sat_uri, sat_uri.split('/')[-1])
-            sat_kind = classify_satellite(all_types.get(sat_uri, set()))
-
-            # For time satellites, look up actual date values from literals
-            if sat_kind == "time":
-                date_info = {"label": sat_label, "begin": None, "end": None, "within": None}
-                # Primary: look in all_literals (works when FILTER(isLiteral) catches dates)
-                if all_literals:
-                    sat_lits = all_literals.get(sat_uri, {})
-                    for prop_name, key in _TIME_PROPS.items():
-                        vals = sat_lits.get(prop_name, [])
-                        if vals and not date_info[key]:
-                            date_info[key] = vals[0]
-
-                # Fallback: check fr_outgoing edges (MAH stores P82a/P82b as typed resources)
-                if fr_outgoing and not any(date_info[k] for k in ("begin", "end", "within")):
-                    for pred, obj in fr_outgoing.get(sat_uri, []):
-                        pred_local = pred.split('/')[-1].split('#')[-1]
-                        if pred_local in _TIME_PROPS and not date_info[_TIME_PROPS[pred_local]]:
-                            date_info[_TIME_PROPS[pred_local]] = entity_labels_map.get(
-                                obj, obj.split('/')[-1])
-
-                sat_entry = date_info
-
-                # Build time_span_dates for FR target resolution
-                formatted_date = self.fr_traversal._format_time_entry(date_info)
-                if formatted_date:
-                    time_span_dates[sat_uri] = formatted_date
-            else:
-                sat_entry = sat_label
-
-            for pred, subj in fr_incoming.get(sat_uri, []):
-                if subj not in satellite_uris:
-                    parent_satellites[subj][sat_kind].append(sat_entry)
-                    # For time satellites, also map the parent event URI to the date
-                    if sat_kind == "time" and sat_uri in time_span_dates:
-                        time_span_dates[subj] = time_span_dates[sat_uri]
-                    break
-
-        logger.info(f"Satellite absorption: {len(satellite_uris)} satellites → "
-                    f"{len(parent_satellites)} parent entities enriched, "
-                    f"{len(time_span_dates)} time-span dates resolved")
-
-        return satellite_uris, parent_satellites, time_span_dates
-
     def _identify_satellites_from_graph(
         self,
         all_types: Dict[str, set],
@@ -1201,9 +1102,7 @@ class UniversalRagSystem:
     ) -> Tuple[str, str, List[str]]:
         """Create document from materialized FR edges in igraph.
 
-        Phase 3 replacement for _create_fr_document_from_prefetched(): reads
-        FR results and direct predicates from the knowledge graph instead of
-        doing dict-based traversal.
+        Reads FR results and direct predicates from the knowledge graph.
 
         Args:
             entity_uri: Entity URI
@@ -2631,19 +2530,16 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         return _fetch_wikidata_info(wikidata_id, self._http_session)
 
 
-    def compute_coherent_subgraph(self, candidates, initial_scores, k=RetrievalConfig.DEFAULT_RETRIEVAL_K, alpha=RetrievalConfig.RELEVANCE_CONNECTIVITY_ALPHA, ppr_scores=None, adjacency_matrix=None):
+    def compute_coherent_subgraph(self, candidates, initial_scores, k=RetrievalConfig.DEFAULT_RETRIEVAL_K, alpha=RetrievalConfig.RELEVANCE_CONNECTIVITY_ALPHA, ppr_scores=None):
         """
         Extract a coherent subgraph using greedy selection that balances individual relevance and connectivity.
-
-        Connectivity can be provided via PPR scores (preferred) or adjacency matrix (legacy).
 
         Args:
             candidates: List of GraphDocument objects
             initial_scores: Initial relevance scores for each candidate (n,)
             k: Number of documents to select
             alpha: Weight for individual relevance vs connectivity (0-1, higher = more emphasis on relevance)
-            ppr_scores: PPR scores array (n,) — used as connectivity signal when provided
-            adjacency_matrix: Legacy adjacency matrix (n x n) — used if ppr_scores is None
+            ppr_scores: PPR scores array (n,) — used as connectivity signal
 
         Returns:
             List of selected GraphDocument objects in order of selection
@@ -2652,15 +2548,11 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         selected_indices = []
         selected_mask = np.zeros(n, dtype=bool)
 
-        use_ppr = ppr_scores is not None
-
         # Normalize initial scores to [0, 1] using min-max normalization
         normalized_scores = self.normalize_scores(initial_scores)
 
-        # Pre-compute normalized PPR scores (if using PPR mode)
-        normalized_ppr = None
-        if use_ppr:
-            normalized_ppr = self.normalize_scores(ppr_scores)
+        # Pre-compute normalized PPR scores
+        normalized_ppr = self.normalize_scores(ppr_scores) if ppr_scores is not None else np.zeros(n)
 
         # Pre-compute cosine similarity matrix for MMR diversity penalty
         diversity_penalty_weight = RetrievalConfig.DIVERSITY_PENALTY
@@ -2689,9 +2581,8 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
                         break
             candidate_type_mods[i] = mod if mod is not None else 0.0
 
-        connectivity_mode = "PPR" if use_ppr else "adjacency"
         logger.info(f"\n{'='*80}")
-        logger.info(f"COHERENT SUBGRAPH EXTRACTION ({connectivity_mode})")
+        logger.info(f"COHERENT SUBGRAPH EXTRACTION (PPR)")
         logger.info(f"{'='*80}")
         logger.info(f"Parameters: k={k}, alpha={alpha} (relevance weight), diversity_penalty={diversity_penalty_weight}")
         logger.info(f"Candidates: {n} documents")
@@ -2701,10 +2592,9 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         logger.info(f"  Mean: {np.mean(normalized_scores):.3f}")
         logger.info(f"  Std: {np.std(normalized_scores):.3f}")
 
-        if use_ppr:
-            nonzero_ppr = np.sum(normalized_ppr > 0)
-            logger.info(f"\n--- PPR Connectivity Scores ---")
-            logger.info(f"  Non-zero: {nonzero_ppr}/{n}, Max: {np.max(normalized_ppr):.3f}, Mean: {np.mean(normalized_ppr):.3f}")
+        nonzero_ppr = np.sum(normalized_ppr > 0)
+        logger.info(f"\n--- PPR Connectivity Scores ---")
+        logger.info(f"  Non-zero: {nonzero_ppr}/{n}, Max: {np.max(normalized_ppr):.3f}, Mean: {np.mean(normalized_ppr):.3f}")
 
         boosted = np.sum(candidate_type_mods > 0)
         penalized = np.sum(candidate_type_mods < 0)
@@ -2745,39 +2635,18 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
             for idx in range(n):
                 if selected_mask[idx]:
                     continue
-
-                if use_ppr:
-                    # PPR mode: connectivity = pre-computed PPR score (static per candidate)
-                    connectivity = normalized_ppr[idx]
-                else:
-                    # Legacy adjacency mode: average edge weight to selected docs
-                    connectivity = 0.0
-                    for selected_idx in selected_indices:
-                        edge_weight = max(
-                            adjacency_matrix[idx, selected_idx],
-                            adjacency_matrix[selected_idx, idx]
-                        )
-                        connectivity += edge_weight
-                    if len(selected_indices) > 0:
-                        connectivity = connectivity / len(selected_indices)
-
-                connectivity_scores.append(connectivity)
+                connectivity_scores.append(normalized_ppr[idx])
                 candidate_indices.append(idx)
 
             if not connectivity_scores:
                 break
 
-            connectivity_array = np.array(connectivity_scores)
-            if use_ppr:
-                # PPR scores are already normalized globally; use directly
-                normalized_connectivity = connectivity_array
-            else:
-                normalized_connectivity = self.normalize_scores(connectivity_array)
+            normalized_connectivity = np.array(connectivity_scores)
 
             logger.info(f"\n{'='*80}")
             logger.info(f"SELECTION ROUND {iteration+1}/{k}")
             logger.info(f"{'='*80}")
-            logger.info(f"Strategy: Combine relevance ({alpha:.1f}) + {connectivity_mode} ({1-alpha:.1f})")
+            logger.info(f"Strategy: Combine relevance ({alpha:.1f}) + PPR ({1-alpha:.1f})")
             logger.info(f"Connectivity scores: min={np.min(normalized_connectivity):.3f}, "
                        f"max={np.max(normalized_connectivity):.3f}, mean={np.mean(normalized_connectivity):.3f}")
 
@@ -2803,7 +2672,7 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
                 etype = candidates[idx].metadata.get('type', '')
                 logger.info(f"  {rank}. {label} ({etype})")
                 logger.info(f"      Relevance: {rel:.3f} (weight={alpha:.1f}) → contrib={alpha*rel:.3f}")
-                logger.info(f"      {connectivity_mode}: {conn:.3f} (weight={1-alpha:.1f}) → contrib={(1-alpha)*conn:.3f}")
+                logger.info(f"      PPR: {conn:.3f} (weight={1-alpha:.1f}) → contrib={(1-alpha)*conn:.3f}")
                 logger.info(f"      Diversity penalty: -{div_pen:.3f}")
                 type_mod_str = f", type_mod={t_mod:+.2f}" if t_mod != 0 else ""
                 tc = self.knowledge_graph.triple_count(candidates[idx].id)

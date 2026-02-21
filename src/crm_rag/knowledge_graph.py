@@ -1,8 +1,6 @@
 """Persistent igraph-backed knowledge graph for CRM_RAG.
 
-Replaces six separate data structures (edges.parquet, _triples_index,
-GraphDocument.neighbors, nx.DiGraph, _actor_work_counts, aggregation_index.json)
-with a single igraph graph stored as a pickle.
+Single igraph directed graph stored as a pickle.
 
 Vertex attributes:
     name   – entity URI (used as primary key)
@@ -93,8 +91,8 @@ class KnowledgeGraph:
 
         FR edges *replace* the RDF edges they cover: after adding FR edges,
         any RDF edge connecting the same (source, target) vertex pair is
-        removed.  This prevents double-counting in the adjacency matrix and
-        keeps the graph semantically clean.
+        removed.  This prevents double-counting and keeps the graph
+        semantically clean.
 
         Args:
             all_fr_stats: List of (entity_uri, entity_label, fr_stats_dict).
@@ -324,7 +322,7 @@ class KnowledgeGraph:
         logger.info(f"KnowledgeGraph loaded from {path} "
                     f"({self._graph.vcount()} vertices, {self._graph.ecount()} edges)")
 
-    # ── Triple queries (replaces _triples_index) ──
+    # ── Triple queries ──
 
     def get_triples(self, entity_uri: str, edge_type: Optional[str] = None) -> List[Dict]:
         """Return triples incident on entity_uri as list of dicts.
@@ -382,9 +380,6 @@ class KnowledgeGraph:
             local_name = pred.split("/")[-1].split("#")[-1]
             result.append((other_uri, local_name, e["weight"]))
         return result
-
-    # Backward-compatible alias
-    get_rdf_neighbors = get_neighbors
 
     def resolve_time_span(self, ts_uri: str) -> Dict[str, str]:
         """Follow a time-span URI to extract begin/end date values."""
@@ -569,111 +564,7 @@ class KnowledgeGraph:
         if vid is not None:
             self._graph.vs[vid]["fc"] = fc
 
-    # ── Adjacency matrix (replaces document_store.create_adjacency_matrix) ──
-
-    def build_adjacency_matrix(self, doc_ids: List[str],
-                               weight_fn: Callable,
-                               max_hops: int = 2) -> np.ndarray:
-        """Build weighted adjacency matrix with virtual 2-hop edges.
-
-        Uses all edges (RDF + FR) from the full graph for both 1-hop direct
-        edges and 2-hop virtual edges.  FR edges carry weight=1.0 (strong
-        semantic shortcuts); remaining RDF edges use their stored CIDOC-CRM
-        weights.
-
-        Args:
-            doc_ids: Candidate document URIs.
-            weight_fn: Unused (kept for API compatibility); edge weights are
-                read from the stored ``weight`` attribute.
-            max_hops: Discount factor denominator for virtual edges.
-
-        Returns:
-            Symmetrically-normalized adjacency matrix (n×n).
-        """
-        doc_to_idx = {doc_id: i for i, doc_id in enumerate(doc_ids)}
-        n = len(doc_ids)
-        adj_matrix = np.zeros((n, n), dtype=np.float64)
-
-        direct_edges = 0
-        intermediate_index: Dict[str, List[Tuple[int, float]]] = {}
-
-        for i, doc_id in enumerate(doc_ids):
-            vid = self._uri_to_vid.get(doc_id)
-            if vid is None:
-                continue
-            for e in self._graph.es[self._graph.incident(vid, mode="all")]:
-                other_vid = e.target if e.source == vid else e.source
-                other_uri = self._graph.vs[other_vid]["name"]
-                weight = e["weight"]
-
-                if other_uri in doc_to_idx:
-                    j = doc_to_idx[other_uri]
-                    if weight > adj_matrix[i, j]:
-                        adj_matrix[i, j] = weight
-                    direct_edges += 1
-                else:
-                    if other_uri not in intermediate_index:
-                        intermediate_index[other_uri] = []
-                    intermediate_index[other_uri].append((i, weight))
-
-        # Virtual 2-hop edges through intermediaries
-        virtual_edges = 0
-        for connections in intermediate_index.values():
-            if len(connections) < 2:
-                continue
-            for ci in range(len(connections)):
-                idx_a, weight_a = connections[ci]
-                for cj in range(ci + 1, len(connections)):
-                    idx_b, weight_b = connections[cj]
-                    virtual_weight = (weight_a * weight_b) * (1.0 / max_hops)
-                    if virtual_weight > adj_matrix[idx_a, idx_b]:
-                        adj_matrix[idx_a, idx_b] = virtual_weight
-                        adj_matrix[idx_b, idx_a] = virtual_weight
-                        virtual_edges += 1
-
-        intermediaries = sum(1 for c in intermediate_index.values() if len(c) >= 2)
-        logger.info(f"Adjacency: {direct_edges} direct edges, {virtual_edges} virtual 2-hop edges "
-                    f"(via {intermediaries} intermediates)")
-
-        # Self-loops
-        adj_matrix += np.eye(n)
-
-        # Stats before normalization
-        non_zero = np.count_nonzero(adj_matrix - np.eye(n))
-        total_possible = n * n - n
-        density = (non_zero / total_possible) if total_possible > 0 else 0.0
-        logger.info(f"=== Adjacency Matrix Statistics (before normalization) ===")
-        logger.info(f"  Size: {n}x{n} nodes")
-        logger.info(f"  Non-zero edges: {non_zero} ({density*100:.1f}% density)")
-        logger.info(f"  Value range: [{np.min(adj_matrix):.3f}, {np.max(adj_matrix):.3f}]")
-        logger.info(f"  Mean weight: {np.mean(adj_matrix):.3f}")
-        logger.info(f"  Std weight: {np.std(adj_matrix):.3f}")
-
-        # Symmetric normalization: D^(-1/2) * A * D^(-1/2)
-        rowsum = np.array(adj_matrix.sum(1))
-        d_inv_sqrt = np.zeros_like(rowsum)
-        non_zero_mask = rowsum > 1e-10
-        if np.any(non_zero_mask):
-            d_inv_sqrt[non_zero_mask] = np.power(rowsum[non_zero_mask], -0.5)
-            d_inv_sqrt = np.nan_to_num(d_inv_sqrt, nan=0.0, posinf=0.0, neginf=0.0)
-            d_mat_inv_sqrt = np.diag(d_inv_sqrt)
-            with np.errstate(invalid='ignore', divide='ignore'):
-                adj_normalized = adj_matrix.dot(d_mat_inv_sqrt).transpose().dot(d_mat_inv_sqrt)
-                adj_normalized = np.nan_to_num(adj_normalized, nan=0.0, posinf=0.0, neginf=0.0)
-        else:
-            logger.warning("All rows in adjacency matrix are zero, using identity matrix")
-            adj_normalized = np.eye(n)
-
-        logger.info(f"=== Adjacency Matrix Statistics (after symmetric normalization) ===")
-        logger.info(f"  Value range: [{np.min(adj_normalized):.3f}, {np.max(adj_normalized):.3f}]")
-        logger.info(f"  Mean: {np.mean(adj_normalized):.3f}")
-        logger.info(f"  Std: {np.std(adj_normalized):.3f}")
-        logger.info(f"  Row sum range: [{np.min(np.sum(adj_normalized, axis=1)):.3f}, "
-                    f"{np.max(np.sum(adj_normalized, axis=1)):.3f}]")
-
-        return adj_normalized
-
-    # ── Dataset statistics (replaces aggregation_index.json) ──
+    # ── Dataset statistics ──
 
     def get_pagerank_top(self, fc: Optional[str] = None, top_n: int = 500,
                          per_fc: Optional[int] = None) -> List[Dict]:
@@ -739,7 +630,7 @@ class KnowledgeGraph:
             fr_meta: Optional dict fr_id -> {"label", "domain_fc", "range_fc"}.
 
         Returns:
-            Dict of fr_id -> summary dict matching the old aggregation_index format.
+            Dict of fr_id -> summary dict with label, domain_fc, range_fc, unique_sources, unique_targets, total_edges.
         """
         if fr_meta is None:
             fr_meta = {}

@@ -256,20 +256,6 @@ class FRTraversal:
                 return True
         return False
 
-    def _get_predicate_label(self, full_uri: Optional[str], local_name: str) -> str:
-        """Get human-readable label for a predicate."""
-        if full_uri and self.property_labels:
-            label = self.property_labels.get(full_uri)
-            if label:
-                return label
-        if self.property_labels:
-            label = self.property_labels.get(local_name)
-            if label:
-                return label
-        # Fallback: strip CRM prefix (e.g. "P14_carried_out_by" -> "carried out by")
-        stripped = re.sub(r'^[A-Z]\d+[a-z]?_', '', local_name)
-        return stripped.replace('_', ' ')
-
     @staticmethod
     def _format_time_entry(entry) -> str:
         """Format a single time-span satellite entry as a human-readable string.
@@ -284,7 +270,7 @@ class FRTraversal:
         if isinstance(entry, str):
             return entry
 
-        # Dict with date values from _identify_satellites_from_prefetched
+        # Dict with date values from _identify_satellites_from_graph
         begin = entry.get("begin")
         end = entry.get("end")
         within = entry.get("within")

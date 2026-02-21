@@ -101,20 +101,23 @@ VIR expands on key entities and properties from CIDOC-CRM, introducing new class
         rdfs:comment "The property describes the source used for the status assignment" ;
         rdfs:label "On the base of" ;
         rdfs:range crm:E89_Propositional_Object ;
-        rdfs:subPropertyOf crm:P16_used_specific_object .
+        rdfs:subPropertyOf crm:P16_used_specific_object ;
+        owl:inverseOf vir:K10i_is_basis_for .
     
     vir:K10i_is_basis_for a rdf:Property ;
         rdfs:domain crm:E89_Propositional_Object ;
         rdfs:comment "The property describes the source used for the status assignment" ;
         rdfs:label "is based on" ;
-        rdfs:subPropertyOf crm:P16i_was_used_for .
+        rdfs:subPropertyOf crm:P16i_was_used_for ;
+        owl:inverseOf vir:K10_on_the_base_of.
     
     vir:K11_assigned a rdf:Property ;
         rdfs:domain vir:IC12_Visual_Recognition ;
         rdfs:comment "The property indicates the status assigned during the visual recognition event" ;
         rdfs:label "assigned" ;
         rdfs:range crm:E36_Visual_Item ;
-        rdfs:subPropertyOf crm:P141_assigned .
+        rdfs:subPropertyOf crm:P141_assigned ;
+        owl:inverseOf vir:K11i_was_assigned_by .
     
     vir:K11i_was_assigned_by a rdf:Property ;
         rdfs:domain crm:E36_Visual_Item ;

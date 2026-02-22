@@ -68,6 +68,59 @@ def _build_property_families(
     return result
 
 
+def _build_class_to_fc(
+    fc_mapping: Dict[str, list],
+    sub_class_of: Dict[str, list],
+) -> Dict[str, str]:
+    """Map CRM class local names to FC, with subClassOf inheritance.
+
+    Direct entries from fc_class_mapping.json are used first.  Unmapped
+    classes walk up parents (via subClassOf) until a mapped class is found.
+
+    Args:
+        fc_mapping: FC name -> [class_local_name, ...] from fc_class_mapping.json
+        sub_class_of: child_local -> [parent_locals] from crm_taxonomy.json
+
+    Returns:
+        Dict mapping class_local_name -> FC string ("Thing", "Actor", etc.).
+    """
+    # Invert fc_mapping: class -> FC
+    direct: Dict[str, str] = {}
+    for fc_name, classes in fc_mapping.items():
+        if fc_name.startswith("_"):
+            continue
+        for cls in classes:
+            direct[cls] = fc_name
+
+    cache: Dict[str, str] = dict(direct)
+
+    def _resolve(cls: str, visited: set) -> str:
+        if cls in cache:
+            return cache[cls]
+        if cls in visited:
+            return ""
+        visited.add(cls)
+        for parent in sub_class_of.get(cls, []):
+            fc = _resolve(parent, visited)
+            if fc:
+                cache[cls] = fc
+                return fc
+        cache[cls] = ""
+        return ""
+
+    # Resolve all classes mentioned in subClassOf
+    all_classes = set(sub_class_of.keys())
+    for parents in sub_class_of.values():
+        all_classes.update(parents)
+    for cls in all_classes:
+        _resolve(cls, set())
+
+    n_resolved = sum(1 for v in cache.values() if v)
+    logger.info(f"class_to_fc: {n_resolved} classes mapped to FC "
+                f"({len(direct)} direct, {n_resolved - len(direct)} inherited)")
+    return cache
+
+
 class StepTrieNode:
     """Trie node representing a single FR step (property + recursive flag).
 
@@ -111,11 +164,18 @@ class IGraphFRWalker:
         graph: ig.Graph,
         inverse_map: Dict[str, str],
         property_families: Optional[Dict[str, frozenset]] = None,
+        prop_range_fc: Optional[Dict[str, str]] = None,
+        prop_domain_fc: Optional[Dict[str, str]] = None,
     ):
         self.g = graph
         self.inv = inverse_map
         # property -> frozenset({property, sub1, sub2, ...})
         self._prop_family = property_families or {}
+        # Per-property FC constraints (from ontology domain/range)
+        self._prop_range_fc = prop_range_fc or {}
+        self._prop_domain_fc = prop_domain_fc or {}
+        # Pre-fetch vertex FC array for O(1) filtering
+        self._vs_fc = graph.vs["fc"]
 
         logger.info("Building predicate index for FR walker ...")
         self._pred_to_eids: Dict[str, List[int]] = {}
@@ -179,10 +239,17 @@ class IGraphFRWalker:
         Checks outgoing edges for prop_local (+ sub-properties) AND incoming
         edges for the inverse of prop_local (+ sub-properties of the inverse).
 
+        Each sub-property has its own domain/range FC constraint from the
+        ontology.  Targets are filtered per-property: outgoing targets must
+        match the property's range_fc, incoming sources must match the
+        inverse property's domain_fc.  Empty FC ("") on either side passes
+        through (graceful degradation for untyped nodes or root-class ranges).
+
         Uses per-vertex predicate dicts for O(|family|) lookups instead of
         O(degree) edge scans.
         """
         targets: Set[int] = set()
+        vs_fc = self._vs_fc
 
         # Expand prop_local to include all sub-properties
         prop_family = self._prop_family.get(prop_local, frozenset({prop_local}))
@@ -195,22 +262,31 @@ class IGraphFRWalker:
             else frozenset()
         )
 
-        # Outgoing: dict lookup per family member
+        # Outgoing: vid --[p]--> target.  Filter target by p's own range_fc.
         out_map = self._out_by_pred.get(vid)
         if out_map:
             for p in prop_family:
                 t = out_map.get(p)
                 if t:
-                    targets |= t
+                    rfc = self._prop_range_fc.get(p, "")
+                    if rfc:
+                        targets |= {v for v in t if vs_fc[v] == rfc or vs_fc[v] == ""}
+                    else:
+                        targets |= t
 
-        # Incoming: dict lookup per inverse family member
+        # Incoming via inverse: source --[inv_p]--> vid.
+        # Filter source by inv_p's own domain_fc.
         if inv_family:
             in_map = self._in_by_pred.get(vid)
             if in_map:
                 for p in inv_family:
                     s = in_map.get(p)
                     if s:
-                        targets |= s
+                        dfc = self._prop_domain_fc.get(p, "")
+                        if dfc:
+                            targets |= {v for v in s if vs_fc[v] == dfc or vs_fc[v] == ""}
+                        else:
+                            targets |= s
 
         return targets
 
@@ -363,6 +439,9 @@ def materialize_fr_edges(
     inverse_map: Dict[str, str],
     fr_definitions: Optional[List[FundamentalRelationship]] = None,
     property_children: Optional[Dict[str, List[str]]] = None,
+    property_domain_range: Optional[Dict[str, Dict[str, str]]] = None,
+    class_to_fc: Optional[Dict[str, str]] = None,
+    c1_excluded_vids: Optional[Set[int]] = None,
 ) -> List[Tuple]:
     """Materialize FR edges on the full igraph using predicate-first traversal.
 
@@ -370,6 +449,13 @@ def materialize_fr_edges(
     1. Look up step-0 predicate in the predicate index
     2. Get source vertices that have that predicate (+ sub-properties)
     3. Walk the path only from those vertices
+
+    Per-property domain/range filtering: each sub-property's ontology
+    domain/range class is mapped to an FC.  During traversal,
+    follow_predicate() filters targets by the specific sub-property's
+    range_fc (outgoing) or domain_fc (incoming inverse).  After trie
+    walking, an FR-level range_fc safety net removes any remaining
+    mis-typed targets.
 
     Args:
         kg: KnowledgeGraph instance (must have RDF triples loaded)
@@ -379,6 +465,11 @@ def materialize_fr_edges(
         property_children: parent_local_name -> [child local names] dict
             from crm_taxonomy.json for subPropertyOf resolution.
             If None, no sub-property expansion is performed.
+        property_domain_range: property_local -> {"domain": class_local, "range": class_local}
+            from property_domain_range.json.  Enables per-property FC filtering.
+        class_to_fc: class_local -> FC string.  Built via _build_class_to_fc().
+        c1_excluded_vids: vertex IDs to exclude when domain/range is C1.Object
+            (E30_Right, E41_Appellation and their subclasses).
 
     Returns:
         List of (entity_uri, entity_label, fr_stats_dict) tuples
@@ -394,7 +485,29 @@ def materialize_fr_edges(
         else {}
     )
 
-    walker = IGraphFRWalker(kg._graph, inverse_map, prop_families)
+    # Build per-property FC lookups from ontology domain/range
+    prop_range_fc: Dict[str, str] = {}
+    prop_domain_fc: Dict[str, str] = {}
+    if property_domain_range and class_to_fc:
+        for prop_local, dr in property_domain_range.items():
+            range_cls = dr.get("range", "")
+            if range_cls:
+                prop_range_fc[prop_local] = class_to_fc.get(range_cls, "")
+            domain_cls = dr.get("domain", "")
+            if domain_cls:
+                prop_domain_fc[prop_local] = class_to_fc.get(domain_cls, "")
+        n_range = sum(1 for v in prop_range_fc.values() if v)
+        n_domain = sum(1 for v in prop_domain_fc.values() if v)
+        logger.info(f"Per-property FC: {n_range} with range_fc, {n_domain} with domain_fc")
+
+    if c1_excluded_vids is None:
+        c1_excluded_vids = set()
+
+    walker = IGraphFRWalker(
+        kg._graph, inverse_map, prop_families,
+        prop_range_fc=prop_range_fc,
+        prop_domain_fc=prop_domain_fc,
+    )
 
     total_fr_edges = 0
     total_paths = sum(len(fr.paths) for fr in fr_definitions)
@@ -420,6 +533,7 @@ def materialize_fr_edges(
         fr_label = fr.label
         fr_meta[fr_id] = (fr_label, fr.domain_fc, fr.range_fc)
         domain_fc = fr.domain_fc
+        range_fc = fr.range_fc
 
         # Build step trie for this FR — shared prefixes are traversed once
         trie_root = _build_step_trie(fr.paths)
@@ -436,6 +550,10 @@ def materialize_fr_edges(
         for s in step0_sources.values():
             all_sources |= s
         domain_sources = {vid for vid in all_sources if vs_fc[vid] == domain_fc}
+
+        # C1.Object domain exclusion: remove E30_Right, E41_Appellation subclasses
+        if c1_excluded_vids and fr.domain_class == "C1.Object":
+            domain_sources -= c1_excluded_vids
 
         fr_pairs = 0
 
@@ -459,6 +577,20 @@ def materialize_fr_edges(
 
             # Remove self-references
             targets.discard(vid)
+            if not targets:
+                continue
+
+            # FR-level range_fc safety net: remove targets with wrong FC
+            # (per-property filtering catches most, but multi-step paths
+            # may still produce mis-typed final targets)
+            if range_fc:
+                targets = {tvid for tvid in targets
+                           if vs_fc[tvid] == range_fc or vs_fc[tvid] == ""}
+
+            # C1.Object range exclusion
+            if c1_excluded_vids and fr.range_class == "C1.Object":
+                targets -= c1_excluded_vids
+
             if not targets:
                 continue
 

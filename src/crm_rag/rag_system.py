@@ -534,6 +534,9 @@ class UniversalRagSystem:
                 f'{labels_dir}/property_labels.json',
                 f'{labels_dir}/ontology_classes.json',
                 f'{labels_dir}/class_labels.json',
+                f'{labels_dir}/inverse_properties.json',
+                f'{labels_dir}/crm_taxonomy.json',
+                f'{labels_dir}/property_domain_range.json',
             )
             if success:
                 UniversalRagSystem._extraction_attempted = True
@@ -1851,13 +1854,60 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         property_children = taxonomy.get("propertyChildren", {})
         logger.info(f"  Loaded subPropertyOf hierarchy: {len(property_children)} parent properties")
 
+        # Load property domain/range for per-property FC filtering
+        domain_range_path = str(PROJECT_ROOT / 'data' / 'labels' / 'property_domain_range.json')
+        if os.path.exists(domain_range_path):
+            with open(domain_range_path, 'r', encoding='utf-8') as f:
+                property_domain_range = json.load(f)
+            logger.info(f"  Loaded property domain/range: {len(property_domain_range)} properties")
+        else:
+            property_domain_range = {}
+            logger.warning("  property_domain_range.json not found, skipping per-property filtering")
+
+        # Build class_to_fc mapping (FC lookup with subClassOf inheritance)
+        from crm_rag.fr_materializer import _build_class_to_fc
+        fc_mapping_path = str(PROJECT_ROOT / 'config' / 'fc_class_mapping.json')
+        with open(fc_mapping_path, 'r', encoding='utf-8') as f:
+            fc_mapping = json.load(f)
+        sub_class_of = taxonomy.get("subClassOf", {})
+        class_to_fc = _build_class_to_fc(fc_mapping, sub_class_of)
+
+        # Build C1.Object exclusion set: E30_Right + E41_Appellation + all subclasses
+        def _transitive_closure(seeds, children_map):
+            result = set(seeds)
+            queue = list(seeds)
+            while queue:
+                cls = queue.pop()
+                for child in children_map.get(cls, []):
+                    if child not in result:
+                        result.add(child)
+                        queue.append(child)
+            return result
+
+        class_children = taxonomy.get("classChildren", {})
+        c1_excluded_classes = _transitive_closure(
+            {"E30_Right", "E41_Appellation"}, class_children
+        )
+        c1_excluded_vids: set = set()
+        for uri, types in all_types.items():
+            type_locals = {t.rsplit("/", 1)[-1].rsplit("#", 1)[-1] for t in types}
+            if type_locals & c1_excluded_classes:
+                vid = self.knowledge_graph._uri_to_vid.get(uri)
+                if vid is not None:
+                    c1_excluded_vids.add(vid)
+        logger.info(f"  C1.Object exclusion: {len(c1_excluded_classes)} classes, "
+                    f"{len(c1_excluded_vids)} vertices")
+
         # Run igraph-native FR materialization
         from crm_rag.fr_materializer import materialize_fr_edges, get_step0_predicates
         from crm_rag.fundamental_relationships import build_fully_expanded
 
         fr_definitions = build_fully_expanded()
         all_fr_stats = materialize_fr_edges(
-            self.knowledge_graph, inverse_map, fr_definitions, property_children
+            self.knowledge_graph, inverse_map, fr_definitions, property_children,
+            property_domain_range=property_domain_range,
+            class_to_fc=class_to_fc,
+            c1_excluded_vids=c1_excluded_vids,
         )
         self.knowledge_graph.add_fr_edges(all_fr_stats)
 
@@ -1938,7 +1988,8 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
 
         # Free large Phase 2 temporaries
         del all_fr_stats, inverse_map, inverse_full, fr_definitions
-        del taxonomy, property_children
+        del taxonomy, property_children, property_domain_range
+        del class_to_fc, c1_excluded_vids, c1_excluded_classes
 
         # Pre-compute target enrichments and time-span dates (single igraph pass)
         all_enrichments, all_time_span_dates = self._precompute_phase3_caches(

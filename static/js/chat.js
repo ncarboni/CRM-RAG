@@ -122,6 +122,8 @@ document.addEventListener('DOMContentLoaded', function() {
         activeMiniGraphs.forEach(ctrl => { if (ctrl) ctrl.dispose(); });
         activeMiniGraphs = [];
         chatContainer.innerHTML = '';
+        // Reset exploration panel to expanded for new dataset discovery
+        setExplorationCollapsed(false);
     }
 
     function addWelcomeMessage(message) {
@@ -345,6 +347,52 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     const FC_ORDER = ['Thing', 'Actor', 'Place', 'Event', 'Concept', 'Time'];
 
+    // Exploration panel collapse state
+    let explorationCollapsed = false;
+    const explorationToggle = document.getElementById('exploration-toggle');
+    const explorationToggleIcon = document.getElementById('exploration-toggle-icon');
+    const explorationWrapper = document.getElementById('entity-cards-wrapper');
+    const explorationFcSummary = document.getElementById('exploration-fc-summary');
+
+    function setExplorationCollapsed(collapsed) {
+        explorationCollapsed = collapsed;
+        if (!explorationWrapper || !explorationToggleIcon) return;
+
+        if (collapsed) {
+            explorationWrapper.classList.add('collapsed');
+            explorationToggleIcon.classList.add('collapsed');
+            if (explorationFcSummary && explorationFcSummary.innerHTML) {
+                explorationFcSummary.style.display = 'flex';
+            }
+        } else {
+            explorationWrapper.classList.remove('collapsed');
+            explorationToggleIcon.classList.remove('collapsed');
+            if (explorationFcSummary) explorationFcSummary.style.display = 'none';
+        }
+    }
+
+    if (explorationToggle) {
+        explorationToggle.addEventListener('click', () => {
+            setExplorationCollapsed(!explorationCollapsed);
+        });
+    }
+
+    /** Build the compact FC summary chips shown when collapsed */
+    function buildFcSummary(groups) {
+        if (!explorationFcSummary) return;
+        let html = '';
+        FC_ORDER.forEach(fc => {
+            const items = groups[fc];
+            if (!items || items.length === 0) return;
+            const color = FC_COLORS[fc] || '#999';
+            html += `<span class="fc-summary-chip">
+                <span class="fc-dot" style="background-color: ${color}"></span>
+                ${fc} <strong>${items.length}</strong>
+            </span>`;
+        });
+        explorationFcSummary.innerHTML = html;
+    }
+
     async function loadTopEntities(datasetId) {
         const rightColumn = document.getElementById('right-column');
         const explorationCard = document.getElementById('entity-exploration-card');
@@ -364,12 +412,18 @@ document.addEventListener('DOMContentLoaded', function() {
             explorationCard.style.display = 'block';
             countBadge.textContent = entities.length;
 
+            // Start expanded for discovery
+            setExplorationCollapsed(false);
+
             const groups = {};
             entities.forEach(entity => {
                 const fc = entity.fc || 'Thing';
                 if (!groups[fc]) groups[fc] = [];
                 groups[fc].push(entity);
             });
+
+            // Build FC summary chips for collapsed state
+            buildFcSummary(groups);
 
             let html = '';
             FC_ORDER.forEach(fc => {
@@ -1160,6 +1214,11 @@ document.addEventListener('DOMContentLoaded', function() {
         addUserMessage(question);
         clearImageGallery();
         hideEntityDetail();
+
+        // Auto-collapse exploration panel after first question to free sidebar space
+        if (!explorationCollapsed) {
+            setExplorationCollapsed(true);
+        }
 
         questionInput.value = '';
         sendButton.disabled = true;

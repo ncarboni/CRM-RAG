@@ -23,7 +23,9 @@
             <div class="card-body">
                 <div class="chat-container" id="chat-container">
                     <div class="message assistant-message">
-                        <p>{{ interface.welcome_message }}</p>
+                        <div class="answer-text">
+                            <p>{{ interface.welcome_message }}</p>
+                        </div>
                     </div>
                 </div>
 
@@ -93,6 +95,15 @@
             </div>
         </div>
 
+        <!-- Entity Detail Panel -->
+        <div class="card entity-detail-card" id="entity-detail-card" style="display: none;">
+            <div class="card-header d-flex align-items-center justify-content-between" id="entity-detail-header">
+                <h5 class="mb-0"><i class="fas fa-cube me-2"></i><span id="entity-detail-title">Entity Detail</span></h5>
+                <button class="btn btn-sm btn-outline-light" id="entity-detail-close">&times;</button>
+            </div>
+            <div class="card-body p-0" id="entity-detail-body"></div>
+        </div>
+
         <!-- Image Gallery -->
         <div class="card image-gallery-card" id="image-gallery-card" style="display: none;">
             <div class="card-header">
@@ -121,5 +132,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="../static/js/mini-graph.js"></script>
+<script src="../static/js/entity-cards.js"></script>
 <script src="../static/js/chat.js"></script>
 {% endblock %}

@@ -4,12 +4,29 @@
     --accent-color: #E8E9EA; /* Light gray accent */
     --light-bg: #F8F9FA;
     --dark-text: #212529;
+
+    /* FC palette */
+    --fc-thing: #4FC3F7;
+    --fc-actor: #FF8A65;
+    --fc-place: #81C784;
+    --fc-event: #BA68C8;
+    --fc-concept: #FFD54F;
+    --fc-time: #F06292;
+
+    /* Shadows & radii */
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+    --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: var(--light-bg);
     color: var(--dark-text);
+    line-height: 1.6;
 }
 
 .navbar {

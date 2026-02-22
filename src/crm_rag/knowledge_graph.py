@@ -350,6 +350,7 @@ class KnowledgeGraph:
                 "predicate_label": e["predicate_label"],
                 "object": tgt["name"],
                 "object_label": tgt["label"],
+                "edge_type": e["edge_type"],
             })
         return result
 

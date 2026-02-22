@@ -3533,13 +3533,21 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
             raw_triples = self.knowledge_graph.get_triples(entity_uri)
             local_images = doc.metadata.get("images", [])
 
+            # Look up FC and PageRank from knowledge graph
+            vid = self.knowledge_graph._uri_to_vid.get(entity_uri)
+            fc = self.knowledge_graph._graph.vs[vid]["fc"] if vid is not None else ""
+            pagerank = self.knowledge_graph._graph.vs[vid]["pagerank"] if vid is not None else 0
+
             source_entry = {
                 "id": i,
                 "entity_uri": entity_uri,
                 "entity_label": entity_label,
                 "type": "graph",
                 "entity_type": doc.metadata.get("type", "unknown"),
-                "raw_triples": raw_triples
+                "fc": fc or "",
+                "pagerank": pagerank or 0,
+                "raw_triples": raw_triples,
+                "doc_text": doc.text,
             }
 
             if local_images:

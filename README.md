@@ -17,7 +17,7 @@ CRM_RAG/
 ├── src/crm_rag/
 │   ├── __init__.py              # PROJECT_ROOT constant, pickle compat alias
 │   ├── app.py                   # Flask routes, security, dataset init
-│   ├── rag_system.py            # Core orchestrator (~3630 lines)
+│   ├── rag_system.py            # Core orchestrator
 │   ├── document_store.py        # GraphDocument + FAISS/BM25 vector search
 │   ├── knowledge_graph.py       # igraph wrapper (triples, PPR, PageRank, stats)
 │   ├── llm_providers.py         # OpenAI / Anthropic / R1 / Ollama abstraction
@@ -83,7 +83,13 @@ cp config/.env.claude.example config/.env.claude
 cp config/.env.ollama.example config/.env.ollama
 ```
 
-### 3. Configure Datasets
+### 3. Configure YAML Files
+
+The system uses three YAML configuration files in `config/`:
+
+- **`datasets.yaml`** — SPARQL endpoints and per-dataset settings (required)
+- **`interface.yaml`** — Chat UI customization (title, welcome message, examples)
+- **`prompts.yaml`** — System and query-analysis prompts for the LLM
 
 Create `config/datasets.yaml` to define your SPARQL datasets:
 
@@ -209,13 +215,11 @@ Results are written to `reports/<dataset>_<timestamp>.json`.
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/`, `/chat` | Chat interface |
-| GET | `/graph` | Cosmograph graph visualization |
 | GET | `/api/datasets` | List all available datasets with status |
 | POST | `/api/datasets/<id>/select` | Initialize and select a dataset, returns interface config |
 | POST | `/api/chat` | Send a question. Body: `{"question": "...", "dataset_id": "..."}` |
 | GET | `/api/info` | System info (LLM provider, model) |
 | GET | `/api/entity/<uri>/wikidata` | Wikidata entity info |
-| GET | `/api/graph/data` | Knowledge graph data for visualization |
 | GET | `/api/datasets/<id>/top-entities` | Top PageRank entities for dataset |
 
 ## Architecture
@@ -223,7 +227,7 @@ Results are written to `reports/<dataset>_<timestamp>.json`.
 ### Key Components
 
 - **DatasetManager** (`src/crm_rag/dataset_manager.py`): Manages multiple RAG system instances with lazy loading
-- **UniversalRagSystem** (`src/crm_rag/rag_system.py`): Core RAG orchestrator — document generation, retrieval, answer generation
+- **UniversalRagSystem** (`src/crm_rag/rag_system.py`): Core RAG orchestrator — 3-phase document generation, multi-stage retrieval, answer generation
 - **GraphDocumentStore** (`src/crm_rag/document_store.py`): FAISS + BM25 vector search with FC type index
 - **KnowledgeGraph** (`src/crm_rag/knowledge_graph.py`): igraph wrapper for RDF + FR edges, PPR, PageRank
 - **LLM Providers** (`src/crm_rag/llm_providers.py`): Abstraction layer for OpenAI, Anthropic, R1, Ollama, and local embeddings

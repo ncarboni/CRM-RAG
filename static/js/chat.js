@@ -8,6 +8,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentDatasetId = null;
     // Conversation history for follow-up context
     let chatHistory = [];
+    // Configurable prompt templates (loaded from prompts.yaml via API)
+    let entityCardPrompt = 'Tell me about {label}';
+    let entityDetailPrompt = 'Tell me more about {label}';
     const datasetSelect = document.getElementById('dataset-select');
     const datasetStatus = document.getElementById('dataset-status');
 
@@ -86,6 +89,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (config.input_placeholder) questionInput.placeholder = config.input_placeholder;
         updateExampleQuestions(config.example_questions);
+        // Load configurable prompt templates
+        if (config.prompts) {
+            if (config.prompts.entity_card_prompt) entityCardPrompt = config.prompts.entity_card_prompt;
+            if (config.prompts.entity_detail_prompt) entityDetailPrompt = config.prompts.entity_detail_prompt;
+        }
     }
 
     function updateExampleQuestions(questions) {
@@ -243,17 +251,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div class="detail-section-body" id="${sectionId}">`;
 
+            const MAX_TARGETS = 10;
+
+            function renderTargets(targets) {
+                let out = '';
+                const shown = targets.slice(0, MAX_TARGETS);
+                shown.forEach(t => {
+                    out += `<div class="detail-rel-target">
+                        <span class="detail-rel-target-label">${t.label}</span>
+                    </div>`;
+                });
+                if (targets.length > MAX_TARGETS) {
+                    out += `<div class="detail-rel-more">and ${targets.length - MAX_TARGETS} more</div>`;
+                }
+                return out;
+            }
+
             // Outgoing relationships
             for (const [pred, targets] of Object.entries(outgoing)) {
                 s += `<div class="detail-rel-group">
                     <div class="detail-rel-predicate">
                         <span class="direction-icon"><i class="fas fa-arrow-right"></i></span> ${pred}
+                        <span class="detail-rel-count">${targets.length}</span>
                     </div>`;
-                targets.forEach(t => {
-                    s += `<div class="detail-rel-target">
-                        <span class="detail-rel-target-label">${t.label}</span>
-                    </div>`;
-                });
+                s += renderTargets(targets);
                 s += '</div>';
             }
 
@@ -262,12 +283,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 s += `<div class="detail-rel-group">
                     <div class="detail-rel-predicate">
                         <span class="direction-icon"><i class="fas fa-arrow-left"></i></span> ${pred}
+                        <span class="detail-rel-count">${targets.length}</span>
                     </div>`;
-                targets.forEach(t => {
-                    s += `<div class="detail-rel-target">
-                        <span class="detail-rel-target-label">${t.label}</span>
-                    </div>`;
-                });
+                s += renderTargets(targets);
                 s += '</div>';
             }
 
@@ -296,7 +314,26 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>`;
         }
 
+        // 6. Ask about this entity button
+        html += `<div class="detail-ask-button">
+            <button class="btn btn-sm btn-primary" id="entity-detail-ask-btn"
+                    data-label="${label.replace(/"/g, '&quot;')}">
+                <i class="fas fa-comment me-1"></i>Ask about this entity
+            </button>
+        </div>`;
+
         detailBody.innerHTML = html;
+
+        // Wire ask button
+        const askBtn = document.getElementById('entity-detail-ask-btn');
+        if (askBtn) {
+            askBtn.addEventListener('click', function() {
+                const entityLabel = this.getAttribute('data-label');
+                const question = entityDetailPrompt.replace('{label}', entityLabel);
+                questionInput.value = question;
+                sendQuestion(question);
+            });
+        }
 
         // Auto-expand FR section if present
         if (frTriples.length > 0) {
@@ -457,8 +494,9 @@ document.addEventListener('DOMContentLoaded', function() {
             container.querySelectorAll('.entity-card').forEach(card => {
                 card.addEventListener('click', function() {
                     const label = this.getAttribute('data-label');
-                    questionInput.value = `Tell me about ${label}`;
-                    sendQuestion(`Tell me about ${label}`);
+                    const question = entityCardPrompt.replace('{label}', label);
+                    questionInput.value = question;
+                    sendQuestion(question);
                 });
             });
         } catch (error) {

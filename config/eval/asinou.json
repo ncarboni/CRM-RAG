@@ -1,0 +1,230 @@
+[
+  {
+    "id": "Q1",
+    "question": "What Churches in Cyprus have Last Judgment iconography?",
+    "entity_count": 5,
+    "key_entities": [
+      {
+        "label": "Panagia Phorbiottisa (Asinou)",
+        "uri": "https://chi.ischool.illinois.edu/ds/physical/0062f461-2dc8-4830-b53a-c3ad0f8d65a4",
+        "type": "Church"
+      },
+      {
+        "label": "St. John Lampadistis",
+        "uri": "https://chi.ischool.illinois.edu/ds/physical/372f9c0f-4112-4bdc-a804-022530a76592",
+        "type": "Church"
+      },
+      {
+        "label": "Saint Nicholas of the Roof",
+        "uri": "https://chi.ischool.illinois.edu/ds/physical/da147ccc-fad7-43dd-9b25-6331df841d08",
+        "type": "Church"
+      },
+      {
+        "label": "Church of the Transfiguration",
+        "uri": "https://chi.ischool.illinois.edu/ds/physical/95d0aa9a-79a5-447c-a620-be5e7789e41e",
+        "type": "Church"
+      },
+      {
+        "label": "Panagia Kanakaria",
+        "uri": "https://chi.ischool.illinois.edu/ds/physical/81d14a17-2e3e-48e0-b943-e7d88d83098e",
+        "type": "Church"
+      }
+    ],
+    "sparql_queries": [
+      "Find visual atoms labeled 'Last judgment' or 'Last Judgment', traverse P46i_forms_part_of+ to reach church-typed physical objects (P2_has_type 'Church')"
+    ],
+    "reference_answer": "Five churches in Cyprus in the dataset have Last Judgment iconography: (1) Panagia Phorbiotissa (Asinou), in the narthex; (2) St. John Lampadistis, in the narthex; (3) Saint Nicholas of the Roof, in the narthex; (4) Church of the Transfiguration; and (5) Panagia Kanakaria."
+  },
+  {
+    "id": "Q2",
+    "question": "What kind of characters are depicted in the narthex of Panagia Phorbiotissa?",
+    "entity_count": 10,
+    "key_entities": [
+      {
+        "label": "Anastasia Saramalina",
+        "type": "Donor",
+        "panel": "Anastasias"
+      },
+      {
+        "label": "Anastasia of Sirmium",
+        "type": "Saint",
+        "panel": "Anastasias"
+      },
+      {
+        "label": "Saint George",
+        "type": "Saint",
+        "panel": "Saint George"
+      },
+      {
+        "label": "Saint Mamas",
+        "type": "Saint",
+        "panel": "Saint Mamas"
+      },
+      {
+        "label": "Virgin Mary",
+        "type": "Religious figure",
+        "panel": "Virgin of Mercy"
+      },
+      {
+        "label": "Child Jesus",
+        "type": "Religious figure",
+        "panel": "Virgin of Mercy"
+      },
+      {
+        "label": "Latin Donor",
+        "type": "Donor",
+        "panel": "Virgin of Mercy"
+      },
+      {
+        "label": "Hades",
+        "type": "Mythological figure",
+        "panel": "Fiery stream"
+      },
+      {
+        "label": "Hades,Rich Man",
+        "type": "Mythological/Biblical figure",
+        "panel": "Fiery stream"
+      },
+      {
+        "label": "Donor's wife",
+        "type": "Donor (anonymous)",
+        "panel": "Donor couple"
+      }
+    ],
+    "sparql_queries": [
+      "Find items P46i_forms_part_of+ the narthex (physical/11b8568b), then find icons P128i_is_carried_by those items with K24_portray relationships to characters"
+    ],
+    "reference_answer": "The narthex of Panagia Phorbiotissa depicts a variety of characters across its panels: saints (Saint George, Saint Mamas, Anastasia of Sirmium), religious figures (Virgin Mary and Child Jesus in the Virgin of Mercy panel), donors (Anastasia Saramalina, a Latin Donor, and an anonymous Donor's wife in the Donor couple panel), and figures from the Last Judgment cycle (Hades and the Rich Man in the Fiery stream scene). The narthex also contains panels depicting the Mother of God Phorbiotissa, the Last Judgment, Collective and Individual torments, Gnashing of the teeth, Scroll of heaven, and The preparation of the throne."
+  },
+  {
+    "id": "Q3",
+    "question": "Tell me more about the panel of anastasia in the narthex",
+    "entity_count": 2,
+    "key_entities": [
+      {
+        "label": "Saint Anastasia",
+        "type": "Saint Anastasia Pharmakolytria"
+      },
+      {
+        "label": "Anastasia Saramalina",
+        "type": "Donor"
+      }
+    ],
+    "sparql_queries": [
+      "Get the Anastasias panel (visual/atom/11b9e1a0), its properties, icons carried by it (P128i_is_carried_by), and their attributes"
+    ],
+    "reference_answer": "The 'Anastasias' panel is located on the south lunette of the narthex in Panagia Phorbiotissa (Asinou). It is a mural painting dated between 1193 and 1331. The panel depicts two figures: (1) Saint Anastasia Pharmakolytria (Anastasia of Sirmium), shown with a bottle of medicine and a cross of martyrdom; and (2) Anastasia Saramalina, a donor figure, depicted wearing a porphyria (purple garment), a T-shaped garment, neck rectangular patches, and an elaborate headdress composed of a barbette and a crespine. The juxtaposition of the saint and the donor suggests the donor's devotion to her patron saint."
+  },
+  {
+    "id": "Q4",
+    "question": "Tell me more about the donors depicted in the church",
+    "entity_count": 7,
+    "key_entities": [
+      {
+        "label": "Nikephoros Ischyrios",
+        "type": "Donor",
+        "location": "Naos"
+      },
+      {
+        "label": "Anastasia Saramalina",
+        "type": "Donor",
+        "location": "South lunette, Narthex"
+      },
+      {
+        "label": "Latin Donor",
+        "type": "Donor",
+        "location": "South lunette, Narthex"
+      },
+      {
+        "label": "Donor's wife",
+        "type": "Donor",
+        "location": "Narthex"
+      },
+      {
+        "label": "Ioannes and Irene",
+        "type": "Donor (other church)",
+        "church": "Our Lady of Moutoullas"
+      },
+      {
+        "label": "Michael Katzouroumpos and wife",
+        "type": "Donor (other church)",
+        "church": "Saint Dimitrianos"
+      },
+      {
+        "label": "Anna",
+        "type": "Donor (other church)",
+        "church": "Unknown (no panel link found)"
+      }
+    ],
+    "sparql_queries": [
+      "Find all icons typed as 'Donor' (P2_has_type type/dea1b7d0) that are carried by panels within Asinou (physical/0062f461), plus named donor figures"
+    ],
+    "reference_answer": "The church of Panagia Phorbiotissa (Asinou) depicts several donors: (1) Nikephoros Ischyrios, shown in a dedicated 'Donor' panel in the naos; (2) Anastasia Saramalina, a donor depicted in the 'Anastasias' panel on the south lunette of the narthex, wearing a headdress, porphyria, T-shaped garment, and neck rectangular patches; (3) A Latin Donor, shown with hands clasped and wearing a cotte in the 'Virgin of Mercy' panel on the south lunette of the narthex; and (4) An anonymous Donor's wife, depicted with hands clasped and wearing a cotte in the 'Donor couple' panel in the narthex. Other churches in the dataset also have donor depictions, including Ioannes and Irene at Our Lady of Moutoullas, and Michael Katzouroumpos and his wife at Saint Dimitrianos."
+  },
+  {
+    "id": "Q5",
+    "question": "What visual attributes are used to depict Anastasia?",
+    "entity_count": 8,
+    "key_entities": [
+      {
+        "label": "Anastasia of Sirmium",
+        "type": "Depicted character"
+      },
+      {
+        "label": "bottle of medicine",
+        "type": "Visual attribute"
+      },
+      {
+        "label": "cross of martyrdom",
+        "type": "Visual attribute"
+      },
+      {
+        "label": "Anastasia Saramalina",
+        "type": "Depicted character"
+      },
+      {
+        "label": "headdress",
+        "type": "Visual attribute"
+      },
+      {
+        "label": "porphyria",
+        "type": "Visual attribute"
+      },
+      {
+        "label": "T-shaped garment",
+        "type": "Visual attribute"
+      },
+      {
+        "label": "neck rectangular patches",
+        "type": "Visual attribute"
+      }
+    ],
+    "sparql_queries": [
+      "Find all icons that portray or represent characters named Anastasia, then collect their K17_has_attribute values"
+    ],
+    "reference_answer": "There are two Anastasia figures depicted in the church, each with distinct visual attributes. Saint Anastasia Pharmakolytria (Anastasia of Sirmium) is depicted with a bottle of medicine and a cross of martyrdom. The donor Anastasia Saramalina is depicted with a headdress (composed of a barbette and a crespine), a porphyria (purple garment), a T-shaped garment, and neck rectangular patches. In total, the visual attributes are: bottle of medicine, cross of martyrdom, headdress, barbette, crespine, porphyria, T-shaped garment, and neck rectangular patches."
+  },
+  {
+    "id": "Q6",
+    "question": "Where is Panagia Phorbiotissa located?",
+    "entity_count": 3,
+    "key_entities": [
+      {
+        "label": "Panagia Phorbiottisa",
+        "type": "Place"
+      },
+      {
+        "label": "Nikitari",
+        "type": "Place"
+      },
+      {
+        "label": "Cyprus",
+        "type": "Place"
+      }
+    ],
+    "sparql_queries": [
+      "Get P53_has_former_or_current_location for the church, then P89_falls_within hierarchy and P168_is_approximated_by for coordinates"
+    ],
+    "reference_answer": "Panagia Phorbiotissa (also known as Asinou) is located near the village of Nikitari in Cyprus, at approximately 32.97 E, 35.05 N. The church's precise building footprint is recorded as a WKT MULTIPOLYGON geometry. It is linked to Wikidata entity Q30773293."
+  }
+]

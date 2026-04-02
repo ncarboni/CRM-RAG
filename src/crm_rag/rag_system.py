@@ -211,6 +211,96 @@ def _is_blank_or_hash(value):
     return False
 
 
+_PREFERRED_TERM_URI = "http://vocab.getty.edu/aat/300404670"
+_P1_LOCALS = frozenset({'P1_is_identified_by', 'P1i_identifies'})
+
+
+def _resolve_preferred_label(uri, chunk_literals, raw_outgoing, inter_outgoing, inter_literals, entity_labels):
+    """5-tier preferred label for a chunk entity.
+
+    Tries stages in order; at each stage, if exactly one result → use it.
+    If more than one → skip. After all stages, fall back to the first stage
+    that had any results and pick its first value.
+
+    Stages:
+      1. entity → skos:prefLabel
+      2. P1 → E41 with P2 → aat/300404670 (preferred appellation) → entity_labels
+      3. all P1 → E41 → P190_has_symbolic_content
+      4. all P1 → E41 → rdfs:label
+      5. entity → rdfs:label
+    """
+    first_available = None  # first stage's values (for final fallback)
+
+    # Stage 1: entity → skos:prefLabel
+    pref_labels = chunk_literals.get(uri, {}).get('prefLabel', [])
+    if pref_labels:
+        if first_available is None:
+            first_available = pref_labels
+        if len(pref_labels) == 1:
+            return pref_labels[0]
+
+    # Collect all P1 → E41 appellation URIs
+    p1_targets = []
+    for pred, obj, _ in raw_outgoing.get(uri, []):
+        pred_local = pred.split('/')[-1].split('#')[-1]
+        if pred_local in _P1_LOCALS:
+            p1_targets.append(obj)
+
+    # Stage 2: P1 → E41 with P2 → aat/300404670 (preferred appellation)
+    preferred_apps = []
+    for app_uri in p1_targets:
+        for pred, obj, _ in inter_outgoing.get(app_uri, []):
+            pred_local = pred.split('/')[-1].split('#')[-1]
+            if pred_local in ('P2_has_type', 'P2i_is_type_of') and obj == _PREFERRED_TERM_URI:
+                preferred_apps.append(app_uri)
+                break
+    if preferred_apps:
+        pref_app_labels = []
+        for app_uri in preferred_apps:
+            lbl = entity_labels.get(app_uri)
+            if lbl and lbl != app_uri.split('/')[-1]:
+                pref_app_labels.append(lbl)
+        if pref_app_labels:
+            if first_available is None:
+                first_available = pref_app_labels
+            if len(pref_app_labels) == 1:
+                return pref_app_labels[0]
+
+    # Stage 3: all P1 → E41 → P190_has_symbolic_content
+    p190_labels = []
+    for app_uri in p1_targets:
+        p190_labels.extend(inter_literals.get(app_uri, {}).get('P190_has_symbolic_content', []))
+    if p190_labels:
+        if first_available is None:
+            first_available = p190_labels
+        if len(p190_labels) == 1:
+            return p190_labels[0]
+
+    # Stage 4: all P1 → E41 → rdfs:label
+    app_rdfs_labels = []
+    for app_uri in p1_targets:
+        app_rdfs_labels.extend(inter_literals.get(app_uri, {}).get('label', []))
+    if app_rdfs_labels:
+        if first_available is None:
+            first_available = app_rdfs_labels
+        if len(app_rdfs_labels) == 1:
+            return app_rdfs_labels[0]
+
+    # Stage 5: entity → rdfs:label
+    entity_rdfs = chunk_literals.get(uri, {}).get('label', [])
+    if entity_rdfs:
+        if first_available is None:
+            first_available = entity_rdfs
+        if len(entity_rdfs) == 1:
+            return entity_rdfs[0]
+
+    # Fallback: first value from earliest stage that had any results
+    if first_available:
+        return first_available[0]
+
+    return None
+
+
 def _predicate_priority(triple, entity_uri, retrieved_uris):
     """Return priority score: 0 = highest (inter-doc), 1 = high, 2 = medium, 3 = low."""
     other_uri = triple["object"] if triple["subject"] == entity_uri else triple["subject"]
@@ -417,6 +507,11 @@ class UniversalRagSystem:
         # Initialize document store and knowledge graph
         self.document_store = None
         self.knowledge_graph = KnowledgeGraph()
+
+        # Cache for conversational focus entity tracking
+        # Stores top entity URIs from the last retrieval to provide
+        # proximity context for follow-up questions
+        self._last_retrieval_uris = []
 
         # Create a secure session for HTTP requests (e.g., Wikidata API)
         # Disable trust_env to prevent .netrc credential leaks (CVE fix)
@@ -710,6 +805,7 @@ class UniversalRagSystem:
     def _identify_satellites_from_graph(
         self,
         all_types: Dict[str, set],
+        satellite_uris: Optional[set] = None,
     ) -> Tuple[set, Dict[str, Dict[str, list]], Dict[str, str]]:
         """Identify satellite entities using igraph + all_types (no SPARQL/dicts).
 
@@ -718,6 +814,8 @@ class UniversalRagSystem:
 
         Args:
             all_types: entity_uri -> set of type URIs
+            satellite_uris: Optional pre-computed set of satellite URIs.
+                If provided, skips Pass 1 (type-based identification).
 
         Returns:
             (satellite_uris, parent_satellites, time_span_dates) same as dict-based version.
@@ -727,11 +825,12 @@ class UniversalRagSystem:
         if not self.fr_traversal:
             return set(), {}, {}
 
-        # Pass 1: identify all satellites
-        satellite_uris = set()
-        for uri, types in all_types.items():
-            if self.fr_traversal.is_minimal_doc_entity(types):
-                satellite_uris.add(uri)
+        # Pass 1: identify all satellites (skip if pre-computed)
+        if satellite_uris is None:
+            satellite_uris = set()
+            for uri, types in all_types.items():
+                if self.fr_traversal.is_minimal_doc_entity(types):
+                    satellite_uris.add(uri)
 
         # Pass 2: find parent for each satellite using igraph incoming edges
         parent_satellites = defaultdict(lambda: defaultdict(list))
@@ -946,11 +1045,14 @@ class UniversalRagSystem:
         entity_labels = {}
         raw_triples = []
 
+        # Label property priority — dataset-agnostic, covers CRM + external vocabularies
+        _LABEL_PROPS = ['prefLabel', 'P190_has_symbolic_content', 'label', 'name', 'title', 'value', 'description']
+
         # Extract labels from chunk_literals
         for uri in chunk_uris:
             literals = chunk_literals.get(uri, {})
             label = uri.split('/')[-1]
-            for label_prop in ['label', 'prefLabel', 'P190_has_symbolic_content', 'name', 'title', 'value', 'description']:
+            for label_prop in _LABEL_PROPS:
                 if label_prop in literals and literals[label_prop]:
                     label = literals[label_prop][0]
                     break
@@ -1007,6 +1109,8 @@ class UniversalRagSystem:
                 })
 
         # Step 2: Fetch edges for intermediate URIs (2-hop coverage)
+        inter_outgoing = {}
+        inter_literals = {}
         if intermediate_uris:
             intermediate_list = list(intermediate_uris)
             logger.info(f"    Fetching edges for {len(intermediate_list)} intermediate URIs...")
@@ -1014,14 +1118,34 @@ class UniversalRagSystem:
             inter_outgoing = self.batch_sparql.batch_query_outgoing(intermediate_list)
             inter_incoming = self.batch_sparql.batch_query_incoming(intermediate_list)
 
+            # Fetch ALL literals for intermediates — same mechanism as chunk entities.
+            # This gives us proper labels (prefLabel, P190, etc.) for external
+            # vocabulary URIs and any entity type, dataset-agnostic.
+            inter_literals = self.batch_sparql.batch_fetch_literals(intermediate_list)
+
+            # Extract labels from intermediate literals (same priority as chunk entities).
+            # Overrides any fallback labels set earlier from batch_query_outgoing OPTIONAL.
+            for uri in intermediate_list:
+                literals = inter_literals.get(uri, {})
+                if not literals:
+                    continue  # no literals found, keep whatever label we already have
+                label = None
+                for label_prop in _LABEL_PROPS:
+                    if label_prop in literals and literals[label_prop]:
+                        label = literals[label_prop][0]
+                        break
+                if label:
+                    entity_labels[uri] = label
+
             for uri, rels in inter_outgoing.items():
                 for pred, obj, obj_label in rels:
                     if _is_schema_predicate(pred):
                         continue
-                    if obj_label:
-                        entity_labels[obj] = obj_label
-                    elif obj not in entity_labels:
-                        entity_labels[obj] = obj.split('/')[-1].split('#')[-1]
+                    if obj not in entity_labels:
+                        if obj_label:
+                            entity_labels[obj] = obj_label
+                        else:
+                            entity_labels[obj] = obj.split('/')[-1].split('#')[-1]
                     raw_triples.append({
                         "subject": uri,
                         "subject_label": entity_labels.get(uri, ""),
@@ -1035,10 +1159,11 @@ class UniversalRagSystem:
                 for subj, pred, subj_label in rels:
                     if _is_schema_predicate(pred):
                         continue
-                    if subj_label:
-                        entity_labels[subj] = subj_label
-                    elif subj not in entity_labels:
-                        entity_labels[subj] = subj.split('/')[-1].split('#')[-1]
+                    if subj not in entity_labels:
+                        if subj_label:
+                            entity_labels[subj] = subj_label
+                        else:
+                            entity_labels[subj] = subj.split('/')[-1].split('#')[-1]
                     raw_triples.append({
                         "subject": subj,
                         "subject_label": entity_labels.get(subj, ""),
@@ -1052,6 +1177,15 @@ class UniversalRagSystem:
             inter_types = self.batch_sparql.batch_fetch_types(intermediate_list)
             chunk_types.update(inter_types)
 
+        # Preferred label resolution for chunk entities (5-tier priority)
+        for uri in chunk_uris:
+            resolved = _resolve_preferred_label(
+                uri, chunk_literals, raw_outgoing,
+                inter_outgoing, inter_literals, entity_labels
+            )
+            if resolved:
+                entity_labels[uri] = resolved
+
         # Add date literals for E52_Time-Span entities to raw_triples.
         _E52_URI = "http://www.cidoc-crm.org/cidoc-crm/E52_Time-Span"
         _CRM_NS = "http://www.cidoc-crm.org/cidoc-crm/"
@@ -1064,13 +1198,11 @@ class UniversalRagSystem:
         ts_from_chunk = [u for u in chunk_uris if _E52_URI in chunk_types.get(u, set())]
         ts_from_inter = [u for u in intermediate_uris if _E52_URI in chunk_types.get(u, set())]
 
-        inter_ts_lits = (
-            self.batch_sparql.batch_fetch_literals(ts_from_inter) if ts_from_inter else {}
-        )
+        # Use already-fetched inter_literals for E52 intermediates (no re-fetch needed)
         ts_date_count = 0
         for ts_uri, ts_lits in (
             [(u, chunk_literals.get(u, {})) for u in ts_from_chunk] +
-            [(u, inter_ts_lits.get(u, {})) for u in ts_from_inter]
+            [(u, inter_literals.get(u, {})) for u in ts_from_inter]
         ):
             for prop_local, vals in ts_lits.items():
                 if prop_local not in _TS_DATE_PROPS or not vals:
@@ -1240,6 +1372,30 @@ class UniversalRagSystem:
             target_enrichments=target_enrichments,
             time_span_dates=time_span_dates,
         )
+
+        # P67 chain enrichment: add "Referenced by" labels for incoming
+        # P67_refers_to edges. This makes the reference relationship visible
+        # to text retrieval (e.g., archive items referencing an artist).
+        _P67_LOCALS = {"P67_refers_to", "P67i_is_referred_to_by"}
+        referring_labels = []
+        for triple in self.knowledge_graph.get_triples(entity_uri, edge_type="rdf"):
+            pred_local = triple["predicate"].split('/')[-1].split('#')[-1]
+            if pred_local in _P67_LOCALS:
+                if triple["object"] == entity_uri:
+                    # Incoming: something refers to this entity
+                    ref_label = triple.get("subject_label", "")
+                elif triple["subject"] == entity_uri:
+                    # Outgoing: this entity refers to something (P67i)
+                    continue
+                else:
+                    continue
+                if ref_label and len(ref_label) > 3:
+                    referring_labels.append(ref_label)
+        if referring_labels:
+            # Limit to 10 to avoid mega-entity document bloat
+            refs = referring_labels[:10]
+            suffix = f" ... and {len(referring_labels) - 10} more" if len(referring_labels) > 10 else ""
+            text += f"\nReferenced by: {', '.join(refs)}{suffix}"
 
         return text, entity_label, entity_type_labels
 
@@ -1786,9 +1942,10 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         logger.info(f"PHASE 1: Loading RDF triples into igraph ({total_chunks} chunks)")
         logger.info(f"{'='*80}")
 
-        # Accumulate lightweight metadata across chunks
+        # Accumulate metadata across chunks — reused in Phase 3
         all_types: Dict[str, set] = {}         # uri -> set of type URIs
         all_entity_labels: Dict[str, str] = {}  # uri -> label string
+        all_literals: Dict[str, Dict[str, List[str]]] = {}  # uri -> {prop: [vals]}
 
         for chunk_idx in range(0, total_entities, chunk_size):
             chunk_uris = entities[chunk_idx:chunk_idx + chunk_size]
@@ -1800,8 +1957,9 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
             chunk_types = self.batch_sparql.batch_fetch_types(chunk_uris)
             all_types.update(chunk_types)
 
-            # Fetch literals only for label extraction (will re-fetch in Phase 3)
+            # Fetch literals — saved for reuse in Phase 3 (no redundant SPARQL call)
             chunk_literals = self.batch_sparql.batch_fetch_literals(chunk_uris)
+            all_literals.update(chunk_literals)
 
             # Fetch triples and load into igraph
             entity_labels, raw_triples = self._fetch_triples_for_chunk(
@@ -1814,11 +1972,28 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
                         f"graph: {self.knowledge_graph.vertex_count} vertices, "
                         f"{self.knowledge_graph.edge_count} edges")
 
-            del raw_triples, chunk_literals  # free immediately
+            del raw_triples  # free immediately (chunk_literals kept in all_literals)
 
         logger.info(f"Phase 1 complete: {self.knowledge_graph.vertex_count} vertices, "
                     f"{self.knowledge_graph.edge_count} edges, "
                     f"{len(all_types)} entity types accumulated")
+
+        # Reconcile igraph vertex labels from all_entity_labels.
+        # During chunked loading, a vertex may first appear as an intermediate
+        # with only a URI-fallback label (from batch_query_outgoing OPTIONAL).
+        # Later chunks may discover the correct label via batch_fetch_literals.
+        # _get_or_create_vertex() never overwrites non-empty labels, so we do
+        # a single reconciliation pass here using the best-known labels.
+        labels_updated = 0
+        for uri, label in all_entity_labels.items():
+            vid = self.knowledge_graph._uri_to_vid.get(uri)
+            if vid is not None:
+                current = self.knowledge_graph._graph.vs[vid]["label"]
+                if label and label != current:
+                    self.knowledge_graph._graph.vs[vid]["label"] = label
+                    labels_updated += 1
+        if labels_updated:
+            logger.info(f"  Reconciled {labels_updated} vertex labels")
 
         # =====================================================================
         # PHASE 2: Materialize FR edges on full igraph
@@ -1898,6 +2073,22 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         logger.info(f"  C1.Object exclusion: {len(c1_excluded_classes)} classes, "
                     f"{len(c1_excluded_vids)} vertices")
 
+        # Early satellite detection (type-based only).
+        # Must precede FR materialization so satellites don't become FR walk sources
+        # and parent RDF edges are still intact for parent detection.
+        early_satellite_uris = set()
+        for uri, types in all_types.items():
+            if self.fr_traversal.is_minimal_doc_entity(types):
+                early_satellite_uris.add(uri)
+
+        satellite_vids = set()
+        for uri in early_satellite_uris:
+            vid = self.knowledge_graph._uri_to_vid.get(uri)
+            if vid is not None:
+                satellite_vids.add(vid)
+        logger.info(f"  Early satellite detection: {len(early_satellite_uris)} satellites "
+                    f"({len(satellite_vids)} in graph)")
+
         # Run igraph-native FR materialization
         from crm_rag.fr_materializer import materialize_fr_edges, get_step0_predicates
         from crm_rag.fundamental_relationships import build_fully_expanded
@@ -1908,6 +2099,7 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
             property_domain_range=property_domain_range,
             class_to_fc=class_to_fc,
             c1_excluded_vids=c1_excluded_vids,
+            satellite_vids=satellite_vids,
         )
         self.knowledge_graph.add_fr_edges(all_fr_stats)
 
@@ -1919,12 +2111,8 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         # targets).  Named events ("Biennale 2024", "Battle of Waterloo")
         # survive because they carry identity worth documenting.
         g = self.knowledge_graph._graph
-        # Build minimal satellite set from types (same check as Pass 1 of
-        # _identify_satellites_from_graph, before that method runs)
-        satellite_set = set()
-        for uri, types in all_types.items():
-            if self.fr_traversal.is_minimal_doc_entity(types):
-                satellite_set.add(uri)
+        # Reuse early satellite detection (already computed before FR materialization)
+        satellite_set = early_satellite_uris
 
         delete_vids = []
         delete_uris = set()
@@ -1974,11 +2162,13 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
                 del all_types[uri]
         logger.info(f"Event contraction: deleted {len(delete_vids)} anonymous "
                     f"event vertices, preserved {preserved_count} named events")
-        del satellite_set, delete_vids, delete_uris
+        del delete_vids, delete_uris
 
         # Identify satellites using igraph + accumulated types
+        # Pass pre-computed satellite_uris to skip redundant Pass 1
         all_satellite_uris, all_parent_satellites, all_time_span_dates = \
-            self._identify_satellites_from_graph(all_types)
+            self._identify_satellites_from_graph(all_types, satellite_uris=early_satellite_uris)
+        del early_satellite_uris, satellite_vids
 
         logger.info(f"Phase 2 complete: {len(all_fr_stats)} entities with FR edges, "
                     f"{len(all_satellite_uris)} satellites identified")
@@ -2029,8 +2219,8 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
 
             logger.info(f"  Phase 3 chunk {chunk_num}/{total_chunks} ({len(chunk_uris)} entities)")
 
-            # Re-fetch only literals, type_labels, wikidata (no outgoing/incoming)
-            chunk_literals = self.batch_sparql.batch_fetch_literals(chunk_uris)
+            # Literals already fetched in Phase 1 — reuse from all_literals
+            chunk_literals = {uri: all_literals.get(uri, {}) for uri in chunk_uris}
 
             chunk_types = {uri: all_types.get(uri, set()) for uri in chunk_uris}
             chunk_type_uris = set()
@@ -2152,7 +2342,7 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
             logger.info(f"Used {cached_count} cached embeddings")
 
         # Free accumulated Phase 1/2 data
-        del all_types, all_entity_labels, all_satellite_uris, all_parent_satellites
+        del all_types, all_entity_labels, all_literals, all_satellite_uris, all_parent_satellites
         del all_time_span_dates, all_enrichments
 
         # Finalize knowledge graph
@@ -2581,7 +2771,7 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         return _fetch_wikidata_info(wikidata_id, self._http_session)
 
 
-    def compute_coherent_subgraph(self, candidates, initial_scores, k=RetrievalConfig.DEFAULT_RETRIEVAL_K, alpha=RetrievalConfig.RELEVANCE_CONNECTIVITY_ALPHA, ppr_scores=None):
+    def compute_coherent_subgraph(self, candidates, initial_scores, k=RetrievalConfig.DEFAULT_RETRIEVAL_K, alpha=RetrievalConfig.RELEVANCE_CONNECTIVITY_ALPHA, ppr_scores=None, focus_uris=None):
         """
         Extract a coherent subgraph using greedy selection that balances individual relevance and connectivity.
 
@@ -2591,6 +2781,8 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
             k: Number of documents to select
             alpha: Weight for individual relevance vs connectivity (0-1, higher = more emphasis on relevance)
             ppr_scores: PPR scores array (n,) — used as connectivity signal
+            focus_uris: Optional list of entity URIs from prior conversation turns.
+                       Candidates with graph edges to focus entities get a proximity bonus.
 
         Returns:
             List of selected GraphDocument objects in order of selection
@@ -2604,6 +2796,25 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
 
         # Pre-compute normalized PPR scores
         normalized_ppr = self.normalize_scores(ppr_scores) if ppr_scores is not None else np.zeros(n)
+
+        # Build same-label groups for multi-layer entity handling.
+        # Same-label entities across ontological layers (Character, Visual Item,
+        # Iconographical Atom) carry complementary information, so the diversity
+        # penalty should not penalize selecting multiple from the same group.
+        label_to_indices = {}
+        for i, c in enumerate(candidates):
+            lbl = (c.metadata.get('label') or '').lower().strip()
+            if lbl:
+                label_to_indices.setdefault(lbl, []).append(i)
+        # Only keep groups with >1 member (actual multi-layer entities)
+        same_label_groups = {lbl: idxs for lbl, idxs in label_to_indices.items()
+                            if len(idxs) > 1}
+        # Build reverse lookup: index → set of same-label sibling indices
+        same_label_siblings = {}
+        for idxs in same_label_groups.values():
+            idx_set = set(idxs)
+            for i in idxs:
+                same_label_siblings[i] = idx_set
 
         # Pre-compute cosine similarity matrix for MMR diversity penalty
         diversity_penalty_weight = RetrievalConfig.DIVERSITY_PENALTY
@@ -2631,6 +2842,31 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
                     if mod is not None:
                         break
             candidate_type_mods[i] = mod if mod is not None else 0.0
+
+        # Pre-compute focus entity proximity bonus using shortest path distance.
+        # Candidates close to prior-turn focus entities in the graph get a
+        # distance-decaying bonus to maintain conversational coherence.
+        FOCUS_BONUS_BY_DISTANCE = {1: 0.15, 2: 0.10, 3: 0.05}
+        candidate_focus_bonus = np.zeros(n)
+        if focus_uris and self.knowledge_graph.vertex_count > 0:
+            candidate_uris = [c.id for c in candidates]
+            distances = self.knowledge_graph.shortest_path_distances(
+                focus_uris, candidate_uris)
+            for i, c in enumerate(candidates):
+                dist = distances.get(c.id, -1)
+                if dist > 0:
+                    candidate_focus_bonus[i] = FOCUS_BONUS_BY_DISTANCE.get(
+                        dist, 0.0)
+
+            n_boosted = int(np.sum(candidate_focus_bonus > 0))
+            if n_boosted > 0:
+                dist_counts = {}
+                for i in range(n):
+                    d = distances.get(candidates[i].id, -1)
+                    if d > 0 and d <= 3:
+                        dist_counts[d] = dist_counts.get(d, 0) + 1
+                logger.info(f"Focus proximity (shortest path): {n_boosted}/{n} candidates boosted "
+                            f"(d=1: {dist_counts.get(1,0)}, d=2: {dist_counts.get(2,0)}, d=3: {dist_counts.get(3,0)})")
 
         logger.info(f"\n{'='*80}")
         logger.info(f"COHERENT SUBGRAPH EXTRACTION (PPR)")
@@ -2706,10 +2942,19 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
                 relevance = normalized_scores[idx]
                 connectivity_norm = normalized_connectivity[i]
                 max_sim = max(sim_matrix[idx, sel_idx] for sel_idx in selected_indices)
-                div_penalty = diversity_penalty_weight * max_sim
+                # Reduce diversity penalty for same-label siblings: they represent
+                # different ontological layers of the same entity (Character vs
+                # Visual Item vs Atom) and carry complementary information.
+                siblings = same_label_siblings.get(idx, set())
+                if siblings & set(selected_indices):
+                    div_penalty = diversity_penalty_weight * max_sim * 0.3
+                else:
+                    div_penalty = diversity_penalty_weight * max_sim
                 base_score = alpha * relevance + (1 - alpha) * connectivity_norm - div_penalty
                 type_mod = candidate_type_mods[idx]
                 combined_score = base_score * (1.0 + type_mod)
+                # Focus entity proximity bonus for conversational follow-ups
+                combined_score += candidate_focus_bonus[idx]
                 triples_count = self.knowledge_graph.triple_count(candidates[idx].id)
                 if triples_count > RetrievalConfig.MEGA_ENTITY_TRIPLES_THRESHOLD:
                     combined_score -= RetrievalConfig.MEGA_ENTITY_PENALTY
@@ -2840,12 +3085,20 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         sorted_ids = sorted(scores, key=scores.get, reverse=True)[:pool_size]
         return [(doc_map[did], scores[did]) for did in sorted_ids]
 
-    def _ppr_retrieval(self, query, query_analysis, pool_size):
+    def _ppr_retrieval(self, query, query_analysis, pool_size, ppr_seed_query=None):
         """Run Personalized PageRank retrieval seeded by constraint entities.
 
         Identifies constraint entities (matching context_categories) via
         type-filtered FAISS, then runs PPR from those seeds to discover
         connected entities through FR edges.
+
+        Args:
+            query: Main retrieval query.
+            query_analysis: QueryAnalysis with context_categories.
+            pool_size: Number of PPR candidates to return.
+            ppr_seed_query: If provided, used instead of query for PPR seed
+                selection. This avoids conversation history contamination
+                when the main query is a contextualized follow-up.
 
         Returns:
             List of (GraphDocument, ppr_score) tuples, or empty list if
@@ -2859,21 +3112,43 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         if not fc_doc_ids:
             return []
 
+        # Remap sparse FCs (same logic as _type_filtered_channel)
+        effective_ctx_cats = list(ctx_cats)
+        for i, fc_name in enumerate(effective_ctx_cats):
+            fc_count = len(fc_doc_ids.get(fc_name, set()))
+            if fc_count < 5 and fc_name == 'Actor':
+                effective_ctx_cats[i] = 'Thing'
+
         # Collect doc IDs matching context categories
         allowed_ids = set()
-        for fc_name in ctx_cats:
+        for fc_name in effective_ctx_cats:
             allowed_ids |= fc_doc_ids.get(fc_name, set())
         if not allowed_ids:
             return []
 
+        # Use ppr_seed_query if provided (avoids conversation history contamination)
+        seed_query = ppr_seed_query if ppr_seed_query else query
+
         # Type-filtered FAISS to find semantically relevant constraint entities
         typed_results = self.document_store.retrieve_faiss_typed(
-            query, k=RetrievalConfig.PPR_SEED_MAX, allowed_doc_ids=allowed_ids,
+            seed_query, k=RetrievalConfig.PPR_SEED_MAX, allowed_doc_ids=allowed_ids,
         )
         if not typed_results:
             return []
 
         seed_uris = [doc.id for doc, _score in typed_results]
+
+        # Named entity injection: if the query mentions a known entity by name,
+        # inject it as a top seed regardless of FAISS ranking. This prevents
+        # gallery/institution entities from displacing the target artist.
+        query_terms = re.findall(r'\b[A-Z][a-zà-ÿ]+(?:\s+[A-Z][a-zà-ÿ]+)*\b', seed_query)
+        for term in query_terms:
+            matched_uris = self.knowledge_graph.find_uris_by_label(term, max_results=1)
+            for uri in matched_uris:
+                if uri not in seed_uris and self.document_store.docs.get(uri):
+                    seed_uris.insert(0, uri)
+                    logger.info(f"Named entity injected as PPR seed: '{term}' → {uri}")
+        seed_uris = seed_uris[:RetrievalConfig.PPR_SEED_MAX]
 
         seed_labels = [self.knowledge_graph.get_label(u) for u in seed_uris]
         logger.info(f"PPR seeds ({len(seed_uris)}): {', '.join(seed_labels)}")
@@ -2906,15 +3181,24 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         if not (query_analysis and query_analysis.categories and fc_doc_ids):
             return results_with_scores
 
-        # Collect allowed doc IDs from target FC categories
+        # Collect allowed doc IDs from target FC categories,
+        # remapping sparse FCs to their nearest populated equivalent
+        effective_categories = list(query_analysis.categories)
+        for i, fc_name in enumerate(effective_categories):
+            fc_count = len(fc_doc_ids.get(fc_name, set()))
+            if fc_count < 5 and fc_name == 'Actor':
+                effective_categories[i] = 'Thing'
+                logger.info(f"FC remapping: Actor ({fc_count} docs) → Thing "
+                            f"(Character entities are modeled as Thing in CRM)")
+
         allowed_doc_ids = set()
-        for fc_name in query_analysis.categories:
+        for fc_name in effective_categories:
             allowed_doc_ids |= fc_doc_ids.get(fc_name, set())
         if not allowed_doc_ids:
             return results_with_scores
 
         logger.info(f"Type-filtered channel: {len(allowed_doc_ids)} docs in target FCs "
-                    f"{query_analysis.categories}")
+                    f"{effective_categories}")
 
         # Run type-filtered FAISS + BM25
         typed_faiss = self.document_store.retrieve_faiss_typed(
@@ -2979,7 +3263,7 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
                     f"into pool (pool now {len(result)})")
         return result
 
-    def retrieve(self, query, k=RetrievalConfig.DEFAULT_RETRIEVAL_K, initial_pool_size=60, alpha=RetrievalConfig.RELEVANCE_CONNECTIVITY_ALPHA, query_analysis=None):
+    def retrieve(self, query, k=RetrievalConfig.DEFAULT_RETRIEVAL_K, initial_pool_size=60, alpha=RetrievalConfig.RELEVANCE_CONNECTIVITY_ALPHA, query_analysis=None, ppr_seed_query=None, focus_uris=None, exclude_uris=None):
         """
         Retrieve documents using hybrid FAISS+BM25 similarity + coherent subgraph extraction:
         1. FAISS vector retrieval + BM25 sparse retrieval → RRF fusion (initial pool)
@@ -3002,14 +3286,54 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
             logger.warning("No documents found in FAISS retrieval")
             return []
 
+        # Exclude prior-answer entities for "more" follow-ups
+        if exclude_uris:
+            faiss_results = [(d, s) for d, s in faiss_results if d.id not in exclude_uris]
+
         # BM25 retrieval and RRF fusion
         bm25_results = self.document_store.retrieve_bm25(query, k=initial_pool_size)
+        if exclude_uris and bm25_results:
+            bm25_results = [(d, s) for d, s in bm25_results if d.id not in exclude_uris]
 
         # PPR retrieval (graph-based, seeded by constraint entities)
         ppr_results = []
         if (query_analysis and query_analysis.context_categories
                 and self.knowledge_graph.vertex_count > 0):
-            ppr_results = self._ppr_retrieval(query, query_analysis, initial_pool_size)
+            ppr_results = self._ppr_retrieval(query, query_analysis, initial_pool_size,
+                                                ppr_seed_query=ppr_seed_query)
+
+        # Focus entity PPR: when follow-up questions have focus URIs from prior
+        # turns, run a separate PPR seeded from those entities. This ensures
+        # the conversational topic's graph neighborhood enters the candidate pool.
+        # Filter out mega-hub entities (>500 edges) — they produce undiscriminating PPR.
+        if focus_uris and self.knowledge_graph.vertex_count > 0:
+            filtered_focus = [u for u in focus_uris
+                              if self.knowledge_graph.triple_count(u) < 500]
+            if len(filtered_focus) < len(focus_uris):
+                removed = len(focus_uris) - len(filtered_focus)
+                logger.info(f"Focus PPR: filtered out {removed} mega-hub entities (>500 edges)")
+            if not filtered_focus:
+                filtered_focus = focus_uris[:1]  # Keep at least one seed
+            focus_ppr = self.knowledge_graph.personalized_pagerank(
+                seed_uris=filtered_focus,
+                damping=RetrievalConfig.PPR_DAMPING,
+                top_n=initial_pool_size,
+                doc_only=True,
+            )
+            focus_ppr_docs = []
+            for uri, score in focus_ppr:
+                doc = self.document_store.docs.get(uri)
+                if doc:
+                    focus_ppr_docs.append((doc, score))
+            if focus_ppr_docs:
+                logger.info(f"Focus PPR: {len(focus_ppr_docs)} candidates from "
+                            f"{len(focus_uris)} prior-turn seeds")
+                if ppr_results:
+                    # Merge focus PPR with query PPR via RRF
+                    ppr_results = self._rrf_fuse(ppr_results, focus_ppr_docs,
+                                                  pool_size=initial_pool_size)
+                else:
+                    ppr_results = focus_ppr_docs
 
         # Fuse: 2-way or 3-way RRF depending on PPR availability
         if bm25_results and ppr_results:
@@ -3093,6 +3417,7 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
             initial_scores=faiss_scores,
             k=k,
             alpha=alpha,
+            focus_uris=focus_uris,
         )
 
         logger.info(f"Retrieved and selected {len(selected_docs)} coherent documents")
@@ -3434,49 +3759,119 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
                 clean_query = question
             logger.info(f"Cleaned pivot query: '{clean_query}'")
 
-        retrieval_kwargs = dict(k=k, initial_pool_size=initial_pool_size, query_analysis=query_analysis)
+        # Pass focus URIs from previous retrieval for follow-up proximity boosting
+        focus_uris = self._last_retrieval_uris if chat_history else []
+        retrieval_kwargs = dict(k=k, initial_pool_size=initial_pool_size,
+                                query_analysis=query_analysis, focus_uris=focus_uris)
 
         if not chat_history:
             return self.retrieve(question, **retrieval_kwargs)
 
+        # Detect "more" follow-ups and exclude prior answer's sources
+        _MORE_PATTERNS = re.compile(
+            r'\b(are there (?:any )?more|any other|what else|'
+            r'(?:only|just) (?:these?|this)|is that all)\b', re.IGNORECASE)
+        if _MORE_PATTERNS.search(question) and self._last_retrieval_uris:
+            exclude_uris = set(self._last_retrieval_uris)
+            logger.info(f"'More' follow-up detected — excluding {len(exclude_uris)} prior-answer entities")
+            retrieval_kwargs['exclude_uris'] = exclude_uris
+
         if is_pivot_query:
             logger.info(f"Pivot query: using cleaned raw retrieval only ('{clean_query}')")
+            # No focus URIs for pivot queries — user is changing topic
+            retrieval_kwargs['focus_uris'] = []
             return self.retrieve(clean_query, **retrieval_kwargs)
 
-        # Dual retrieval: contextualized + raw, then interleaved merge
+        if focus_uris:
+            focus_labels = [self.knowledge_graph.get_label(u) or u.rsplit('/', 1)[-1]
+                            for u in focus_uris[:3]]
+            logger.info(f"Focus entities from prior turn: {', '.join(focus_labels)}")
+
+        # Selective dual retrieval: only use contextualized query when the
+        # current question shares content words with the previous turn,
+        # indicating entity continuity (e.g., Q5 "Anastasia" referencing Q3).
+        # Otherwise, use raw query only — contextualized queries pollute
+        # embedding similarity with prior-turn topics.
         prev_user_msgs = [m["content"] for m in chat_history[:-1] if m["role"] == "user"]
-        contextualized_query = f"{prev_user_msgs[-1]} {question}" if prev_user_msgs else question
-        logger.info(f"Dual retrieval — contextualized: '{contextualized_query[:200]}'")
-        logger.info(f"Dual retrieval — raw: '{question}'")
+        if prev_user_msgs:
+            prev_words = set(re.findall(r'\b[a-z]{3,}\b', prev_user_msgs[-1].lower())) - self._VAGUE_STOPWORDS
+            curr_words = set(re.findall(r'\b[a-z]{3,}\b', question.lower())) - self._VAGUE_STOPWORDS
+            shared_content = prev_words & curr_words
+        else:
+            shared_content = set()
 
-        ctx_docs = self.retrieve(contextualized_query, **retrieval_kwargs)
+        if shared_content:
+            # Entity continuity detected — dual retrieval benefits from context
+            contextualized_query = f"{prev_user_msgs[-1]} {question}"
+            logger.info(f"Selective dual retrieval — shared terms: {shared_content}")
+            logger.info(f"  contextualized: '{contextualized_query[:200]}'")
+            ctx_docs = self.retrieve(contextualized_query, ppr_seed_query=question, **retrieval_kwargs)
+            raw_docs = self.retrieve(question, **retrieval_kwargs)
 
-        # Detect vague follow-ups: short questions dominated by pronouns/stopwords
-        q_words = set(re.findall(r'\b[a-z]+\b', question.lower()))
-        content_words = q_words - self._VAGUE_STOPWORDS
-        is_vague = len(content_words) == 0 and len(question.split()) <= 10
-        if is_vague:
-            logger.info(f"Vague follow-up detected, skipping raw retrieval: '{question}'")
-            return ctx_docs[:k]
-
-        raw_docs = self.retrieve(question, **retrieval_kwargs)
-
-        # Interleaved merge: alternate ctx and raw for fair representation
-        seen_uris = set()
-        merged = []
-        for i in range(max(len(ctx_docs), len(raw_docs))):
-            if i < len(ctx_docs) and ctx_docs[i].id not in seen_uris:
-                seen_uris.add(ctx_docs[i].id)
-                merged.append(ctx_docs[i])
-            if i < len(raw_docs) and raw_docs[i].id not in seen_uris:
-                seen_uris.add(raw_docs[i].id)
-                merged.append(raw_docs[i])
-        merged = merged[:k]
-        logger.info(f"Dual retrieval merged: {len(merged)} unique docs "
-                    f"(ctx={len(ctx_docs)}, raw={len(raw_docs)})")
-        return merged
+            # Interleaved merge
+            seen_uris = set()
+            merged = []
+            for i in range(max(len(ctx_docs), len(raw_docs))):
+                if i < len(ctx_docs) and ctx_docs[i].id not in seen_uris:
+                    seen_uris.add(ctx_docs[i].id)
+                    merged.append(ctx_docs[i])
+                if i < len(raw_docs) and raw_docs[i].id not in seen_uris:
+                    seen_uris.add(raw_docs[i].id)
+                    merged.append(raw_docs[i])
+            merged = merged[:k]
+            logger.info(f"Dual retrieval merged: {len(merged)} unique docs")
+            return merged
+        else:
+            logger.info(f"Follow-up retrieval (raw query only): '{question}'")
+            return self.retrieve(question, **retrieval_kwargs)
 
     # ==================== Answer Generation ====================
+
+    _TRUNCATED_FR_RE = re.compile(r'^(.+?):\s+(\d+)\s+items including\s+(.+)$')
+
+    def _expand_truncated_fr_lines(self, entity_uri, doc_text):
+        """Expand truncated FR lines ("N items including X, Y, Z") using the KG.
+
+        For ENUMERATION queries, replaces summary lines with the full target list
+        so the LLM can enumerate all related entities. Limits expansion to 20
+        targets per FR to stay within context budget.
+        """
+        lines = doc_text.split('\n')
+        expanded = []
+        for line in lines:
+            m = self._TRUNCATED_FR_RE.match(line)
+            if not m:
+                expanded.append(line)
+                continue
+
+            fr_label = m.group(1)
+            total_count = int(m.group(2))
+
+            # Find matching FR group from knowledge graph
+            fr_neighbors = self.knowledge_graph.get_fr_neighbors(
+                entity_uri, max_results_per_fr=20)
+            matched_group = None
+            for group in fr_neighbors:
+                # Match by FR label prefix (case-insensitive)
+                if group["fr_label"].lower().startswith(fr_label.lower()):
+                    matched_group = group
+                    break
+                if fr_label.lower().startswith(group["fr_label"].lower()):
+                    matched_group = group
+                    break
+
+            if matched_group and len(matched_group["targets"]) > 3:
+                target_labels = [lbl for _, lbl in matched_group["targets"]]
+                # Filter out noise labels (UUIDs, very short)
+                target_labels = [lbl for lbl in target_labels
+                                 if len(lbl) > 3 and not lbl.startswith('http')]
+                if target_labels:
+                    suffix = f" ... and {total_count - len(target_labels)} more" if total_count > len(target_labels) else ""
+                    expanded.append(f"{fr_label}: {', '.join(target_labels)}{suffix}")
+                    continue
+
+            expanded.append(line)
+        return '\n'.join(expanded)
 
     def _generate_answer(self, question, retrieved_docs, query_analysis,
                          include_wikidata, chat_history):
@@ -3489,12 +3884,19 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
         context = ""
         entities_with_wikidata = []
 
+        # For ENUMERATION queries, expand truncated FR lines at context time
+        expand_truncated = (query_analysis and
+                            query_analysis.query_type == "ENUMERATION" and
+                            self.knowledge_graph.vertex_count > 0)
+
         for doc in retrieved_docs:
             entity_uri = doc.id
             entity_label = doc.metadata.get("label", entity_uri.split('/')[-1])
 
             context += f"Entity: {entity_label}\n"
             doc_text = doc.text
+            if expand_truncated:
+                doc_text = self._expand_truncated_fr_lines(entity_uri, doc_text)
             if len(doc_text) > RetrievalConfig.MAX_DOC_CHARS:
                 doc_text = doc_text[:RetrievalConfig.MAX_DOC_CHARS] + "...[truncated]"
             context += doc_text + "\n\n"
@@ -3667,6 +4069,16 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
 
         # Phase 1: Query analysis
         query_analysis = self._analyze_query(question)
+
+        # Post-classification fix: "where was X exhibited?" should target Event,
+        # not Place. The LLM sometimes misclassifies due to the "where" keyword.
+        _EXHIBITION_WORDS = {'exhibited', 'exhibition', 'exhibitions', 'shown', 'displayed'}
+        if any(w in question.lower().split() for w in _EXHIBITION_WORDS):
+            if 'Place' in query_analysis.categories:
+                query_analysis.categories = [
+                    'Event' if c == 'Place' else c for c in query_analysis.categories]
+                logger.info(f"Exhibition classification fix: Place → Event in categories")
+
         k_map = {
             "SPECIFIC": RetrievalConfig.SPECIFIC_K,
             "ENUMERATION": RetrievalConfig.ENUMERATION_K,
@@ -3683,6 +4095,9 @@ Vocabulary entities (E55_Type, E30_Right, etc.) get minimal 2-5 line documents.
 
         if not retrieved_docs:
             return {"answer": "I couldn't find relevant information to answer your question.", "sources": []}
+
+        # Cache top entity URIs for focus entity tracking in follow-up questions
+        self._last_retrieval_uris = [doc.id for doc in retrieved_docs[:5]]
 
         # Phase 3: Context assembly + LLM answer generation
         return self._generate_answer(

@@ -832,6 +832,20 @@
     display: none;
 }
 
+.detail-rel-count {
+    margin-left: 4px;
+    font-size: 0.65rem;
+    color: #999;
+    font-weight: 400;
+}
+
+.detail-rel-more {
+    padding: 3px 0 3px 12px;
+    font-size: 0.75rem;
+    color: #999;
+    font-style: italic;
+}
+
 /* Entity document section */
 .detail-doc-section {
     padding: 12px 16px;
@@ -883,6 +897,18 @@
 
 .detail-wikidata-link a {
     font-size: 0.8rem;
+}
+
+.detail-ask-button {
+    display: block;
+    padding: 10px 16px;
+    border-top: 1px solid #f0f0f0;
+    text-align: center;
+}
+
+.detail-ask-button .btn {
+    font-size: 0.8rem;
+    width: 100%;
 }
 
 /* --- Image Gallery Panel --- */

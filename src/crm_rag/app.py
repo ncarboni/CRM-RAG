@@ -95,6 +95,19 @@ def create_app(config, datasets_config, interface_config, dataset_manager):
         static_folder=str(PROJECT_ROOT / 'static'),
     )
 
+    # Load UI prompt templates from prompts.yaml for the frontend
+    try:
+        prompts = ConfigLoader.load_prompts()
+        ui_prompts = {
+            "entity_card_prompt": prompts.get("entity_card_prompt", "Tell me about {label}"),
+            "entity_detail_prompt": prompts.get("entity_detail_prompt", "Tell me more about {label}"),
+        }
+    except Exception:
+        ui_prompts = {
+            "entity_card_prompt": "Tell me about {label}",
+            "entity_detail_prompt": "Tell me more about {label}",
+        }
+
     # Configure Flask secret key for session security
     secret_key = config.get("flask_secret_key")
     if not secret_key:
@@ -162,6 +175,7 @@ def create_app(config, datasets_config, interface_config, dataset_manager):
         try:
             dataset_manager.get_dataset(dataset_id)
             merged_interface = dataset_manager.get_interface_config(dataset_id, interface_config)
+            merged_interface["prompts"] = ui_prompts
             return jsonify({
                 "success": True,
                 "interface": merged_interface,
@@ -203,33 +217,6 @@ def create_app(config, datasets_config, interface_config, dataset_manager):
             "datasets_count": len(datasets_config.get('datasets', {})),
             "default_dataset": datasets_config.get('default_dataset'),
         })
-
-    @app.route('/graph')
-    def graph():
-        """Graph visualization page"""
-        return render_template('graph.html', interface=interface_config)
-
-    @app.route('/api/graph/data', methods=['GET'])
-    def graph_data():
-        """API endpoint returning graph nodes/edges for visualization."""
-        dataset_id = request.args.get('dataset_id') or datasets_config.get('default_dataset')
-        if not dataset_id:
-            return jsonify({"error": "dataset_id is required"}), 400
-
-        edge_type_param = request.args.get('edge_type', 'fr')
-        edge_type = None if edge_type_param == 'all' else edge_type_param
-
-        try:
-            current_rag = dataset_manager.get_dataset(dataset_id)
-        except (ValueError, RuntimeError) as e:
-            return jsonify({"error": str(e)}), 500
-
-        kg = getattr(current_rag, 'knowledge_graph', None)
-        if kg is None:
-            return jsonify({"error": "Knowledge graph not loaded for this dataset"}), 404
-
-        data = kg.export_json(edge_type=edge_type)
-        return jsonify(data)
 
     @app.route('/api/datasets/<dataset_id>/top-entities', methods=['GET'])
     def top_entities(dataset_id):

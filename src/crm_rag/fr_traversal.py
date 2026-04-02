@@ -26,6 +26,7 @@ MINIMAL_DOC_CLASSES = {
     "E35_Title", "E54_Dimension", "E97_Monetary_Amount", "E52_Time-Span",
     "E41_E33_Linguistic_Appellation", "E33_E41_Linguistic_Appellation",
     "PC67_refers_to",
+    "D1_Digital_Object", "D9_Data_Object", "D29_Annotation_Object",
 }
 
 # Satellite classification subsets
@@ -35,6 +36,7 @@ _TYPE_CLASSES = {"E55_Type", "E56_Language", "E57_Material", "E58_Measurement_Un
 _DIMENSION_CLASSES = {"E54_Dimension", "E97_Monetary_Amount"}
 _TIME_CLASSES = {"E52_Time-Span"}
 _REFERENCE_CLASSES = {"PC67_refers_to"}
+_DIGITAL_CLASSES = {"D1_Digital_Object", "D9_Data_Object", "D29_Annotation_Object"}
 
 
 def classify_satellite(entity_types: Set[str]) -> str:
@@ -54,6 +56,8 @@ def classify_satellite(entity_types: Set[str]) -> str:
             return "time"
         if local in _REFERENCE_CLASSES:
             return "reference"
+        if local in _DIGITAL_CLASSES:
+            return "digital"
     return "other"
 
 
@@ -334,6 +338,11 @@ class FRTraversal:
             for ref in ref_labels[:5]:
                 lines.append(f"Referenced in: {ref}")
 
+        # Digital objects -> "Digital: ..."
+        digital_labels = satellite_info.get("digital", [])
+        if digital_labels:
+            lines.append(f"Digital: {', '.join(str(d) for d in digital_labels[:3])}")
+
         # Types are intentionally omitted — already captured by "Has type:" from FR traversal
 
         return lines
@@ -432,16 +441,12 @@ class FRTraversal:
 
         fr_label_cap = fr_label[0].upper() + fr_label[1:]
 
-        if total_count > SUMMARY_THRESHOLD:
-            # Summary mode: count + 3 examples
-            examples = self._format_targets(
-                targets[:3], target_enrichments, include_attrs, time_span_dates)
-            return f"{fr_label_cap}: {total_count} items including {examples}"
-        else:
-            # List mode: show all
-            formatted = self._format_targets(
-                targets, target_enrichments, include_attrs, time_span_dates)
-            return f"{fr_label_cap}: {formatted}"
+        # Always list all targets — truncation hides entities the LLM needs
+        # for enumeration queries. Document length is managed by MAX_DOC_CHARS
+        # at retrieval time.
+        formatted = self._format_targets(
+            targets, target_enrichments, include_attrs, time_span_dates)
+        return f"{fr_label_cap}: {formatted}"
 
     def format_fr_document(self, entity_uri: str, label: str,
                            types_display: List[str], literals: dict,

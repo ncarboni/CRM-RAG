@@ -244,35 +244,17 @@ class KnowledgeGraph:
         else:
             logger.warning("No FR edges found — skipping FR-only export")
 
-    def export_json(self, edge_type: Optional[str] = "fr",
-                     max_edges: int = 500_000) -> Dict:
+    def export_json(self, max_edges: int = 500_000) -> Dict:
         """Export the graph as a JSON-serializable dict for web visualization.
 
         Args:
-            edge_type: Filter edges — "fr" for FR-only, "rdf" for RDF-only,
-                       or None for all edges.
             max_edges: Safety cap; if exceeded, edges are truncated and
                        ``metadata.truncated`` is set to True.
 
         Returns:
             {"nodes": [...], "edges": [...], "metadata": {...}}
         """
-        if edge_type == "fr":
-            fr_eids = [e.index for e in self._graph.es if e["edge_type"] == "fr"]
-            if not fr_eids:
-                return {"nodes": [], "edges": [],
-                        "metadata": {"node_count": 0, "edge_count": 0,
-                                     "truncated": False, "fc_counts": {}}}
-            g = self._graph.subgraph_edges(fr_eids, delete_vertices=True)
-        elif edge_type == "rdf":
-            rdf_eids = [e.index for e in self._graph.es if e["edge_type"] == "rdf"]
-            if not rdf_eids:
-                return {"nodes": [], "edges": [],
-                        "metadata": {"node_count": 0, "edge_count": 0,
-                                     "truncated": False, "fc_counts": {}}}
-            g = self._graph.subgraph_edges(rdf_eids, delete_vertices=True)
-        else:
-            g = self._graph
+        g = self._graph
 
         truncated = g.ecount() > max_edges
 
@@ -406,6 +388,36 @@ class KnowledgeGraph:
                         else:
                             dates["date"] = obj_val
         return dates
+
+    def shortest_path_distances(self, source_uris: List[str],
+                                target_uris: List[str]) -> Dict[str, int]:
+        """Compute shortest path distances from source URIs to target URIs.
+
+        Returns a dict mapping each target URI to its minimum distance from
+        any source URI. URIs not reachable get infinity. Uses igraph's
+        BFS-based shortest_paths() which is O(V+E) per source.
+        """
+        source_vids = [self._uri_to_vid[u] for u in source_uris
+                       if u in self._uri_to_vid]
+        target_vids = [self._uri_to_vid[u] for u in target_uris
+                       if u in self._uri_to_vid]
+        target_uri_by_vid = {self._uri_to_vid[u]: u for u in target_uris
+                             if u in self._uri_to_vid}
+
+        if not source_vids or not target_vids:
+            return {}
+
+        # shortest_paths returns a matrix: [source_idx][target_idx] → distance
+        dist_matrix = self._graph.shortest_paths(
+            source=source_vids, target=target_vids, mode="all")
+
+        result = {}
+        for j, tvid in enumerate(target_vids):
+            uri = target_uri_by_vid[tvid]
+            min_dist = min(dist_matrix[i][j] for i in range(len(source_vids)))
+            result[uri] = min_dist if min_dist != float('inf') else -1
+
+        return result
 
     # ── FR neighbor queries (for document generation from materialized graph) ──
 
@@ -746,6 +758,27 @@ class KnowledgeGraph:
             if lbl:
                 return lbl
         return uri.split("/")[-1]
+
+    def find_uris_by_label(self, label: str, max_results: int = 5) -> List[str]:
+        """Find entity URIs whose label matches the given string (case-insensitive).
+
+        Uses the igraph vertex label attribute for lookup. Builds a label→vid
+        index on first call for O(1) subsequent lookups.
+
+        Returns list of matching URIs, up to max_results.
+        """
+        if not hasattr(self, '_label_to_vids'):
+            # Build index: lowercase label → list of vertex IDs
+            self._label_to_vids = {}
+            for v in self._graph.vs:
+                lbl = v["label"]
+                if lbl:
+                    key = lbl.lower().strip()
+                    self._label_to_vids.setdefault(key, []).append(v.index)
+
+        key = label.lower().strip()
+        vids = self._label_to_vids.get(key, [])
+        return [self._graph.vs[vid]["name"] for vid in vids[:max_results]]
 
     @property
     def vertex_count(self) -> int:

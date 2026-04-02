@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CIDOC-CRM Graph Explorer</title>
+<script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #0d1117; color: #e6edf3; overflow: hidden; height: 100vh; }
+
+/* Layout */
+#app { display: grid; grid-template-columns: 320px 1fr; grid-template-rows: auto 1fr; height: 100vh; }
+#header { grid-column: 1 / -1; padding: 12px 20px; background: #161b22; border-bottom: 1px solid #30363d; display: flex; align-items: center; gap: 16px; }
+#sidebar { background: #161b22; border-right: 1px solid #30363d; overflow-y: auto; padding: 12px; }
+#graph-area { position: relative; }
+#cy { width: 100%; height: 100%; }
+
+/* Header */
+#header h1 { font-size: 16px; font-weight: 600; color: #58a6ff; white-space: nowrap; }
+#search-box { flex: 1; max-width: 400px; padding: 6px 12px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 14px; }
+#search-box:focus { outline: none; border-color: #58a6ff; }
+#search-results { position: absolute; top: 48px; left: 340px; width: 400px; max-height: 300px; overflow-y: auto; background: #161b22; border: 1px solid #30363d; border-radius: 6px; z-index: 100; display: none; }
+.search-item { padding: 8px 12px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #21262d; }
+.search-item:hover { background: #21262d; }
+.search-item .type { color: #8b949e; font-size: 11px; }
+
+/* Sidebar */
+#entity-info { margin-bottom: 16px; }
+#entity-info h2 { font-size: 15px; color: #58a6ff; margin-bottom: 4px; word-break: break-word; }
+#entity-info .uri { font-size: 10px; color: #8b949e; word-break: break-all; margin-bottom: 8px; }
+#entity-info .type-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin: 2px; }
+
+/* Trail */
+#trail { margin-bottom: 12px; }
+#trail h3 { font-size: 12px; color: #8b949e; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+.trail-item { display: flex; align-items: center; gap: 6px; padding: 4px 8px; margin: 2px 0; border-radius: 4px; cursor: pointer; font-size: 12px; transition: background 0.15s; }
+.trail-item:hover { background: #21262d; }
+.trail-item .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.trail-item.current { background: #1f2a3d; font-weight: 600; }
+.trail-arrow { color: #484f58; font-size: 10px; padding-left: 14px; }
+
+/* Edge list */
+#edges-panel h3 { font-size: 12px; color: #8b949e; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+.edge-group { margin-bottom: 8px; }
+.edge-group .predicate { font-size: 11px; color: #d2a8ff; padding: 2px 0; font-weight: 500; }
+.edge-target { padding: 3px 8px; margin: 1px 0; border-radius: 4px; cursor: pointer; font-size: 12px; transition: all 0.15s; display: flex; align-items: center; gap: 6px; }
+.edge-target:hover { background: #21262d; }
+.edge-target .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.edge-target .direction { color: #484f58; font-size: 10px; }
+
+/* Legend */
+#legend { position: absolute; bottom: 12px; right: 12px; background: rgba(22,27,34,0.92); padding: 10px 14px; border-radius: 8px; border: 1px solid #30363d; }
+#legend .item { display: flex; align-items: center; gap: 6px; font-size: 11px; margin: 3px 0; }
+#legend .swatch { width: 10px; height: 10px; border-radius: 50%; }
+
+/* Controls overlay */
+#controls { position: absolute; top: 12px; right: 12px; display: flex; gap: 6px; }
+#controls button { padding: 6px 12px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; cursor: pointer; font-size: 12px; }
+#controls button:hover { background: #30363d; }
+
+/* Tooltip */
+#tooltip { position: absolute; pointer-events: none; background: rgba(22,27,34,0.95); border: 1px solid #30363d; border-radius: 6px; padding: 6px 10px; font-size: 11px; display: none; z-index: 50; max-width: 300px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <h1>CIDOC-CRM Graph Explorer</h1>
+    <input id="search-box" type="text" placeholder="Search entities by label..." autocomplete="off">
+    <div id="search-results"></div>
+    <span id="node-count" style="font-size:12px;color:#8b949e;"></span>
+  </div>
+  <div id="sidebar">
+    <div id="entity-info"><p style="color:#8b949e;font-size:13px;">Search or click a node to explore.</p></div>
+    <div id="trail"><h3>Traversal Path</h3><div id="trail-items"></div></div>
+    <div id="edges-panel"></div>
+  </div>
+  <div id="graph-area">
+    <div id="cy"></div>
+    <div id="controls">
+      <button onclick="clearTrail()">Clear Path</button>
+      <button onclick="cy.fit(null, 40)">Fit</button>
+    </div>
+    <div id="legend"></div>
+    <div id="tooltip"></div>
+  </div>
+</div>
+
+<script>
+const ENDPOINT = 'http://localhost:3030/asinou/sparql';
+const PREFIXES = {
+  'http://www.cidoc-crm.org/cidoc-crm/': 'crm:',
+  'http://www.w3.org/2000/01/rdf-schema#': 'rdfs:',
+  'http://www.w3.org/1999/02/22-rdf-syntax-ns#': 'rdf:',
+  'http://www.w3.org/2002/07/owl#': 'owl:',
+  'http://w3id.org/vir#': 'vir:',
+  'http://www.w3.org/2004/02/skos/core#': 'skos:',
+};
+const TYPE_COLORS = {
+  'Human-Made Object': '#4FC3F7',
+  'Human-Made Thing': '#4FC3F7',
+  'Physical Object': '#4FC3F7',
+  'Persistent Item': '#4FC3F7',
+  'Actor': '#FF8A65',
+  'Character': '#FF8A65',
+  'Place': '#81C784',
+  'Activity': '#BA68C8',
+  'Production': '#BA68C8',
+  'Event': '#BA68C8',
+  'Modification': '#BA68C8',
+  'Type': '#FFD54F',
+  'Concept': '#FFD54F',
+  'Time-Span': '#F06292',
+  'Visual Item': '#26C6DA',
+  'Representation': '#26C6DA',
+  'Iconographical Atom': '#4FC3F7',
+  'Human-Made Feature': '#4FC3F7',
+};
+const DEFAULT_COLOR = '#8b949e';
+
+const SKIP_PREDS = new Set([
+  'http://www.w3.org/2000/01/rdf-schema#subClassOf',
+  'http://www.w3.org/2000/01/rdf-schema#subPropertyOf',
+  'http://www.w3.org/2002/07/owl#equivalentClass',
+  'http://www.w3.org/2002/07/owl#inverseOf',
+  'http://www.w3.org/2000/01/rdf-schema#domain',
+  'http://www.w3.org/2000/01/rdf-schema#range',
+]);
+
+function shorten(uri) {
+  for (const [full, short] of Object.entries(PREFIXES)) {
+    if (uri.startsWith(full)) return short + uri.slice(full.length);
+  }
+  const parts = uri.split(/[/#]/);
+  return parts[parts.length - 1] || uri;
+}
+
+function getColor(types) {
+  for (const t of types) {
+    const short = shorten(t);
+    for (const [key, color] of Object.entries(TYPE_COLORS)) {
+      if (short.includes(key)) return color;
+    }
+  }
+  return DEFAULT_COLOR;
+}
+
+async function sparql(query) {
+  const resp = await fetch(ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/sparql-results+json' },
+    body: 'query=' + encodeURIComponent(query),
+  });
+  const data = await resp.json();
+  return data.results.bindings;
+}
+
+// --- State ---
+let trail = []; // [{uri, label, color}]
+let entityCache = {}; // uri -> {label, types, color, neighbors}
+
+// --- Cytoscape ---
+const cy = cytoscape({
+  container: document.getElementById('cy'),
+  style: [
+    { selector: 'node', style: {
+      'label': 'data(label)',
+      'background-color': 'data(color)',
+      'width': 'data(size)',
+      'height': 'data(size)',
+      'font-size': '10px',
+      'color': '#c9d1d9',
+      'text-valign': 'bottom',
+      'text-margin-y': 5,
+      'text-wrap': 'ellipsis',
+      'text-max-width': '100px',
+      'border-width': 0,
+      'transition-property': 'background-color, width, height, border-width',
+      'transition-duration': '0.3s',
+    }},
+    { selector: 'edge', style: {
+      'width': 1.5,
+      'line-color': '#30363d',
+      'target-arrow-color': '#484f58',
+      'target-arrow-shape': 'triangle',
+      'curve-style': 'bezier',
+      'arrow-scale': 0.7,
+      'label': 'data(label)',
+      'font-size': '7px',
+      'color': '#6e7681',
+      'text-rotation': 'autorotate',
+      'text-margin-y': -8,
+      'transition-property': 'line-color, width',
+      'transition-duration': '0.3s',
+    }},
+    { selector: '.focus', style: {
+      'background-color': '#f0883e',
+      'border-width': 3,
+      'border-color': '#f0883e',
+      'width': 35,
+      'height': 35,
+      'font-size': '12px',
+      'font-weight': 'bold',
+      'color': '#ffffff',
+      'z-index': 999,
+    }},
+    { selector: '.trail-node', style: {
+      'border-width': 2,
+      'border-color': '#58a6ff',
+    }},
+    { selector: '.trail-edge', style: {
+      'line-color': '#58a6ff',
+      'target-arrow-color': '#58a6ff',
+      'width': 2.5,
+      'z-index': 10,
+    }},
+    { selector: '.faded', style: { 'opacity': 0.2 }},
+    { selector: '.highlight-edge', style: {
+      'line-color': '#f0883e',
+      'target-arrow-color': '#f0883e',
+      'width': 2.5,
+    }},
+  ],
+  layout: { name: 'preset' },
+  minZoom: 0.1,
+  maxZoom: 5,
+});
+
+// --- Data fetching ---
+
+async function fetchEntityData(uri) {
+  if (entityCache[uri]) return entityCache[uri];
+
+  // Get label + types
+  const metaRows = await sparql(`
+    SELECT ?label ?type WHERE {
+      <${uri}> <http://www.w3.org/2000/01/rdf-schema#label> ?label .
+      OPTIONAL { <${uri}> a ?type }
+    } LIMIT 20
+  `);
+  let label = shorten(uri);
+  let types = [];
+  for (const r of metaRows) {
+    if (r.label) label = r.label.value;
+    if (r.type) types.push(r.type.value);
+  }
+
+  // Get neighbors (outgoing + incoming, skip schema)
+  const neighborsOut = await sparql(`
+    SELECT ?p ?o ?oLabel WHERE {
+      <${uri}> ?p ?o .
+      FILTER(isIRI(?o))
+      OPTIONAL { ?o <http://www.w3.org/2000/01/rdf-schema#label> ?oLabel }
+    } LIMIT 200
+  `);
+  const neighborsIn = await sparql(`
+    SELECT ?s ?p ?sLabel WHERE {
+      ?s ?p <${uri}> .
+      FILTER(isIRI(?s))
+      OPTIONAL { ?s <http://www.w3.org/2000/01/rdf-schema#label> ?sLabel }
+    } LIMIT 200
+  `);
+
+  // Get neighbor types in batch
+  const neighborUris = new Set();
+  neighborsOut.forEach(r => { if (!SKIP_PREDS.has(r.p.value)) neighborUris.add(r.o.value); });
+  neighborsIn.forEach(r => { if (!SKIP_PREDS.has(r.p.value)) neighborUris.add(r.s.value); });
+
+  const neighborTypes = {};
+  if (neighborUris.size > 0) {
+    const values = [...neighborUris].map(u => `<${u}>`).join(' ');
+    const typeRows = await sparql(`SELECT ?s ?type WHERE { VALUES ?s { ${values} } ?s a ?type } LIMIT 500`);
+    for (const r of typeRows) {
+      if (!neighborTypes[r.s.value]) neighborTypes[r.s.value] = [];
+      neighborTypes[r.s.value].push(r.type.value);
+    }
+  }
+
+  const neighbors = [];
+  const seenEdges = new Set();
+  for (const r of neighborsOut) {
+    const pred = r.p.value;
+    if (SKIP_PREDS.has(pred)) continue;
+    if (pred === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type') continue;
+    const key = `out:${pred}:${r.o.value}`;
+    if (seenEdges.has(key)) continue;
+    seenEdges.add(key);
+    neighbors.push({
+      uri: r.o.value,
+      label: r.oLabel ? r.oLabel.value : shorten(r.o.value),
+      predicate: pred,
+      predicateLabel: shorten(pred),
+      direction: 'out',
+      types: neighborTypes[r.o.value] || [],
+    });
+  }
+  for (const r of neighborsIn) {
+    const pred = r.p.value;
+    if (SKIP_PREDS.has(pred)) continue;
+    if (pred === 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type') continue;
+    const key = `in:${pred}:${r.s.value}`;
+    if (seenEdges.has(key)) continue;
+    seenEdges.add(key);
+    neighbors.push({
+      uri: r.s.value,
+      label: r.sLabel ? r.sLabel.value : shorten(r.s.value),
+      predicate: pred,
+      predicateLabel: shorten(pred),
+      direction: 'in',
+      types: neighborTypes[r.s.value] || [],
+    });
+  }
+
+  const color = getColor(types);
+  const result = { uri, label, types, color, neighbors };
+  entityCache[uri] = result;
+  return result;
+}
+
+// --- Rendering ---
+
+async function focusEntity(uri, addToTrail = true) {
+  const data = await fetchEntityData(uri);
+
+  // Update trail
+  if (addToTrail) {
+    const idx = trail.findIndex(t => t.uri === uri);
+    if (idx >= 0) {
+      trail = trail.slice(0, idx + 1);
+    } else {
+      trail.push({ uri: data.uri, label: data.label, color: data.color });
+    }
+  }
+
+  // Build cytoscape elements
+  const elements = [];
+  const existingIds = new Set();
+
+  // Center node
+  elements.push({ group: 'nodes', data: {
+    id: uri, label: data.label.substring(0, 30), fullLabel: data.label,
+    color: data.color, size: 35,
+  }});
+  existingIds.add(uri);
+
+  // Trail nodes (keep them visible)
+  for (const t of trail) {
+    if (!existingIds.has(t.uri)) {
+      elements.push({ group: 'nodes', data: {
+        id: t.uri, label: t.label.substring(0, 25), fullLabel: t.label,
+        color: t.color, size: 22,
+      }});
+      existingIds.add(t.uri);
+    }
+  }
+
+  // Neighbor nodes
+  for (const n of data.neighbors) {
+    if (!existingIds.has(n.uri)) {
+      const nc = getColor(n.types);
+      elements.push({ group: 'nodes', data: {
+        id: n.uri, label: n.label.substring(0, 25), fullLabel: n.label,
+        color: nc, size: 16,
+      }});
+      existingIds.add(n.uri);
+    }
+    // Edge
+    const edgeId = n.direction === 'out' ? `${uri}-${n.predicate}-${n.uri}` : `${n.uri}-${n.predicate}-${uri}`;
+    if (!existingIds.has(edgeId)) {
+      elements.push({ group: 'edges', data: {
+        id: edgeId,
+        source: n.direction === 'out' ? uri : n.uri,
+        target: n.direction === 'out' ? n.uri : uri,
+        label: n.predicateLabel,
+      }});
+      existingIds.add(edgeId);
+    }
+  }
+
+  // Trail edges
+  for (let i = 1; i < trail.length; i++) {
+    const fromData = entityCache[trail[i-1].uri];
+    if (!fromData) continue;
+    const link = fromData.neighbors.find(n => n.uri === trail[i].uri);
+    if (link) {
+      const edgeId = link.direction === 'out'
+        ? `${trail[i-1].uri}-${link.predicate}-${trail[i].uri}`
+        : `${trail[i].uri}-${link.predicate}-${trail[i-1].uri}`;
+      // Already added above
+    }
+  }
+
+  // Replace graph
+  cy.elements().remove();
+  cy.add(elements);
+
+  // Apply classes
+  cy.getElementById(uri).addClass('focus');
+  for (const t of trail) {
+    cy.getElementById(t.uri).addClass('trail-node');
+  }
+  // Mark trail edges
+  for (let i = 1; i < trail.length; i++) {
+    const fromData = entityCache[trail[i-1].uri];
+    if (!fromData) continue;
+    const link = fromData.neighbors.find(n => n.uri === trail[i].uri);
+    if (link) {
+      const edgeId = link.direction === 'out'
+        ? `${trail[i-1].uri}-${link.predicate}-${trail[i].uri}`
+        : `${trail[i].uri}-${link.predicate}-${trail[i-1].uri}`;
+      const e = cy.getElementById(edgeId);
+      if (e.length) e.addClass('trail-edge');
+    }
+  }
+
+  // Layout
+  cy.layout({
+    name: 'cose',
+    animate: true,
+    animationDuration: 600,
+    animationEasing: 'ease-out',
+    randomize: false,
+    nodeRepulsion: function() { return 12000; },
+    idealEdgeLength: function() { return 120; },
+    gravity: 0.4,
+    numIter: 300,
+    nodeDimensionsIncludeLabels: true,
+  }).run();
+
+  // Update sidebar
+  renderSidebar(data);
+  renderTrail();
+  document.getElementById('node-count').textContent = `${elements.filter(e => e.group === 'nodes').length} nodes, ${elements.filter(e => e.group === 'edges').length} edges`;
+}
+
+function renderSidebar(data) {
+  // Entity info
+  const typeHtml = data.types.map(t => {
+    const short = shorten(t);
+    const color = getColor([t]);
+    return `<span class="type-badge" style="background:${color}22;color:${color};border:1px solid ${color}44;">${short}</span>`;
+  }).join('');
+
+  document.getElementById('entity-info').innerHTML = `
+    <h2>${data.label}</h2>
+    <div class="uri">${data.uri}</div>
+    <div>${typeHtml}</div>
+  `;
+
+  // Edges grouped by predicate
+  const groups = {};
+  for (const n of data.neighbors) {
+    const key = `${n.direction}:${n.predicateLabel}`;
+    if (!groups[key]) groups[key] = { predicate: n.predicateLabel, direction: n.direction, items: [] };
+    groups[key].items.push(n);
+  }
+
+  let edgesHtml = '<h3>Relationships</h3>';
+  for (const [, g] of Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]))) {
+    const arrow = g.direction === 'out' ? '→' : '←';
+    edgesHtml += `<div class="edge-group">`;
+    edgesHtml += `<div class="predicate">${arrow} ${g.predicate} (${g.items.length})</div>`;
+    for (const item of g.items.slice(0, 15)) {
+      const color = getColor(item.types);
+      edgesHtml += `<div class="edge-target" onclick="focusEntity('${item.uri.replace(/'/g, "\\'")}')">
+        <span class="dot" style="background:${color}"></span>
+        ${item.label}
+      </div>`;
+    }
+    if (g.items.length > 15) edgesHtml += `<div style="color:#8b949e;font-size:11px;padding:2px 8px;">... and ${g.items.length - 15} more</div>`;
+    edgesHtml += `</div>`;
+  }
+  document.getElementById('edges-panel').innerHTML = edgesHtml;
+}
+
+function renderTrail() {
+  const container = document.getElementById('trail-items');
+  if (trail.length === 0) { container.innerHTML = '<p style="color:#484f58;font-size:12px;">No path yet</p>'; return; }
+  let html = '';
+  for (let i = 0; i < trail.length; i++) {
+    const t = trail[i];
+    const isCurrent = i === trail.length - 1;
+    if (i > 0) html += `<div class="trail-arrow">↓</div>`;
+    html += `<div class="trail-item${isCurrent ? ' current' : ''}" onclick="focusEntity('${t.uri.replace(/'/g, "\\'")}')">
+      <span class="dot" style="background:${t.color}"></span>
+      ${t.label}
+    </div>`;
+  }
+  container.innerHTML = html;
+}
+
+function clearTrail() {
+  trail = [];
+  renderTrail();
+  if (trail.length === 0) {
+    cy.elements().remove();
+    document.getElementById('entity-info').innerHTML = '<p style="color:#8b949e;font-size:13px;">Search or click a node to explore.</p>';
+    document.getElementById('edges-panel').innerHTML = '';
+    document.getElementById('node-count').textContent = '';
+  }
+}
+
+// --- Search ---
+
+let searchTimeout;
+const searchBox = document.getElementById('search-box');
+const searchResults = document.getElementById('search-results');
+
+searchBox.addEventListener('input', () => {
+  clearTimeout(searchTimeout);
+  const term = searchBox.value.trim();
+  if (term.length < 2) { searchResults.style.display = 'none'; return; }
+  searchTimeout = setTimeout(() => doSearch(term), 300);
+});
+
+searchBox.addEventListener('blur', () => {
+  setTimeout(() => { searchResults.style.display = 'none'; }, 200);
+});
+
+async function doSearch(term) {
+  const rows = await sparql(`
+    SELECT DISTINCT ?s ?label ?type WHERE {
+      ?s <http://www.w3.org/2000/01/rdf-schema#label> ?label .
+      FILTER(CONTAINS(LCASE(?label), "${term.toLowerCase().replace(/"/g, '\\"')}"))
+      OPTIONAL { ?s a ?type }
+    } LIMIT 20
+  `);
+  const grouped = {};
+  for (const r of rows) {
+    const uri = r.s.value;
+    if (!grouped[uri]) grouped[uri] = { uri, label: r.label.value, types: [] };
+    if (r.type) grouped[uri].types.push(shorten(r.type.value));
+  }
+  const results = Object.values(grouped);
+  if (results.length === 0) { searchResults.style.display = 'none'; return; }
+
+  searchResults.innerHTML = results.map(r =>
+    `<div class="search-item" onclick="searchResults.style.display='none'; searchBox.value='${r.label.replace(/'/g, "\\'")}'; focusEntity('${r.uri.replace(/'/g, "\\'")}')">
+      <div>${r.label}</div>
+      <div class="type">${[...new Set(r.types)].join(', ')}</div>
+    </div>`
+  ).join('');
+  searchResults.style.display = 'block';
+}
+
+// --- Node click ---
+cy.on('tap', 'node', function(e) {
+  const uri = e.target.id();
+  focusEntity(uri);
+});
+
+// --- Tooltip on hover ---
+const tooltip = document.getElementById('tooltip');
+cy.on('mouseover', 'node', function(e) {
+  const node = e.target;
+  tooltip.textContent = node.data('fullLabel') || node.data('label');
+  tooltip.style.display = 'block';
+});
+cy.on('mouseout', 'node', function() { tooltip.style.display = 'none'; });
+cy.on('mousemove', function(e) {
+  tooltip.style.left = (e.originalEvent.clientX + 12) + 'px';
+  tooltip.style.top = (e.originalEvent.clientY + 12) + 'px';
+});
+
+// --- Legend ---
+const legendEl = document.getElementById('legend');
+const legendItems = [
+  ['Human-Made Object', '#4FC3F7'],
+  ['Actor / Character', '#FF8A65'],
+  ['Place', '#81C784'],
+  ['Activity / Event', '#BA68C8'],
+  ['Type / Concept', '#FFD54F'],
+  ['Time-Span', '#F06292'],
+  ['Visual Item', '#26C6DA'],
+];
+legendEl.innerHTML = legendItems.map(([name, color]) =>
+  `<div class="item"><span class="swatch" style="background:${color}"></span>${name}</div>`
+).join('');
+
+// --- Start with a default entity if available ---
+(async () => {
+  // Try to load Panagia Phorbiotissa as starting point
+  const rows = await sparql(`
+    SELECT ?s WHERE {
+      ?s <http://www.w3.org/2000/01/rdf-schema#label> "Panagia Phorbiottisa" .
+    } LIMIT 1
+  `);
+  if (rows.length > 0) {
+    focusEntity(rows[0].s.value);
+  }
+})();
+</script>
+</body>
+</html>

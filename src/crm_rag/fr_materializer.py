@@ -9,12 +9,15 @@ Adapted from the validated IGraphPathWalker in test_fr_igraph_vs_sparql.py
 which matched SPARQL results 5/5 on the MAH dataset.
 """
 
+import json
 import logging
 import time
 from collections import defaultdict
 from typing import Dict, List, Optional, Set, Tuple
 
 import igraph as ig
+
+from crm_rag import PROJECT_ROOT
 
 from crm_rag.fundamental_relationships import (
     FundamentalRelationship,
@@ -442,6 +445,7 @@ def materialize_fr_edges(
     property_domain_range: Optional[Dict[str, Dict[str, str]]] = None,
     class_to_fc: Optional[Dict[str, str]] = None,
     c1_excluded_vids: Optional[Set[int]] = None,
+    satellite_vids: Optional[Set[int]] = None,
 ) -> List[Tuple]:
     """Materialize FR edges on the full igraph using predicate-first traversal.
 
@@ -470,6 +474,8 @@ def materialize_fr_edges(
         class_to_fc: class_local -> FC string.  Built via _build_class_to_fc().
         c1_excluded_vids: vertex IDs to exclude when domain/range is C1.Object
             (E30_Right, E41_Appellation and their subclasses).
+        satellite_vids: vertex IDs of satellite entities (MINIMAL_DOC_CLASSES).
+            Excluded from FR walk sources to prevent duplicate FR edges.
 
     Returns:
         List of (entity_uri, entity_label, fr_stats_dict) tuples
@@ -477,6 +483,20 @@ def materialize_fr_edges(
     """
     if fr_definitions is None:
         fr_definitions = build_fully_expanded()
+
+    # Load FR config: whitelist of enabled FRs + min_path_steps filter
+    fr_config_path = PROJECT_ROOT / "config" / "fr_enabled.json"
+    if fr_config_path.exists():
+        with open(fr_config_path) as f:
+            fr_config = json.load(f)
+        enabled_frs = set(fr_config.get("enabled_frs", []))
+        min_path_steps = fr_config.get("min_path_steps", 1)
+        fr_definitions = [fr for fr in fr_definitions if fr.id in enabled_frs]
+        logger.info(f"  FR config: {len(enabled_frs)} enabled, "
+                    f"min_path_steps={min_path_steps}, "
+                    f"{len(fr_definitions)} FRs after filtering")
+    else:
+        min_path_steps = 1  # no filtering
 
     # Build transitive property families for subPropertyOf resolution
     prop_families = (
@@ -502,6 +522,8 @@ def materialize_fr_edges(
 
     if c1_excluded_vids is None:
         c1_excluded_vids = set()
+    if satellite_vids is None:
+        satellite_vids = set()
 
     walker = IGraphFRWalker(
         kg._graph, inverse_map, prop_families,
@@ -535,10 +557,15 @@ def materialize_fr_edges(
         domain_fc = fr.domain_fc
         range_fc = fr.range_fc
 
+        # Filter paths by min_path_steps (skip binary paths that replicate RDF edges)
+        active_paths = [p for p in fr.paths if len(p.steps) >= min_path_steps]
+        if not active_paths:
+            continue
+
         # Build step trie for this FR — shared prefixes are traversed once
-        trie_root = _build_step_trie(fr.paths)
+        trie_root = _build_step_trie(active_paths)
         n_trie = _count_trie_nodes(trie_root)
-        n_steps = sum(len(p.steps) for p in fr.paths)
+        n_steps = sum(len(p.steps) for p in active_paths)
 
         # Compute source sets per root child (step-0 predicate routing)
         step0_sources: Dict[Tuple[str, bool], Set[int]] = {}
@@ -554,6 +581,10 @@ def materialize_fr_edges(
         # C1.Object domain exclusion: remove E30_Right, E41_Appellation subclasses
         if c1_excluded_vids and fr.domain_class == "C1.Object":
             domain_sources -= c1_excluded_vids
+
+        # Exclude satellite entities — they duplicate parent FR edges
+        if satellite_vids:
+            domain_sources -= satellite_vids
 
         fr_pairs = 0
 
@@ -608,7 +639,7 @@ def materialize_fr_edges(
         if fr_pairs > 0:
             logger.info(
                 f"  {fr_id} ({fr_label}): {fr_pairs} pairs in {elapsed:.1f}s "
-                f"[{len(fr.paths)} paths, {n_steps} steps -> {n_trie} trie nodes]"
+                f"[{len(active_paths)}/{len(fr.paths)} paths, {n_steps} steps -> {n_trie} trie nodes]"
             )
 
     # Convert to the format expected by kg.add_fr_edges()
@@ -659,10 +690,22 @@ def get_step0_predicates(
     if fr_definitions is None:
         fr_definitions = build_fully_expanded()
 
+    # Load FR config to match materialize_fr_edges() filtering
+    fr_config_path = PROJECT_ROOT / "config" / "fr_enabled.json"
+    min_path_steps = 1
+    enabled_frs = None
+    if fr_config_path.exists():
+        with open(fr_config_path) as f:
+            fr_config = json.load(f)
+        enabled_frs = set(fr_config.get("enabled_frs", []))
+        min_path_steps = fr_config.get("min_path_steps", 1)
+
     step0 = set()
     for fr in fr_definitions:
+        if enabled_frs is not None and fr.id not in enabled_frs:
+            continue
         for path in fr.paths:
-            if path.steps:
+            if path.steps and len(path.steps) >= min_path_steps:
                 step0.add(path.steps[0].property)
 
     # Expand with sub-properties so direct predicates section doesn't

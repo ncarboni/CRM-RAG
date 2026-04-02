@@ -1,14 +1,19 @@
-import { Cosmograph, prepareCosmographData } from '@cosmograph/cosmograph';
+import { Graph } from 'https://cdn.jsdelivr.net/npm/@cosmograph/cosmos@1.6.2-beta.1/+esm';
 
 const FC_COLORS = {
-    Thing:   '#4FC3F7',
-    Actor:   '#FF8A65',
-    Place:   '#81C784',
-    Event:   '#BA68C8',
-    Concept: '#FFD54F',
-    Time:    '#F06292',
+    Thing:   [79, 195, 247, 1],   // #4FC3F7
+    Actor:   [255, 138, 101, 1],  // #FF8A65
+    Place:   [129, 199, 132, 1],  // #81C784
+    Event:   [186, 104, 200, 1],  // #BA68C8
+    Concept: [255, 213, 79, 1],   // #FFD54F
+    Time:    [240, 98, 146, 1],   // #F06292
 };
-const DEFAULT_COLOR = '#888888';
+const FC_HEX = {
+    Thing: '#4FC3F7', Actor: '#FF8A65', Place: '#81C784',
+    Event: '#BA68C8', Concept: '#FFD54F', Time: '#F06292',
+};
+const DEFAULT_COLOR = [136, 136, 136, 1];
+const DEFAULT_HEX = '#888888';
 
 const datasetSelect = document.getElementById('dataset-select');
 const datasetStatus = document.getElementById('dataset-status');
@@ -17,14 +22,15 @@ const truncationWarning = document.getElementById('truncation-warning');
 const truncationMessage = document.getElementById('truncation-message');
 const fcLegend = document.getElementById('fc-legend');
 const graphStats = document.getElementById('graph-stats');
-const graphContainer = document.getElementById('graph-container');
+const canvas = document.getElementById('graph-canvas');
 
 let currentDatasetId = null;
-let cosmograph = null;
+let graph = null;
 
 // Keep raw data for click lookups
 let currentNodes = [];
 let currentEdges = [];
+let nodeSizes = [];
 
 // --- Helpers ---
 
@@ -33,7 +39,14 @@ function hideDetail() {
     if (el) el.classList.add('d-none');
 }
 
-// --- Dataset loading (same pattern as chat.js) ---
+// Resize canvas to fill its wrapper
+function resizeCanvas() {
+    const wrapper = canvas.parentElement;
+    canvas.width = wrapper.clientWidth;
+    canvas.height = wrapper.clientHeight;
+}
+
+// --- Dataset loading ---
 
 async function loadDatasets() {
     try {
@@ -91,10 +104,6 @@ async function selectDataset(datasetId) {
 
 // --- Graph loading & rendering ---
 
-function getEdgeType() {
-    return document.querySelector('input[name="edge-type"]:checked').value;
-}
-
 async function loadGraph() {
     if (!currentDatasetId) return;
 
@@ -102,16 +111,14 @@ async function loadGraph() {
     truncationWarning.classList.add('d-none');
     hideDetail();
 
-    const edgeType = getEdgeType();
-
     try {
-        const resp = await fetch(`/api/graph/data?dataset_id=${currentDatasetId}&edge_type=${edgeType}`);
+        const resp = await fetch(`/api/graph/data?dataset_id=${currentDatasetId}`);
         if (!resp.ok) {
             console.error('Graph data error:', await resp.text());
             return;
         }
         const data = await resp.json();
-        await renderGraph(data);
+        renderGraph(data);
     } catch (err) {
         console.error('Error loading graph:', err);
     } finally {
@@ -119,10 +126,9 @@ async function loadGraph() {
     }
 }
 
-async function renderGraph(data) {
+function renderGraph(data) {
     const { nodes, edges, metadata } = data;
 
-    // Store for click lookups
     currentNodes = nodes;
     currentEdges = edges;
 
@@ -140,45 +146,16 @@ async function renderGraph(data) {
     }
     if (prMax === 0) prMax = 1;
 
-    // Enrich nodes with color and size fields
-    const rawPoints = nodes.map(n => ({
-        id: n.id,
-        label: n.label,
-        color: FC_COLORS[n.fc] || DEFAULT_COLOR,
-        size: n.pagerank > 0 ? 3 + 15 * Math.sqrt(n.pagerank / prMax) : 3,
-    }));
+    // Pre-compute sizes
+    nodeSizes = nodes.map(n =>
+        n.pagerank > 0 ? 3 + 15 * Math.sqrt(n.pagerank / prMax) : 3
+    );
 
-    const rawLinks = edges.map(e => ({
-        source: e.source,
-        target: e.target,
-    }));
+    // Build cosmos input nodes/links
+    const cosmosNodes = nodes.map(n => ({ id: n.id }));
+    const cosmosLinks = edges.map(e => ({ source: e.source, target: e.target }));
 
-    // Prepare data via Cosmograph's data pipeline
-    const dataConfig = {
-        points: {
-            pointIdBy: 'id',
-            pointLabelBy: 'label',
-            pointColorBy: 'color',
-            pointSizeBy: 'size',
-        },
-        links: {
-            linkSourceBy: 'source',
-            linkTargetsBy: ['target'],
-        },
-    };
-
-    const result = await prepareCosmographData(dataConfig, rawPoints, rawLinks);
-    if (!result) return;
-
-    const { points, links, cosmographConfig } = result;
-
-    // Destroy previous instance
-    if (cosmograph) {
-        graphContainer.innerHTML = '';
-        cosmograph = null;
-    }
-
-    // Build edge index for click lookups (node id -> edges)
+    // Build edge index for click lookups
     const edgeIndex = new Map();
     for (const e of edges) {
         if (!edgeIndex.has(e.source)) edgeIndex.set(e.source, []);
@@ -187,27 +164,31 @@ async function renderGraph(data) {
         edgeIndex.get(e.target).push(e);
     }
 
-    cosmograph = new Cosmograph(graphContainer, {
-        points,
-        links,
-        ...cosmographConfig,
+    // Build node index for fast lookup by id
+    const nodeById = new Map();
+    nodes.forEach((n, i) => nodeById.set(n.id, i));
+
+    resizeCanvas();
+
+    // Destroy previous instance
+    if (graph) {
+        graph.destroy();
+        graph = null;
+    }
+
+    graph = new Graph(canvas, {
         backgroundColor: '#1a1a2e',
 
-        // Sizing: use computed sizes directly
-        pointSizeStrategy: 'direct',
-        pointSizeScale: 1,
-
-        // Color: use hex colors directly
-        pointColorStrategy: 'direct',
+        // Node appearance
+        nodeColor: (n, i) => FC_COLORS[nodes[i]?.fc] || DEFAULT_COLOR,
+        nodeSize: (n, i) => nodeSizes[i] || 3,
 
         // Links
         renderLinks: true,
-        linkDefaultWidth: 2,
-        linkOpacity: 0.6,
-        linkGreyoutOpacity: 0.08,
+        linkWidth: 0.3,
+        linkColor: [50, 50, 80, 0.6],
         curvedLinks: true,
         curvedLinkWeight: 0.5,
-        scaleLinksOnZoom: true,
 
         // Simulation
         simulationGravity: 0.15,
@@ -217,30 +198,23 @@ async function renderGraph(data) {
         showDynamicLabels: true,
         showTopLabels: true,
         showTopLabelsLimit: 20,
-        pointLabelColor: '#ffffff',
-        showHoveredPointLabel: true,
-        showFocusedPointLabel: true,
+        nodeLabelAccessor: (n, i) => nodes[i]?.label || '',
+        nodeLabelColor: '#ffffff',
 
         // Interaction
-        selectPointOnClick: 'single',
-        focusPointOnClick: true,
-        renderHoveredPointRing: true,
-        hoveredPointRingColor: '#ffffff',
-        hoveredPointCursor: 'pointer',
-        pointGreyoutOpacity: 0.15,
+        hoveredNodeRingColor: '#ffffff',
 
-        // Click handler: show detail panel
-        onPointClick: (clickedIndex) => {
-            if (clickedIndex == null || clickedIndex < 0 || clickedIndex >= nodes.length) {
+        onClick: (clickedNode, index, position, event) => {
+            if (clickedNode == null || index == null || index < 0 || index >= nodes.length) {
                 hideDetail();
                 return;
             }
-            const node = nodes[clickedIndex];
+            const node = nodes[index];
             showNodeDetail(node, edgeIndex.get(node.id) || []);
         },
-
-        onBackgroundClick: () => hideDetail(),
     });
+
+    graph.setData(cosmosNodes, cosmosLinks);
 
     // Update legend & stats
     renderLegend(metadata.fc_counts);
@@ -256,31 +230,26 @@ function showNodeDetail(node, nodeEdges) {
     labelEl.textContent = node.label;
 
     const fc = node.fc || 'Unknown';
-    const fcColor = FC_COLORS[fc] || DEFAULT_COLOR;
+    const fcColor = FC_HEX[fc] || DEFAULT_HEX;
 
     let html = '<dl>';
 
-    // FC badge
     html += '<dt>Category</dt>';
     html += `<dd><span class="fc-badge" style="background:${fcColor};color:#000">${fc}</span></dd>`;
 
-    // Type
     if (node.doc_type) {
         html += '<dt>Type</dt>';
         html += `<dd>${node.doc_type}</dd>`;
     }
 
-    // PageRank
     if (node.pagerank > 0) {
         html += '<dt>PageRank</dt>';
         html += `<dd>${node.pagerank.toExponential(3)}</dd>`;
     }
 
-    // URI
     html += '<dt>URI</dt>';
     html += `<dd>${node.id}</dd>`;
 
-    // Connected edges
     if (nodeEdges.length > 0) {
         html += `<dt>Connections (${nodeEdges.length})</dt><dd>`;
         html += '<ul class="edge-list">';
@@ -312,7 +281,7 @@ function renderLegend(fcCounts) {
         const item = document.createElement('div');
         item.className = 'fc-legend-item';
         item.innerHTML =
-            `<span class="fc-legend-dot" style="background:${FC_COLORS[fc]}"></span>` +
+            `<span class="fc-legend-dot" style="background:${FC_HEX[fc]}"></span>` +
             `<span>${fc}</span>` +
             `<span class="fc-legend-count">(${count.toLocaleString()})</span>`;
         fcLegend.appendChild(item);
@@ -339,16 +308,14 @@ function renderStats(meta) {
 
 datasetSelect.addEventListener('change', (e) => selectDataset(e.target.value));
 
-document.querySelectorAll('input[name="edge-type"]').forEach(radio => {
-    radio.addEventListener('change', () => loadGraph());
-});
-
-// Close button — use event delegation on document since the element
-// lives outside the graph container and is always in the DOM
 document.addEventListener('click', (e) => {
     if (e.target.id === 'node-detail-close' || e.target.closest('#node-detail-close')) {
         hideDetail();
     }
+});
+
+window.addEventListener('resize', () => {
+    resizeCanvas();
 });
 
 // Boot

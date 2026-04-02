@@ -1,0 +1,870 @@
+[
+  {
+    "id": "Q1",
+    "question": "Which pieces from Swiss Artists are in the Musée d'art et d'histoire in Geneva?",
+    "entity_count": 338,
+    "key_entities": [
+      {
+        "uri": "https://data.mahmah.ch/agent/8679",
+        "label": "Ferdinand Hodler",
+        "work_count": 28
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/1926",
+        "label": "Franz Hegi",
+        "work_count": 26
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/52453",
+        "label": "Alfred Dumont",
+        "work_count": 26
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/5569",
+        "label": "Stéphane Brunner",
+        "work_count": 25
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/62887",
+        "label": "Jakob Samuel Weibel",
+        "work_count": 17
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/1415",
+        "label": "Théophile Alexandre Steinlen",
+        "work_count": 16
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/19463",
+        "label": "Jean-Antoine Linck",
+        "work_count": 16
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/14121",
+        "label": "Jean-Étienne Liotard",
+        "work_count": 12
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/16389",
+        "label": "Wolfgang Adam Toepffer",
+        "work_count": 11
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/40000",
+        "label": "Marc Proessel",
+        "work_count": 9
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/40397",
+        "label": "Martin Disler",
+        "work_count": 9
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/58848",
+        "label": "Barthélemy Bodmer",
+        "work_count": 9
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/59149",
+        "label": "Gérard de Palézieux",
+        "work_count": 9
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/9522",
+        "label": "Davide Antonio Fossati",
+        "work_count": 9
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/52907",
+        "label": "Gérard Pétremand",
+        "work_count": 6
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/578",
+        "label": "Pietro Sarto",
+        "work_count": 6
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/58721",
+        "label": "Félix Vallotton",
+        "work_count": 6
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/59961",
+        "label": "Gabriel Ludwig Lory",
+        "work_count": 6
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/17615",
+        "label": "Johann Ludwig Aberli",
+        "work_count": 5
+      }
+    ],
+    "sparql_queries": [
+      "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX skos: <http://www.w3.org/2004/02/skos/core#>\n\nSELECT ?artist ?artistLabel (COUNT(DISTINCT ?obj) as ?workCount)\nWHERE {\n  {\n    ?artist crm:P92i_was_brought_into_existence_by ?birth .\n    ?birth crm:P7_took_place_at ?birthPlace .\n    ?birthPlace crm:P89_falls_within* <https://data.mahmah.ch/place/a61a6cd3-df3e-584f-a598-3c1c7b935a1b> .\n  } UNION {\n    ?artist crm:P107i_is_current_or_former_member_of ?group .\n    ?group rdfs:label ?gLabel .\n    FILTER(CONTAINS(LCASE(?gLabel), 'suisse'))\n  }\n  ?obj crm:P108i_was_produced_by ?prod .\n  ?prod crm:P14_carried_out_by ?artist .\n  ?artist skos:prefLabel ?artistLabel .\n}\nGROUP BY ?artist ?artistLabel\nORDER BY DESC(?workCount)",
+      "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n\nSELECT (COUNT(DISTINCT ?obj) as ?totalWorks) (COUNT(DISTINCT ?artist) as ?totalArtists)\nWHERE {\n  {\n    ?artist crm:P92i_was_brought_into_existence_by ?birth .\n    ?birth crm:P7_took_place_at ?birthPlace .\n    ?birthPlace crm:P89_falls_within* <https://data.mahmah.ch/place/a61a6cd3-df3e-584f-a598-3c1c7b935a1b> .\n  } UNION {\n    ?artist crm:P107i_is_current_or_former_member_of ?group .\n    ?group rdfs:label ?gLabel .\n    FILTER(CONTAINS(LCASE(?gLabel), 'suisse'))\n  }\n  ?obj crm:P108i_was_produced_by ?prod .\n  ?prod crm:P14_carried_out_by ?artist .\n}"
+    ],
+    "reference_answer": "There are 338 pieces from 96 Swiss artists in the museum. Swiss artists are identified via two criteria: (1) born in a place that falls within Switzerland (P92i_was_brought_into_existence_by → P7_took_place_at → P89_falls_within* Switzerland), or (2) member of a group with 'suisse' in label (P107i_is_current_or_former_member_of). The top artists by work count are: Ferdinand Hodler (28), Franz Hegi (26), Alfred Dumont (26), Stéphane Brunner (25), Jakob Samuel Weibel (17), Théophile Alexandre Steinlen (16), Jean-Antoine Linck (16), Jean-Étienne Liotard (12), Wolfgang Adam Toepffer (11), Marc Proessel (9), Martin Disler (9), Barthélemy Bodmer (9), Gérard de Palézieux (9), Davide Antonio Fossati (9). A correct answer should mention at least several of these Swiss artists and some of their works."
+  },
+  {
+    "id": "Q2",
+    "question": "Which paintings depict Geneva?",
+    "entity_count": 462,
+    "key_entities": [
+      {
+        "uri": "https://data.mahmah.ch/place/d53383f6-813a-56f2-b4ea-15b50a066234",
+        "label": "Genève (depicted place)"
+      }
+    ],
+    "sparql_queries": [
+      "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n\nSELECT (COUNT(DISTINCT ?obj) as ?count)\nWHERE {\n  ?obj crm:P62_depicts ?depicted .\n  ?depicted rdfs:label ?depictedLabel .\n  FILTER(CONTAINS(LCASE(?depictedLabel), 'genève') || CONTAINS(LCASE(?depictedLabel), 'geneva'))\n}",
+      "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n\nSELECT (COUNT(DISTINCT ?obj) as ?count)\nWHERE {\n  ?obj crm:P62_depicts ?depicted .\n  ?depicted rdfs:label ?depictedLabel .\n  FILTER(CONTAINS(LCASE(?depictedLabel), 'genève') || CONTAINS(LCASE(?depictedLabel), 'geneva'))\n  ?obj crm:P2_has_type ?type .\n  ?type rdfs:label ?typeLabel .\n  FILTER(CONTAINS(LCASE(?typeLabel), 'peinture') || CONTAINS(LCASE(?typeLabel), 'painting') || CONTAINS(LCASE(?typeLabel), 'tableau'))\n}"
+    ],
+    "reference_answer": "There are 462 works that depict Geneva (entities with 'Genève' or 'Geneva' in their label via P62_depicts). When restricted to works typed as 'peinture' (painting), the count is 205 paintings. The depicted entity is primarily the place Genève. Works include landscapes, cityscapes, and scenes of Geneva and its surroundings. A correct answer should acknowledge the large number and list some representative paintings."
+  },
+  {
+    "id": "Q3",
+    "question": "Tell me more about Ferdinand Hodler and its paintings",
+    "entity_count": 28,
+    "key_entities": [
+      {
+        "uri": "https://data.mahmah.ch/agent/8679",
+        "label": "Ferdinand Hodler"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/179911",
+        "label": "Buste de femme"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/200829",
+        "label": "Couple étendu, étude pour \"L'Amour\""
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/40152",
+        "label": "Couple étendu, étude pour le couple central de \"L'Amour\""
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/155531",
+        "label": "Deux femmes drapées de face"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/42969",
+        "label": "Deux femmes drapées debout"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/158134",
+        "label": "Deux femmes nues debout, de face et de dos"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/42079",
+        "label": "Dix croquis de figures (recto)"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/233479",
+        "label": "Enfant nu debout entouré de trois femmes drapées debout"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/216282",
+        "label": "Enfant nu debout vu de face"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/49882",
+        "label": "Etude pour \"La Bataille de Morat\". Cinq guerriers vacillant"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/48712",
+        "label": "Etude pour \"La Bataille de Morat\". Guerrier debout, de face"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/48749",
+        "label": "Femme drapée debout"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/138228",
+        "label": "Femme drapée debout vue de face"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/45133",
+        "label": "Femme drapée debout, de face"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/42122",
+        "label": "Femme drapée debout, de face (recto)"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/400725",
+        "label": "Femme nue debout, de profil"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/477359",
+        "label": "Ferdinand Hodler"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/45902",
+        "label": "Figure drapée debout"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/396703",
+        "label": "Heilige Stunde (\"L'Heure sacrée\"): figures centrales"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/45528",
+        "label": "Trois femmes drapées debout"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/45596",
+        "label": "Trois femmes drapées debout"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/305022",
+        "label": "Trois femmes drapées vues de face"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/40802",
+        "label": "Trois femmes nues debout"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/182180",
+        "label": "Tête de femme de profil"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/45352",
+        "label": "Tête de femme de profil"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/159156",
+        "label": "Tête de femme de trois-quarts"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/231644",
+        "label": "Tête de femme vue de face"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/244568",
+        "label": "Tête de femme, de profil"
+      }
+    ],
+    "sparql_queries": [
+      "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n\nSELECT ?birthDate ?birthPlace ?deathDate ?deathPlace\nWHERE {\n  <https://data.mahmah.ch/agent/8679> crm:P92i_was_brought_into_existence_by ?birth .\n  ?birth crm:P4_has_time-span ?bts . ?bts crm:P81a_end_of_the_begin ?birthDate .\n  ?birth crm:P7_took_place_at ?bp . ?bp rdfs:label ?birthPlace .\n  <https://data.mahmah.ch/agent/8679> crm:P93i_was_taken_out_of_existence_by ?death .\n  ?death crm:P4_has_time-span ?dts . ?dts crm:P81a_end_of_the_begin ?deathDate .\n  ?death crm:P7_took_place_at ?dp . ?dp rdfs:label ?deathPlace .\n} LIMIT 1",
+      "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n\nSELECT DISTINCT ?obj ?objLabel\nWHERE {\n  ?obj crm:P108i_was_produced_by ?prod .\n  ?prod crm:P14_carried_out_by <https://data.mahmah.ch/agent/8679> .\n  ?obj rdfs:label ?objLabel .\n}\nORDER BY ?objLabel"
+    ],
+    "reference_answer": "Ferdinand Hodler (born 14 March 1853 in Bern, died 19 May 1918 in Geneva) was a Swiss artist, member of the École suisse. The museum holds 28 works by Hodler, mostly drawings and studies including: figure studies (draped women, nude figures), studies for major compositions (La Bataille de Morat, L'Amour, L'Heure sacrée), portraits (Tête de femme series), and the work titled 'Ferdinand Hodler'. A correct answer should mention his birth/death dates and locations, his membership in the Swiss school, and list several of his key works in the museum collection."
+  },
+  {
+    "id": "Q4",
+    "question": "Give me the list of exhibitions that hodler participated in",
+    "entity_count": 81,
+    "key_entities": [
+      {
+        "uri": "https://data.mahmah.ch/exhibition/5441",
+        "label": "Hodler // Parallélisme"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/9234",
+        "label": "Hodler // Parallélisme"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/5377",
+        "label": "Ferdinand Hodler et Genève. Collection du Musée d'art et d'histoire"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/8422",
+        "label": "Ferdinand Hodler-Fotoalbum"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/506551",
+        "label": "Carte blanche à Ugo Rondinone : when the sun goes down and the moon comes up"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/6211",
+        "label": "Hodler. Oeuvres sur papier"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/3257",
+        "label": "Ferdinand Hodler, rétrospective"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/5018",
+        "label": "Ferdinand Hodler. Le Paysage"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/3544",
+        "label": "Ferdinand Hodler. Pour le cinquantième anniversaire de sa mort"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/205555",
+        "label": "Ferdinand Hodler. Les Bûcherons"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/159548",
+        "label": "Hodler: influences et postérité. Les carnets, un trésor de poche"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/24548",
+        "label": "Hodler et le guerrier suisse"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/128548",
+        "label": "Hodler-Segantini-Giacometti"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/6660",
+        "label": "Dessins genevois de Liotard à Hodler"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/196",
+        "label": "Exposition commémorative F. Hodler 1918-1938"
+      }
+    ],
+    "sparql_queries": [
+      "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n\nSELECT DISTINCT ?exhibition ?exhibLabel\nWHERE {\n  ?obj crm:P108i_was_produced_by ?prod .\n  ?prod crm:P14_carried_out_by <https://data.mahmah.ch/agent/8679> .\n  ?obj crm:P16i_was_used_for ?exhibition .\n  ?exhibition rdfs:label ?exhibLabel .\n}\nORDER BY ?exhibLabel",
+      "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n\nSELECT DISTINCT ?exhibition ?exhibLabel\nWHERE {\n  ?exhibition a crm:E7_Activity .\n  ?exhibition rdfs:label ?exhibLabel .\n  FILTER(CONTAINS(LCASE(?exhibLabel), 'hodler'))\n}\nORDER BY ?exhibLabel"
+    ],
+    "reference_answer": "There are 81 exhibitions with 'Hodler' in their name that contain works from the museum collection (via P16i_was_used_for links). Additionally, 2 exhibitions link directly to Hodler's works without having his name in the title (e.g., 'Carte blanche à Ugo Rondinone'). Notable exhibitions include: 'Hodler // Parallélisme', 'Ferdinand Hodler et Genève', 'Ferdinand Hodler-Fotoalbum', 'Ferdinand Hodler, rétrospective', 'Hodler. Oeuvres sur papier', 'Ferdinand Hodler. Le Paysage', 'Dessins genevois de Liotard à Hodler', and many more. A correct answer should list several key exhibitions."
+  },
+  {
+    "id": "Q5",
+    "question": "What other pieces were exhibited in Hodler // Parallélisme?",
+    "entity_count": 38,
+    "key_entities": [
+      {
+        "uri": "https://data.mahmah.ch/exhibition/5441",
+        "label": "Hodler // Parallélisme"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/9234",
+        "label": "Hodler // Parallélisme"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/364385",
+        "label": "Autoportrait"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/42945",
+        "label": "Autoportrait"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/43479",
+        "label": "Autoportrait"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/45717",
+        "label": "Autoportrait"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/45417",
+        "label": "Autoportrait, dit Autoportrait parisien"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/40814",
+        "label": "Calvin et les professeurs dans la cour du Collège de Genève"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/296192",
+        "label": "Chant lointain"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/350373",
+        "label": "L'Ouvrier philosophe"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/41957",
+        "label": "L'Unanimité"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/47315",
+        "label": "La Bataille de Morat"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/41053",
+        "label": "La Dispute"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/46484",
+        "label": "La Jungfrau dans le brouillard"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/49029",
+        "label": "La Jungfrau vue de Mürren"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/40852",
+        "label": "Le Bûcheron"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/120649",
+        "label": "Le Cerisier"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/49089",
+        "label": "Le Désir"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/230438",
+        "label": "Le Garçon enchanté"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/42222",
+        "label": "Le Grütli moderne"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/228823",
+        "label": "Le Guerrier Dietegen luttant à l'épée"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/155317",
+        "label": "Le Lac Léman et le Mont-Blanc à l'aube (octobre)"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/54050",
+        "label": "Le Lac Léman et le Mont-Blanc, avec cygnes"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/41697",
+        "label": "Le Lac Léman et le Salève avec cygnes"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/130299",
+        "label": "Le Lac Léman vu de Chexbres"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/278268",
+        "label": "Le Lac de Thoune aux reflets symétriques"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/48542",
+        "label": "Le Lac de Thoune aux reflets symétriques"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/48740",
+        "label": "Le Lilas"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/286789",
+        "label": "Le Regard dans l'Infini, figure isolée"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/40556",
+        "label": "Le Regard dans l'Infini, figure isolée"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/374675",
+        "label": "Les Buveurs"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/373516",
+        "label": "Paysage alpestre (La Vision)"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/48168",
+        "label": "Plénitude"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/47319",
+        "label": "Portrait d'un inconnu (Le Vigneron vaudois)"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/46950",
+        "label": "Portrait de Félix Vibert"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/138821",
+        "label": "Portrait de Mathias Morhardt"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/343733",
+        "label": "Portrait de Valentine Godé-Darel sur son lit de mort"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/40471",
+        "label": "Ruisseau à Champéry"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/242761",
+        "label": "Soir d'automne"
+      },
+      {
+        "uri": "https://data.mahmah.ch/work/49971",
+        "label": "Trois rangs de soldats du cortège de l'Escalade défilant"
+      }
+    ],
+    "sparql_queries": [
+      "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n\nSELECT DISTINCT ?obj ?objLabel\nWHERE {\n  ?exhibition rdfs:label ?exhibLabel .\n  FILTER(CONTAINS(?exhibLabel, 'Parall'))\n  ?obj crm:P16i_was_used_for ?exhibition .\n  ?obj rdfs:label ?objLabel .\n}\nORDER BY ?objLabel"
+    ],
+    "reference_answer": "38 pieces were exhibited in 'Hodler // Parallélisme' (two exhibition URIs: 5441 and 9234, likely different venues). Key works include: multiple Autoportraits, La Bataille de Morat, Le Bûcheron, Le Cerisier, Le Désir, L'Unanimité, La Dispute, Le Lac Léman et le Salève avec cygnes, Le Lac Léman et le Mont-Blanc avec cygnes, Le Lac de Thoune aux reflets symétriques, Le Regard dans l'Infini, Les Buveurs, Plénitude, Portrait de Valentine Godé-Darel sur son lit de mort, Calvin et les professeurs, and others. A correct answer should list several of these works."
+  },
+  {
+    "id": "Q6",
+    "question": "Where the painting Le Lac Léman et le Salève avec cygnes was exhibited?",
+    "entity_count": 9,
+    "key_entities": [
+      {
+        "uri": "https://data.mahmah.ch/work/41697",
+        "label": "Le Lac Léman et le Salève avec cygnes"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/179548",
+        "label": "Bleu, la couleur du Modernisme"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/194548",
+        "label": "Bleu, la couleur du Modernisme"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/194549",
+        "label": "Bleu, la couleur du Modernisme"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/506551",
+        "label": "Carte blanche à Ugo Rondinone : when the sun goes down and the moon comes up"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/3663",
+        "label": "Ferdinand Hodler"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/4998",
+        "label": "Ferdinand Hodler"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/5240",
+        "label": "Ferdinand Hodler"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/5377",
+        "label": "Ferdinand Hodler et Genève. Collection du Musée d'art et d'histoire"
+      },
+      {
+        "uri": "https://data.mahmah.ch/exhibition/5441",
+        "label": "Hodler // Parallélisme"
+      }
+    ],
+    "sparql_queries": [
+      "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n\nSELECT DISTINCT ?exhibition ?exhibLabel\nWHERE {\n  <https://data.mahmah.ch/work/41697> crm:P16i_was_used_for ?exhibition .\n  ?exhibition rdfs:label ?exhibLabel .\n}\nORDER BY ?exhibLabel"
+    ],
+    "reference_answer": "The painting 'Le Lac Léman et le Salève avec cygnes' (work/41697) was exhibited in 9 exhibitions: 'Bleu, la couleur du Modernisme' (3 instances, likely different venues), 'Carte blanche à Ugo Rondinone : when the sun goes down and the moon comes up', 'Ferdinand Hodler' (3 instances at different venues), 'Ferdinand Hodler et Genève. Collection du Musée d'art et d'histoire', and 'Hodler // Parallélisme'. A correct answer should list these exhibitions. Note: the question asks 'where' so location information is relevant if available."
+  },
+  {
+    "id": "Q7",
+    "question": "Only this exhibitions? (follow-up to Q6 — same answer expected)",
+    "entity_count": 9,
+    "key_entities": [
+      {
+        "uri": "https://data.mahmah.ch/work/41697",
+        "label": "Le Lac Léman et le Salève avec cygnes"
+      }
+    ],
+    "sparql_queries": [
+      "Same as Q6"
+    ],
+    "reference_answer": "This is a follow-up to Q6. The system should confirm that according to the data, those are the only exhibitions recorded for the painting 'Le Lac Léman et le Salève avec cygnes'. The answer is the same 9 exhibitions listed in Q6. A correct answer should either confirm the list or note that the dataset may not be exhaustive."
+  },
+  {
+    "id": "Q8",
+    "question": "Are there any articles talking about the exhibitions of Hodler?",
+    "entity_count": 3,
+    "key_entities": [
+      {
+        "uri": "https://data.mahmah.ch/archive/item/2198529",
+        "label": "L'exposition Hodler à Bruxelles"
+      },
+      {
+        "uri": "https://data.mahmah.ch/archive/item/2198761",
+        "label": "L'exposition Hodler à la Galerie Moos"
+      },
+      {
+        "uri": "https://data.mahmah.ch/archive/item/2198481",
+        "label": "Une exposition Hodler"
+      }
+    ],
+    "sparql_queries": [
+      "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n\nSELECT DISTINCT ?item ?itemLabel\nWHERE {\n  ?digital crm:P67_refers_to <https://data.mahmah.ch/agent/8679> .\n  ?item crm:P128_carries ?digital .\n  ?item rdfs:label ?itemLabel .\n  FILTER(CONTAINS(LCASE(?itemLabel), 'hodler') && CONTAINS(LCASE(?itemLabel), 'exposition'))\n}\nORDER BY ?itemLabel",
+      "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n\nSELECT DISTINCT ?item ?itemLabel\nWHERE {\n  ?digital crm:P67_refers_to <https://data.mahmah.ch/agent/8679> .\n  ?item crm:P128_carries ?digital .\n  ?item rdfs:label ?itemLabel .\n  FILTER(CONTAINS(LCASE(?itemLabel), 'exposition'))\n}\nORDER BY ?itemLabel",
+      "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n\nSELECT (COUNT(DISTINCT ?doc) as ?count)\nWHERE {\n  ?doc a crm:E31_Document .\n  ?doc rdfs:label ?docLabel .\n  FILTER(CONTAINS(LCASE(?docLabel), 'hodler') && CONTAINS(LCASE(?docLabel), 'exposition'))\n}"
+    ],
+    "reference_answer": "Yes. There are articles (press clippings from the archive) that discuss Hodler exhibitions. Through the P67_refers_to chain (archive item -> P128_carries -> digital item -> P67_refers_to -> Hodler agent), 3 articles specifically mention both 'Hodler' and 'exposition' in their title: 'L'exposition Hodler à Bruxelles', 'L'exposition Hodler à la Galerie Moos', and 'Une exposition Hodler'. Additionally, there are 29 articles in broader P67-linked results mentioning 'exposition'. The E31_Document catalog also has 29 documents with both 'hodler' and 'exposition' in their labels, but these are mostly exhibition catalogues rather than articles. A correct answer should mention at least the 3 key archive articles."
+  },
+  {
+    "id": "Q9",
+    "question": "Are there any articles referencing Ferdinand Hodler?",
+    "entity_count": 131,
+    "key_entities": [
+      {
+        "uri": "https://data.mahmah.ch/agent/8679",
+        "label": "Ferdinand Hodler"
+      },
+      {
+        "uri": "https://data.mahmah.ch/archive/item/gen-001_2003_51__444_d",
+        "label": "Copies de paysage exécutées par Ferdinand Hodler à Genève en 1872"
+      },
+      {
+        "uri": "https://data.mahmah.ch/archive/item/2199194",
+        "label": "De Hodler à François Barraud"
+      },
+      {
+        "uri": "https://data.mahmah.ch/archive/item/2198947",
+        "label": "De Louis XIV à Hodler"
+      },
+      {
+        "uri": "https://data.mahmah.ch/archive/item/2198935",
+        "label": "Hodler et Rheiner"
+      },
+      {
+        "uri": "https://data.mahmah.ch/archive/item/2199032",
+        "label": "Hodler et la mort"
+      },
+      {
+        "uri": "https://data.mahmah.ch/archive/item/2198458",
+        "label": "Hodler. Salon d'automne"
+      },
+      {
+        "uri": "https://data.mahmah.ch/archive/item/gen-001_2017_65__214_d",
+        "label": "Le mobilier avant-gardiste de Ferdinand Hodler"
+      },
+      {
+        "uri": "https://data.mahmah.ch/archive/item/gen-001_2016_64__206_d",
+        "label": "Les Sept Paroles de Fernand Sarnette : Ferdinand Hodler illustrateur"
+      },
+      {
+        "uri": "https://data.mahmah.ch/archive/item/gen-001_2016_64__205_d",
+        "label": "Madame Hodler, une œuvre d'Alice Bailly"
+      },
+      {
+        "uri": "https://data.mahmah.ch/archive/item/gen-001_2001_49__427_d",
+        "label": "Splendeur de la nature : le Cerisier (1915) de Ferdinand Hodler"
+      },
+      {
+        "uri": "https://data.mahmah.ch/archive/item/2199994",
+        "label": "Un Hodler inconnu"
+      },
+      {
+        "uri": "https://data.mahmah.ch/archive/item/2198481",
+        "label": "Une exposition Hodler"
+      },
+      {
+        "uri": "https://data.mahmah.ch/archive/item/gen-001_2007_55__441_d",
+        "label": "Œuvres de Ferdinand Hodler provenant de la collection David Schmidt"
+      },
+      {
+        "uri": "https://data.mahmah.ch/archive/item/2198529",
+        "label": "L'exposition Hodler à Bruxelles"
+      },
+      {
+        "uri": "https://data.mahmah.ch/archive/item/2198761",
+        "label": "L'exposition Hodler à la Galerie Moos"
+      }
+    ],
+    "sparql_queries": [
+      "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>\n\nSELECT (COUNT(DISTINCT ?item) as ?count)\nWHERE {\n  ?digital crm:P67_refers_to <https://data.mahmah.ch/agent/8679> .\n  ?item crm:P128_carries ?digital .\n}",
+      "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n\nSELECT DISTINCT ?item ?itemLabel\nWHERE {\n  ?digital crm:P67_refers_to <https://data.mahmah.ch/agent/8679> .\n  ?item crm:P128_carries ?digital .\n  ?item rdfs:label ?itemLabel .\n  FILTER(CONTAINS(LCASE(?itemLabel), 'hodler'))\n}\nORDER BY ?itemLabel",
+      "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n\nSELECT (COUNT(DISTINCT ?doc) as ?count)\nWHERE {\n  ?doc a crm:E31_Document .\n  ?doc rdfs:label ?docLabel .\n  FILTER(CONTAINS(LCASE(?docLabel), 'hodler'))\n}"
+    ],
+    "reference_answer": "Yes, there are 131 archive items (articles, press clippings, academic papers) that reference Ferdinand Hodler via the P67_refers_to relationship chain (item -> P128_carries -> digital -> P67_refers_to -> agent/8679). Of these, 15 specifically mention 'Hodler' in their title. Additionally, there are 110 E31_Document entities (bibliographic references) with 'Hodler' in the label. Key articles include: 'Copies de paysage exécutées par Ferdinand Hodler à Genève en 1872', 'Hodler et la mort', 'Hodler et Rheiner', 'Le mobilier avant-gardiste de Ferdinand Hodler', 'Les Sept Paroles de Fernand Sarnette', 'Madame Hodler', 'Un Hodler inconnu', 'Une exposition Hodler', and many others. A correct answer should mention the large number and list some representative articles."
+  },
+  {
+    "id": "Q10",
+    "question": "Are there more articles? (follow-up to Q9)",
+    "entity_count": 131,
+    "key_entities": [
+      {
+        "uri": "https://data.mahmah.ch/agent/8679",
+        "label": "Ferdinand Hodler"
+      }
+    ],
+    "sparql_queries": [
+      "Same as Q9"
+    ],
+    "reference_answer": "This is a follow-up to Q9. With 131 archive items and 110 E31_Document bibliographic references mentioning Hodler, there are indeed many more articles beyond what was initially listed. A correct answer should confirm there are additional articles and list more examples not mentioned in Q9, or note the total count. The system should be able to retrieve additional articles from its document store."
+  },
+  {
+    "id": "Q11",
+    "question": "Tell me about the article \"Une exposition Hodler\".",
+    "entity_count": 1,
+    "key_entities": [
+      {
+        "uri": "https://data.mahmah.ch/archive/item/2198481",
+        "label": "Une exposition Hodler"
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/58395",
+        "label": "Lucienne Florentin"
+      },
+      {
+        "uri": "https://data.mahmah.ch/archive/1822318/sous-dossier",
+        "label": "Coupures de presse de \"La Suisse\" des années 1920"
+      }
+    ],
+    "sparql_queries": [
+      "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n\nSELECT ?p ?o\nWHERE {\n  <https://data.mahmah.ch/archive/item/2198481> ?p ?o\n}",
+      "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n\nSELECT ?p ?o\nWHERE {\n  <https://data.mahmah.ch/archive/item/2198481/creation> ?p ?o\n}",
+      "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n\nSELECT ?label\nWHERE {\n  <https://data.mahmah.ch/agent/58395> rdfs:label ?label\n}",
+      "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>\n\nSELECT ?p ?o\nWHERE {\n  <https://data.mahmah.ch/archive/item/2198481/creation/time> ?p ?o\n}",
+      "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n\nSELECT ?label\nWHERE {\n  <https://data.mahmah.ch/archive/1822318/sous-dossier> rdfs:label ?label\n}"
+    ],
+    "reference_answer": "\"Une exposition Hodler\" is an E22_Human-Made_Object (archive item, URI: archive/item/2198481). It is a 'Coupure de presse' (press clipping) of type matching AAT 300026030. Its description is: 'Exposition Ferdinand Hodler au Musée d'art et d'histoire'. It was created (P108i_was_produced_by) by Lucienne Florentin (agent/58395) on 1921-07-12 (July 12, 1921). It forms part of (P46i_forms_part_of) the dossier 'Coupures de presse de \"La Suisse\" des années 1920'. It carries a digital representation (P128_carries) and refers to Ferdinand Hodler via the P67 chain. A correct answer should mention: the title, that it is a press clipping about a Hodler exhibition at the MAH, written by Lucienne Florentin, dated July 12, 1921, and part of a collection of press clippings from the newspaper La Suisse from the 1920s."
+  },
+  {
+    "id": "Q12",
+    "question": "Aside from Hodler, are there any relevant Swiss Artist?",
+    "entity_count": 95,
+    "key_entities": [
+      {
+        "uri": "https://data.mahmah.ch/agent/1926",
+        "label": "Franz Hegi",
+        "work_count": 26
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/52453",
+        "label": "Alfred Dumont",
+        "work_count": 26
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/5569",
+        "label": "Stéphane Brunner",
+        "work_count": 25
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/62887",
+        "label": "Jakob Samuel Weibel",
+        "work_count": 17
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/1415",
+        "label": "Théophile Alexandre Steinlen",
+        "work_count": 16
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/19463",
+        "label": "Jean-Antoine Linck",
+        "work_count": 16
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/14121",
+        "label": "Jean-Étienne Liotard",
+        "work_count": 12
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/16389",
+        "label": "Wolfgang Adam Toepffer",
+        "work_count": 11
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/40000",
+        "label": "Marc Proessel",
+        "work_count": 9
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/40397",
+        "label": "Martin Disler",
+        "work_count": 9
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/58848",
+        "label": "Barthélemy Bodmer",
+        "work_count": 9
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/59149",
+        "label": "Gérard de Palézieux",
+        "work_count": 9
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/9522",
+        "label": "Davide Antonio Fossati",
+        "work_count": 9
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/52907",
+        "label": "Gérard Pétremand",
+        "work_count": 6
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/578",
+        "label": "Pietro Sarto",
+        "work_count": 6
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/58721",
+        "label": "Félix Vallotton",
+        "work_count": 6
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/59961",
+        "label": "Gabriel Ludwig Lory",
+        "work_count": 6
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/17615",
+        "label": "Johann Ludwig Aberli",
+        "work_count": 5
+      }
+    ],
+    "sparql_queries": [
+      "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX skos: <http://www.w3.org/2004/02/skos/core#>\n\nSELECT ?artist ?artistLabel (COUNT(DISTINCT ?obj) as ?workCount)\nWHERE {\n  {\n    ?artist crm:P92i_was_brought_into_existence_by ?birth .\n    ?birth crm:P7_took_place_at ?birthPlace .\n    ?birthPlace crm:P89_falls_within* <https://data.mahmah.ch/place/a61a6cd3-df3e-584f-a598-3c1c7b935a1b> .\n  } UNION {\n    ?artist crm:P107i_is_current_or_former_member_of ?group .\n    ?group rdfs:label ?gLabel .\n    FILTER(CONTAINS(LCASE(?gLabel), 'suisse'))\n  }\n  ?obj crm:P108i_was_produced_by ?prod .\n  ?prod crm:P14_carried_out_by ?artist .\n  ?artist skos:prefLabel ?artistLabel .\n}\nGROUP BY ?artist ?artistLabel\nORDER BY DESC(?workCount)",
+      "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n\nSELECT (COUNT(DISTINCT ?obj) as ?totalWorks) (COUNT(DISTINCT ?artist) as ?totalArtists)\nWHERE {\n  {\n    ?artist crm:P92i_was_brought_into_existence_by ?birth .\n    ?birth crm:P7_took_place_at ?birthPlace .\n    ?birthPlace crm:P89_falls_within* <https://data.mahmah.ch/place/a61a6cd3-df3e-584f-a598-3c1c7b935a1b> .\n  } UNION {\n    ?artist crm:P107i_is_current_or_former_member_of ?group .\n    ?group rdfs:label ?gLabel .\n    FILTER(CONTAINS(LCASE(?gLabel), 'suisse'))\n  }\n  ?obj crm:P108i_was_produced_by ?prod .\n  ?prod crm:P14_carried_out_by ?artist .\n}"
+    ],
+    "reference_answer": "Yes, aside from Hodler there are 95 other Swiss artists with works in the museum. Swiss artists are identified via birth place in Switzerland or membership in Swiss groups. The most prominent by work count are: Franz Hegi (26 works), Alfred Dumont (26), Stéphane Brunner (25), Jakob Samuel Weibel (17), Théophile Alexandre Steinlen (16), Jean-Antoine Linck (16), Jean-Étienne Liotard (12), Wolfgang Adam Toepffer (11), Marc Proessel (9), Martin Disler (9), Barthélemy Bodmer (9), Gérard de Palézieux (9), Davide Antonio Fossati (9). A correct answer should list several of these artists, especially the most prolific ones."
+  },
+  {
+    "id": "Q13",
+    "question": "Which are the top 10 Swiss Artists in the Musée d'art et d'histoire?",
+    "entity_count": 10,
+    "key_entities": [
+      {
+        "uri": "https://data.mahmah.ch/agent/8679",
+        "label": "Ferdinand Hodler",
+        "work_count": 28
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/1926",
+        "label": "Franz Hegi",
+        "work_count": 26
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/52453",
+        "label": "Alfred Dumont",
+        "work_count": 26
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/5569",
+        "label": "Stéphane Brunner",
+        "work_count": 25
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/62887",
+        "label": "Jakob Samuel Weibel",
+        "work_count": 17
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/1415",
+        "label": "Théophile Alexandre Steinlen",
+        "work_count": 16
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/19463",
+        "label": "Jean-Antoine Linck",
+        "work_count": 16
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/14121",
+        "label": "Jean-Étienne Liotard",
+        "work_count": 12
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/16389",
+        "label": "Wolfgang Adam Toepffer",
+        "work_count": 11
+      },
+      {
+        "uri": "https://data.mahmah.ch/agent/40000",
+        "label": "Marc Proessel",
+        "work_count": 9
+      }
+    ],
+    "sparql_queries": [
+      "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX skos: <http://www.w3.org/2004/02/skos/core#>\n\nSELECT ?artist ?artistLabel (COUNT(DISTINCT ?obj) as ?workCount)\nWHERE {\n  {\n    ?artist crm:P92i_was_brought_into_existence_by ?birth .\n    ?birth crm:P7_took_place_at ?birthPlace .\n    ?birthPlace crm:P89_falls_within* <https://data.mahmah.ch/place/a61a6cd3-df3e-584f-a598-3c1c7b935a1b> .\n  } UNION {\n    ?artist crm:P107i_is_current_or_former_member_of ?group .\n    ?group rdfs:label ?gLabel .\n    FILTER(CONTAINS(LCASE(?gLabel), 'suisse'))\n  }\n  ?obj crm:P108i_was_produced_by ?prod .\n  ?prod crm:P14_carried_out_by ?artist .\n  ?artist skos:prefLabel ?artistLabel .\n}\nGROUP BY ?artist ?artistLabel\nORDER BY DESC(?workCount)",
+      "PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n\nSELECT (COUNT(DISTINCT ?obj) as ?totalWorks) (COUNT(DISTINCT ?artist) as ?totalArtists)\nWHERE {\n  {\n    ?artist crm:P92i_was_brought_into_existence_by ?birth .\n    ?birth crm:P7_took_place_at ?birthPlace .\n    ?birthPlace crm:P89_falls_within* <https://data.mahmah.ch/place/a61a6cd3-df3e-584f-a598-3c1c7b935a1b> .\n  } UNION {\n    ?artist crm:P107i_is_current_or_former_member_of ?group .\n    ?group rdfs:label ?gLabel .\n    FILTER(CONTAINS(LCASE(?gLabel), 'suisse'))\n  }\n  ?obj crm:P108i_was_produced_by ?prod .\n  ?prod crm:P14_carried_out_by ?artist .\n}"
+    ],
+    "reference_answer": "The top 10 Swiss artists in the Musée d'art et d'histoire by work count are: 1. Ferdinand Hodler (28 works), 2. Franz Hegi (26), 3. Alfred Dumont (26), 4. Stéphane Brunner (25), 5. Jakob Samuel Weibel (17), 6. Théophile Alexandre Steinlen (16), 7. Jean-Antoine Linck (16), 8. Jean-Étienne Liotard (12), 9. Wolfgang Adam Toepffer (11), 10. Marc Proessel (9). Swiss artists are identified via birth place in Switzerland or membership in Swiss groups. A correct answer should rank artists by productivity and name the most prolific ones."
+  }
+]

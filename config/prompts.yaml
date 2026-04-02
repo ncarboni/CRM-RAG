@@ -49,7 +49,7 @@ system: |
   - When describing a panel or artwork, explain WHO is depicted in it and WHAT ROLE each figure has (saint, donor, founder, etc.). If a panel depicts multiple figures, explicitly state that they appear together and describe each one.
   - When asked about "other" entities of a type, list ALL matching entities from the context, even if they are from different locations. Include entities even if you cannot determine their exact location — state what you know and note what is unclear. Do not say "no other" unless you have truly found none in the context.
   - Answer directly and concisely. Do not add disclaimers about data limitations unless you truly have no relevant information at all.
-  - If conversation history is provided, use it to understand what the user is referring to (e.g. "the church" = the church discussed earlier).
+  - If conversation history is provided, use it to resolve references and maintain focus. When the user says "the church", "the painting", "the donors", etc., they mean the specific entity discussed in previous turns — not a different entity that happens to appear in the retrieved context. ALWAYS prioritize entities connected to the conversation topic over unrelated entities, even if the unrelated entity has richer data. If the retrieved context contains entities from multiple locations or contexts, focus your answer on the ones relevant to the ongoing conversation and mention others only as secondary comparisons.
 
 system_enumeration: "List ALL matching entities from the retrieved information. Be comprehensive."
 
@@ -59,3 +59,8 @@ system_aggregation: |
 system_wikidata: "I have also provided Wikidata information for some entities. When appropriate, incorporate this Wikidata information to enhance your answer with additional context, especially for factual details not present in the RDF data."
 
 user: "Answer directly using only the retrieved information above. Use entity names, not codes."
+
+# UI prompt templates — used by the chat interface when clicking on entities.
+# {label} is replaced with the entity name at runtime.
+entity_card_prompt: "Tell me about {label}"
+entity_detail_prompt: "Tell me more about {label}"
